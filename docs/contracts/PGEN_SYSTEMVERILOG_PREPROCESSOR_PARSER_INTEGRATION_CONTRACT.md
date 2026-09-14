@@ -952,6 +952,22 @@ Where this prose and the inventory disagree, the inventory wins.
   (§40.3.1), `--sv-unit-file` folds a predecessor file's macro table into the unit, and the event log gained the
   `LineDirective` and `ProtectedEnvelope` kinds. The single-command chain is
   `parseability_probe --parse systemverilog FILE --profile P --preprocess …` (exit 3 = the preprocessor refused).
+- **`` `begin_keywords `` regions (IEEE 1800-2017 §22.14), landed 2026-09-14 (`SVPP-EXPANSION.8`).** The
+  expansion stage applies the clause as TEXT: inside a region, every token the PARSE PROFILE reserves and
+  the region's `version_specifier` does not is re-emitted as an ESCAPED identifier (`logic` → `\logic `),
+  which §5.6.2 makes not a keyword and §5.6.1 makes the same identifier as the unescaped spelling. The
+  profile is `SvPreprocessorConfig::parse_profile` — `--profile` on the single command,
+  `--sv-keyword-profile` on `ast_pipeline --preprocess-systemverilog`; `None` is the parser's unprofiled
+  reading, which reserves IEEE 1800-2017 Table B.1. Regions nest and are UNIT state (they carry across
+  `--sv-unit-file` boundaries, per the clause). The per-version tables are `rust/src/sv_keyword_versions.rs`,
+  derived from the in-repo LRM text and held equal to it by the `SV-KEYWORD-VERSIONS` doctrine. New
+  diagnostics: `E_SVPP_UNKNOWN_KEYWORDS_VERSION` (§22.14's *"It shall be an error if an implementation does
+  not recognize the version_specifier"*), `W_SVPP_KEYWORDS_VERSION_ABOVE_PROFILE` (the region reserves more
+  than the profile — text cannot create a keyword, so the region is applied only in the direction it can),
+  `W_SVPP_KEYWORDS_VERSION_NOT_IN_EDITION`, `W_SVPP_UNMATCHED_END_KEYWORDS`,
+  `W_SVPP_MALFORMED_KEYWORDS_DIRECTIVE`; new event kind `KeywordsRegion`. ⛔ A consumer walking the AST sees
+  the ESCAPED spelling at a rendered site — `{kind: "escaped_identifier"}`-shaped, body `\logic ` — and the
+  source map maps it back to the unescaped bytes the author wrote.
 - The live measurement of the expansion is the SV parser book's chapter
   `docs/systemverilog_parser_book/src/preprocess-parse-pipeline.md`, not this family's status page: this
   family's corpus leg stays NOT MEASURED because no corpus of directive files is wired, and the expansion's

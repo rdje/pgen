@@ -487,6 +487,10 @@ fn load_probe_input(
             .map(std::path::PathBuf::from)
             .collect(),
         defines,
+        // `SVPP-EXPANSION.8`: the profile this command will PARSE under is what decides which
+        // identifiers a `` `begin_keywords `` region has to unreserve (IEEE 1800-2017 §22.14), so
+        // the preprocess stage is told the same `--profile` the parse stage reads.
+        parse_profile: options.profile.clone(),
         ..SvPreprocessorConfig::default()
     };
     let mut unit: Vec<std::path::PathBuf> = options

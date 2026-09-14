@@ -1754,7 +1754,7 @@ This is the document downstream projects such as Nexsim should read first when d
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
 
-## Front End — the preprocess→parse pipeline (`SVPP-EXPANSION.7`, 2026-09-09; no release / schema bump — the grammar and the generated parser are unchanged at `1.0.227` / schema `32`)
+## Front End — the preprocess→parse pipeline (`SVPP-EXPANSION.7`, 2026-09-09; `.8` 2026-09-14; no release / schema bump — the grammar and the generated parser are unchanged at `1.0.230` / schema `33`)
 
 The parser this contract describes reads SystemVerilog **after** the compiler directives of IEEE 1800-2017
 clause 22 have been executed. Raw text with `` `include ``, `` `define `` and `` `ifdef `` in it is
@@ -1794,7 +1794,27 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   `--sv-conditional-symbol-policy` (`E_SVPP_UNDEFINED_CONDITIONAL_SYMBOL` under the strict policy) and macro
   redefinition under `--sv-macro-redefine-policy` (`E_SVPP_MACRO_REDEFINED` when disallowed). Every event is
   logged (`Define Undef Include Ifdef Ifndef Elsif Else Endif PassthroughLine SkippedLine MacroExpand
-  LineDirective ProtectedEnvelope`).
+  LineDirective ProtectedEnvelope KeywordsRegion`).
+- **`` `begin_keywords `` regions are APPLIED, and the profile reaches this stage** (`SVPP-EXPANSION.8`,
+  IEEE 1800-2017 §22.14). A region selects which identifiers are reserved; the generated parser reserves one
+  set per PROFILE and cannot switch mid-file, so the expansion renders the difference as text — every token
+  the parse profile reserves and the region's `version_specifier` does not is re-emitted as an ESCAPED
+  identifier (`reg [63:0] logic;` → `reg [63:0] \logic ;`), which §5.6.2 makes not a keyword and §5.6.1 makes
+  the same identifier as the unescaped spelling. ⛔ **A consumer walking the AST sees that escaped spelling**
+  at a rendered site and the source map points back at the bytes the author wrote. The profile is
+  `--profile` on the single command (`--sv-keyword-profile` on `ast_pipeline --preprocess-systemverilog`);
+  omitted, the parser's unprofiled reading is used, which reserves IEEE 1800-2017 Table B.1. Regions NEST
+  and are compilation-UNIT state — they carry across `--sv-unit-file` boundaries, as the clause requires.
+  The per-version tables are the standard's own (Table 22-1 … 22-6 and §22.14.4's `"1364-2001-noconfig"`
+  exclusions), carried in `rust/src/sv_keyword_versions.rs`, derived from the in-repo LRM text and held
+  equal to it on every commit by the `SV-KEYWORD-VERSIONS` doctrine. Refusals and reports:
+  `E_SVPP_UNKNOWN_KEYWORDS_VERSION` (§22.14: *"It shall be an error if an implementation does not recognize
+  the version_specifier"*), `W_SVPP_KEYWORDS_VERSION_ABOVE_PROFILE` (the region reserves MORE than the
+  profile — text can unreserve a keyword, it cannot reserve a non-keyword, so the region is applied only in
+  the direction text can express), `W_SVPP_KEYWORDS_VERSION_NOT_IN_EDITION` (the profile's own edition does
+  not define that specifier; the parser then refuses the directive), `W_SVPP_UNMATCHED_END_KEYWORDS`,
+  `W_SVPP_MALFORMED_KEYWORDS_DIRECTIVE`. Event kind `KeywordsRegion` records each directive, the words the
+  region unreserves and the tokens it rendered.
 - **The source-map contract** (`origin_of_position`): the preprocessor appends one source-map chunk per
   emitted line; a rejection's `[origin=FILE:LINE:COL]` is the chunk holding the rejection's byte offset in the
   EXPANDED text — an `` `include ``d line names the included file, a macro expansion names the line of the

@@ -275,6 +275,61 @@ a string quote — SystemVerilog has none (§5.9) — so `` `define DV_FCOV_INST
 dropped without a word and `` new``ARGS_ `` pasted into the legal identifier `newARGS_`. Only a rule
 that *refuses* (extra actuals) made it visible; the fix moved four OpenTitan files to `pass`.
 
+**`` `begin_keywords `` regions are rendered, not ignored** (`SVPP-EXPANSION.8`). IEEE 1800-2017 §22.14
+lets a block of source select *which identifiers are reserved as keywords*, from a version of IEEE 1364
+or IEEE 1800: inside `` `begin_keywords "1364-2001" `` … `` `end_keywords ``, `logic` is an ordinary
+name. A generated parser reserves one set per PROFILE and cannot switch mid-file, so the expansion stage
+renders the difference as TEXT — every token the parse profile reserves and the region's version does not
+is re-emitted as an ESCAPED identifier:
+
+```systemverilog
+`begin_keywords "1364-2001"     // the source, as its author wrote it
+module top;
+  reg [63:0] logic;             // OK: `logic` is not a keyword in 1364-2001
+endmodule
+`end_keywords
+```
+
+```systemverilog
+`begin_keywords "1364-2001"     // what the parser is handed
+module top;
+  reg [63:0] \logic ;           // §5.6.2: "A SystemVerilog keyword preceded by an escape
+endmodule                       //  character is not interpreted as a keyword"
+`end_keywords
+```
+
+§5.6.1 makes the two spellings the same identifier (*"an escaped identifier `\cpu3` is treated the same
+as a nonescaped identifier `cpu3`"*), so nothing about the design changes — only which words the parser
+may bind as names. What decides the rendering:
+
+- **The profile.** `--profile` reaches this stage (`--sv-keyword-profile` on
+  `ast_pipeline --preprocess-systemverilog`); under `verilog_2005` the parser never reserved `logic`, so
+  the same region renders nothing. Omitted, the parser's unprofiled reading is used, which reserves
+  IEEE 1800-2017 Table B.1.
+- **The version tables are the LRM's own** — Table 22-1 … Table 22-6 and §22.14.4's
+  "1364-2001-noconfig" exclusion list — derived from the in-repo standard text and held equal to it on
+  every commit by the `SV-KEYWORD-VERSIONS` doctrine, never typed by hand.
+- **Regions nest** (*"Each nested pair is stacked"*) and run *"even across source code file boundaries,
+  until the matching `` `end_keywords `` directive or the end of the compilation unit"*, so the stack is
+  carried between the files of a `--sv-unit-file` unit exactly as the macro table is. sv2v's
+  `test/lex/begin_keywords.sv` turns on exactly this: inside a `"1364-2005"` region nested in a
+  `"1364-1995"` one, `task automatic bar;` keeps `automatic` as a keyword while `logic` becomes a name.
+- **It is lexical.** A keyword named in a comment, a string literal, a numeric literal, a `$`-name or an
+  escaped identifier is not a token of the design and is left exactly as written; the source map is
+  re-indexed by the exact byte delta of each rendering, so a rejection still names the line its author
+  wrote.
+- **What it cannot do it reports.** Text can unreserve a keyword; it cannot reserve a non-keyword. A
+  region naming a version that reserves MORE than the profile raises
+  `W_SVPP_KEYWORDS_VERSION_ABOVE_PROFILE` and is applied only in the direction text can express; one
+  naming a specifier the profile's own edition does not define raises
+  `W_SVPP_KEYWORDS_VERSION_NOT_IN_EDITION` (the parser then refuses the directive); an unpaired
+  `` `end_keywords `` raises `W_SVPP_UNMATCHED_END_KEYWORDS`; and a specifier no version of the standard
+  defines is `E_SVPP_UNKNOWN_KEYWORDS_VERSION` — §22.14's own *"It shall be an error if an
+  implementation does not recognize the version_specifier"*.
+
+The event log records each directive (`keywords_region`) with its specifier, how many words the region
+unreserves and how many tokens it actually rendered.
+
 **The deferred population, re-read.** The raw answer key is honest about what a one-file parse cannot
 decide: a must-accept file whose raw parse stops on a macro use, a conditional or an `` `include `` is
 *explained* by a position test, and a multi-file design file carries no verdict at all. The tracked

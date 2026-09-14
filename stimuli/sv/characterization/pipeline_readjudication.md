@@ -9,11 +9,11 @@
 | answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e424835e1304fad9719f7c04b82135b1e13fd31d24fa27b9d21c167fcd8c6fba` |
 | explained_svpp audit | `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/after/audit.tsv` | `e30149eb2dc125d24f0a27c537984fc2e11b6ba13062e0e62f162e7d02dfeded` |
 | dark chained_only audit | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv` | `a1107daee5ad2473a6061d15d6bdd6f79857afff44102c7f4651dd6687a615ea` |
-| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `c272b38500e5ec1a2adf08cd412655faca44f85c1d4d1f009541c2fc5ca2582f` |
+| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `247f852f6bad39bfcb8756461b935d2f71d6b5eb29db1b4d908a5175733deb50` |
 | refuted dispositions (`.6b`) | `stimuli/sv/characterization/refuted_dispositions.tsv` | `239d71886d8a989a213a357afcb5321672b467a059054c7c7d1242a9578e0c6d` |
-| parse binary | `rust/target/debug/parseability_probe` | `ed14ce99cc5e0330444a924008983d66ebd4ce461c160c1a79b55279d03ce1ff` |
+| parse binary | `rust/target/debug/parseability_probe` | `78a066ce17f5210c9668029858660265118f10d33c9d2593059e8728f5b28247` |
 
-Measured at `HEAD` = `9646dc98+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
+Measured at `HEAD` = `5e6e03350+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
 
 ## The headline
 
@@ -21,7 +21,7 @@ Measured at `HEAD` = `9646dc98+dirty`; the parse binary is a **debug** build (th
 - **explained_svpp** — must-accept rows the raw lane explained away by preprocessing (`divergence:explained_svpp_*`; `.12a`'s position test, `.12b`'s 263): 1,357 rows → `corroborated` 1,223, `refuted:cross_file_base_class` 103, `refuted:vendor_identity_branch` 9, `refused_engine` 7, `refuted:driver_define` 7, `refused_context` 5, `refuted:preprocessor_item` 2, `refuted:cross_file_define` 1
 - **chained_only** — multi-file design rows the raw lane could not judge (`deferred:chained_only`; `.13c`'s strata, `.13d`'s expansion-owned rows): 4,926 rows → `chained:accepted_under_expansion` 1,964, `chained:unreached_in_unit` 1,923, `chained:rejects_own_file` 710, `chained:refused_context` 210, `chained:hollow` 104, `chained:refused_engine` 15
 - **svpp_owned** — rows whose conformance the raw lane routed to the preprocessor lane (`deferred:svpp_owned`): 172 rows → `svpp_owned:accepted_under_expansion` 112, `svpp_owned:refused_engine` 30, `svpp_owned:rejects_own_file` 27, `svpp_owned:refused_context` 2, `svpp_owned:hollow` 1
-- **must_reject** — rows the answer key expects REJECTED — the manifest's `expected`, or a pin the raw lane demoted (`.6b.1`); a pipeline pass here is an over-acceptance candidate: 450 rows → `must_reject:match_under_expansion` 448, `must_reject:accepts_invalid` 2
+- **must_reject** — rows the answer key expects REJECTED — the manifest's `expected`, or a pin the raw lane demoted (`.6b.1`); a pipeline pass here is an over-acceptance candidate: 450 rows → `must_reject:match_under_expansion` 449, `must_reject:accepts_invalid` 1
 
 ## explained_svpp — the `.12a` position verdict against the parse that actually happened
 
@@ -132,7 +132,7 @@ Every row whose expected verdict is `must_reject` — the manifest's column, or 
 | prior stratum | rows | `match_under_expansion` | `accepts_invalid` | `hollow` | `refused_context` | `refused_engine` |
 |---|---:|---:|---:|---:|---:|---:|
 | `deferred:chained_only` | 7 | 7 | 0 | 0 | 0 | 0 |
-| `divergence:unexplained_accepts_invalid` | 2 | 0 | 2 | 0 | 0 | 0 |
+| `divergence:unexplained_accepts_invalid` | 2 | 1 | 1 | 0 | 0 | 0 |
 | `match` | 369 | 369 | 0 | 0 | 0 | 0 |
 | `pinned, raw lane demoted` | 72 | 72 | 0 | 0 | 0 | 0 |
 

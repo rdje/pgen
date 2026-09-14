@@ -182,20 +182,42 @@ def entry_args(row: dict) -> list[str]:
     return ["--entry-rule", entry] if entry else []
 
 
-def parses(path: Path, profile: str = DEFAULT_PROFILE, entry: list[str] | None = None) -> bool:
+def stage_args(row: dict) -> list[str]:
+    """`SVPP-EXPANSION.8`: a row may pin the verdict of the PIPELINE rather than of a raw parse.
+
+    A construct the PREPROCESSOR decides — a `` `begin_keywords `` region rendering a keyword as an
+    escaped identifier (IEEE 1800-2017 §22.14) — has no raw-parse claim to pin at all: raw, the row
+    rejects whatever the preprocessor would have done with it. `preprocess=1` runs the row through
+    `--preprocess`, which is the release reading of any real file anyway. ⛔ Empty is the default and
+    every historical row keeps its exact meaning; an unrecognised value REFUSES rather than falling
+    through to the raw stage, because a silently-ignored column would report coverage it does not have.
+    """
+    spec = (row.get("preprocess") or "").strip()
+    if not spec or spec == "0":
+        return []
+    if spec != "1":
+        raise SystemExit(f"⛔ REFUSING: {row['id']} declares preprocess='{spec}'. Use 1 (run the "
+                         "preprocess→parse pipeline) or empty/0 (raw parse).")
+    return ["--preprocess"]
+
+
+def parses(path: Path, profile: str = DEFAULT_PROFILE, entry: list[str] | None = None,
+           stage: list[str] | None = None) -> bool:
     proc = subprocess.run(
-        [str(PROBE), "--parse", "systemverilog", str(path), "--profile", profile] + (entry or []),
+        [str(PROBE), "--parse", "systemverilog", str(path), "--profile", profile]
+        + (entry or []) + (stage or []),
         capture_output=True, text=True, timeout=TIMEOUT_S)
     return proc.returncode == 0
 
 
-def parse_ast(path: Path, profile: str = DEFAULT_PROFILE, entry: list[str] | None = None):
+def parse_ast(path: Path, profile: str = DEFAULT_PROFILE, entry: list[str] | None = None,
+              stage: list[str] | None = None):
     """The typed AST for `path`, or None when the probe declines to produce one."""
     with tempfile.TemporaryDirectory(dir=str(ROOT / "tmp")) as workdir:
         out = Path(workdir) / "ast.json"
         proc = subprocess.run(
             [str(PROBE), "--parse-dump-ast", "systemverilog", str(path), str(out),
-             "--profile", profile] + (entry or []),
+             "--profile", profile] + (entry or []) + (stage or []),
             capture_output=True, text=True, timeout=TIMEOUT_S)
         if proc.returncode != 0 or not out.exists():
             return None
@@ -270,6 +292,11 @@ def main() -> int:
             raise SystemExit("⛔ REFUSING: MANIFEST.tsv has no `arm` column. The column is how a "
                              "row pins WHICH alternative parsed it; a manifest without it silently "
                              "downgrades every claim to a verdict.")
+        if "preprocess" not in (reader.fieldnames or []):
+            raise SystemExit("⛔ REFUSING: MANIFEST.tsv has no `preprocess` column. The column is "
+                             "how a row pins a PIPELINE verdict (`SVPP-EXPANSION.8`); without it "
+                             "every such row would silently be checked at the raw stage, where its "
+                             "construct has no claim at all.")
         rows = list(reader)
 
     listed = {r["id"] for r in rows}
@@ -299,6 +326,7 @@ def main() -> int:
     checked = 0
     armed = 0
     multi = 0
+    piped = 0
     for row in sorted(rows, key=lambda r: r["id"]):
         path = REPROS / row["id"]
         if not path.exists():
@@ -307,20 +335,24 @@ def main() -> int:
         if len(profiles) > 1:
             multi += 1
         entry = entry_args(row)
+        stage = stage_args(row)
+        if stage:
+            piped += 1
         for profile in profiles:
-            got = "ACCEPT" if parses(path, profile, entry) else "REJECT"
+            got = "ACCEPT" if parses(path, profile, entry, stage) else "REJECT"
             checked += 1
             ok = got == row["expect"]
             bad_arms: list[str] = []
             if ok and got == "ACCEPT" and (row.get("arm") or "").strip():
-                bad_arms = arm_failures(row, parse_ast(path, profile, entry))
+                bad_arms = arm_failures(row, parse_ast(path, profile, entry, stage))
                 armed += 1
             if args.verbose or not ok or bad_arms:
                 status = "ok  " if ok and not bad_arms else "FAIL"
                 arm = f" arm={row['arm']}" if (row.get("arm") or "").strip() else ""
                 ent = f" entry={row['entry']}" if entry else ""
+                pipe = " stage=preprocess" if stage else ""
                 print(f"{status} {row['id']:<44} {row['class']:<8} "
-                      f"profile={profile:<12} expect={row['expect']} got={got}{arm}{ent}")
+                      f"profile={profile:<12} expect={row['expect']} got={got}{arm}{ent}{pipe}")
             if not ok:
                 failures.append(f"{row['id']} [{profile}]: expected {row['expect']}, got {got}\n"
                                 f"      {FIX_HINT.get((row['class'], got), '')}\n"
@@ -330,7 +362,7 @@ def main() -> int:
                                 f"      construct: {row['construct']}  (LRM {row['lrm']})")
 
     print(f"\nADJUDICATION-REPROS: checked={checked} armed={armed} listed={len(rows)} "
-          f"multi_profile_rows={multi} failures={len(failures)}")
+          f"multi_profile_rows={multi} preprocess_rows={piped} failures={len(failures)}")
     if failures:
         print("\n".join(f"  ⛔ {f}" for f in failures))
         return 1

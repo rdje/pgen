@@ -589,6 +589,14 @@ struct Args {
     /// while its own expanded text is discarded. `INPUT` is the unit's last file.
     #[arg(long, requires = "preprocess_systemverilog")]
     sv_unit_file: Vec<String>,
+
+    /// `SVPP-EXPANSION.8` — the `--profile` spelling the EXPANDED text will be parsed under
+    /// (`sv_2017`, `sv_2023`, `verilog_2005`, or any alias `grammars/systemverilog.ebnf` declares).
+    /// It decides which identifiers a `` `begin_keywords `` region must hand over as escaped
+    /// identifiers (IEEE 1800-2017 §22.14); omitted, the unprofiled reading is used, which reserves
+    /// IEEE 1800-2017 Table B.1. Nothing else in this mode reads it.
+    #[arg(long, requires = "preprocess_systemverilog")]
+    sv_keyword_profile: Option<String>,
 }
 // `Clone` (GRAMMAR-WELLFORMED.H.12.8.1.1): the multi-config certificate-coverage union
 // (`--cert-union-config`) re-filters the SAME loaded grammar bundle once per `(entry, profile)`
@@ -1095,6 +1103,7 @@ fn pipeline_main() -> Result<()> {
             conditional_expr_policy,
             strict_warning_codes,
             defines,
+            parse_profile: args.sv_keyword_profile.clone(),
         };
         // `SVPP-EXPANSION.2`(b): with `--sv-unit-file`, INPUT is the LAST file of an ordered
         // compilation unit; the predecessors' expanded text is context only and is discarded.

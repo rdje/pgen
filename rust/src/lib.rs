@@ -56,6 +56,10 @@ pub mod regex_compile_validation;
 /// `read_to_string` and refused any non-UTF-8 file outright — refusing the FILE rather than
 /// rejecting a construct. ⛔ Not for files PGEN itself writes. See the module docs.
 pub mod source_text;
+/// `SVPP-EXPANSION.8` — IEEE 1800-2017 §22.14's per-version reserved-keyword tables, derived
+/// from the in-repo LRM text and gate-held equal to it. The preprocessor reads them to render a
+/// `` `begin_keywords `` region's non-keywords as escaped identifiers. See the module docs.
+pub mod sv_keyword_versions;
 pub mod sv_preprocessor;
 pub mod test_registry;
 pub mod test_runner; // Only declare once

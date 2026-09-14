@@ -6,7 +6,7 @@ NO VERDICT	pipeline:chained:unreached_in_unit	1923	11.77
 ADJUDICATED	pipeline:corroborated	1223	7.49
 NO VERDICT	pipeline:chained:rejects_own_file	710	4.35
 NO VERDICT	deferred:no_sv_key	596	3.65
-ADJUDICATED	pipeline:must_reject:match_under_expansion	448	2.74
+ADJUDICATED	pipeline:must_reject:match_under_expansion	449	2.75
 NO VERDICT	deferred:not_source_text	350	2.14
 NO VERDICT	pipeline:chained:refused_context	210	1.29
 NO VERDICT	pipeline:svpp_owned:accepted_under_expansion	112	0.69
@@ -24,9 +24,9 @@ NO VERDICT	pipeline:refused_engine	7	0.04
 NO VERDICT	pipeline:refuted:driver_define	7	0.04
 NO VERDICT	deferred:ni_unimplemented	6	0.04
 NO VERDICT	pipeline:refused_context	5	0.03
-ADJUDICATED	divergence:unexplained_accepts_invalid	2	0.01
 NO VERDICT	pipeline:svpp_owned:refused_context	2	0.01
 NO VERDICT	pipeline:refuted:preprocessor_item	2	0.01
 NO VERDICT	pipeline:refuted:cross_file_define	1	0.01
+ADJUDICATED	divergence:unexplained_accepts_invalid	1	0.01
 NO VERDICT	pipeline:svpp_owned:hollow	1	0.01
-TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	9135/2606/4595/3312/9	
+TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	9135/2606/4595/3312/8	

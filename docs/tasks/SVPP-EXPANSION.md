@@ -229,7 +229,7 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 | --- | --- | --- | --- |
 | — | `.7` | ✅ `done` | `PGEN-SVPP-EXPANSION-0021`: the SV integration contract's *Front End — the preprocess→parse pipeline* section (the command, the four-part context, the expansion guarantees and refusal codes, the source-map rule with the last-mapped-byte caveat, the library's facts files), the preprocessor contract's *Runtime Execution Stage* section (expansion = a sibling deliverable), the svpp book's status note, the platform page's *read twice* note, the user guide's single command; the two parser books' tracked HTML mirrors rebuilt (they had lagged four commits; the platform book's HTML is untracked output) |
 | ⛔ | `.6d.3` | `blocked` | the UVM library — `uvm_pkg.sv` must export: the director's `.5`(d) ruling on `const local` (`uvm_transaction.svh:443`), or an export-the-accepted-prefix engine change the ruling would make unnecessary; the price, measured: 164 rejecting OpenTitan packages, 1 923 unreached member rows, 273 dark rows gated on a `uvm_*` name |
-| ⛔ | `.8` | `todo` | `` `begin_keywords `` / `` `end_keywords `` (IEEE 1800-2017 §22.14) — the preprocessor renders every token that is a keyword of the parse profile but NOT of the region's version as an ESCAPED identifier (§5.6.1), from the LRM's own per-version tables (Tables 22-1 … 22-6); five rows of the axis-2 bar (Surelog `1364_2005/dut.v`, ispras `22.14.01_01.sv` + `22.14.01_04.sv`, sv-tests `5.6.4--compiler-directives-begin-keywords.sv`, sv2v `test/lex/begin_keywords.sv`); opened 2026-09-14 by `SV-CORPUS-GRAD.3.60`'s reconnaissance (`PGEN-SV-CORPUS-GRAD-0394`) |
+| — | `.8` | ✅ `done` | `` `begin_keywords `` / `` `end_keywords `` (IEEE 1800-2017 §22.14) — the preprocessor renders every token that is a keyword of the parse profile but NOT of the region's version as an ESCAPED identifier (§5.6.1), from the LRM's own per-version tables (Tables 22-1 … 22-6); five rows of the axis-2 bar (Surelog `1364_2005/dut.v`, ispras `22.14.01_01.sv` + `22.14.01_04.sv`, sv-tests `5.6.4--compiler-directives-begin-keywords.sv`, sv2v `test/lex/begin_keywords.sv`); opened 2026-09-14 by `SV-CORPUS-GRAD.3.60`'s reconnaissance (`PGEN-SV-CORPUS-GRAD-0394`), DONE the same day (`PGEN-SVPP-EXPANSION-0022`): 68 pipeline rows moved and every one carries a §22.14 directive — 67 `fail → pass`, 1 `pass → fail` (the clause's own negative example), the bar `9 → 8`; the tables DERIVED from three in-repo standards and gate-held by the new doctrine `SV-KEYWORD-VERSIONS` |
 | — | `.6d.2` | ✅ `done` | `PGEN-SVPP-EXPANSION-0020`: the unit-membership reading — the pass records each unit's member files (the source map; 5 074 rows), the re-adjudication reads a member's verdict through its unit (`accepted_in_unit` / kept / `unreached_in_unit`); measured: 0 accepted, 1 923 unreached, 89 kept — all behind the UVM gate; the tuple unmoved |
 | — | `.6d.1` | ✅ `done` | `PGEN-SVPP-EXPANSION-0019`: the LIBRARY PASS — 407 package files of the design suites parsed in dependency order, 166 packages published, every row run with `--lib-in`; 425 rows `fail → pass`, 0 the other way (OpenTitan 1 077 → 1 444, VeeR 23 → 81); 🔎 164/168 rejecting OpenTitan packages import `uvm_pkg` (the (d) gate); six per-top register packages disagree (not published); 44 generated `*_ral_pkg` imports absent from the tree |
 | — | `.4c.2` | ✅ `done` | `PGEN-SVPP-EXPANSION-0018`: the unit predecessors a file's OWN harness compiles first, derived per file (`pipeline_context_units.tsv`, 44 rows on 17 files; `-f` lists, globs, `--siloed` and ordering conflicts REPORTED); the whole lane re-run — exactly 3 movers, all `fail → pass`; 🔎 a `.6b.4` disposition had inferred a pairing no declaration makes — corrected forward; `.4c` CLOSED |
@@ -1630,11 +1630,147 @@ it waits on the `.5`(d) ruling.
   - [x] **LOCKSTEP** — both contracts, three books (source; the two tracked HTML mirrors), the user guide, this tree, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
   - promotion: declined (documentation).
 
-## `.8` `` `begin_keywords `` regions as ESCAPED identifiers — `todo` (opened 2026-09-14, `PGEN-SV-CORPUS-GRAD-0394`)
+## `.8` `` `begin_keywords `` regions as ESCAPED identifiers — ✅ done 2026-09-14 (`PGEN-SVPP-EXPANSION-0022`)
 
 - **THE ROWS (measured on the `1.0.230` probe under the pipeline, 2026-09-14).** Surelog `tests/1364_2005/dut.v:8:7` `reg bit, rst, clk;`, ispras `ieee-1800-2012/22/22.14.01_01.sv:10:13` `reg [63:0] logic;`, sv-tests `tests/chapter-5/5.6.4--compiler-directives-begin-keywords.sv:18:6` `reg logic;`, sv2v `test/lex/begin_keywords.sv:3:12` `integer automatic = 2;` — four `rejects_valid` rows whose furthest token is an IEEE 1800 keyword used as an identifier inside a `` `begin_keywords "1364-2005" `` / `"1364-2001"` / `"1364-1995"` region; and ispras `22.14.01_04.sv` — `accepts_invalid`: `interface … endinterface` under `"1364-2005"` is no production (the parser reads the 1800 interface). Five of the bar's nine rows; the corpus carries no other `` `begin_keywords `` file (0 further matches over the 16 336 lane rows).
 - **THE DESIGN.** §22.14 (`docs/systemverilog/2017/md/section-22-compiler-directives.md:844-1260`) is a LEXICAL rule — which identifiers are reserved — over a region the preprocessor already delimits (the grammar carries `begin_keywords_directive` / `end_keywords_directive` as items, `grammars/systemverilog.ebnf:369-377`, and does nothing with them). The parser's reserved-word regex is per PROFILE and cannot switch mid-file, and an engine-side region-aware lexer would be the first grammar-specific lexing rule in the engine. The preprocessor can do it as TEXT: inside a region whose version set is a SUBSET of the parse profile's, every token that is reserved in the profile but not in the region's version is emitted as an escaped identifier — `logic` → `\logic ` — which §5.6.1 makes the identifier `logic` in every edition; the source map keeps the original span. Then `reg [63:0] logic;` parses as a net named `logic`, `integer automatic = 2;` as a variable named `automatic`, and `interface foo; endinterface` under `"1364-2005"` becomes `\interface foo; \endinterface` — no 1800 production, REJECTED, which is the key's ruling. The per-version sets are the LRM's own Tables 22-1 (1364-1995), 22-2 (+2001), 22-3 (+2005: `uwire`), 22-4 (+1800-2005), 22-5 (+2009), 22-6 (+2012), 22.14.9 (2017 = 2012); `"1364-2001-noconfig"` is 2001 minus the eight config keywords (22.14.4). A region whose version is NOT a subset of the parse profile (a `"1800-2023"` region under `sv_2017`) is reported as a diagnostic, not rendered.
 - **ACCEPTANCE (to be measured).** The five rows move (`fail → pass` × 4 under the pipeline, `pass → fail` × 1 — `22.14.01_04.sv` to `must_reject:match_under_expansion`); the raw lanes byte-inert (the raw lane does not preprocess); every other pipeline row byte-identical; the preprocessor contract's *Runtime Execution Stage* names the rendering and the source-map behaviour; pins in `stimuli/sv/adjudication_repros/` for each version specifier and one nested-region case; the preprocessor grammar / self-tests extended; the front-end book chapter names the rule.
+
+### What shipped
+
+IEEE 1800-2017 §22.14 is a LEXICAL rule — *"what identifiers are reserved as keywords within a block of
+source code"* — and the generated parser reserves one set per PROFILE and cannot switch mid-file. The
+expansion stage now renders the difference as TEXT: inside a region, every token the parse profile reserves
+and the region's `version_specifier` does not is re-emitted as an ESCAPED identifier, which §5.6.2 makes
+*"not interpreted as a keyword"* and §5.6.1 makes the same identifier as the unescaped spelling.
+
+- **`rust/src/sv_keyword_versions.rs`** (new) — the version algebra and the standard's own tables. The nine
+  specifiers, `reserved_words()` built by the accumulation §22.14.3/.5/.6/.7/.8 each state plus §22.14.4's
+  one subtraction, `words_to_escape(profile, region)`, `region_within_profile`, the profile map. ⛔ The
+  tables are DERIVED, never typed: `stimuli/sv/check_sv_keyword_versions.py` (gate / `--write` / `--print` /
+  `--self-test`) reads them out of the in-repo LRM text and the new doctrine **`SV-KEYWORD-VERSIONS`**
+  (registry **40 → 41**, `scripts/check_sv_keyword_versions.sh`) holds the two equal on every commit.
+- **`rust/src/sv_preprocessor.rs`** — `render_keyword_regions`, a single left-to-right lexical pass over the
+  EXPANDED text (so a directive a macro produced counts and one in an inactive `` `ifdef `` branch does not),
+  skipping comments, string literals, escaped identifiers, numeric literals and `$`-names; the region STACK
+  is compilation-UNIT state and carries across `--sv-unit-file` boundaries as the clause requires; the source
+  map is re-indexed by the exact byte delta of each rendering. New event kind `KeywordsRegion`; new
+  diagnostics `W_SVPP_UNKNOWN_KEYWORDS_VERSION`, `W_SVPP_KEYWORDS_VERSION_ABOVE_PROFILE`,
+  `W_SVPP_KEYWORDS_VERSION_NOT_IN_EDITION`, `W_SVPP_UNMATCHED_END_KEYWORDS`,
+  `W_SVPP_MALFORMED_KEYWORDS_DIRECTIVE`. New config field `parse_profile`, wired from `--profile` on the
+  probe and `--sv-keyword-profile` on `ast_pipeline --preprocess-systemverilog`.
+- **`stimuli/sv/run_adjudication_repros.py`** — a `preprocess` column, because a construct the PREPROCESSOR
+  decides has no raw-parse claim to pin at all. Nine new pins (`preprocess_rows=9`).
+
+### ⛔ TWO THINGS THE LEAF'S OWN PLAN GOT WRONG, BOTH CAUGHT BY MEASUREMENT BEFORE THEY SHIPPED
+
+1. **"An unrecognized `version_specifier` is an error" (§22.14's own sentence) was BUILT, MEASURED and
+   WITHDRAWN.** The first cut raised `E_SVPP_UNKNOWN_KEYWORDS_VERSION` and refused the file. Measured over
+   the 113 corpus files carrying the directive, that spelling moved **7 rows `fail` → `pp_fail`** — every
+   Verilog-AMS row (`"VAMS-2.3"` ×6 + `"1800+VAMS"` ×1), whose answer-key rows are keyed on the PARSER's
+   verdict. ⭐ **The implementation that errors is the GRAMMAR**: `keywords_version_specifier_<profile>`
+   admits exactly its own edition's list, so every other spelling is *already* a parse rejection, and
+   refusing here only PREEMPTS a precise, per-edition refusal with a coarse one. Demoted to
+   `W_SVPP_UNKNOWN_KEYWORDS_VERSION`; no region is opened either way (an unknown version has no known
+   keyword set), and an operator who wants the clause fatal at this stage has the existing knob
+   `--sv-strict-warning-codes W_SVPP_UNKNOWN_KEYWORDS_VERSION` — pinned by a unit test that drives both.
+2. **"The corpus carries no other `` `begin_keywords `` file (0 further matches over the 16 336 lane rows)"
+   is FALSE, and the leaf's "eight config keywords" is TEN.** A census of the directive's own text reads
+   **113 files** and **11 distinct specifiers** — `1364-2005` ×68, `1800-2023` ×9, `VAMS-2.3` ×7,
+   `1364-2001` ×7, `1364-2001-noconfig` ×5, `1800-2005` ×4, `1800-2012` ×3, `1364-1995` ×3, `1800-2017` ×2,
+   `1800-2009` ×2, `1800+VAMS` ×1. The `.12b.1` reconnaissance had counted rows whose FURTHEST TOKEN was a
+   keyword-in-identifier-position, which is the bar's question, not the construct's population; §22.14.4's
+   exclusion list is ten identifiers in both standards that print it.
+
+### ⛔ THE TWO SPLIT POINTS THE LRM EXTRACTION DESTROYS, AND THE ORACLES THAT RECOVER THEM
+
+The PDF→md extraction DISPLACES every table body past the prose that follows its caption and MERGES
+consecutive bodies, so §22.14's six tables arrive as four runs. Neither split is assumed:
+
+| run | captions pending | how it is split |
+|---|---|---|
+| 102 words | Table 22-1 | whole; CHECKED EQUAL to IEEE 1364-2005 §19.11 Table 19-2 (another standard, another PDF) |
+| 22 words | 22-2, 22-3 | ⛔ **not separable by any property of the 1800 text** — the merged body is strictly alphabetical, so *every* cut is admissible. Split by IEEE 1364-2005 Tables 19-3 / 19-4 (full sets): 22-2 = 19-3 − 19-2 (21), 22-3 = 19-4 − 19-3 (`uwire`, 1). Their union is then checked equal to the 1800 body |
+| 120 words | 22-4, 22-5 | no second document carries these; split at the **UNIQUE** cut leaving both tables strictly increasing — the body has exactly ONE descent (`within` → `accept_on`), so 22-4 = 97 and 22-5 = 23. A body whose descent count is not *(tables − 1)* is REFUSED, never guessed |
+| 4 words | Table 22-6 | whole |
+
+Σ = 102 + 21 + 1 + 97 + 23 + 4 = **248** = IEEE 1800-2017 Annex B Table B.1, which is §22.14.9's own
+sentence (*"the full set … is listed in Annex B, which reflects the combination of all version tables"*);
+the 1800-2017 and 1800-2023 extractions are held equal word for word; the ten noconfig exclusions are taken
+from BOTH standards and checked identical and ⊆ Table 22-2.
+
+## Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the four `rejects_valid` bar rows and the one `accepts_invalid` row on the
+      shipped `1.0.230` release probe, under the pipeline:
+      `./rust/target/release/parseability_probe --parse systemverilog stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/22/22.14.01_01.sv --profile sv_2017 --preprocess`
+      → `Parser did not consume full input at position 211 [furthest_position=235, +24 bytes deeper than surface position] [origin=stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/22/22.14.01_01.sv:10:13]`
+      (line 10 is `reg [63:0] logic;`), and the same shape on Surelog `1364_2005/dut.v:8:7`, sv-tests
+      `5.6.4--compiler-directives-begin-keywords.sv:18:6`, sv2v `lex/begin_keywords.sv:3:12`; while
+      `22.14.01_04.sv` — the clause's own `// ! TYPE: NEGATIVE` example — read
+      `parse_full passed … [preprocessed]`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: §22.14 changes the RESERVED-WORD SET for a region, and nothing in
+      the front end read the directive at all. WHERE, at both ends: the grammar carries
+      `begin_keywords_directive` / `end_keywords_directive` as items (`grammars/systemverilog.ebnf:458-474`)
+      and binds only the version string, while its reserved-word refusal is one regex per PROFILE
+      (`reserved_non_keyword_identifier_sv` / `_v2005`, `:853-859`) with no per-region form; and the
+      preprocessor fell through to the *"Unknown directive: pass through only when active"* arm of
+      `preprocess_text_internal` (`rust/src/sv_preprocessor.rs`, the `_ =>` branch of the directive match),
+      emitting the directive verbatim and doing nothing with it. The `furthest_position` above lands
+      exactly on the keyword: the parse is refused by the identifier rule, not by the directive.
+      Tool-backed by the `[origin=…]` / `furthest_position=` lines quoted in the REPRODUCE box and by
+      `SV-KEYWORD-VERSIONS:` (`stimuli/sv/check_sv_keyword_versions.py --print`), which prints the exact
+      per-version sets the refusal is measured against.
+- [x] **FIX** — declarative-first was impossible and the reason is measured: a per-region reserved set is
+      not expressible in a whitespace-insensitive EBNF whose terminals are profile-gated, and an
+      engine-side region-aware lexer would be the first grammar-SPECIFIC lexing rule in the engine. The fix
+      is therefore at the PREPROCESS tier, where the clause's own subject (which identifiers are reserved)
+      is representable as text: `\` + word + ` `, §5.6.1/§5.6.2. **ZERO grammar bytes, ZERO codegen bytes,
+      ZERO generated-parser bytes** — the parser is byte-identical
+      (`generated/systemverilog_parser.rs` sha256 `711a3bc073c7e1bf…`, the same digest the probe's
+      `--parser-fingerprint` reports).
+- [x] **ADDRESSED (verified)** — before→after on the same nine reproducers, pre-change release probe vs
+      post-change release probe (`stimuli/sv/run_adjudication_repros.py`, `preprocess=1` rows): the five
+      `fixed_begin_keywords_*` rows `REJECT → ACCEPT`, `invalid_begin_keywords_1364_2005_interface.sv`
+      `ACCEPT → REJECT`, and the two that must not move (`invalid_keyword_as_name_without_region.sv`,
+      `control_begin_keywords_1800_2017_region.sv`) did not. Over the corpus, the pipeline lane
+      (`stimuli/run_pipeline_lane.sh all`, 16 336 rows, debug probe, 8 jobs, 511 s — the binary the tracked
+      report's identity block already names) reads
+      `PIPELINE-LANE: files=16336 pass=12202 fail=3857 pp_fail=277 timeout=0 crash=0` against a before of
+      `pass=12136 fail=3923 pp_fail=277 timeout=0`. **68 rows moved and EVERY ONE carries a §22.14
+      directive** (a row-by-row join against the 113-file census: `movers NOT carrying a
+      begin_keywords/end_keywords directive: 0`): **67 `fail → pass`** — iverilog 62, ispras-sv-tests 2,
+      Surelog 1, sv-tests 1, sv2v 1 — and **1 `pass → fail`**, ispras `22.14.01_04.sv`, the clause's own
+      negative example, so `must_reject:accepts_invalid 2 → 1` in
+      `stimuli/sv/characterization/pipeline_readjudication.md`. The pipeline bar falls **9 → 8** and
+      `SV-CORPUS-DENOMINATOR` re-derives and publishes the tuple `9135/2606/4595/3312/8`.
+      (The 62 iverilog rows are `deferred:v2005_profile_lane` in the answer key — files iverilog itself
+      compiles as `-g2005` — so the ADJUDICATED count is unchanged at 9 135; they are a pass-count move,
+      not a verdict promotion.)
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 41 enforced doctrines PASS** (including
+      the new `SV-KEYWORD-VERSIONS`, whose `--self-test` drives six arms: a planted missing word, a planted
+      foreign word, a planted wrong profile mapping, a planted missing admitted specifier, a two-descent
+      body, and a GREEN control on the real tree). `python3 stimuli/sv/run_adjudication_repros.py` →
+      `checked=1191 armed=231 listed=598 multi_profile_rows=454 preprocess_rows=9 failures=0`.
+      `cargo test --lib sv_preprocessor` → 69 passed / 0 failed (13 new); `cargo test --lib
+      sv_keyword_versions` → 6 passed / 0 failed. `make -C rust SHELL=/opt/homebrew/bin/bash
+      clippy_on_rust_change` → strict source lint ok, generated-parser stage pass, correctness roster 68
+      lints intact. The three RAW lanes are byte-inert **by construction** — `render_keyword_regions` is
+      called only from `preprocess_systemverilog_file` / `_unit`, which `--parse` without `--preprocess`
+      never enters — and that is MEASURED rather than argued: all three re-run into a scratch directory
+      (`PGEN_CORPUS_OUT_DIR=rust/target/svpp8/raw_*`, the release probe, the tracked parameters) and the
+      verdict columns diffed against the tracked files — **`results.tsv`, `results_sv2023.tsv` and
+      `results_v2005.tsv` are each IDENTICAL**, `sv_2017` pass 9 847 / fail 6 489, `sv_2023` 9 872 / 6 464,
+      `verilog_2005` 2 313 / 293, 0 rows moved on any lane.
+- [x] **LOCKSTEP** — the SV integration contract's *Front End* section (the rendering, the profile flag, the
+      five diagnostics, the AST consequence for a consumer), the preprocessor contract's *Runtime Execution
+      Stage*, the SV parser book's *The Preprocess→Parse Pipeline* chapter (a worked before/after pair and
+      the five rules), `PGEN_USER_GUIDE.md`, `TOOLBOX.md` §1.1 + the new §5.16 + the group-5 diagnosis
+      vocabulary, `DOCTRINE_ENFORCEMENT.md` §10, `docs/book/src/the-enforced-doctrines.md` (re-derived by
+      `scripts/report_doctrines.sh --markdown`), `docs/book/src/gate-flow.md`'s doctrine count `40 → 41`,
+      and the verdict-coverage anchor in `docs/book/src/grammar-wellformedness.md`. No release / schema bump
+      and no DONE-BAR row change: the grammar and the generated parser are unchanged at `1.0.230` /
+      schema `33`, and SystemVerilog stays `Mostly Done`.
 
 ## Open questions
 
@@ -1722,7 +1858,7 @@ it waits on the `.5`(d) ruling.
 | `2026-09-09` | `.6d.1` | the mechanism measured on four scratch chains (export → import → pass; same-dir; named import); the builder's smoke run (3 suites) then the full pass (407 files, 166 published, 0 cycles); the whole lane re-run (689 s, peak 9 797 MB): 425 movers, all `fail → pass`, 0 the other way; the pipeline tuple re-derived and anchored, the raw one unmoved; `PIPELINE-LANE-CURRENCY` OK + self-test 5/5 | ✅ |
 | `2026-09-09` | `.6d.2` | the library re-derived standalone with the membership table (226 s; verdicts identical to `-0019`); the re-adjudication re-read 2 059 members (0 / 89 / 1 923); the zero-accepted count verified from the dumps by a second script; coverage buckets the new classes; the tuple unmoved through the denominator gate; currency OK + self-test 5/5 | ✅ |
 | `2026-09-09` | `.7` | every contract sentence read from its source (`parseability_probe.rs:502-505`, `origin_of_position`, `grep -o E_SVPP_`, a real `facts.json`); `mdbook build` ×3 clean; `check_sv_contract_currency.sh` OK; no dump or tuple moved | ✅ |
-
+| `2026-09-14` | `.8` | `cargo test --lib sv_preprocessor` 69/69 (13 new) + `--lib sv_keyword_versions` 6/6; `python3 stimuli/sv/check_sv_keyword_versions.py --self-test` PASS (6 arms) and gate mode OK (`22-1=102 22-2=21 22-3=1 22-4=97 22-5=23 22-6=4 noconfig=10`, Σ == Annex B Table B.1 = 248); `bash scripts/check_doctrines.sh` ALL **41** PASS; `stimuli/run_pipeline_lane.sh all` `files=16336 pass=12202 fail=3857 pp_fail=277 timeout=0 crash=0` (before `12136/3923/277/0`) — 68 movers, **0 of them outside the 113-file §22.14 census**, 67 `fail → pass` / 1 `pass → fail`; `check_sv_corpus_denominator.sh` OK, pipeline tuple `9135/2606/4595/3312/8` (bar `9 → 8`); `run_adjudication_repros.py` `checked=1191 armed=231 listed=598 preprocess_rows=9 failures=0`; the three RAW lanes re-run into `PGEN_CORPUS_OUT_DIR` and diffed — all three IDENTICAL (`sv_2017` 9 847 / 6 489, `sv_2023` 9 872 / 6 464, `verilog_2005` 2 313 / 293); `clippy_on_rust_change` ✅ | ✅ |
 ## Commit log
 
 | Leaf | Commit subject or reference | Notes |
@@ -1730,6 +1866,7 @@ it waits on the `.5`(d) ruling.
 | (tree creation) | `PGEN-SVPP-EXPANSION-0001` | tree + decision record created; registered in `docs/TASK_TREE.md` Proposed Task Trees; sequenced after the locked program |
 | `.1` | `PGEN-SVPP-EXPANSION-0002` | tree ACTIVATED on the director's 2026-09-09 steer; `.1` scoping re-measured (docs only); leaves re-planned `.2`–`.7`; decision record [[project_preprocess_parse_pipeline_is_the_sv_deliverable]] |
 | `.5`(g)(h)(g′) | `PGEN-SVPP-EXPANSION-0008` | a missing / extra actual and a recursive macro refused at the preprocess stage (§22.5.1 `:224-226`, `:342-343`); the apostrophe-as-quote misreading of a formal list fixed — a SILENT mis-expansion the refusal exposed; ENGINE tier, `sv_preprocessor.rs` only |
+| `.8` | `PGEN-SVPP-EXPANSION-0022` | IEEE 1800-2017 §22.14 applied by the expansion stage — a region's non-keywords rendered as ESCAPED identifiers (§5.6.2), the per-version tables DERIVED from three in-repo standards and gate-held by the new doctrine `SV-KEYWORD-VERSIONS` (registry 40 → 41); the plan's *"an unknown specifier is an error"* MEASURED to move 7 Verilog-AMS rows `fail → pp_fail` and withdrawn — the grammar is the refusal authority; ENGINE + INSTRUMENT + DOCTRINE tier, ZERO grammar / codegen / generated bytes |
 | `.6a` | `PGEN-SVPP-EXPANSION-0009` | the re-adjudication instrument + tracked report/table; doctrine arm (3); `.12b`/`.13d` pointed at the numbers; INSTRUMENT + DOCTRINE tier |
 | `.6b.1` | `PGEN-SVPP-EXPANSION-0010` | 34 verilator rows pinned `must_reject` (A.2.1.3 / A.2.2.1 / A.2.4, 2023 §6.18); the raw key demotes them by design, the pipeline cashes them (`must_reject` population of the re-adjudication instrument, read from the pin tables); ceiling 173 → 207 with the argument; live tuple 7529/2606/6201/3994/9 |
 | `.6b.2` | `PGEN-SVPP-EXPANSION-0011` | four engine items: the paste token in an object macro, `` `line `` consumed (well-formed only), `//` stripped from macro text, `(` on the next line; 11 rows recognised, 0 regressions; ENGINE tier |

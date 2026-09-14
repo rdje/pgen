@@ -143,6 +143,7 @@ cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
   --sv-include-dir path/to/includes \
   --sv-define UVM --sv-define WIDTH=8 \
   --sv-unit-file path/to/defines_first.svh \
+  --sv-keyword-profile sv_2017 \
   --sv-include-path-policy relative_only \
   --sv-macro-redefine-policy warn \
   --sv-conditional-symbol-policy assume_false_warn \
@@ -229,6 +230,10 @@ Primary modes:
   — exit 0 accepted, 1 rejected (with `furthest_position=` and `[origin=FILE:LINE:COL]`), 3 the preprocessor
   refused. A design is parsed package-first with `--lib-out` / `--lib-in` (see `TOOLBOX.md` §1.1b and the
   SV contract's *Front End* section); the corpus lane is `stimuli/run_pipeline_lane.sh`.
+- `--profile` reaches the PREPROCESSOR too (`SVPP-EXPANSION.8`): it decides which identifiers a
+  `` `begin_keywords "…" `` region hands the parser as ESCAPED identifiers (IEEE 1800-2017 §22.14, §5.6.2).
+  On `ast_pipeline --preprocess-systemverilog` the same spelling is `--sv-keyword-profile`; omitted, the
+  parser's unprofiled reading is used, which reserves IEEE 1800-2017 Table B.1.
 - This mode executes the Rust preprocessor stage and emits:
   - expanded/preprocessed SV text,
   - optional source map JSON (`--sv-source-map-json`),

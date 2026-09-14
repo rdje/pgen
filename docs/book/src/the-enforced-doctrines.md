@@ -119,9 +119,9 @@ Steps 4 and 5 are enforced, not suggested. That is the whole point.
 
 <!-- BEGIN DERIVED: scripts/report_doctrines.sh --markdown -->
 
-**40 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **7**, oracle + structural **1**, structural **18**, structural + oracle **5**.
+**41 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **8**, oracle + structural **1**, structural **18**, structural + oracle **5**.
 
-**Depth, derived:** median **1926** bytes per description, thinnest **783** (`LESSON-PROMOTION`) — every one of the 40 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
+**Depth, derived:** median **1926** bytes per description, thinnest **783** (`LESSON-PROMOTION`) — every one of the 41 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
 
 Rows are in **registration order**, oldest first — so the bottom of this table is what the repository learned most recently.
 
@@ -166,7 +166,8 @@ Rows are in **registration order**, oldest first — so the bottom of this table
 | 37 | [`SV-STORE-GATE-BANK`](#sv-store-gate-bank) | oracle | `scripts/check_sv_store_gate_bank.sh` |
 | 38 | [`EBNF-ALTERNATIVE-PARITY`](#ebnf-alternative-parity) | structural + oracle | `scripts/check_ebnf_alternative_parity.sh` |
 | 39 | [`SV-RESERVED-WORDS`](#sv-reserved-words) | oracle | `scripts/check_sv_reserved_words.sh` |
-| 40 | [`PIPELINE-LANE-CURRENCY`](#pipeline-lane-currency) | structural | `scripts/check_pipeline_lane_currency.sh` |
+| 40 | [`SV-KEYWORD-VERSIONS`](#sv-keyword-versions) | oracle | `scripts/check_sv_keyword_versions.sh` |
+| 41 | [`PIPELINE-LANE-CURRENCY`](#pipeline-lane-currency) | structural | `scripts/check_pipeline_lane_currency.sh` |
 
 ### `MEMORY-ARCH`
 
@@ -401,6 +402,12 @@ for every rule in every tracked grammar, the number of alternatives the SOURCE d
 *oracle* · enforced by `scripts/check_sv_reserved_words.sh`
 
 the SV grammar's two reserved-word regexes **EQUAL the LRM tables they stand for** — IEEE 1800-2017/2023 Table B.1 (248 words) for the `sv_2017`/`sv_2023` profiles and IEEE 1364-2005 Annex B (124) for `verilog_2005` — DERIVED from the in-repo LRM text (`docs/systemverilog/2017/md/section-41-data-read-api.md:3599-3858`, `docs/systemverilog/2023/md/section-Annex_B-normative-keywords.md`, `docs/verilog/2005/md/section-Annex_B-normative-list-of-keywords.md`) on every run and compared as SETS in both directions; `--self-test` proves a planted missing word and a planted foreign word are each refused. FOUNDING MEASUREMENT (`SV-CORPUS-GRAD.3.37`, 2026-09-04): the hand-typed SV list held **173 of the 248**, so `reg global;`, `i.super.i = 1;`, `function new; input x;` (an ordinary function NAMED `new`) and `var final;` all parsed with the keyword bound as an identifier — and no certificate, corpus lane or lint could see it, because every one of them consumes the same `non_keyword_identifier` rule. ⭐ *A keyword the identifier rule does not refuse IS an identifier.* The instrument is `stimuli/sv/check_sv_reserved_keywords.py` (gate / `--write` / `--self-test`).
+
+### `SV-KEYWORD-VERSIONS`
+
+*oracle* · enforced by `scripts/check_sv_keyword_versions.sh`
+
+the preprocessor's IEEE 1800-2017 §22.14 **per-version keyword tables** (`rust/src/sv_keyword_versions.rs`) EQUAL the tables the LRM carries — derived on every run from `docs/systemverilog/2017/md/section-22-compiler-directives.md:844-1264` and compared as SETS in both directions. The tables decide which identifiers a `` `begin_keywords `` region hands the parser as ESCAPED identifiers (`SVPP-EXPANSION.8`), so a wrong table is an **accept-set change nothing else can see**. ⛔ **The PDF→md extraction MERGES table bodies and DISPLACES them past the prose**, so the two split points are DERIVED, each by an oracle blind to the others: Table 22-2 vs 22-3 is not separable by ANY property of the 1800 text — the merged body is strictly alphabetical, so *every* split point is admissible — and is split by **IEEE 1364-2005 §19.11 Tables 19-2/19-3/19-4**, a different standard and a different PDF, whose difference is then checked EQUAL to the merged body; Table 22-4 vs 22-5 has no second document and is split at the **UNIQUE** cut that leaves both tables strictly increasing — the body carries exactly one descent (`within` → `accept_on`) — and a body whose descent count is not *(tables − 1)* is **REFUSED rather than guessed**. Σ of all six tables is held equal to Annex B Table B.1 (**248**), which is §22.14.9's own sentence, and the 1800-2017 and 1800-2023 extractions are held equal word for word. The profile map and the admitted-specifier lists are held equal to `grammars/systemverilog.ebnf`'s own `@profile_alias` and `keywords_version_specifier_*` declarations, so the stage that RENDERS and the stage that PARSES cannot disagree about a profile. `--self-test` drives six refusal arms (a planted missing word, a planted foreign word, a planted wrong profile mapping, a planted missing admitted specifier, a two-descent body, and a GREEN control on the real tree). The instrument is `stimuli/sv/check_sv_keyword_versions.py` (gate / `--write` / `--print` / `--self-test`).
 
 ### `PIPELINE-LANE-CURRENCY`
 

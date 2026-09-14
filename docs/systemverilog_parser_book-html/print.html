@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bf5f7c40.js";
+            window.path_to_searchindex_js = "searchindex-dbf87ee4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -850,6 +850,55 @@ envelope pass through as before. An envelope with no <code>end_protected</code> 
 a string quote — SystemVerilog has none (§5.9) — so <code>`define DV_FCOV_INSTANTIATE_CG(NAME_, COND_ = 1'b1, ARGS_ = ())</code> had been read as <em>two</em> formals since the scanner’s first commit, a third actual
 dropped without a word and <code> new</code>ARGS_ `` pasted into the legal identifier <code>newARGS_</code>. Only a rule
 that <em>refuses</em> (extra actuals) made it visible; the fix moved four OpenTitan files to <code>pass</code>.</p>
+<p><strong><code>`begin_keywords</code> regions are rendered, not ignored</strong> (<code>SVPP-EXPANSION.8</code>). IEEE 1800-2017 §22.14
+lets a block of source select <em>which identifiers are reserved as keywords</em>, from a version of IEEE 1364
+or IEEE 1800: inside <code>`begin_keywords "1364-2001"</code> … <code>`end_keywords</code>, <code>logic</code> is an ordinary
+name. A generated parser reserves one set per PROFILE and cannot switch mid-file, so the expansion stage
+renders the difference as TEXT — every token the parse profile reserves and the region’s version does not
+is re-emitted as an ESCAPED identifier:</p>
+<pre><code class="language-systemverilog">`begin_keywords "1364-2001"     // the source, as its author wrote it
+module top;
+  reg [63:0] logic;             // OK: `logic` is not a keyword in 1364-2001
+endmodule
+`end_keywords
+</code></pre>
+<pre><code class="language-systemverilog">`begin_keywords "1364-2001"     // what the parser is handed
+module top;
+  reg [63:0] \logic ;           // §5.6.2: "A SystemVerilog keyword preceded by an escape
+endmodule                       //  character is not interpreted as a keyword"
+`end_keywords
+</code></pre>
+<p>§5.6.1 makes the two spellings the same identifier (<em>“an escaped identifier <code>\cpu3</code> is treated the same
+as a nonescaped identifier <code>cpu3</code>”</em>), so nothing about the design changes — only which words the parser
+may bind as names. What decides the rendering:</p>
+<ul>
+<li><strong>The profile.</strong> <code>--profile</code> reaches this stage (<code>--sv-keyword-profile</code> on
+<code>ast_pipeline --preprocess-systemverilog</code>); under <code>verilog_2005</code> the parser never reserved <code>logic</code>, so
+the same region renders nothing. Omitted, the parser’s unprofiled reading is used, which reserves
+IEEE 1800-2017 Table B.1.</li>
+<li><strong>The version tables are the LRM’s own</strong> — Table 22-1 … Table 22-6 and §22.14.4’s
+“1364-2001-noconfig” exclusion list — derived from the in-repo standard text and held equal to it on
+every commit by the <code>SV-KEYWORD-VERSIONS</code> doctrine, never typed by hand.</li>
+<li><strong>Regions nest</strong> (<em>“Each nested pair is stacked”</em>) and run <em>“even across source code file boundaries,
+until the matching <code>`end_keywords</code> directive or the end of the compilation unit”</em>, so the stack is
+carried between the files of a <code>--sv-unit-file</code> unit exactly as the macro table is. sv2v’s
+<code>test/lex/begin_keywords.sv</code> turns on exactly this: inside a <code>"1364-2005"</code> region nested in a
+<code>"1364-1995"</code> one, <code>task automatic bar;</code> keeps <code>automatic</code> as a keyword while <code>logic</code> becomes a name.</li>
+<li><strong>It is lexical.</strong> A keyword named in a comment, a string literal, a numeric literal, a <code>$</code>-name or an
+escaped identifier is not a token of the design and is left exactly as written; the source map is
+re-indexed by the exact byte delta of each rendering, so a rejection still names the line its author
+wrote.</li>
+<li><strong>What it cannot do it reports.</strong> Text can unreserve a keyword; it cannot reserve a non-keyword. A
+region naming a version that reserves MORE than the profile raises
+<code>W_SVPP_KEYWORDS_VERSION_ABOVE_PROFILE</code> and is applied only in the direction text can express; one
+naming a specifier the profile’s own edition does not define raises
+<code>W_SVPP_KEYWORDS_VERSION_NOT_IN_EDITION</code> (the parser then refuses the directive); an unpaired
+<code>`end_keywords</code> raises <code>W_SVPP_UNMATCHED_END_KEYWORDS</code>; and a specifier no version of the standard
+defines is <code>E_SVPP_UNKNOWN_KEYWORDS_VERSION</code> — §22.14’s own <em>“It shall be an error if an
+implementation does not recognize the version_specifier”</em>.</li>
+</ul>
+<p>The event log records each directive (<code>keywords_region</code>) with its specifier, how many words the region
+unreserves and how many tokens it actually rendered.</p>
 <p><strong>The deferred population, re-read.</strong> The raw answer key is honest about what a one-file parse cannot
 decide: a must-accept file whose raw parse stops on a macro use, a conditional or an <code>`include</code> is
 <em>explained</em> by a position test, and a multi-file design file carries no verdict at all. The tracked

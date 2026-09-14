@@ -657,7 +657,7 @@ ispras-sv-tests	ieee-1800-2012/22/22.06_02.sv	divergence:explained_svpp_conditio
 ispras-sv-tests	ieee-1800-2012/22/22.06_03.sv	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 ispras-sv-tests	ieee-1800-2012/22/22.13_01.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 ispras-sv-tests	ieee-1800-2012/22/22.14.01_02.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/22/22.14.01_02.sv:10:13
-ispras-sv-tests	ieee-1800-2012/22/22.14.01_04.sv	divergence:unexplained_accepts_invalid	divergence:unexplained_accepts_invalid	pass	-		-	must_reject:accepts_invalid	
+ispras-sv-tests	ieee-1800-2012/22/22.14.01_04.sv	divergence:unexplained_accepts_invalid	divergence:unexplained_accepts_invalid	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/22/22.14.01_04.sv:10:18
 ispras-sv-tests	ieee-1800-2012/23/23.10_01.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 ispras-sv-tests	ieee-1800-2012/34/34.03.01_02.sv	divergence:explained_svpp_protected_envelope	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/begin_keywords_1800_2023.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/begin_keywords_1800_2023.v:3:16
@@ -6474,7 +6474,7 @@ verilator	test_regress/t/t_preproc_inc_bad.v	deferred:svpp_owned	-	fail	included
 verilator	test_regress/t/t_preproc_inc_fn_bad.v	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	`else without matching `ifdef/`ifndef at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_inc_fn_bad.v:7
 verilator	test_regress/t/t_preproc_inc_notfound_bad.v	deferred:svpp_owned	-	pp_fail	context		-	svpp_owned:refused_context	failed to resolve include 'this_file_is_not_found.vh' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_inc_notfound_bad.v:7: include 'this_file_is_not_found.vh'
 verilator	test_regress/t/t_preproc_inc_recurse_bad.v	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	include cycle detected: /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_inc_recurse_bad.v -> /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_reg
-verilator	test_regress/t/t_preproc_kwd.v	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_kwd.v:28:17
+verilator	test_regress/t/t_preproc_kwd.v	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_kwd.v:83:16
 verilator	test_regress/t/t_preproc_kwd_bad.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 verilator	test_regress/t/t_preproc_nodef_bad.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 verilator	test_regress/t/t_preproc_noline.v	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_noline.v:11:6

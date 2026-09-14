@@ -6,9 +6,13 @@
 //! - conditional-compilation flow (`ifdef/`ifndef/`elsif/`else/`endif),
 //! - source mapping metadata from expanded output back to originating file/line.
 
+use crate::sv_keyword_versions::{
+    KeywordVersion, profile_admits_specifier, region_within_profile, version_for_profile,
+    words_to_escape,
+};
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -26,6 +30,12 @@ pub struct SvPreprocessorConfig {
     /// is read, exactly as if `` `define NAME TEXT `` stood at the top of the compilation unit — so
     /// the redefinition policy, `` `undef `` and `` `ifdef `` all see it as an ordinary definition.
     pub defines: Vec<PredefinedMacro>,
+    /// `SVPP-EXPANSION.8` — the `--profile` spelling the EXPANDED text will be parsed under, so
+    /// this stage knows which identifiers the parser reserves and can render a
+    /// `` `begin_keywords `` region's non-keywords as escaped identifiers (IEEE 1800-2017 §22.14).
+    /// `None` is the parser's unprofiled reading, which reserves IEEE 1800-2017 Table B.1; see
+    /// [`crate::sv_keyword_versions::version_for_profile`]. Nothing else in this stage reads it.
+    pub parse_profile: Option<String>,
 }
 
 impl Default for SvPreprocessorConfig {
@@ -39,6 +49,7 @@ impl Default for SvPreprocessorConfig {
             conditional_expr_policy: ConditionalExprPolicy::IdentifierOrDefined,
             strict_warning_codes: HashSet::new(),
             defines: Vec::new(),
+            parse_profile: None,
         }
     }
 }
@@ -209,6 +220,10 @@ pub enum PreprocessorEventKind {
     /// `SVPP-EXPANSION.6b.5`(d): a §34 protected envelope opened (`begin_protected`) or closed
     /// (`end_protected`); every line between the two was consumed as the envelope's, not source text.
     ProtectedEnvelope,
+    /// `SVPP-EXPANSION.8`: a §22.14 `` `begin_keywords `` region opened, closed, or left open at the
+    /// end of the compilation unit; the detail carries the version specifier and, on the closing
+    /// event, how many tokens the region rendered as escaped identifiers.
+    KeywordsRegion,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -259,6 +274,12 @@ struct PreprocessorState {
     include_stack: Vec<PathBuf>,
     included_files: Vec<String>,
     included_seen: HashSet<String>,
+    /// `SVPP-EXPANSION.8`: the open `` `begin_keywords `` regions, innermost last. §22.14: the
+    /// directive *"affects all source code that follows the directive, even across source code file
+    /// boundaries, until the matching `` `end_keywords `` directive or the end of the compilation
+    /// unit"*, and the pairs *"can be nested … Each nested pair is stacked"* — so this is unit
+    /// state, carried between the files of a unit exactly as the macro table is.
+    keyword_regions: Vec<KeywordVersion>,
 }
 
 /// IEEE 1800-2017 §40.3.1's predefined coverage-control macros and their values (the clause's
@@ -321,6 +342,7 @@ impl PreprocessorState {
             include_stack: Vec::new(),
             included_files: Vec::new(),
             included_seen: HashSet::new(),
+            keyword_regions: Vec::new(),
         }
     }
 
@@ -435,6 +457,303 @@ impl PreprocessorState {
         Ok(())
     }
 
+    /// `SVPP-EXPANSION.8` — IEEE 1800-2017 §22.14 applied to the expanded text.
+    ///
+    /// §22.14 selects, per REGION, which identifiers are reserved. The generated parser reserves one
+    /// set per PROFILE and cannot switch mid-file, so the difference is rendered here as TEXT:
+    /// inside a region, every token the parse profile reserves and the region's version does not is
+    /// re-emitted as an escaped identifier — `logic` becomes `\logic `, which §5.6.2 makes "not
+    /// interpreted as a keyword" and §5.6.1 makes the same identifier as the unescaped spelling. The
+    /// reverse difference cannot be rendered — text cannot create a keyword — so a region naming a
+    /// version RICHER than the profile is reported rather than half-applied.
+    ///
+    /// The pass reads the EXPANDED text, so a directive produced by a macro counts and one inside an
+    /// inactive `` `ifdef `` branch does not: it never reached the output. Comments, string
+    /// literals, escaped identifiers, numeric literals and `$`-names are skipped, so a keyword named
+    /// inside any of them is left alone. The source map is re-indexed by the exact byte delta of
+    /// each rendering, so an origin lookup still lands on the line the reader wrote.
+    fn render_keyword_regions(&mut self) -> Result<()> {
+        let text = std::mem::take(&mut self.output);
+        // The whole corpus pays only these two substring searches: a file with no §22.14 directive
+        // and no region carried in from an earlier file of the unit cannot render anything, and an
+        // unmatched `` `end_keywords `` must still be seen, so both spellings are looked for.
+        if self.keyword_regions.is_empty()
+            && !text.contains("`begin_keywords")
+            && !text.contains("`end_keywords")
+        {
+            self.output = text;
+            return Ok(());
+        }
+        let profile_name = self.config.parse_profile.clone();
+        let profile = version_for_profile(profile_name.as_deref());
+
+        let bytes = text.as_bytes();
+        let mut idx = 0usize;
+        let mut replacements: Vec<(usize, usize, String)> = Vec::new();
+        let mut warnings: Vec<(&'static str, PathBuf, usize, String, String)> = Vec::new();
+        let mut events: Vec<(PathBuf, usize, String)> = Vec::new();
+        // (the region's version, how many tokens it has rendered in THIS file)
+        let mut open: Vec<(KeywordVersion, usize)> = self
+            .keyword_regions
+            .iter()
+            .map(|version| (*version, 0usize))
+            .collect();
+        let mut unreserved: Option<BTreeSet<&'static str>> = open
+            .last()
+            .map(|(version, _)| words_to_escape(profile, *version));
+
+        while idx < bytes.len() {
+            match bytes[idx] {
+                b'/' if bytes.get(idx + 1) == Some(&b'/') => {
+                    idx = text[idx..].find('\n').map_or(bytes.len(), |at| idx + at);
+                }
+                b'/' if bytes.get(idx + 1) == Some(&b'*') => {
+                    idx = text[idx + 2..]
+                        .find("*/")
+                        .map_or(bytes.len(), |at| idx + 2 + at + 2);
+                }
+                b'"' => {
+                    idx += 1;
+                    while idx < bytes.len() {
+                        match bytes[idx] {
+                            b'\\' => idx += 2,
+                            b'"' => {
+                                idx += 1;
+                                break;
+                            }
+                            // an unterminated literal ends at its line, never swallows the file
+                            b'\n' => break,
+                            _ => idx += 1,
+                        }
+                    }
+                }
+                // §5.6.1: an escaped identifier already in the text runs to the next white space
+                b'\\' => {
+                    idx += 1;
+                    while idx < bytes.len() && (0x21..=0x7e).contains(&bytes[idx]) {
+                        idx += 1;
+                    }
+                }
+                // a based or unsized literal — `4'b1010`, `'sd5`, `'0` — is one token, not two
+                b'\'' => {
+                    idx += 1;
+                    if matches!(bytes.get(idx), Some(b's') | Some(b'S')) {
+                        idx += 1;
+                    }
+                    if matches!(
+                        bytes.get(idx).map(u8::to_ascii_lowercase),
+                        Some(b'b') | Some(b'o') | Some(b'd') | Some(b'h')
+                    ) {
+                        idx += 1;
+                    }
+                    while idx < bytes.len()
+                        && (bytes[idx].is_ascii_alphanumeric()
+                            || bytes[idx] == b'_'
+                            || bytes[idx] == b'?')
+                    {
+                        idx += 1;
+                    }
+                }
+                // §5.6.3: a name after `$` is a system task or function, never an identifier
+                b'$' => {
+                    idx += 1;
+                    while idx < bytes.len() && is_ident_continue(bytes[idx]) {
+                        idx += 1;
+                    }
+                }
+                b'`' => {
+                    idx += 1;
+                    let name_start = idx;
+                    while idx < bytes.len() && is_ident_continue(bytes[idx]) {
+                        idx += 1;
+                    }
+                    let directive = &text[name_start..idx];
+                    if directive != "begin_keywords" && directive != "end_keywords" {
+                        continue;
+                    }
+                    let (file, line) = self
+                        .origin_of_output_offset(name_start)
+                        .unwrap_or_else(|| (PathBuf::from("<expanded>"), 0));
+                    if directive == "end_keywords" {
+                        match open.pop() {
+                            Some((region, escaped)) => events.push((
+                                file,
+                                line,
+                                format!("end_keywords \"{}\" escaped={escaped}", region.specifier()),
+                            )),
+                            None => warnings.push((
+                                "W_SVPP_UNMATCHED_END_KEYWORDS",
+                                file,
+                                line,
+                                "`end_keywords closes no open `begin_keywords region".to_string(),
+                                "IEEE 1364-2005 §19.11: \"Each `begin_keywords directive must be \
+                                 paired with an `end_keywords directive\"; nothing is rendered here \
+                                 and the directive is left for the parser"
+                                    .to_string(),
+                            )),
+                        }
+                        unreserved = open
+                            .last()
+                            .map(|(version, _)| words_to_escape(profile, *version));
+                        continue;
+                    }
+                    let (specifier, after) = read_version_specifier(&text, idx);
+                    idx = after;
+                    let Some(specifier) = specifier else {
+                        warnings.push((
+                            "W_SVPP_MALFORMED_KEYWORDS_DIRECTIVE",
+                            file,
+                            line,
+                            "`begin_keywords is not followed by a quoted version_specifier"
+                                .to_string(),
+                            "IEEE 1800-2017 §22.14 Syntax 22-10: keywords_directive ::= \
+                             `begin_keywords \"version_specifier\"; no region is opened and the \
+                             parser refuses the directive itself"
+                                .to_string(),
+                        ));
+                        continue;
+                    };
+                    // ⛔ An UNRECOGNIZED specifier is REPORTED here and REFUSED by the PARSER, not
+                    // refused twice. §22.14 says "It shall be an error if an implementation does not
+                    // recognize the version_specifier", and the implementation that errors is the
+                    // grammar: `keywords_version_specifier_<profile>` admits exactly the specifiers
+                    // its own edition lists, per edition, so every other spelling is already a parse
+                    // rejection. Refusing here as well would only PREEMPT that precise refusal and
+                    // turn a rejection into a preprocessor refusal — measured on the corpus, eight
+                    // occurrences (`"VAMS-2.3"` ×7, `"1800+VAMS"` ×1) whose rows are keyed on the
+                    // parser's verdict. An operator who wants the clause fatal at this stage has the
+                    // existing knob: `--sv-strict-warning-codes W_SVPP_UNKNOWN_KEYWORDS_VERSION`.
+                    // No region is opened either way: an unknown version has no known keyword set,
+                    // so there is nothing this stage could correctly render.
+                    let Some(region) = KeywordVersion::from_specifier(specifier) else {
+                        warnings.push((
+                            "W_SVPP_UNKNOWN_KEYWORDS_VERSION",
+                            file,
+                            line,
+                            format!("unrecognized `begin_keywords version_specifier \"{specifier}\""),
+                            format!(
+                                "IEEE 1800-2017 §22.14: \"It shall be an error if an implementation \
+                                 does not recognize the version_specifier used with the \
+                                 `begin_keywords directive\"; no region is opened and the parser \
+                                 refuses the directive. The specifiers this standard defines are {}",
+                                KeywordVersion::ALL
+                                    .iter()
+                                    .map(|version| version.specifier())
+                                    .collect::<Vec<_>>()
+                                    .join(", ")
+                            ),
+                        ));
+                        continue;
+                    };
+                    if !profile_admits_specifier(profile_name.as_deref(), specifier) {
+                        warnings.push((
+                            "W_SVPP_KEYWORDS_VERSION_NOT_IN_EDITION",
+                            file.clone(),
+                            line,
+                            format!(
+                                "version_specifier \"{specifier}\" is not one the parse profile's \
+                                 own edition defines"
+                            ),
+                            format!(
+                                "IEEE 1800-2017 §22.14 Syntax 22-10 enumerates the specifiers per \
+                                 edition; the region is applied here and the parser refuses the \
+                                 directive under profile {}",
+                                profile_name.as_deref().unwrap_or("<none>")
+                            ),
+                        ));
+                    }
+                    if !region_within_profile(profile, region) {
+                        warnings.push((
+                            "W_SVPP_KEYWORDS_VERSION_ABOVE_PROFILE",
+                            file.clone(),
+                            line,
+                            format!(
+                                "version_specifier \"{specifier}\" reserves identifiers the parse \
+                                 profile does not"
+                            ),
+                            "this stage can unreserve a keyword (§5.6.1: an escaped identifier is \
+                             not interpreted as a keyword) but cannot reserve a non-keyword, so the \
+                             region is applied only in the direction text can express"
+                                .to_string(),
+                        ));
+                    }
+                    open.push((region, 0));
+                    let words = words_to_escape(profile, region);
+                    events.push((
+                        file,
+                        line,
+                        format!("begin_keywords \"{specifier}\" unreserves={}", words.len()),
+                    ));
+                    unreserved = Some(words);
+                }
+                digit if digit.is_ascii_digit() => {
+                    idx += 1;
+                    while idx < bytes.len()
+                        && (bytes[idx].is_ascii_alphanumeric()
+                            || bytes[idx] == b'_'
+                            || bytes[idx] == b'$')
+                    {
+                        idx += 1;
+                    }
+                }
+                start if is_ident_start(start) => {
+                    let word_start = idx;
+                    while idx < bytes.len() && is_ident_continue(bytes[idx]) {
+                        idx += 1;
+                    }
+                    if let Some(words) = unreserved.as_ref() {
+                        let word = &text[word_start..idx];
+                        if words.contains(word) {
+                            replacements.push((word_start, idx, format!("\\{word} ")));
+                            if let Some(region) = open.last_mut() {
+                                region.1 += 1;
+                            }
+                        }
+                    }
+                }
+                _ => idx += 1,
+            }
+        }
+
+        // §22.14: a region runs "until the matching `end_keywords directive or the end of the
+        // compilation unit", so an unclosed one is legal — it carries into the unit's next file.
+        for (region, escaped) in &open {
+            events.push((
+                PathBuf::from("<compilation unit>"),
+                0,
+                format!(
+                    "still open at end of file: \"{}\" escaped={escaped}",
+                    region.specifier()
+                ),
+            ));
+        }
+        self.keyword_regions = open.iter().map(|(version, _)| *version).collect();
+
+        self.output = apply_renderings(&text, &replacements, &mut self.source_map);
+        for (file, line, detail) in events {
+            self.push_event(PreprocessorEventKind::KeywordsRegion, &file, line, true, detail);
+        }
+        for (code, file, line, message, detail) in warnings {
+            self.push_warning(code, &file, line, message, detail)?;
+        }
+        Ok(())
+    }
+
+    /// The `(file, line)` the byte at `offset` of the expanded text came from, or `None` when no
+    /// chunk covers it. The map is appended in output order, so the covering chunk is found by
+    /// bisection rather than by scanning (`SVPP-EXPANSION.8`).
+    fn origin_of_output_offset(&self, offset: usize) -> Option<(PathBuf, usize)> {
+        let at = self
+            .source_map
+            .partition_point(|entry| entry.output_start <= offset);
+        let entry = self.source_map.get(at.checked_sub(1)?)?;
+        if offset < entry.output_end {
+            Some((PathBuf::from(&entry.source.file), entry.source.line))
+        } else {
+            None
+        }
+    }
+
     fn push_error(
         &mut self,
         code: &str,
@@ -463,12 +782,80 @@ impl PreprocessorState {
     }
 }
 
+/// `SVPP-EXPANSION.8` — the quoted `version_specifier` that follows `` `begin_keywords ``, and the
+/// byte index just past it. §22.14 Syntax 22-10 writes the specifier as a string literal; only white
+/// space may separate it from the directive, so a directive with anything else after it reads as
+/// malformed rather than silently opening a region.
+fn read_version_specifier(text: &str, after_directive: usize) -> (Option<&str>, usize) {
+    let bytes = text.as_bytes();
+    let mut idx = after_directive;
+    while matches!(bytes.get(idx), Some(b' ') | Some(b'\t')) {
+        idx += 1;
+    }
+    if bytes.get(idx) != Some(&b'"') {
+        return (None, idx);
+    }
+    let start = idx + 1;
+    let mut end = start;
+    while end < bytes.len() && bytes[end] != b'"' && bytes[end] != b'\n' {
+        end += 1;
+    }
+    if bytes.get(end) != Some(&b'"') {
+        return (None, end);
+    }
+    (Some(&text[start..end]), end + 1)
+}
+
+/// `SVPP-EXPANSION.8` — splice the renderings into the expanded text and RE-INDEX the source map by
+/// the exact byte delta each one contributes.
+///
+/// The renderings arrive in ascending, non-overlapping output order (they are produced by one
+/// left-to-right scan), so an output offset moves by the total delta of every rendering that ENDS at
+/// or before it: a chunk's start is unaffected by a rendering that begins at that same offset, while
+/// its end absorbs every rendering inside it. A chunk is one emitted line and an identifier never
+/// spans two, so no rendering straddles a chunk boundary.
+fn apply_renderings(
+    text: &str,
+    replacements: &[(usize, usize, String)],
+    source_map: &mut [SourceMapEntry],
+) -> String {
+    if replacements.is_empty() {
+        return text.to_string();
+    }
+    let mut rendered = String::with_capacity(text.len() + replacements.len() * 2);
+    let mut cursor = 0usize;
+    let mut ends: Vec<usize> = Vec::with_capacity(replacements.len());
+    let mut deltas: Vec<isize> = Vec::with_capacity(replacements.len());
+    let mut running = 0isize;
+    for (start, end, replacement) in replacements {
+        rendered.push_str(&text[cursor..*start]);
+        rendered.push_str(replacement);
+        cursor = *end;
+        running += replacement.len() as isize - (*end - *start) as isize;
+        ends.push(*end);
+        deltas.push(running);
+    }
+    rendered.push_str(&text[cursor..]);
+
+    let shift = |offset: usize| -> usize {
+        let at = ends.partition_point(|end| *end <= offset);
+        let delta = if at == 0 { 0 } else { deltas[at - 1] };
+        (offset as isize + delta).max(0) as usize
+    };
+    for entry in source_map.iter_mut() {
+        entry.output_start = shift(entry.output_start);
+        entry.output_end = shift(entry.output_end);
+    }
+    rendered
+}
+
 pub fn preprocess_systemverilog_file(
     input_path: &Path,
     config: &SvPreprocessorConfig,
 ) -> Result<PreprocessedOutput> {
     let mut state = PreprocessorState::new(config.clone());
     preprocess_file_internal(input_path, &mut state, 0)?;
+    state.render_keyword_regions()?;
     Ok(state.take_output())
 }
 
@@ -496,11 +883,15 @@ pub fn preprocess_systemverilog_unit(
 ) -> Result<Vec<PreprocessedOutput>> {
     let mut outputs = Vec::with_capacity(files.len());
     let mut carried: Option<HashMap<String, MacroDefinition>> = None;
+    // `SVPP-EXPANSION.8`: §22.14's region stack is UNIT state — "even across source code file
+    // boundaries" — so it is carried between the unit's files exactly as the macro table is.
+    let mut keyword_regions: Vec<KeywordVersion> = Vec::new();
     for (index, file) in files.iter().enumerate() {
         let mut state = PreprocessorState::new(config.clone());
         if let Some(macros) = carried.take() {
             state.macros = macros;
         }
+        state.keyword_regions = std::mem::take(&mut keyword_regions);
         preprocess_file_internal(file, &mut state, 0).with_context(|| {
             format!(
                 "compilation unit file {} of {} ('{}') failed to preprocess",
@@ -509,6 +900,15 @@ pub fn preprocess_systemverilog_unit(
                 file.display()
             )
         })?;
+        state.render_keyword_regions().with_context(|| {
+            format!(
+                "compilation unit file {} of {} ('{}') failed to preprocess",
+                index + 1,
+                files.len(),
+                file.display()
+            )
+        })?;
+        keyword_regions = state.keyword_regions.clone();
         outputs.push(state.take_output());
         carried = Some(state.into_carried_macros());
     }
@@ -2933,8 +3333,9 @@ mod tests {
     use super::{
         ConditionalSymbolPolicy, IncludePathPolicy, MacroDefinition, MacroParameter,
         MacroRedefinitionPolicy, PredefinedMacro, PreprocessorDiagnosticSeverity,
-        SvPreprocessorConfig, expand_function_macro, normalize_macro_body_for_directives,
-        parse_strict_warning_codes, preprocess_systemverilog_file, preprocess_systemverilog_unit,
+        PreprocessedOutput, PreprocessorEventKind, SvPreprocessorConfig, expand_function_macro,
+        normalize_macro_body_for_directives, parse_strict_warning_codes,
+        preprocess_systemverilog_file, preprocess_systemverilog_unit,
     };
     use std::collections::HashMap;
     use std::fs;
@@ -3605,6 +4006,257 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             .join(format!("{}_{}", prefix, nanos));
         fs::create_dir_all(&dir).expect("mkdir repo scratch");
         dir
+    }
+
+    // ── SVPP-EXPANSION.8 — IEEE 1800-2017 §22.14 `begin_keywords regions ──────────────────────
+
+    fn preprocess_with_profile(source: &str, profile: Option<&str>) -> PreprocessedOutput {
+        // ⛔ A COUNTER, not just the clock: a dozen tests share this helper and `cargo test` runs
+        // them in parallel, so two calls inside one clock tick would share a scratch directory and
+        // overwrite each other's `top.sv`. Observed once before this line existed.
+        static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let seq = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let dir = create_repo_scratch_dir(&format!("svpp_keywords_{seq}"));
+        let input = dir.join("top.sv");
+        fs::write(&input, source).expect("write input");
+        let config = SvPreprocessorConfig {
+            parse_profile: profile.map(str::to_string),
+            ..SvPreprocessorConfig::default()
+        };
+        preprocess_systemverilog_file(&input, &config).expect("preprocess")
+    }
+
+    /// §22.14.3's own example: `logic` is not a keyword in `"1364-2001"`, so a parser holding the
+    /// 1800-2017 set must be handed it as an escaped identifier (§5.6.2).
+    #[test]
+    fn a_region_unreserves_the_versions_non_keywords() {
+        let output = preprocess_with_profile(
+            "`begin_keywords \"1364-2001\"\nmodule top;\n  reg [63:0] logic;\nendmodule\n`end_keywords\n",
+            Some("sv_2017"),
+        );
+        assert!(output.text.contains("reg [63:0] \\logic ;"), "{}", output.text);
+        assert!(output.diagnostics.is_empty());
+    }
+
+    /// A keyword of the region's OWN version is untouched, and so is one outside the region.
+    #[test]
+    fn a_regions_own_keywords_and_the_text_outside_it_are_untouched() {
+        let output = preprocess_with_profile(
+            "reg logic;\n`begin_keywords \"1364-2005\"\nwire uwire_ok;\nreg logic;\n`end_keywords\nreg logic;\n",
+            Some("sv_2017"),
+        );
+        let lines: Vec<&str> = output.text.lines().collect();
+        assert_eq!(lines[0], "reg logic;", "before the region");
+        assert_eq!(lines[3], "reg \\logic ;", "inside the region");
+        assert_eq!(lines[5], "reg logic;", "after the region");
+    }
+
+    /// §22.14: *"The `begin_keywords...`end_keywords directive pair can be nested. Each nested pair
+    /// is stacked"* — sv2v's `test/lex/begin_keywords.sv` turns on exactly this: `automatic` is a
+    /// keyword of the INNER `"1364-2005"` region and not of the outer `"1364-1995"` one.
+    #[test]
+    fn nested_regions_stack_and_the_inner_version_wins() {
+        let output = preprocess_with_profile(
+            "`begin_keywords \"1364-1995\"\ntask foo;\n  integer automatic = 2;\nendtask\n\
+             `begin_keywords \"1364-2005\"\ntask automatic bar;\n  integer logic = 3;\nendtask\n\
+             `end_keywords\nreg automatic;\n`end_keywords\n",
+            Some("sv_2017"),
+        );
+        assert!(output.text.contains("integer \\automatic  = 2;"), "{}", output.text);
+        assert!(output.text.contains("task automatic bar;"), "{}", output.text);
+        assert!(output.text.contains("integer \\logic  = 3;"), "{}", output.text);
+        assert!(output.text.contains("reg \\automatic ;"), "outer region resumes: {}", output.text);
+    }
+
+    /// §22.14.4: `"1364-2001-noconfig"` is `"1364-2001"` minus the ten configuration keywords, so
+    /// `cell` is an identifier there and `automatic` is still a keyword.
+    #[test]
+    fn noconfig_excludes_the_configuration_keywords_and_nothing_else() {
+        let output = preprocess_with_profile(
+            "`begin_keywords \"1364-2001-noconfig\"\ntask automatic baz;\n  integer cell = 3;\nendtask\n`end_keywords\n",
+            Some("sv_2017"),
+        );
+        assert!(output.text.contains("task automatic baz;"), "{}", output.text);
+        assert!(output.text.contains("integer \\cell  = 3;"), "{}", output.text);
+    }
+
+    /// The rendering is LEXICAL: a keyword named inside a comment, a string or an existing escaped
+    /// identifier is not a token of the design and is left exactly as written.
+    #[test]
+    fn comments_strings_literals_and_escaped_identifiers_are_left_alone() {
+        let output = preprocess_with_profile(
+            "`begin_keywords \"1364-1995\"\n// automatic in a line comment\n\
+             /* automatic in a block comment */\n\
+             module top;\n  initial $display(\"automatic in a string\");\n\
+             wire \\automatic_already = 1'b1;\n  integer automatic;\nendmodule\n`end_keywords\n",
+            Some("sv_2017"),
+        );
+        assert!(output.text.contains("// automatic in a line comment"), "{}", output.text);
+        assert!(output.text.contains("/* automatic in a block comment */"), "{}", output.text);
+        assert!(output.text.contains("$display(\"automatic in a string\")"), "{}", output.text);
+        assert!(output.text.contains("wire \\automatic_already = 1'b1;"), "{}", output.text);
+        assert!(output.text.contains("integer \\automatic ;"), "{}", output.text);
+        assert_eq!(output.text.matches("\\automatic ").count(), 1, "{}", output.text);
+    }
+
+    /// The parse profile decides what has to be unreserved: under `verilog_2005` the parser never
+    /// reserved `logic`, so a `"1364-2001"` region renders nothing at all.
+    #[test]
+    fn the_parse_profile_decides_which_words_need_unreserving() {
+        let source = "`begin_keywords \"1364-2001\"\nreg logic;\nreg automatic;\n`end_keywords\n";
+        let sv = preprocess_with_profile(source, Some("sv_2017"));
+        assert!(sv.text.contains("reg \\logic ;"));
+        let v2005 = preprocess_with_profile(source, Some("verilog_2005"));
+        assert!(v2005.text.contains("reg logic;"), "{}", v2005.text);
+        assert!(v2005.text.contains("reg automatic;"), "{}", v2005.text);
+    }
+
+    /// The source map is re-indexed by the exact delta of every rendering, so a byte AFTER one
+    /// still names the line its author wrote.
+    #[test]
+    fn the_source_map_survives_the_rendering() {
+        let output = preprocess_with_profile(
+            "`begin_keywords \"1364-2001\"\nmodule top;\n  reg [63:0] logic;\n  wire w;\nendmodule\n`end_keywords\n",
+            Some("sv_2017"),
+        );
+        let at = output.text.find("wire w;").expect("the line after the rendering");
+        let entry = output
+            .source_map
+            .iter()
+            .find(|entry| at >= entry.output_start && at < entry.output_end)
+            .expect("a source-map chunk covers it");
+        assert_eq!(entry.source.line, 4);
+        // the map still TILES the rendered text: ascending, contiguous, and ending at its length
+        let mut previous_end = 0usize;
+        for entry in &output.source_map {
+            assert_eq!(entry.output_start, previous_end, "chunks tile without a gap");
+            assert!(entry.output_end <= output.text.len(), "chunk past the rendered text");
+            previous_end = entry.output_end;
+        }
+        assert_eq!(previous_end, output.text.len(), "the last chunk ends at the text");
+        // and the rendered token lives inside the chunk of the line that wrote it
+        let rendered = output.text.find("\\logic ").expect("the rendering");
+        let owner = output
+            .source_map
+            .iter()
+            .find(|entry| rendered >= entry.output_start && rendered < entry.output_end)
+            .expect("a chunk covers the rendering");
+        assert_eq!(owner.source.line, 3);
+    }
+
+    /// §22.14: *"It shall be an error if an implementation does not recognize the version_specifier
+    /// used with the `begin_keywords directive."* The implementation that errors is the GRAMMAR —
+    /// `keywords_version_specifier_<profile>` admits exactly its own edition's list — so this stage
+    /// REPORTS it, opens no region, and leaves the text for the parser to refuse. Promoting the
+    /// warning makes the clause fatal here for an operator who wants that.
+    #[test]
+    fn an_unrecognized_version_specifier_is_reported_and_opens_no_region() {
+        let output = preprocess_with_profile(
+            "`begin_keywords \"1364-2010\"\nreg logic;\n`end_keywords\n",
+            Some("sv_2017"),
+        );
+        let diagnostic = output
+            .diagnostics
+            .iter()
+            .find(|d| d.code == "W_SVPP_UNKNOWN_KEYWORDS_VERSION")
+            .expect("the unknown specifier is reported");
+        assert!(diagnostic.message.contains("1364-2010"), "{}", diagnostic.message);
+        assert!(output.text.contains("reg logic;"), "no region opened: {}", output.text);
+
+        let dir = create_repo_scratch_dir("svpp_keywords_unknown_strict");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`begin_keywords \"1364-2010\"\nreg logic;\n`end_keywords\n")
+            .expect("write input");
+        let config = SvPreprocessorConfig {
+            parse_profile: Some("sv_2017".to_string()),
+            strict_warning_codes: parse_strict_warning_codes("W_SVPP_UNKNOWN_KEYWORDS_VERSION"),
+            ..SvPreprocessorConfig::default()
+        };
+        let error = preprocess_systemverilog_file(&input, &config)
+            .expect_err("the promoted warning is fatal");
+        assert!(format!("{error:#}").contains("W_SVPP_UNKNOWN_KEYWORDS_VERSION"));
+    }
+
+    /// A region naming a version the profile's own edition does not define, and one reserving MORE
+    /// than the profile, are each reported — the second because text cannot create a keyword.
+    #[test]
+    fn a_region_the_profile_cannot_fully_express_is_reported() {
+        let output = preprocess_with_profile(
+            "`begin_keywords \"1800-2005\"\nmodule m; endmodule\n`end_keywords\n",
+            Some("verilog_2005"),
+        );
+        let codes: Vec<&str> = output.diagnostics.iter().map(|d| d.code.as_str()).collect();
+        assert!(codes.contains(&"W_SVPP_KEYWORDS_VERSION_NOT_IN_EDITION"), "{codes:?}");
+        assert!(codes.contains(&"W_SVPP_KEYWORDS_VERSION_ABOVE_PROFILE"), "{codes:?}");
+        assert!(output.text.contains("module m; endmodule"), "{}", output.text);
+    }
+
+    /// IEEE 1364-2005 §19.11: *"Each `begin_keywords directive must be paired with an
+    /// `end_keywords directive."* An unpaired close is reported and renders nothing.
+    #[test]
+    fn an_unmatched_end_keywords_is_reported() {
+        let output = preprocess_with_profile("module m; endmodule\n`end_keywords\n", Some("sv_2017"));
+        assert_eq!(
+            output.diagnostics.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
+            vec!["W_SVPP_UNMATCHED_END_KEYWORDS"]
+        );
+    }
+
+    /// §22.14: the region *"affects all source code that follows the directive, even across source
+    /// code file boundaries, until the matching `end_keywords directive or the end of the
+    /// compilation unit"* — so an unclosed region carries into the unit's next file.
+    #[test]
+    fn an_open_region_carries_across_the_compilation_units_files() {
+        let dir = create_repo_scratch_dir("svpp_keywords_unit");
+        let first = dir.join("first.sv");
+        let second = dir.join("second.sv");
+        fs::write(&first, "`begin_keywords \"1364-1995\"\nreg automatic;\n").expect("write first");
+        fs::write(&second, "reg automatic;\n").expect("write second");
+        let config = SvPreprocessorConfig {
+            parse_profile: Some("sv_2017".to_string()),
+            ..SvPreprocessorConfig::default()
+        };
+        let outputs = preprocess_systemverilog_unit(&[first, second], &config).expect("preprocess");
+        assert!(outputs[0].text.contains("reg \\automatic ;"), "{}", outputs[0].text);
+        assert!(outputs[1].text.contains("reg \\automatic ;"), "{}", outputs[1].text);
+    }
+
+    /// A file with no §22.14 directive is byte-identical to what it was before this pass existed —
+    /// the whole corpus takes that path.
+    #[test]
+    fn a_file_with_no_region_is_untouched() {
+        let source = "module top;\n  logic [1:0] automatic_like;\n  wire interface_name;\nendmodule\n";
+        let output = preprocess_with_profile(source, Some("sv_2017"));
+        assert_eq!(output.text, source);
+        assert!(output.diagnostics.is_empty());
+        assert!(
+            !output
+                .events
+                .iter()
+                .any(|event| event.kind == PreprocessorEventKind::KeywordsRegion)
+        );
+    }
+
+    /// The event log names each directive's own line and what the region cost.
+    #[test]
+    fn the_event_log_names_each_region_and_its_renderings() {
+        let output = preprocess_with_profile(
+            "`begin_keywords \"1364-1995\"\nreg automatic;\nreg logic;\n`end_keywords\n",
+            Some("sv_2017"),
+        );
+        let regions: Vec<(usize, String)> = output
+            .events
+            .iter()
+            .filter(|event| event.kind == PreprocessorEventKind::KeywordsRegion)
+            .map(|event| (event.line, event.detail.clone()))
+            .collect();
+        assert_eq!(
+            regions,
+            vec![
+                (1, "begin_keywords \"1364-1995\" unreserves=146".to_string()),
+                (4, "end_keywords \"1364-1995\" escaped=2".to_string()),
+            ]
+        );
     }
 
     #[test]
