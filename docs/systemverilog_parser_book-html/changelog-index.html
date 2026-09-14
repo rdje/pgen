@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f4f5fa8c.js";
+            window.path_to_searchindex_js = "searchindex-bf5f7c40.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -217,6 +217,30 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10230--contract-10230--sv-corpus-grad360--361-pgen-sv-corpus-grad-0393-2026-09-14-ledger-sv-0103--sv-0104--sv-0105--sv-0106-released-schema-32--33"><a class="header" href="#10230--contract-10230--sv-corpus-grad360--361-pgen-sv-corpus-grad-0393-2026-09-14-ledger-sv-0103--sv-0104--sv-0105--sv-0106-released-schema-32--33">1.0.230 / Contract 1.0.230 — SV-CORPUS-GRAD.3.60 + .3.61 (<code>PGEN-SV-CORPUS-GRAD-0393</code>, 2026-09-14), ledger <code>SV-0103</code> / <code>SV-0104</code> / <code>SV-0105</code> / <code>SV-0106</code> (<code>Released</code>), <strong>schema 32 → 33</strong>:</a></h3>
+<p>⭐ <strong>The compilation-unit scope and the module are different name spaces — and a lookahead is a child.</strong> IEEE
+1800-2017 3.13 puts a <code>$unit</code> typedef in the compilation-unit scope name space and a same-named net, function, port
+or parameter in the module’s, so <code>wire T = 1'b1;</code>, <code>function U;</code>, <code>module m(input T);</code>, the non-ANSI <code>input T;</code>, a tf port <code>input T;</code> and
+<code>parameter int P = 5, T typed_value = 8'ha5, p::PT pkg_value = 6'h2a</code> each declare a NEW name under an IMPLICIT type
+(A.2.1.3, A.2.6, A.1.3, A.2.1.2, A.2.7, A.2.4 footnote 18). Through <code>1.0.229</code> each read only <code>data_type_or_implicit</code>, whose <code>data_type</code> arm consumed
+the typedef name and found no declarator (the five iverilog <code>sv_type_identifier_*.v</code> rows). <code>1.0.230</code> admits the typed
+reading only where a declarator follows — <code>data_type_or_implicit_declared := data_type &amp;( declaration_identifier | hash ) | implicit_data_type</code>, one new rule (<code>1648 → 1649</code>) read by the net, port and tf-port declarations, the same guard on
+<code>var_data_type</code> and the function return type — so the typedef name before <code>=</code> <code>;</code> <code>,</code> <code>)</code> is the declarator under the
+implicit reading (a first candidate spelled implicit-twin ALTERNATIVES; the parse-cost ratchet refused it, because the
+engine derives every alternative and a twin re-derived each typed declaration it also matched: <code>committed +3.41 %</code>);
+and it guards the default-less parameter arm with <code>&amp;( comma | rparen | semi )</code> — complete only there — and the type
+lists with the same reading. The first of those guards reproduced a shape on a CONTROL — <code>[$1, $2::2*]</code> over a
+guard-opened group returned the comma — and the question “how does the <code>.3.35</code> precedent survive its lookahead?” was
+answered by dumping its tree: it did not. In the engine a lookahead is a positional child that binds <code>[]</code>; ten
+templates in the shipped grammar had not counted it, and every gate had stayed green because the accept set never
+moved and an identity sweep compares a release with the one before. <strong>Schema 33</strong>: <code>type_assignment</code>’s four twins read
+<code>{name: $2, value: $3}</code> — every <code>parameter type T = int</code> since <code>1.0.79</code> had read <code>name: []</code>, <code>value: T</code> and carried no
+default type (<code>SV-0104</code>); the <code>.3.35</code> type lists read <code>[$1, $2::3*]</code> — <code>type T = int, U = real</code> had dropped <code>U</code> for a
+<code>comma</code> node since <code>1.0.210</code> (<code>SV-0105</code>); the <code>.13c.2s</code> argument lists read <code>ordered_tail: [$2::3*]</code> — a property or
+sequence instance’s further positionals had been <code>[]</code> since <code>1.0.191</code> (<code>SV-0106</code>); the mixed string parameter port
+list’s <code>type_tail</code> / <code>decl_tail</code> are clean arrays. Recurrence guard: the doctrine <code>LOOKAHEAD-SLOT-TEMPLATES</code>
+(<code>scripts/lookahead_slot_audit.py</code>, self-tested, every commit); the engine-side lint is routed. Measured on the final
+bytes: the raw lanes byte-inert — <code>sv_2017</code> pass 9 847 / fail 6 489, <code>sv_2023</code> 9 872 / 6 464, <code>verilog_2005</code> 2 313 / 293, every count identical to 1.0.229’s, 0 rows moved (0 raw rows moved on any lane (the five iverilog rows sit behind a multi-line <code>`define</code>: the raw lane stops at the macro on every release, the shapes come after it)); the pipeline lane exactly 5 rows <code>fail → pass</code> (the five iverilog <code>sv_type_identifier_*.v</code> rows), 0 the other way; the corpus AST identity sweeps read <code>ast_moved=196 verdict_moved=0</code> on <code>sv_2017</code>, <code>204 / 0</code> on <code>sv_2023</code> and <code>0 / 0</code> on <code>verilog_2005</code> — every mover a <code>.3.61</code> shape (type assignments, type lists, ordered tails), the other 9 651 / 9 668 / 2 313 accepted trees byte-identical — the movers are 196 accepted files on <code>sv_2017</code> and 204 on <code>sv_2023</code>, every one a <code>.3.61</code> shape and nothing else (<code>rust/target/s360/classify_movers.py</code>, every mover’s two trees diffed node by node: 193 / 201 files carry a <code>type_assignment</code> whose <code>name</code> and <code>value</code> are now bound — 822 / 838 nodes — 9 / 9 carry a type list whose second and later assignments replace a <code>comma</code> node — 26 / 26 elements — and 3 / 3 carry a property or sequence instance’s <code>ordered_tail</code> — 19 / 19 arguments; 0 unclassified), the other 9 651 / 9 668 accepted trees byte-identical, <code>verilog_2005</code> untouched (2 313 identical).</p>
 <h3 id="10229--contract-10229--sv-corpus-grad359-pgen-sv-corpus-grad-0392-2026-09-10-ledger-sv-0102-released-schema-32-unchanged"><a class="header" href="#10229--contract-10229--sv-corpus-grad359-pgen-sv-corpus-grad-0392-2026-09-10-ledger-sv-0102-released-schema-32-unchanged">1.0.229 / Contract 1.0.229 — SV-CORPUS-GRAD.3.59 (<code>PGEN-SV-CORPUS-GRAD-0392</code>, 2026-09-10), ledger <code>SV-0102</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
 <p>⭐ <strong>A select on a receiver is an expression, and <code>$</code> is a primary.</strong> IEEE 1800-2017 A.8.4 derives a method
 call’s receiver as <code>hierarchical_identifier select</code> with <code>bit_select ::= { [ expression ] }</code>, and <code>$</code> — the last

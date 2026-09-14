@@ -1773,6 +1773,239 @@ def self_test_lookahead_replay_occurrences() -> int:
     return 1 if failed else 0
 
 
+def guarded_typed_reading(base: dict[str, dict[str, int]], new: dict[str, dict[str, int]],
+                          edges: dict[str, list[str]], introduced: list[str],
+                          base_files: dict[str, dict], new_files: dict[str, dict]
+                          ) -> tuple[bool, str, dict]:
+    """`(holds, one-line detail, facts)` for the GUARDED-TYPED-READING predicate
+    (`SV-CORPUS-GRAD.3.60`, `ENGINE-UNIVERSAL-SERVICES.105`, release 1.0.230).
+
+    THE SHAPE. A typed reading the grammar has always offered — `data_type` inside `data_type_or_implicit ::=
+    data_type | implicit_data_type` — consumed a token it must not: a visible typedef name that is in fact the
+    DECLARATOR (`wire T = 1'b1;`, `input T;`, `function U;`; IEEE 1800-2017 3.13, the compilation-unit scope and
+    the module are different name spaces). The change fronts nothing and un-gates nothing: it adds a POSITIVE
+    lookahead to the typed reading (`data_type &( declaration_identifier | hash )`) in a copy of the rule that its
+    declaration sites now read (`data_type_or_implicit_declared`), so the typed arm is admitted only where a
+    declarator follows and the token falls to the implicit sibling of the SAME rule. Three things move and
+    nothing else may: (a) a RENAME — the introduced reading is entered exactly where the reading it replaces
+    stopped being entered, so on every metric the introduced rules rise by what the replaced rules fall;
+    (b) the GUARD'S LOOKUPS — the lookahead parses its subjects (an identifier, a terminal) once and the
+    declarator that follows replays them from the memo, so the subjects and their sub-graph rise in entries
+    and memo hits and — because the engine keeps a SUCCESSFUL positive lookahead's pushes and C3-B counts a
+    replayed subtree again — in committed; (c) a default-less arm the same change stops earlier
+    (`param_assignment … &( comma | rparen | semi )`) commits LESS on its losing successes. Measured on `.3.60`:
+    `data_type_or_implicit_declared` +2,355 entries / +1,664 committed against `data_type_or_implicit` −2,355 /
+    −1,664 exactly; `declaration_identifier` +2,141 entries and `non_keyword_identifier` +2,141 memo hits (the
+    lookup and its replay); `comma` / `rparen` / `semi` / `hash` +961 / +1,151 / +1,157 / +884 entries (the
+    terminal tries); `parameter_identifier` −475 committed; the run `entries +0.00 %`, `committed +0.02 %`.
+    ⛔ The twin-ALTERNATIVE spelling of the same widening measured `committed +3.41 %` and was refused — the
+    engine derives every alternative (a longest-match tournament), so a twin re-derived each typed declaration
+    it also matched, `br_gh330.v` alone +127,080 committed on +245 entries — and clause (4) is what refuses it.
+
+    ⛔ WHY THE OTHER THIRTEEN CANNOT COVER IT. The three arithmetic identities and `host_memo_eviction` need
+    `committed` flat — a kept positive lookahead is not flat; `contained_in_introduced_subgraph` refuses
+    `Δcommitted > 0` and any fall — the replaced reading falls by construction; `introduced_wrapper_frames`
+    admits committed only on the introduced frames — the guard's subjects commit too; `lookahead_replay_occurrences`
+    needs its guarded sibling to be a pure lookup with committed flat (a NEGATIVE guard) and no sampled file to
+    have advanced — a widening advances the very rows it was opened on; `advanced_files_only` needs every dearer
+    file to have advanced — every typed declaration in the corpus pays the guard; `caller_split_containment`,
+    `scope_gated_arm`, `profile_split_respelling`, `typed_replacement_of_opaque_terminal` and
+    `declared_alternatives_net_of_retired_work` describe splits, gates, respellings and retired work, none of
+    which happened here.
+
+    ⭐ WHAT THIS ONE ASSERTS. `introduced` declares the introduced reading(s) (plain names, new to the baseline),
+    the reading(s) they REPLACE at their call sites (`=name`, pre-existing), the guard's SUBJECTS (`!name`,
+    pre-existing rules or terminals the lookaheads try) and, optionally, the HOSTS — pre-existing rules whose own
+    spelling carries a guard in place (`~name`: `param_assignment_sv_2017`'s default-less arm, `var_data_type`,
+    `function_data_type_or_implicit`): a guarded arm that now fails earlier is entered, memoized and answered
+    differently by its callers, so a host's OWN frames may move (measured: `param_assignment_sv_2017` memo hits
+    +86 where `assign` entries fell −86 — the arm answered from the memo instead of re-parsed) and are admitted
+    for the host alone, reported; a host's sub-graph is not admitted through it. Every name in the graph, at
+    least one introduced, one replaced and one subject.
+    (1) RENAME: on every metric, the introduced rules' rise equals the replaced rules' fall.
+    (2) No sampled file REGRESSED — none flipped yes→no, none stopped short of where it stopped before;
+        files that advanced or flipped no→yes are the widening's own rows and are reported.
+    (3) Every rule that rose in entries or memo hits is an introduced rule, a guard subject or reachable
+        from a guard subject — the lookup and its sub-graph — or a declared host (its own frames).
+    (4) Every rule that rose in committed is an introduced rule, reachable from a guard subject or a declared
+        host, and the
+        committed rise OUTSIDE the introduced rules is at most the ENTRIES rise inside the guards' sub-graph —
+        a kept push needs a lookup that entered; a replayed derivation (the twin shape) commits thousands on
+        a handful of entries and fails here.
+    (5) Something rose. Fallers are reported, never refused.
+
+    ⚠️ HONEST BOUND. This proves the rise is confined to a rename, the guard's lookups and their kept pushes.
+    It does not say a cheaper guard does not exist — only an ARM can (`TOOLBOX.md` 3.7b) — and `committed`
+    still prices a replay as work (the work-only counter routed by `ENGINE-UNIVERSAL-SERVICES.100`).
+
+    Raises `Refused` (never a false verdict) when no introduced reading, no replaced reading or no guard
+    subject is declared, a name is missing from the graph or the measurements, an introduced name already
+    existed, or a `=` / `!` / `~` name is new to the baseline.
+    """
+    replaced = [n[1:] for n in introduced if n.startswith("=")]
+    guards = [n[1:] for n in introduced if n.startswith("!")]
+    hosts = [n[1:] for n in introduced if n.startswith("~")]
+    intro = [n for n in introduced if not n.startswith(("=", "!", "~"))]
+    if not intro:
+        raise Refused("the guarded-typed-reading predicate needs the introduced reading (a plain name); none is declared")
+    if not replaced:
+        raise Refused("the guarded-typed-reading predicate needs the reading the introduced rule REPLACES at its "
+                      "call sites, declared as `=name`; none is declared, so the rename cannot be checked")
+    if not guards:
+        raise Refused("the guarded-typed-reading predicate needs the guard's SUBJECTS (`!name`, the rules or "
+                      "terminals the lookahead tries); none is declared, so the lookups are unattributed")
+    known = set(edges) | {r for refs in edges.values() for r in refs}
+    unknown = [n for n in intro + replaced + guards + hosts if n not in known]
+    if unknown:
+        raise Refused(f"{unknown} name no rule in the grammar's reference graph")
+    pre = [n for n in intro if n in base]
+    if pre:
+        raise Refused(f"{pre} are declared introduced but were measured in the baseline")
+    missing = [n for n in replaced + guards + hosts if n not in base or n not in new]
+    if missing:
+        raise Refused(f"{missing} are declared as pre-existing (`=`/`!`/`~`) but are not measured on both sides")
+    names = set(base) | set(new)
+    origins = {r: origin_rule(r, known) for r in names}
+    unplaced = sorted(r for r, o in origins.items() if o is None)
+    if unplaced:
+        raise Refused(f"{len(unplaced)} measured rule(s) cannot be located in the grammar's reference graph: "
+                      f"{unplaced[:5]}{' …' if len(unplaced) > 5 else ''}")
+    d = lambda r, k: new.get(r, {}).get(k, 0) - base.get(r, {}).get(k, 0)
+    facts: dict = {"rename": {}, "moved_files": [], "regressed_files": [], "escaped_entries": {},
+                   "escaped_memo": {}, "escaped_committed": {}, "kept_pushes": 0, "guard_entries": 0, "fell": {}}
+    for k in ("entries", "committed", "memo_hits"):
+        up, down = sum(d(r, k) for r in intro), sum(d(r, k) for r in replaced)
+        facts["rename"][k] = (up, down)
+        if up + down != 0:
+            return (False, f"not a rename on `{k}`: the introduced reading(s) moved {up:+,} while the replaced "
+                           f"reading(s) moved {down:+,} — the new rule is entered somewhere the old one was not "
+                           f"(or the old one is still entered where the new one is)", facts)
+    for path, b in base_files.items():
+        n = new_files.get(path)
+        if n is None:
+            continue
+        if b["accepted"] != n["accepted"] or (b["furthest"] is not None and n["furthest"] is not None
+                                              and b["furthest"] != n["furthest"]):
+            facts["moved_files"].append((path, b["accepted"], n["accepted"], b["furthest"], n["furthest"]))
+            if (b["accepted"] == "yes" and n["accepted"] != "yes") or (
+                    b["furthest"] is not None and n["furthest"] is not None and n["furthest"] < b["furthest"]):
+                facts["regressed_files"].append((path, b["accepted"], n["accepted"], b["furthest"], n["furthest"]))
+    if facts["regressed_files"]:
+        p0 = facts["regressed_files"][0]
+        return (False, f"{len(facts['regressed_files'])} sampled file(s) REGRESSED (e.g. {os.path.basename(p0[0])} "
+                       f"accepted {p0[1]}->{p0[2]} furthest {p0[3]}->{p0[4]}) — a guard that stops a legal "
+                       f"declaration is not a widening", facts)
+    scope = reachable(edges, guards) | set(guards) | set(intro) | set(hosts)
+    rose_e = {r: d(r, "entries") for r in names if d(r, "entries") > 0}
+    rose_m = {r: d(r, "memo_hits") for r in names if d(r, "memo_hits") > 0}
+    rose_c = {r: d(r, "committed") for r in names if d(r, "committed") > 0}
+    facts["escaped_entries"] = {r: v for r, v in rose_e.items() if origins[r] not in scope}
+    facts["escaped_memo"] = {r: v for r, v in rose_m.items() if origins[r] not in scope}
+    facts["escaped_committed"] = {r: v for r, v in rose_c.items() if origins[r] not in scope}
+    facts["kept_pushes"] = sum(v for r, v in rose_c.items() if r not in intro)
+    facts["host_moves"] = {h: (d(h, "entries"), d(h, "memo_hits"), d(h, "committed")) for h in hosts
+                           if d(h, "entries") or d(h, "memo_hits") or d(h, "committed")}
+    facts["guard_entries"] = sum(v for r, v in rose_e.items() if r not in intro)
+    facts["fell"] = {r: d(r, "entries") for r in names if d(r, "entries") < 0}
+    facts["fell_committed"] = {r: d(r, "committed") for r in names if d(r, "committed") < 0}
+    for key, what in (("escaped_entries", "entries"), ("escaped_memo", "memo_hits"), ("escaped_committed", "committed")):
+        if facts[key]:
+            worst = sorted(facts[key].items(), key=lambda t: -t[1])[:3]
+            return (False, f"{len(facts[key])} rule(s) rose in {what} OUTSIDE the introduced reading, the declared "
+                           f"hosts and the sub-graph the guard subjects {' '.join(guards)} reach: "
+                           + ", ".join(f"{r} {v:+,}" for r, v in worst), facts)
+    if facts["kept_pushes"] > facts["guard_entries"]:
+        return (False, f"the committed rise outside the introduced reading ({facts['kept_pushes']:+,}) exceeds the "
+                       f"entries rise inside the guard sub-graph ({facts['guard_entries']:+,}) — that is a replayed "
+                       f"DERIVATION, not a kept lookup: a twin alternative re-deriving what the typed reading "
+                       f"already derived", facts)
+    if not rose_e and not rose_m and not rose_c:
+        return (False, "nothing rose, so there is no guard for this predicate to explain", facts)
+    detail = ("guarded typed reading: rename exact ("
+              + ", ".join(f"{k} {v[0]:+,} / {v[1]:+,}" for k, v in facts["rename"].items())
+              + f"); {len(facts['moved_files'])} sampled file(s) advanced, none regressed; "
+              f"{len(rose_e):,} rule(s) rose in entries ({sum(rose_e.values()):+,}) and {len(rose_m):,} in memo hits "
+              f"({sum(rose_m.values()):+,}), all inside the {len(scope):,}-rule sub-graph the guards "
+              f"{' '.join(guards)} reach"
+              + (f" or on the {len(facts['host_moves'])} declared host(s) themselves ("
+                 + ", ".join(f"{h} entries {v[0]:+,} memo {v[1]:+,} committed {v[2]:+,}" for h, v in facts["host_moves"].items()) + ")" if facts["host_moves"] else "")
+              + f"; committed +{facts['kept_pushes']:,} outside the introduced reading, "
+              f"within the guards' {facts['guard_entries']:,} lookups (kept pushes, not re-derivation); "
+              f"{len(facts['fell']):,} rule(s) fell in entries ({sum(facts['fell'].values()):+,}) and "
+              f"{len(facts['fell_committed']):,} in committed ({sum(facts['fell_committed'].values()):+,})")
+    return (True, detail, facts)
+
+
+def self_test_guarded_typed_reading() -> int:
+    """Arms for the GUARDED-TYPED-READING predicate — every refusal and failure shape, no parser."""
+    def rc(e, c, m):
+        return {"entries": e, "committed": c, "memo_hits": m}
+    def fr(acc, e, c, m, fur):
+        return {"accepted": acc, "entries": e, "committed": c, "memo_hits": m, "furthest": fur}
+    # decl reads old (the typed reading) — the change retargets decl to `new_r`, a copy guarded by `!id` / `!hash`
+    edges = {"decl": ["old", "new_r", "id"], "old": ["dt", "impl"], "new_r": ["dt", "impl", "id", "hash"],
+             "id": ["ident", "triv"], "hash": ["triv"], "dt": ["ident"], "impl": [], "ident": ["triv"], "triv": [],
+             "expr": ["ident"], "body": ["expr"], "host": ["ident", "comma", "expr"], "comma": ["triv"]}
+    base = {"decl": rc(100, 50, 0), "old": rc(100, 50, 0), "dt": rc(100, 40, 20), "impl": rc(100, 10, 0),
+            "id": rc(100, 50, 0), "ident": rc(300, 100, 40), "triv": rc(500, 200, 100), "hash": rc(5, 1, 0),
+            "expr": rc(50, 30, 0), "body": rc(10, 10, 0), "host": rc(40, 20, 4), "comma": rc(30, 12, 6)}
+    bfiles = {"a.sv": fr("yes", 200, 90, 17, None), "b.sv": fr("no", 110, 48, 0, 300)}
+    def fresh(**over):
+        n = {k: dict(v) for k, v in base.items()}
+        n["new_r"] = rc(100, 50, 0)                # the introduced reading: exactly old's frames
+        n["old"] = rc(0, 0, 0)                     # the replaced reading: no longer entered at those sites
+        n["id"] = rc(200, 60, 0)                   # the guard's subject: looked up once more per declaration, pushes kept
+        n["ident"] = rc(300, 110, 140)             # its sub-graph: replayed from the memo, pushes kept
+        n["triv"] = rc(600, 210, 200)
+        n["hash"] = rc(45, 1, 40)                  # the terminal tried when no identifier follows
+        for k, v in over.items():
+            n[k] = v
+        return n
+    nfiles = {"a.sv": dict(bfiles["a.sv"]), "b.sv": fr("no", 130, 60, 0, 420)}   # b.sv advanced: the widening's row
+    arms, failed = [], []
+    def arm(name, cond):
+        arms.append(name); print(f"  {'✓' if cond else '✗'} {name}")
+        if not cond: failed.append(name)
+    intro = ["new_r", "=old", "!id", "!hash"]
+    h, dd, f = guarded_typed_reading(base, fresh(), edges, intro, bfiles, nfiles)
+    arm("holds: exact rename, lookups and kept pushes inside the guard sub-graph, one file advanced", h and f["rename"]["entries"] == (100, -100) and len(f["moved_files"]) == 1)
+    h, dd, f = guarded_typed_reading(base, fresh(), edges, intro, bfiles, {k: dict(v) for k, v in bfiles.items()})
+    arm("holds: no file moved at all (a guard that only re-reads)", h and not f["moved_files"])
+    h, dd, f = guarded_typed_reading(base, fresh(old=rc(20, 10, 0)), edges, intro, bfiles, nfiles)
+    arm("fails: not a rename — the replaced reading is still entered where the new one also is", not h and "not a rename" in dd)
+    h, dd, f = guarded_typed_reading(base, fresh(host=rc(40, 20, 12)), edges, intro, bfiles, nfiles)
+    arm("fails: a HOST that carries a guard in place moved its own frames but is not declared", not h and f["escaped_memo"] == {"host": 8})
+    h, dd, f = guarded_typed_reading(base, fresh(host=rc(40, 20, 12)), edges, intro + ["~host"], bfiles, nfiles)
+    arm("holds: the declared host's own frames may move (its guarded arm answered from the memo)", h and f["host_moves"] == {"host": (0, 8, 0)})
+    h, dd, f = guarded_typed_reading(base, fresh(host=rc(40, 20, 12), expr=rc(60, 30, 0)), edges, intro + ["~host"], bfiles, nfiles)
+    arm("fails: a host's CHILD rose — the host admits its own frames, not its sub-graph", not h and f["escaped_entries"] == {"expr": 10})
+    h, dd, f = guarded_typed_reading(base, fresh(expr=rc(60, 30, 0)), edges, intro, bfiles, nfiles)
+    arm("fails: an entries riser outside the guard sub-graph", not h and f["escaped_entries"] == {"expr": 10})
+    h, dd, f = guarded_typed_reading(base, fresh(body=rc(10, 15, 0)), edges, intro, bfiles, nfiles)
+    arm("fails: a committed riser outside the guard sub-graph", not h and f["escaped_committed"] == {"body": 5})
+    h, dd, f = guarded_typed_reading(base, fresh(ident=rc(300, 900, 140)), edges, intro, bfiles, nfiles)
+    arm("fails: committed rose far beyond the guard's lookups — a re-derived twin, not kept pushes", not h and "replayed DERIVATION" in dd)
+    h, dd, f = guarded_typed_reading(base, fresh(), edges, intro, bfiles, {"a.sv": fr("no", 200, 90, 17, 50), "b.sv": dict(nfiles["b.sv"])})
+    arm("fails: a sampled file regressed (yes -> no)", not h and f["regressed_files"] and "REGRESSED" in dd)
+    h, dd, f = guarded_typed_reading(base, fresh(), edges, intro, bfiles, {"a.sv": dict(bfiles["a.sv"]), "b.sv": fr("no", 100, 40, 0, 250)})
+    arm("fails: a sampled file stopped SHORT of where it stopped before", not h and f["regressed_files"])
+    h, dd, f = guarded_typed_reading(base, {k: dict(v) for k, v in base.items()} | {"new_r": rc(0, 0, 0)}, edges, intro, bfiles, {k: dict(v) for k, v in bfiles.items()})
+    arm("fails: nothing rose — no guard to explain", not h and "nothing rose" in dd)
+    for name, sc in (("refuse: no introduced reading", ["=old", "!id"]),
+                     ("refuse: no replaced reading", ["new_r", "!id"]),
+                     ("refuse: no guard subject", ["new_r", "=old"]),
+                     ("refuse: a name the graph lacks", ["new_r", "=old", "!nope"]),
+                     ("refuse: an introduced name that already existed", ["dt", "=old", "!id"]),
+                     ("refuse: a `=` name that is new to the baseline", ["new_r", "=new_r", "!id"]),
+                     ("refuse: a `~` host that is new to the baseline", ["new_r", "=old", "!id", "~new_r"])):
+        try:
+            guarded_typed_reading(base, fresh(), edges, sc, bfiles, nfiles); arm(name, False)
+        except Refused:
+            arm(name, True)
+    print(f"GUARDED-TYPED-READING-SELFTEST: arms={len(arms)} failed={len(failed)}")
+    return 1 if failed else 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--graph", metavar="EBNF",
@@ -1792,7 +2025,7 @@ def main() -> int:
             return (self_test_host_memo_eviction() | self_test_caller_split_containment()
                     | self_test_advanced_files_only() | self_test_introduced_wrapper_frames()
                     | self_test_scope_gated_arm() | self_test_typed_replacement_of_opaque_terminal()
-                    | self_test_lookahead_replay_occurrences())
+                    | self_test_lookahead_replay_occurrences() | self_test_guarded_typed_reading())
 
         if a.graph:
             g = derive_graph(a.graph)

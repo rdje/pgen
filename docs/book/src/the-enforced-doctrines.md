@@ -119,9 +119,9 @@ Steps 4 and 5 are enforced, not suggested. That is the whole point.
 
 <!-- BEGIN DERIVED: scripts/report_doctrines.sh --markdown -->
 
-**39 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **7**, oracle + structural **1**, structural **17**, structural + oracle **5**.
+**40 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **7**, oracle + structural **1**, structural **18**, structural + oracle **5**.
 
-**Depth, derived:** median **1926** bytes per description, thinnest **783** (`LESSON-PROMOTION`) — every one of the 39 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
+**Depth, derived:** median **1926** bytes per description, thinnest **783** (`LESSON-PROMOTION`) — every one of the 40 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
 
 Rows are in **registration order**, oldest first — so the bottom of this table is what the repository learned most recently.
 
@@ -151,21 +151,22 @@ Rows are in **registration order**, oldest first — so the bottom of this table
 | 22 | [`GENERATED-REPRODUCIBILITY`](#generated-reproducibility) | structural + oracle | `scripts/check_generated_reproducibility.sh` |
 | 23 | [`README-STABILITY`](#readme-stability) | structural | `scripts/check_readme_stability.sh` |
 | 24 | [`SV-CONTRACT-CURRENCY`](#sv-contract-currency) | structural + oracle | `scripts/check_sv_contract_currency.sh` |
-| 25 | [`GRAMMAR-CERT-CURRENCY`](#grammar-cert-currency) | structural + oracle | `scripts/check_grammar_certification.sh` |
-| 26 | [`BASELINE-IDENTITY`](#baseline-identity) | structural | `scripts/check_baseline_identity.sh` |
-| 27 | [`CORPUS-KEY-INTEGRITY`](#corpus-key-integrity) | structural | `scripts/check_corpus_key_integrity.sh` |
-| 28 | [`SAMPLE-PROFILE-PARITY`](#sample-profile-parity) | oracle | `scripts/check_sample_profile_parity.sh` |
-| 29 | [`LR-ELIMINATION-RATCHET`](#lr-elimination-ratchet) | oracle | `scripts/check_lr_elimination_ratchet.sh` |
-| 30 | [`GAP-CLAIM-CENSUS`](#gap-claim-census) | evidence | `scripts/check_gap_claims.sh` |
-| 31 | [`TABLE-ARITY-RATCHET`](#table-arity-ratchet) | oracle | `scripts/check_table_arity.sh` |
-| 32 | [`FAMILY-STATUS-CURRENCY`](#family-status-currency) | oracle | `scripts/check_family_status.sh` |
-| 33 | [`CORPUS-CENSUS-CURRENCY`](#corpus-census-currency) | evidence + structural | `scripts/check_corpus_census.sh` |
-| 34 | [`LRM-CLAUSE-CITATION`](#lrm-clause-citation) | oracle + structural | `scripts/check_lrm_clause_citation.sh` |
-| 35 | [`IDENTITY-CARRIER-CURRENCY`](#identity-carrier-currency) | structural | `scripts/check_identity_carriers.sh` |
-| 36 | [`SV-STORE-GATE-BANK`](#sv-store-gate-bank) | oracle | `scripts/check_sv_store_gate_bank.sh` |
-| 37 | [`EBNF-ALTERNATIVE-PARITY`](#ebnf-alternative-parity) | structural + oracle | `scripts/check_ebnf_alternative_parity.sh` |
-| 38 | [`SV-RESERVED-WORDS`](#sv-reserved-words) | oracle | `scripts/check_sv_reserved_words.sh` |
-| 39 | [`PIPELINE-LANE-CURRENCY`](#pipeline-lane-currency) | structural | `scripts/check_pipeline_lane_currency.sh` |
+| 25 | [`LOOKAHEAD-SLOT-TEMPLATES`](#lookahead-slot-templates) | structural | `scripts/check_lookahead_slot_templates.sh` |
+| 26 | [`GRAMMAR-CERT-CURRENCY`](#grammar-cert-currency) | structural + oracle | `scripts/check_grammar_certification.sh` |
+| 27 | [`BASELINE-IDENTITY`](#baseline-identity) | structural | `scripts/check_baseline_identity.sh` |
+| 28 | [`CORPUS-KEY-INTEGRITY`](#corpus-key-integrity) | structural | `scripts/check_corpus_key_integrity.sh` |
+| 29 | [`SAMPLE-PROFILE-PARITY`](#sample-profile-parity) | oracle | `scripts/check_sample_profile_parity.sh` |
+| 30 | [`LR-ELIMINATION-RATCHET`](#lr-elimination-ratchet) | oracle | `scripts/check_lr_elimination_ratchet.sh` |
+| 31 | [`GAP-CLAIM-CENSUS`](#gap-claim-census) | evidence | `scripts/check_gap_claims.sh` |
+| 32 | [`TABLE-ARITY-RATCHET`](#table-arity-ratchet) | oracle | `scripts/check_table_arity.sh` |
+| 33 | [`FAMILY-STATUS-CURRENCY`](#family-status-currency) | oracle | `scripts/check_family_status.sh` |
+| 34 | [`CORPUS-CENSUS-CURRENCY`](#corpus-census-currency) | evidence + structural | `scripts/check_corpus_census.sh` |
+| 35 | [`LRM-CLAUSE-CITATION`](#lrm-clause-citation) | oracle + structural | `scripts/check_lrm_clause_citation.sh` |
+| 36 | [`IDENTITY-CARRIER-CURRENCY`](#identity-carrier-currency) | structural | `scripts/check_identity_carriers.sh` |
+| 37 | [`SV-STORE-GATE-BANK`](#sv-store-gate-bank) | oracle | `scripts/check_sv_store_gate_bank.sh` |
+| 38 | [`EBNF-ALTERNATIVE-PARITY`](#ebnf-alternative-parity) | structural + oracle | `scripts/check_ebnf_alternative_parity.sh` |
+| 39 | [`SV-RESERVED-WORDS`](#sv-reserved-words) | oracle | `scripts/check_sv_reserved_words.sh` |
+| 40 | [`PIPELINE-LANE-CURRENCY`](#pipeline-lane-currency) | structural | `scripts/check_pipeline_lane_currency.sh` |
 
 ### `MEMORY-ARCH`
 
@@ -310,6 +311,12 @@ every artifact in the untracked `generated/` tree is **what HEAD's tracked sourc
 *structural + oracle* · enforced by `scripts/check_sv_contract_currency.sh`
 
 the SystemVerilog downstream integration contract describes the grammar that is **actually in the tree**. Four tiers, keyed on the DIGEST rather than the commit sha — sha256 of the EBNF frontend's own `raw_ast` envelope, i.e. what the code generator consumes, derived from the PRODUCER and therefore comment-insensitive by construction, and known BEFORE the commit that carries it is: every grammar revision since the register's declared genesis has a row recording its semantic state (history, plus a back-fill gate on the `(pending)` placeholder that digest-keying makes necessary); a *staged* grammar edit must stage the register too (the tier that sees the commit being made); a `NEUTRAL` row's digest must equal its predecessor's, so a neutrality claim refutes itself when false; and the working tree's digest must equal the newest row's and the contract's declared one (`SV-CORPUS-GRAD.13c.2l`; measured 2026-08-19: the contract said `1.0.183` while **seven** semantically-distinct grammar revisions had shipped, **four** of them REPLACING an AST shape a consumer was already reading, and one of those four moved **zero** verdicts — so an accept-set-only watch would not have caught it either. All eight arms of its adversarial probe fire, including the complement arm proving a comment-only edit stays GREEN — and one of them caught the re-keying itself: the tier-A arm had been deleting a comment-only row, whose digest a sibling row still records, so it went silently green while the doctrine was unchanged) ⛔ The digest is a function of the FRONTEND as well as of the grammar: a frontend change re-keys every earlier row with no grammar byte moving (measured 2026-09-03, EBNF-FRONTEND-SILENT-TRUNCATION.6), so the register declares `# frontend_rekey: <sha>` epochs and tier A does not re-derive commits at or before one, printing how many it skipped — history is kept, never rewritten, and the exemption is a number.
+
+### `LOOKAHEAD-SLOT-TEMPLATES`
+
+*structural* · enforced by `scripts/check_lookahead_slot_templates.sh`
+
+no return template binds a **lookahead child**. In the engine a lookahead (`!x`, `&x`, `!( … )`) is a positional CHILD of the sequence it stands in and binds `[]` — the interpreter's `/l` node path, the generated parser's kept pushes — so `$N` counts it, and inside `( !( … ) comma item )*` the guard is child 1, the comma child 2, the item child 3. Three finding kinds: `$p` on a lookahead slot; `$N::K*` whose K-th child is the guard, the separator the guard shifted, or past the arity; a guard-opened group bound raw (the envelope carries the guard's `[]`). The auditor proves it can fail first (`--self-test`: the three kinds + a clean control, exit 7 on a miss), then reads a LISTED scope — the space-separated-token grammars; the bootstrap-chain grammars are outside it by measurement (their `'('` tokens read as one element) and are the engine-side lint's to read (`SV-CORPUS-GRAD.3.61` routes it). **Why (`.3.61`, 2026-09-10)**: TEN such sites had shipped in `grammars/systemverilog.ebnf` — `type_assignment`'s four twins wrote `{name: $1, value: $2}` behind a leading `!kw_type`, so every `parameter type T = int` from `1.0.79` to `1.0.229` read `name: []`, `value: T` and LOST its default type; the `.3.35` type lists (`1.0.210`) sliced their guard's comma in place of every assignment after the first; the `.13c.2s` argument lists (`1.0.191`) filled `ordered_tail` with the guard's empty nodes — and every gate stayed green: the accept set never moved, the AST identity sweeps compare a release with the one before (a consistently wrong tree is byte-identical to itself), and the certificate reads reachability, not bindings. Nothing compared a template's indices with the sequence's lookahead slots.
 
 ### `GRAMMAR-CERT-CURRENCY`
 

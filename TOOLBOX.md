@@ -145,6 +145,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"Did ANY accepted tree move between two parser builds — and which corpus files make rule R commit?"** — the measured form of a shape-neutral claim | [1.5e the AST identity sweep + liveness census](#15e-the-ast-identity-sweep-and-the-liveness-census--did-any-accepted-tree-move-and-which-files-make-a-rule-commit) |
 | **"What does the corpus actually WRITE at this AST slot — every DPI result type, every port direction, every X?"** — a corpus census of one typed field, read by the parser | [1.5f the AST-field census](#15f-the-ast-field-census--what-does-the-corpus-actually-write-at-one-typed-ast-slot) — `ast_field_census.py --probe <release probe> --profile P --files <list> --kind K --field a.b.c`; `AST-FIELD-CENSUS:` one row per node, rejected files counted and regex-scanned as tagged fallback rows; a domain classifier (first: `dpi_result_census/classify.py`) buckets the rows and names every `unclassified` one |
 | **"How often does each UNTYPED alternative of a rule actually fire in the corpus — and which accepting files will move when I type it?"** — the raw-envelope reading of a `PARTIAL` rule, movers named before a byte is generated | [1.5h the raw-envelope census](#15h-the-raw-envelope-census--what-does-the-corpus-write-at-every-alternative-of-a-partial-rule) — ⛔ a zero can mean SHADOWED rather than absent: the nettype alias form read 0 raw rows because the data-type alternative won every tie (Protocol D decides) |
+| **"I typed a rule behind a `!x` guard and `$1` came back EMPTY — or my list is full of `comma` nodes after the first item"** — a lookahead is a positional CHILD that binds `[]`; the identifier behind a leading guard is `$2`, the item of `( !( … ) comma item )*` is `$N::3*`, and no verdict, sweep or certificate will say so | [1.5i the lookahead-slot audit](#15i-the-lookahead-slot-audit--does-a-return-template-bind-a-lookahead-child) — three finding kinds, self-tested, every commit (`LOOKAHEAD-SLOT-TEMPLATES`) |
 | **"Which alternative WINS this choice on this input? Is this branch LIVE or dead?"** | [Protocol D](#protocol-d--which-alternative-wins-this-choice--is-this-branch-live-the-a22a23-class-probe) — scratch slot + the `🏁 selected branch N/M` trace line + the 1.7 policy matrix |
 | **"Is the interpreter byte-identical to the generated parser? which input diverges?"** | [1.6 the differential-equivalence gate](#16-the-differential-equivalence-gate--is-the-interpreter-byte-identical-to-the-generated-parser) |
 | **"Is the interpreter byte-identical PER COMBINATOR (on a synthetic grammar, in isolation)?"** | [1.7 the structural combinator suite](#17-the-structural-combinator-suite--is-the-interpreter-byte-identical-per-combinator) |
@@ -614,6 +615,30 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   classifier, and publishing a count over it is publishing a count of the classifier's blind spot. ⚠️ HONEST BOUND:
   `block_data_type`'s thirteen passthrough alternatives are one `other:passthrough` bucket; a `passthrough` names the
   mechanism, not intent (§1.5g).
+
+### 1.5i The lookahead-slot audit — does a return template bind a LOOKAHEAD child?
+- **WHAT:** `python3 scripts/lookahead_slot_audit.py [GRAMMAR...]` (default: the twelve space-separated-token grammars; `--self-test`
+  first) — reads every annotated alternative's TOP-LEVEL element list against its template and reports the three shapes the engine can
+  never bind usefully: `la_slot` (`$p` where child p is `!x` / `&x` / `!( … )` — it binds `[]`), `slice_child` (`$N::K*` whose K-th
+  child of the repeated group is the guard, the separator the guard shifted, or past the arity) and `raw_guarded` (a guard-opened group
+  bound raw, so the envelope carries the guard's `[]` beside every item). In the engine a lookahead IS a child (the interpreter's `/l`
+  node path; the generated parser keeps a successful lookahead's pushes), so `!kw_type ident -> {name: $2}` and
+  `( !( … ) comma item )* -> [$1, $2::3*]` are the correct spellings.
+- **WHEN:** before annotating any rule that carries a guard, and whenever a guard is ADDED to an already-typed rule or group — the
+  template's indices shift by one and nothing else will say so: the verdict does not move, the identity sweep compares a release with
+  the one before, and the certificate reads reachability. It is the `LOOKAHEAD-SLOT-TEMPLATES` doctrine's instrument
+  (`scripts/check_lookahead_slot_templates.sh`, every commit). First use `SV-CORPUS-GRAD.3.61` (2026-09-10): **10 findings on
+  `1.0.229`** — the four `type_assignment*` templates (`{name: $1, value: $2}` behind `!kw_type`, so every `parameter type T = int`
+  since `1.0.79` read `name: []`, `value: T` and lost the `int`), the two `.3.35` type lists (`::2*` took the guard's comma in place of
+  every assignment after the first, since `1.0.210`), the three `.13c.2s` argument lists (`[$2::2*]` over `( comma !dot ( arg )? )*`
+  filled `ordered_tail` with `[]`, since `1.0.191`) and the mixed string parameter port list's raw envelopes — 0 after.
+- **OUTPUT:** `LOOKAHEAD-SLOT-AUDIT: grammars=N alternatives=A with_lookaheads=L findings=F` and one `✗ grammar:rule: kind …` line per
+  finding; exit 0 clean, 1 findings, 2 a missing grammar, 7 a self-test miss. `--self-test` replays the three kinds and four clean
+  controls (a guard COUNTED, a `::3*` slice, a trailing `&comma` inside a group, a plain list).
+- ⛔ **HONEST BOUND:** textual — it reads the grammar's spelling, not the engine's child list, and its scope is a LIST: the bootstrap-chain
+  grammars (`ebnf.ebnf`, `return_annotation.ebnf`, `semantic_annotation.ebnf`, `builtin_*.ebnf`) spell tokens as `'('` and break a
+  sequence across lines, which this tokenizer reads as one element, so they are OUT of the default scope by measurement and an
+  explicit run on them says so. The engine-side lint that reads the real child list (`--lint-grammar`) is routed by `.3.61`, not built.
 
 ### 1.6 The differential-equivalence gate — is the interpreter byte-identical to the generated parser?
 - **WHAT:** `make -C rust SHELL=/bin/bash parse_harness_equivalence_gate` (module `rust/src/parse_harness_equivalence.rs`) — the certifying oracle for the interpreter (1.5). For each registered grammar it runs the interpreter AND the shipped generated parser over ONE deterministic stimuli corpus (seeds 0/7/42, bounded generation, large-stack workers) and asserts **byte-identical** verdict + typed AST. Report-first API (`evaluate_grammar_equivalence` collects divergences, never panics) + 3 enforcing gate tests. PARSE-HARNESS.5.
@@ -1417,6 +1442,20 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ⚠️ **HONEST BOUND**: containment says the rise is CONFINED to the construct that caused it, never
   that it was UNAVOIDABLE. Only another ARM (3.7b) can say that.
   **Refusals proven:** `docs/tasks/artifacts/sv_corpus_grad/containment_invariant/probe.sh`.
+- ⭐ **`guarded_typed_reading` (`ENGINE-UNIVERSAL-SERVICES.105`, `SV-CORPUS-GRAD.3.60`, release `1.0.230`) — the arm for a
+  POSITIVE lookahead on a reading the grammar always offered.** `data_type_or_implicit_declared := data_type &( declaration_identifier
+  | hash ) | implicit_data_type`: the typed arm admitted only where a declarator follows, so a visible typedef name before `=` `;` `,`
+  `)` falls to the implicit sibling. Three things move and nothing else may — a RENAME (the copied reading rises by exactly what the
+  reading it replaces falls, `±2,355` entries / `±1,664` committed), the guard's LOOKUPS (parsed once, replayed by the declarator:
+  `declaration_identifier +2,141` entries, `non_keyword_identifier +2,141` memo hits, the terminal tries) and the KEPT PUSHES of the
+  successful positive lookahead (`committed +990` on the subject, counted again on replay — C3-B). The row declares the introduced
+  reading, `=the_replaced_reading`, `!the_guard_subjects` and, optionally, `~the_hosts` whose own spelling carries a guard in
+  place (their own frames may move — a guarded arm answered from the memo instead of re-parsed — and are admitted for the host
+  alone, never its sub-graph); clause (5) bounds the committed rise outside the introduced reading by
+  the guards' own entries — ⛔ **that clause is what refuses the twin-ALTERNATIVE spelling of the same widening**: the engine derives
+  EVERY alternative (a longest-match tournament, first on a tie), so an implicit twin re-derives each typed declaration it also
+  matches — measured `committed +3.41 %`, `br_gh330.v` `+127,080` on `+245` entries, both function bodies parsed twice. ⚠️ HONEST
+  BOUND: a cheaper guard is an ARM's question (3.7b), and `committed` still prices a replay as work (`.101`).
 - ⭐⭐ **TIER 1 IS FIVE ARMS, NOT ONE.** (1) baseline identity; (2) `--verify-families` — every
   generated parser's declared `_lr` names are classified (0.1 s); (3) `--verify-family-share` — the
   published corpus share is re-hashed against its tracked derivation (~1 s); (4) co-publication —

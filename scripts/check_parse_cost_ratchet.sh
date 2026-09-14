@@ -1212,6 +1212,40 @@ def _lookahead_replay_occurrences(base_tot, new_tot, ctx):
     return holds, detail
 
 
+def _guarded_typed_reading(base_tot, new_tot, ctx):
+    """The rise is a RENAME plus a GUARD'S LOOKUPS (`SV-CORPUS-GRAD.3.60`, `ENGINE-UNIVERSAL-SERVICES.105`): a
+    typed reading that used to consume a token it must not (a visible typedef name that is the declarator)
+    is copied into a rule its declaration sites now read, with a POSITIVE lookahead admitting the typed arm
+    only where a declarator follows — so the introduced reading rises by exactly what the replaced reading
+    falls, the guard's subjects (`!name`) and their sub-graph rise in entries / memo hits (one lookup, one
+    replay) and in committed (the engine keeps a successful positive lookahead's pushes), no sampled file
+    regresses, and the committed rise outside the introduced reading stays within the guards' own entries —
+    the clause that refuses the twin-ALTERNATIVE spelling of the same widening (`committed +3.41 %`: the
+    tournament derives every alternative, so a twin re-derived each typed declaration it also matched). The
+    predicate and its refusal arms live in `scripts/parse_cost_containment.py` (`guarded_typed_reading`,
+    `--self-test`); its docstring says why the other thirteen cannot cover this shape and carries the honest
+    bound (a cheaper guard is an arm's question; the metric inflates a replay)."""
+    if CONTAINMENT is None:
+        raise RuntimeError(f"scripts/parse_cost_containment.py could not be imported "
+                           f"({CONTAINMENT_IMPORT_ERROR}), so this acceptance cannot be evaluated")
+    graph_path = ctx["graph"]
+    if not os.path.isfile(graph_path):
+        raise RuntimeError(f"the measured grammar's reference graph is missing ({os.path.relpath(graph_path, ROOT)})")
+    with open(graph_path, encoding="utf-8") as fh:
+        graph = json.load(fh)
+    if ctx["grammar_digest"] and graph.get("grammar_raw_ast_sha256") != ctx["grammar_digest"]:
+        raise RuntimeError(f"the reference graph was derived from grammar raw_ast "
+                           f"`{str(graph.get('grammar_raw_ast_sha256'))[:16]}…` but this tree's is "
+                           f"`{ctx['grammar_digest'][:16]}…`")
+    base_rules = CONTAINMENT.read_rule_costs(ctx["base_rule_costs"])
+    new_rules = CONTAINMENT.read_rule_costs(ctx["new_rule_costs"])
+    base_files = CONTAINMENT.read_entries(ctx["base_entries"])
+    new_files = CONTAINMENT.read_entries(ctx["new_entries"])
+    holds, detail, _facts = CONTAINMENT.guarded_typed_reading(
+        base_rules, new_rules, graph["edges"], ctx["introduced"], base_files, new_files)
+    return holds, detail
+
+
 INVARIANTS = {
     "declared_alternatives_net_of_retired_work": _declared_alternatives_net_of_retired_work,
     "pure_memo_lookups": _pure_memo_lookups,
@@ -1226,6 +1260,7 @@ INVARIANTS = {
     "scope_gated_arm": _scope_gated_arm,
     "typed_replacement_of_opaque_terminal": _typed_replacement_of_opaque_terminal,
     "lookahead_replay_occurrences": _lookahead_replay_occurrences,
+    "guarded_typed_reading": _guarded_typed_reading,
 }
 
 # ⛔ WHICH INVARIANTS TAKE A SCOPE, AND THE CHECK IS TWO-SIDED. A containment row with no
@@ -1236,7 +1271,7 @@ INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph", "declared_al
                                 "host_memo_eviction", "caller_split_containment",
                                 "advanced_files_only", "introduced_wrapper_frames",
                                 "scope_gated_arm", "typed_replacement_of_opaque_terminal",
-                                "lookahead_replay_occurrences"}
+                                "lookahead_replay_occurrences", "guarded_typed_reading"}
 NO_INTRODUCED = "-"
 
 

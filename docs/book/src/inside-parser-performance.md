@@ -554,7 +554,17 @@ trying the parent's siblings once more, bounded the same way) — while its hone
 routes a work-only counter beside the occurrence count. Its second shape (release `1.0.225`, `SV-CORPUS-GRAD.3.54`) has
 no lookahead in the spelling: an ORDERED choice whose alternatives share a prefix replays that prefix from the memo
 wherever the first alternative fails — `!package_scope` the shared prefix, `~non_typedef_package_scope` the un-gated
-host — and the same clauses read the same artefact. Each has
+host — and the same clauses read the same artefact; and `guarded_typed_reading` (release `1.0.230`,
+`ENGINE-UNIVERSAL-SERVICES.105`): a POSITIVE lookahead added to a reading the grammar always offered — `data_type
+&( declaration_identifier | hash )`, the typed arm admitted only where a declarator follows, so a visible typedef
+name that is the declarator falls to the implicit sibling — moves a RENAME (the copied reading rises by exactly what
+the reading it replaces falls), the guard's LOOKUPS (parsed once, replayed by the declarator: entries and memo hits on
+the subjects and their sub-graph) and the KEPT PUSHES of a successful positive lookahead (`committed`, counted again on
+replay), and the predicate admits exactly that: the rename exact on every metric, no sampled file regressed (a
+widening's own rows may advance), every riser an introduced rule, inside the guards' sub-graph or a declared host's own frames (a
+guarded arm answered from the memo instead of re-parsed), and the committed rise
+outside the introduced reading at most the guards' own entries — the clause that refuses the twin-ALTERNATIVE spelling
+of the same widening, which the tournament re-derives (`committed +3.41 %`, measured and refused). Each has
 refusal arms in its self-test, so a row cannot
 borrow an invariant whose shape it does not have. For example, admitting one more keyword alternative into
 an ordered choice costs, at every position the choice is attempted, exactly two entries (the

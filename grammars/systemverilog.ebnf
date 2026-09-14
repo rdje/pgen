@@ -2801,6 +2801,16 @@ data_type_or_implicit := data_type          -> {kind: "data_type",     body: $1}
 data_type_or_implicit_explicit := data_type          -> {kind: "data_type",     body: $1}
 data_type_or_implicit_implicit := implicit_data_type -> {kind: "implicit",       body: $1}
 
+# SV-CORPUS-GRAD.3.60: in a DECLARATION a data type is followed by its declarator — an identifier (or a `#` delay on a
+# net) — so a visible typedef name that is followed by anything else is the DECLARATOR under an IMPLICIT type: `wire T =
+# 1'b1;`, `input T;`, `function U;` (IEEE 1800-2017 3.13: the compilation-unit scope and the module are different name
+# spaces; A.2.1.3, A.1.3, A.2.1.2, A.2.7). The lookahead is the alternative's child 2 (LOOKAHEAD-SLOT-TEMPLATES); the
+# node shapes are data_type_or_implicit's own. NOT a twin alternative: the engine derives EVERY alternative (a longest-
+# match tournament), so an implicit twin re-derives each typed declaration it also matches — measured on the first
+# candidate: `committed` +3.41 %, every function body parsed twice.
+data_type_or_implicit_declared := data_type &( declaration_identifier | hash ) -> {kind: "data_type",     body: $1}
+                                | implicit_data_type                           -> {kind: "implicit",       body: $1}
+
 @profiles: ["sv_2023"]
 data_type_or_incomplete_class_scoped_type_sv_2023 := data_type                     -> {kind: "data_type",            body: $1}
                                                    | incomplete_class_scoped_type  -> {kind: "incomplete_class_scoped", body: $1}
@@ -3567,8 +3577,10 @@ function_body_declaration := @sample: "integer f; endfunction : f" function_data
                            | function_data_type_or_implicit out_of_block_tf_scope function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                           -> {return_type: $1, scope: $2, name: $3, ports: $5, items: $8, statements: $9, end_label: $11}
 
-function_data_type_or_implicit := data_type_or_void   -> {kind: "data_type", body: $1}
+function_data_type_or_implicit := data_type_or_void &declaration_identifier -> {kind: "data_type", body: $1}
                                 | implicit_data_type  -> {kind: "implicit",  body: $1}
+
+# SV-CORPUS-GRAD.3.60: the implicit reading alone, for function_body_declaration's twins (same node shape).
 
 @profiles: ["sv_2017", "verilog_2005"]
 function_declaration_sv_2017 := kw_function_c218e39e ( lifetime )? function_body_declaration
@@ -3832,7 +3844,6 @@ initial_or_extends_specifier := initial_or_extends_specifier_sv_2023
 
 inout_declaration := kw_inout_c900aaa9 net_port_type list_of_port_identifiers
                   -> {port_type: $2, items: $3}
-
 inout_port_identifier := non_keyword_identifier
 
 inout_terminal := net_lvalue
@@ -4126,7 +4137,7 @@ let_named_arg := dot non_keyword_identifier lparen ( let_actual_arg )? rparen ->
 let_list_of_arguments := let_named_arg ( comma let_named_arg )*
                                 -> {kind: "named_only", items: [$1, $2::2*]}
                        | ( let_actual_arg )? ( comma !dot ( let_actual_arg )? )* ( comma let_named_arg )*
-                                -> {kind: "mixed",      head: $1, ordered_tail: [$2::2*], named_tail: [$3::2*]}
+                                -> {kind: "mixed",      head: $1, ordered_tail: [$2::3*], named_tail: [$3::2*]}
 
 let_port_item := attribute_instance* let_formal_type formal_port_identifier variable_dimension* ( assign expression )?
               -> {attributes: $1, type: $2, name: $3, dims: $4, init: $5}
@@ -4353,23 +4364,28 @@ list_of_tf_variable_identifiers := tf_variable_identifier_decl ( comma tf_variab
 # SV-CORPUS-GRAD.3.35: `type T = int, T x = 0` (IEEE 1800-2017 §6.20.1's own example) — after the
 # comma an identifier FOLLOWED BY another identifier is a `data_type list_of_param_assignments`
 # declaration, never another type assignment (commit-once took `T` and failed at `x`).
-list_of_type_assignments := type_assignment ( !( comma ( kw_type_d0a3e7f8 | non_keyword_identifier non_keyword_identifier ) ) comma type_assignment )*
-                         -> [$1, $2::2*]
+# SV-CORPUS-GRAD.3.61: the guard is the group's FIRST child, so `::2*` took the comma and dropped every
+# assignment after the first (1.0.210 – 1.0.229); the assignment is the third child.
+# SV-CORPUS-GRAD.3.60 generalises the guard: the list continues only when the identifier after the comma is COMPLETE
+# as a type assignment — followed by `,` `)` `;` or `=` — so `p::PT x = …` (a package-scoped data type) and `T x = 0`
+# (`.3.35`) both end the list as the next parameter_port_declaration. A POSITIVE lookahead, still the group's child 1.
+list_of_type_assignments := type_assignment ( &( comma non_keyword_identifier ( comma | rparen | semi | assign ) ) comma type_assignment )*
+                         -> [$1, $2::3*]
 
 # SV-CORPUS-GRAD.3.35, footnote 18 for `localparam type`: the `= data_type` is required — POSITIVE
 # restatements of type_assignment_sv_2017 / _sv_2023 with the group mandatory (see
 # list_of_param_assignments_with_default for why not a lookahead).
 @profiles: ["sv_2017", "sv_2023"]
-list_of_type_assignments_with_default := type_assignment_with_default ( !( comma ( kw_type_d0a3e7f8 | non_keyword_identifier non_keyword_identifier ) ) comma type_assignment_with_default )*
-                                      -> [$1, $2::2*]
+list_of_type_assignments_with_default := type_assignment_with_default ( &( comma non_keyword_identifier ( comma | rparen | semi | assign ) ) comma type_assignment_with_default )*
+                                      -> [$1, $2::3*]
 
 @profiles: ["sv_2017"]
 type_assignment_with_default_sv_2017 := !kw_type_d0a3e7f8 declared_type_parameter_identifier ( assign data_type )
-                                     -> {name: $1, value: $2}
+                                     -> {name: $2, value: $3}
 
 @profiles: ["sv_2023"]
 type_assignment_with_default_sv_2023 := !kw_type_d0a3e7f8 declared_type_parameter_identifier ( assign data_type_or_incomplete_class_scoped_type )
-                                     -> {name: $1, value: $2}
+                                     -> {name: $2, value: $3}
 
 @profiles: ["sv_2017", "sv_2023"]
 type_assignment_with_default := type_assignment_with_default_sv_2017 -> {kind: "sv_2017", body: $1}
@@ -5005,9 +5021,14 @@ interconnect_net_declaration_sv_only := @probe_sample: "interconnect logic a;" k
                                 -> {kind: "interconnect", data_type: $2, delay: $3, name: $4, dims: $5, second: $6}
 
 @profiles: ["sv_2017", "verilog_2005"]
-net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( net_strength )? ( net_vector_scalar )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
-                                -> {kind: "wire",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}
-                         # SV-PARSE-STRICT.2: a user net-type identifier must be a KNOWN declared type/nettype (sound store-gate via `checked_nettype_identifier`).
+# SV-CORPUS-GRAD.3.60 (release 1.0.230): a declared name that a visible typedef already spells, with an IMPLICIT
+# type — `wire T = 1'b1;`, `function U;`, `module m(input T);`, `input T;` (iverilog sv_type_identifier_*.v). The
+# type reading is tried first inside `data_type_or_implicit` and commits; when the declarator then fails, a PEG
+# cannot re-enter the choice, so the declaration had no parse although IEEE 1800-2017 A.2.1.3 / A.2.6 / A.2.7 /
+# A.1.3 derive it and 23.9 lets a module's declaration hide a compilation-unit typedef. The alternative below is
+# the implicit-only twin, reached only when the one above fails: every tree that parsed before is byte-identical.
+net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( net_strength )? ( net_vector_scalar )? data_type_or_implicit_declared ( delay )? list_of_net_decl_assignments semi
+                                -> {kind: "wire",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}                         # SV-PARSE-STRICT.2: a user net-type identifier must be a KNOWN declared type/nettype (sound store-gate via `checked_nettype_identifier`).
                          | checked_nettype_identifier ( delay_control )? list_of_net_decl_assignments semi
                                 -> {kind: "alias",        net_type_id: $1, delay_control: $2, assignments: $3}
                          # SV-PARSE-STRICT.2: unresolved-wildcard-import escape — accept an otherwise-undeclared net-type id ONLY when a `pkg::*` is in scope (cannot prove undeclared; defer to elaboration). The gate lives on the `wildcard_escape_nettype_identifier` helper (a `phase: post` predicate — historically required because inline `phase: branch` predicates were flattened rule-wide; branch-LOCAL since BRANCH-PREDICATE-LOCALITY.2, the helper idiom kept as-is, shape-stable).
@@ -5016,9 +5037,8 @@ net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( net_strength )? (
                          | interconnect_net_declaration_sv_only
 
 @profiles: ["sv_2023"]
-net_declaration_sv_2023 := @probe_sample: "wire a;" net_type ( net_strength )? ( net_vector_scalar )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
-                                -> {kind: "wire",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}
-                         # SV-PARSE-STRICT.2: known declared type/nettype (sound store-gate).
+net_declaration_sv_2023 := @probe_sample: "wire a;" net_type ( net_strength )? ( net_vector_scalar )? data_type_or_implicit_declared ( delay )? list_of_net_decl_assignments semi
+                                -> {kind: "wire",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}                         # SV-PARSE-STRICT.2: known declared type/nettype (sound store-gate).
                          | checked_nettype_identifier ( delay_control )? list_of_net_decl_assignments semi
                                 -> {kind: "alias",        nettype_id: $1, delay_control: $2, assignments: $3}
                          # SV-PARSE-STRICT.2: unresolved-wildcard-import escape (branch-local `phase: post` gate via the helper — see the sv_2017 note).
@@ -5060,7 +5080,7 @@ net_port_type_interconnect_sv_only := kw_interconnect_c8ec83f5 implicit_data_typ
 # declaration_family, nettype)`) so only a DECLARED nettype can match here (a declared nettype
 # already routes through alt 0's `known_unscoped_data_type`, so alt 1 is LRM-faithful but
 # tie-dominated). AST shape `{kind:"identifier", name:$1}` preserved (`{body:X}` both sides).
-net_port_type_sv_2017 := ( net_type )? data_type_or_implicit             -> {kind: "typed",        net_type: $1, data_type: $2}
+net_port_type_sv_2017 := ( net_type )? data_type_or_implicit_declared    -> {kind: "typed",        net_type: $1, data_type: $2}
                        | checked_nettype_identifier                       -> {kind: "identifier",   name: $1}
                        | net_port_type_interconnect_sv_only
 
@@ -5068,7 +5088,7 @@ net_port_type_sv_2017 := ( net_type )? data_type_or_implicit             -> {kin
 # SV-KEYWORD-PRIMARY-FIDELITY.3.1 (SV-0037): sv_2023 twin of the alt-1 greedy-nettype fix
 # above — the ungated `nettype_identifier` (:3567) is routed to the store-gated
 # `checked_nettype_identifier` (:3537) for the same reason. Same AST shape preserved.
-net_port_type_sv_2023 := ( net_type )? data_type_or_implicit             -> {kind: "typed",        net_type: $1, data_type: $2}
+net_port_type_sv_2023 := ( net_type )? data_type_or_implicit_declared    -> {kind: "typed",        net_type: $1, data_type: $2}
                        | checked_nettype_identifier                       -> {kind: "identifier",   name: $1}
                        | net_port_type_interconnect_sv_only
 
@@ -5359,7 +5379,6 @@ output_declaration := kw_output_1029d676 net_port_type list_of_port_identifiers
                             -> {kind: "net",      port_type: $2, items: $3}
                     | kw_output_1029d676 variable_port_type list_of_variable_port_identifiers
                             -> {kind: "variable", port_type: $2, items: $3}
-
 output_identifier := output_port_identifier                           -> {kind: "output_port", name: $1}
                   | inout_port_identifier                             -> {kind: "inout_port", name: $1}
                   | interface_identifier dot port_identifier          -> {kind: "interface_dot_port", interface: $1, port: $3}
@@ -5551,15 +5570,21 @@ parallel_path_description := lparen specify_input_terminal_descriptor ( polarity
                           -> {input: $2, polarity: $3, output: $5}
 
 @profiles: ["sv_2017", "verilog_2005"]
+# SV-CORPUS-GRAD.3.60: `parameter int P = 5, T typed_value = 8'ha5` (iverilog sv_type_identifier_parameter_port_name.v)
+# — a param_assignment's default is optional (A.2.4), so the greedy list took `, T` as a parameter named T and
+# stopped at `typed_value`. A default-less assignment is COMPLETE only before `,` `)` or `;` (A.1.3
+# parameter_port_list, A.2.1.1 parameter_declaration): `T typed_value` and `p::PT pkg_value` after the comma are the
+# next `data_type list_of_param_assignments` declaration (A.1.3 parameter_port_declaration). The trailing lookahead
+# sits inside the alternative (named-field template), so the list's `$2::2*` slice is untouched.
 param_assignment_sv_2017 := declared_parameter_identifier unpacked_dimension* assign constant_param_expression
                                   -> {kind: "with_default", name: $1, dims: $2, value: $4}
-                          | declared_parameter_identifier unpacked_dimension*
+                          | declared_parameter_identifier unpacked_dimension* &( comma | rparen | semi )
                                   -> {kind: "no_default",   name: $1, dims: $2}
 
 @profiles: ["sv_2023"]
 param_assignment_sv_2023 := declared_parameter_identifier variable_dimension* assign constant_param_expression
                                   -> {kind: "with_default", name: $1, dims: $2, value: $4}
-                          | declared_parameter_identifier variable_dimension*
+                          | declared_parameter_identifier variable_dimension* &( comma | rparen | semi )
                                   -> {kind: "no_default",   name: $1, dims: $2}
 
 param_assignment := param_assignment_sv_2017 -> {kind: "sv_2017", body: $1}
@@ -5661,7 +5686,7 @@ parameter_port_declaration := parameter_port_declaration_sv_2017 -> {kind: "sv_2
 
 @profiles: ["sv_2017", "sv_2023"]
 mixed_string_parameter_port_list := kw_type_d0a3e7f8 type_assignment ( !( comma kw_string_ecb25204 ) comma type_assignment )* comma kw_string_ecb25204 list_of_param_assignments ( comma parameter_port_declaration )*
-                                 -> {first_type: $2, type_tail: $3, string_list: $6, decl_tail: $7}
+                                 -> {first_type: $2, type_tail: [$3::3*], string_list: $6, decl_tail: [$7::2*]}
 
 @profiles: ["sv_2017", "sv_2023"]
 mixed_parameter_port_list := kw_type_d0a3e7f8 list_of_type_assignments comma parameter_port_declaration ( comma parameter_port_declaration )*
@@ -6317,7 +6342,7 @@ property_named_arg := dot non_keyword_identifier lparen ( property_actual_arg )?
 property_list_of_arguments := property_named_arg ( comma property_named_arg )*
                                     -> {kind: "named_only", items: [$1, $2::2*]}
                             | ( property_actual_arg )? ( comma !dot ( property_actual_arg )? )* ( comma property_named_arg )*
-                                    -> {kind: "mixed",      head: $1, ordered_tail: [$2::2*], named_tail: [$3::2*]}
+                                    -> {kind: "mixed",      head: $1, ordered_tail: [$2::3*], named_tail: [$3::2*]}
 
 property_lvar_port_direction := kw_input_140f86aa
                              -> {kind: "input"}
@@ -6908,7 +6933,7 @@ sequence_named_arg := dot non_keyword_identifier lparen ( sequence_actual_arg )?
 sequence_list_of_arguments := sequence_named_arg ( comma sequence_named_arg )*
                                     -> {kind: "named_only", items: [$1, $2::2*]}
                             | ( sequence_actual_arg )? ( comma !dot ( sequence_actual_arg )? )* ( comma sequence_named_arg )*
-                                    -> {kind: "mixed",      head: $1, ordered_tail: [$2::2*], named_tail: [$3::2*]}
+                                    -> {kind: "mixed",      head: $1, ordered_tail: [$2::3*], named_tail: [$3::2*]}
 
 sequence_lvar_port_direction := kw_input_140f86aa  -> {kind: "input"}
                               | kw_inout_c900aaa9  -> {kind: "inout"}
@@ -7400,7 +7425,7 @@ tf_identifier := callable_identifier
 tf_item_declaration := block_item_declaration -> {kind: "block_item", body: $1}
                      | tf_port_declaration    -> {kind: "tf_port",    body: $1}
 
-tf_port_declaration := attribute_instance* tf_port_direction ( var_qualifier_sv_only )? data_type_or_implicit list_of_tf_variable_identifiers semi
+tf_port_declaration := attribute_instance* tf_port_direction ( var_qualifier_sv_only )? data_type_or_implicit_declared list_of_tf_variable_identifiers semi
                     -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, items: $5}
 
 @profiles: ["sv_2017"]
@@ -7555,12 +7580,14 @@ txz_path_delay_expression := path_delay_expression
                           -> {body: $1}
 
 @profiles: ["sv_2017"]
+# SV-CORPUS-GRAD.3.61: a lookahead is a CHILD — `!kw_type` is `$1` (it binds `[]`), so `{name: $1, value: $2}`
+# read the name as empty and the identifier as the value, and the default type vanished (1.0.79 – 1.0.229).
 type_assignment_sv_2017 := !kw_type_d0a3e7f8 declared_type_parameter_identifier ( assign data_type )?
-                        -> {name: $1, value: $2}
+                        -> {name: $2, value: $3}
 
 @profiles: ["sv_2023"]
 type_assignment_sv_2023 := !kw_type_d0a3e7f8 declared_type_parameter_identifier ( assign data_type_or_incomplete_class_scoped_type )?
-                        -> {name: $1, value: $2}
+                        -> {name: $2, value: $3}
 
 @profiles: ["sv_2017", "sv_2023"]
 type_assignment := type_assignment_sv_2017 -> {kind: "sv_2017", body: $1}
@@ -7978,7 +8005,7 @@ value_range_sv_2023 := expression                                               
 value_range := value_range_sv_2017 -> {kind: "sv_2017", body: $1}
              | value_range_sv_2023 -> {kind: "sv_2023", body: $1}
 
-var_data_type := data_type                            -> {kind: "data_type",     body: $1}
+var_data_type := data_type &declaration_identifier    -> {kind: "data_type",     body: $1}
               | var_qualifier_sv_only data_type_or_implicit  -> {kind: "var",          body: $2}
 
 # SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named

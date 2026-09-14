@@ -34,6 +34,33 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.230 / Contract 1.0.230 — SV-CORPUS-GRAD.3.60 + .3.61 (`PGEN-SV-CORPUS-GRAD-0393`, 2026-09-14), ledger `SV-0103` / `SV-0104` / `SV-0105` / `SV-0106` (`Released`), **schema 32 → 33**:
+
+⭐ **The compilation-unit scope and the module are different name spaces — and a lookahead is a child.** IEEE
+1800-2017 3.13 puts a `$unit` typedef in the compilation-unit scope name space and a same-named net, function, port
+or parameter in the module's, so `wire T = 1'b1;`, `function U;`, `module m(input T);`, the non-ANSI `input T;`, a tf port `input T;` and
+`parameter int P = 5, T typed_value = 8'ha5, p::PT pkg_value = 6'h2a` each declare a NEW name under an IMPLICIT type
+(A.2.1.3, A.2.6, A.1.3, A.2.1.2, A.2.7, A.2.4 footnote 18). Through `1.0.229` each read only `data_type_or_implicit`, whose `data_type` arm consumed
+the typedef name and found no declarator (the five iverilog `sv_type_identifier_*.v` rows). `1.0.230` admits the typed
+reading only where a declarator follows — `data_type_or_implicit_declared := data_type &( declaration_identifier | hash ) |
+implicit_data_type`, one new rule (`1648 → 1649`) read by the net, port and tf-port declarations, the same guard on
+`var_data_type` and the function return type — so the typedef name before `=` `;` `,` `)` is the declarator under the
+implicit reading (a first candidate spelled implicit-twin ALTERNATIVES; the parse-cost ratchet refused it, because the
+engine derives every alternative and a twin re-derived each typed declaration it also matched: `committed +3.41 %`);
+and it guards the default-less parameter arm with `&( comma | rparen | semi )` — complete only there — and the type
+lists with the same reading. The first of those guards reproduced a shape on a CONTROL — `[$1, $2::2*]` over a
+guard-opened group returned the comma — and the question "how does the `.3.35` precedent survive its lookahead?" was
+answered by dumping its tree: it did not. In the engine a lookahead is a positional child that binds `[]`; ten
+templates in the shipped grammar had not counted it, and every gate had stayed green because the accept set never
+moved and an identity sweep compares a release with the one before. **Schema 33**: `type_assignment`'s four twins read
+`{name: $2, value: $3}` — every `parameter type T = int` since `1.0.79` had read `name: []`, `value: T` and carried no
+default type (`SV-0104`); the `.3.35` type lists read `[$1, $2::3*]` — `type T = int, U = real` had dropped `U` for a
+`comma` node since `1.0.210` (`SV-0105`); the `.13c.2s` argument lists read `ordered_tail: [$2::3*]` — a property or
+sequence instance's further positionals had been `[]` since `1.0.191` (`SV-0106`); the mixed string parameter port
+list's `type_tail` / `decl_tail` are clean arrays. Recurrence guard: the doctrine `LOOKAHEAD-SLOT-TEMPLATES`
+(`scripts/lookahead_slot_audit.py`, self-tested, every commit); the engine-side lint is routed. Measured on the final
+bytes: the raw lanes byte-inert — `sv_2017` pass 9 847 / fail 6 489, `sv_2023` 9 872 / 6 464, `verilog_2005` 2 313 / 293, every count identical to 1.0.229's, 0 rows moved (0 raw rows moved on any lane (the five iverilog rows sit behind a multi-line `` `define ``: the raw lane stops at the macro on every release, the shapes come after it)); the pipeline lane exactly 5 rows `fail → pass` (the five iverilog `sv_type_identifier_*.v` rows), 0 the other way; the corpus AST identity sweeps read `ast_moved=196 verdict_moved=0` on `sv_2017`, `204 / 0` on `sv_2023` and `0 / 0` on `verilog_2005` — every mover a `.3.61` shape (type assignments, type lists, ordered tails), the other 9 651 / 9 668 / 2 313 accepted trees byte-identical — the movers are 196 accepted files on `sv_2017` and 204 on `sv_2023`, every one a `.3.61` shape and nothing else (`rust/target/s360/classify_movers.py`, every mover's two trees diffed node by node: 193 / 201 files carry a `type_assignment` whose `name` and `value` are now bound — 822 / 838 nodes — 9 / 9 carry a type list whose second and later assignments replace a `comma` node — 26 / 26 elements — and 3 / 3 carry a property or sequence instance's `ordered_tail` — 19 / 19 arguments; 0 unclassified), the other 9 651 / 9 668 accepted trees byte-identical, `verilog_2005` untouched (2 313 identical).
+
 ### 1.0.229 / Contract 1.0.229 — SV-CORPUS-GRAD.3.59 (`PGEN-SV-CORPUS-GRAD-0392`, 2026-09-10), ledger `SV-0102` (`Released`), **schema 32 unchanged**:
 
 ⭐ **A select on a receiver is an expression, and `$` is a primary.** IEEE 1800-2017 A.8.4 derives a method

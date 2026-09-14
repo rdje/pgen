@@ -425,8 +425,12 @@ def _self_test() -> int:
         check("LIVE: a file that parses bare is `residual:parses_bare`", v[0] == "residual:parses_bare")
         # SV-CORPUS-GRAD.13x.e — route 1b, both kinds of proof and a RED control
         v = measure("module top;\n  wire w;\n  w x;\nendmodule\n", "sv_2017")
-        check("LIVE 1b: `wire w; w x;` is explained by renaming the net and declaring `w` as a type (ladder order: class first)",
-              v == (EXPLAINED, ("w",), (f"{REDECLARED_PREFIX}class",)))
+        # SV-CORPUS-GRAD.3.60 (release 1.0.230): a net may be NAMED after a visible type — IEEE 1800-2017 3.13 puts
+        # the two in different name spaces and 6.4's same-scope clash is the elaborator's — so `class w; …; wire w;`
+        # parses and route 1 (declare `w` as a class, nothing renamed) explains the row before route 1b is asked.
+        # Through 1.0.229 the typed reading of `wire w;` consumed `w` as the type and only the rename explained it.
+        check("LIVE 1b: `wire w; w x;` is explained by declaring `w` as a type — since 1.0.230 without renaming the net (route 1 first; the rename is route 1b's, kept for the arms below)",
+              v == (EXPLAINED, ("w",), ("class",)))
         v = measure("class NotIcls; endclass\nclass C implements NotIcls;\nendclass\n", "sv_2017")
         check("LIVE 1b: `implements` on a plain class is explained by redeclaring it as an interface class",
               v == (EXPLAINED, ("NotIcls",), (f"{REDECLARED_PREFIX}iclass",)))

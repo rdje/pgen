@@ -877,7 +877,7 @@ iverilog	ivtest/ivltests/sv_type_identifier_for_name.v	divergence:explained_svpp
 iverilog	ivtest/ivltests/sv_type_identifier_foreach_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_fork_label_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_fork_prefix_label_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-iverilog	ivtest/ivltests/sv_type_identifier_function_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		a function / task header	refuted:parser_question	stimuli/sv/subs/iverilog/ivtest/ivltests/sv_type_identifier_function_name.v:21:13
+iverilog	ivtest/ivltests/sv_type_identifier_function_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_generate_label_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_genvar_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_named_constructor_argument.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -885,15 +885,15 @@ iverilog	ivtest/ivltests/sv_type_identifier_named_function_argument.v	divergence
 iverilog	ivtest/ivltests/sv_type_identifier_named_parameter_value.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_named_port_connection.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_named_task_argument.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-iverilog	ivtest/ivltests/sv_type_identifier_net_name.v	divergence:explained_svpp_macro_use	IN-WINDOW	fail	own file		other	refuted:parser_question	stimuli/sv/subs/iverilog/ivtest/ivltests/sv_type_identifier_net_name.v:15:9
+iverilog	ivtest/ivltests/sv_type_identifier_net_name.v	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_package_item.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_package_name.v	divergence:explained_svpp_macro_use	not-in-audit	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_parameter_decl_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-iverilog	ivtest/ivltests/sv_type_identifier_parameter_port_name.v	divergence:explained_svpp_macro_use	IN-WINDOW	fail	own file		other	refuted:parser_question	stimuli/sv/subs/iverilog/ivtest/ivltests/sv_type_identifier_parameter_port_name.v:24:4
+iverilog	ivtest/ivltests/sv_type_identifier_parameter_port_name.v	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_parameter_type_decl_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_parameter_type_param_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-iverilog	ivtest/ivltests/sv_type_identifier_port_name.v	divergence:explained_svpp_macro_use	IN-WINDOW	fail	own file		other	refuted:parser_question	stimuli/sv/subs/iverilog/ivtest/ivltests/sv_type_identifier_port_name.v:16:25
-iverilog	ivtest/ivltests/sv_type_identifier_task_function_argument_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:parser_question	stimuli/sv/subs/iverilog/ivtest/ivltests/sv_type_identifier_task_function_argument_name.v:33:12
+iverilog	ivtest/ivltests/sv_type_identifier_port_name.v	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
+iverilog	ivtest/ivltests/sv_type_identifier_task_function_argument_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_task_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_identifier_variable_name.v	divergence:explained_svpp_macro_use	not-in-audit	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_type_param1.v	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	

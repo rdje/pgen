@@ -3,11 +3,11 @@
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1190/372/804/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=369/0_mismatches aliases=2",
-    "verified_at_commit": "9b81e3a8c90a216a1e854024c85cf327017d6a2c",
+    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1191/372/805/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=369/0_mismatches aliases=2",
+    "verified_at_commit": "9646dc9881bc4d8472e2b487435851210a9c3ae8",
     "inputs": {
-      "generated/systemverilog_parser.rs": "c8b01e7157c1cb2c7b78997b46d1a6d71418ec1fcee4d9e1d2234cce8ac5deaf",
-      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "3fa3ae487fbcf58bd9c8a424361a3467b3f9b8514266291a00e0dacc4bc7d2a7" },
+      "generated/systemverilog_parser.rs": "711a3bc073c7e1bf825f64527dbcc845e7cd28567ef834fbad74e47758433d6a",
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "fe2a293d88a0f00cac5de8bc9a21ccc1719ce182fefa0655a6a727b06727ec32" },
       "rust/src/ast_pipeline/grammar_wellformedness.rs": "49b795f6a34fc787f2746cf577f47988b76b7e332164eabea85eeab36b457107",
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "ebfafdd38fda2371dbcd7211b98bb5b13bfa7f9666678cd5e7d82ca7c1bc48b6",
       "rust/src/ast_pipeline/stimuli_generator.rs": "c8c8a925399ed9c753c1f88f41f01442f00629e57e2bc04e36247c50953f343e"
@@ -55,9 +55,9 @@
       "library_text:verilog_2005",
       "systemverilog_parseable_file:verilog_2005"
     ],
-    "expected_total": 1190,
+    "expected_total": 1191,
     "expected_proof": 372,
-    "expected_witness": 804,
+    "expected_witness": 805,
     "expected_unknown": 14,
     "expected_sample_parse_failures": 0,
     "expected_proof_reverify_failures": 0,
@@ -1120,5 +1120,5 @@
       "note": "Uses the `else`-action form task enables cannot take; a plain `wait_order (a, b);` is a legal 1364-2005 task enable (see the accept corpus)."
     }
   ],
-  "rebaseline_note": "SV-CORPUS-GRAD.13n (2026-09-01, PGEN-SV-CORPUS-GRAD-0316, GRAMMAR tier, ledger SV-0075, release 1.0.202): +2 AND ALL-POSITIVE, adjudicated rather than re-stamped. The `net_type` alternation gained its two MISSING LRM branches -- `tri0` and `tri1`, absent for the whole life of the flattened grammar -- so exactly two new rules exist and BOTH are witnessed. Every moved criterion is total+2 / witness+2, IDENTICALLY at seeds 0, 7 and 42, while proof, UNKNOWN, sample_parse_failures and profile_orphans are all UNCHANGED and the residual stays []. That is the shape a legitimate widening has: nothing became unknown, nothing stopped being witnessed. The verilog_2005 arm moves TOO -- unlike SV-CORPUS-GRAD's config/use_clause precedent, where the new rule was profile-gated OUT -- and that is correct here, because tri0/tri1 are IEEE 1364-2005 net types (Annex A A.2.2.1:219) and are deliberately NOT gated."
+  "rebaseline_note": "SV-CORPUS-GRAD.3.60 (2026-09-14, PGEN-SV-CORPUS-GRAD-0393, release 1.0.230): +1 total (1190 -> 1191: data_type_or_implicit_declared, reachable on the 1364-2005 profile through the net and port declarations), witness 804 -> 805, proof 372 and unknown 14 unchanged. Earlier: SV-CORPUS-GRAD.13n (2026-09-01, PGEN-SV-CORPUS-GRAD-0316, GRAMMAR tier, ledger SV-0075, release 1.0.202): +2 AND ALL-POSITIVE, adjudicated rather than re-stamped. The `net_type` alternation gained its two MISSING LRM branches -- `tri0` and `tri1`, absent for the whole life of the flattened grammar -- so exactly two new rules exist and BOTH are witnessed. Every moved criterion is total+2 / witness+2, IDENTICALLY at seeds 0, 7 and 42, while proof, UNKNOWN, sample_parse_failures and profile_orphans are all UNCHANGED and the residual stays []. That is the shape a legitimate widening has: nothing became unknown, nothing stopped being witnessed. The verilog_2005 arm moves TOO -- unlike SV-CORPUS-GRAD's config/use_clause precedent, where the new rule was profile-gated OUT -- and that is correct here, because tri0/tri1 are IEEE 1364-2005 net types (Annex A A.2.2.1:219) and are deliberately NOT gated."
 }

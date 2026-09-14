@@ -66,6 +66,28 @@ A grammar that gates rules by dialect profile (`@profiles`) can declare what an 
 
 A profiled grammar can also declare which request **spellings** resolve to its canonical profile names, with the grammar-level `@profile_alias: { "<spelling>": <canonical>, … }` map directive. `grammars/systemverilog.ebnf` declares `2017`/`ieee1800-2017`/`ieee_1800_2017` → `sv_2017` (plus the `2023` and `1364-2005` groups), which is why `--profile 2017` works everywhere. Multiple declarations **merge** (an alias table is naturally written in groups); re-declaring a spelling with a different target is a hard error. Every alias target must be a profile the grammar actually declares (the union of its `@profiles` lists and its `@default_profile`), and a spelling may not shadow a canonical name — so typos and alias-chains are compile errors, linted early as `W_SEM_INVALID_PROFILE_ALIAS_PAYLOAD`. The map is carried by the artifact itself — the generated parser embeds a sorted `GRAMMAR_PROFILE_ALIASES` constant and resolves spellings case-insensitively inside `set_grammar_profile` — and the registry's profile oracle, the generation-side profile filter, and the parse-harness interpreter resolve from the same compiled declaration. An undeclared spelling passes through un-coerced (it simply matches no `@profiles` list). This replaced the historical engine alias tables (a `"systemverilog"`-name-gated match in the parser registry and a global spelling table on the generation side) — any grammar can now declare its own request spellings. Grammar-author reference: the ebnf parser book's *Semantic Annotations* chapter (Profile aliases section); proof cases: the structural combinator suite's `profile_alias_resolves` / `profile_alias_unknown_passthrough` pair.
 
+#### ⭐ A lookahead occupies a positional slot — the template must count it (`SV-CORPUS-GRAD.3.61`)
+
+A lookahead derives nothing, but it is a **child** of the sequence it stands in: the parse content the
+positional refs index over includes it, and it binds `[]` (the interpreter walks it as the `/l` node
+path; the generated parser keeps a successful lookahead's pushes). Three consequences, each of which
+shipped wrong in the SystemVerilog grammar and stayed green under every gate until 2026-09-10:
+
+| Spelling | What `$N` sees | Correct template |
+|---|---|---|
+| `!kw_type ident ( assign data_type )?` | `$1` = the guard (`[]`), `$2` = the identifier, `$3` = the optional | `{name: $2, value: $3}` |
+| `item ( !( comma ident ident ) comma item )*` | in each iteration child 1 = the guard, 2 = the comma, 3 = the item | `[$1, $2::3*]` |
+| `( comma !dot ( arg )? )*` bound as `[$2::2*]` | child 2 = the guard, so every element is `[]` | `[$2::3*]` |
+
+The per-iteration slice `$N::K*` reads the **K-th child of each iteration** of the group at slot N —
+not a stride over a flattened list — so K is the item's position inside the group, guard included. A
+guard-opened group bound **raw** (`tail: $3`) carries the guard's `[]` beside every separator and item;
+slice it. Why no gate saw it: the accept set never moved, the corpus AST identity sweep compares a
+release with the one before (a consistently wrong tree is byte-identical to itself), and the
+certificate reads reachability, not bindings. The textual auditor `scripts/lookahead_slot_audit.py`
+(`TOOLBOX.md` §1.5i; doctrine `LOOKAHEAD-SLOT-TEMPLATES`, every commit) reads each template against
+its sequence's slots; the engine-side lint that reads the real child list is routed, not built.
+
 #### ⭐ A `@profiles` gate and a negative lookahead: the guard does NOT vanish (`ENGINE-UNIVERSAL-SERVICES.46`)
 
 **If you gate a rule `X` out of a profile, a `!X` negative lookahead elsewhere keeps constraining
@@ -149,7 +171,7 @@ Semantic-directive payloads (`@emit_fact: { … }`, `@predicate: { … }`, `@exp
 | Form | Meaning | Example |
 |---|---|---|
 | `$<ident>` | Named ref into the current rule's shaped output (`->` rule) OR sub-rule-name descendant search (raw rule) | `$body` |
-| `$<int>` | Positional ref to the N'th child (1-indexed) of the current rule's parse content | `$1` |
+| `$<int>` | Positional ref to the N'th child (1-indexed) of the current rule's parse content. ⛔ A **lookahead** (`!x`, `&x`, `!( … )`) IS a child: it occupies a slot and binds `[]`, so behind a leading guard the first real element is `$2`, and inside `( !( … ) comma item )*` the item is child 3 (`$N::3*`) — see *A lookahead occupies a positional slot* below; enforced by `LOOKAHEAD-SLOT-TEMPLATES` | `$1` |
 | `$text` / `$0` | Whole-match ref — the rule's entire matched source text as one string `Terminal` (native, Rust-regex-free equivalent of a `/.../` capture; Perl5 convention `$0`=whole match, `$1..$N`=captures; lets `octal_digit+ -> $text` yield `"777"` instead of a structured `Quantified`). Valid only as a base value — `$0::first`/`$0.x`/`$0[i]` is an error (`E_RET_WHOLE_MATCH_NOT_COMPOSABLE`). REGEX-SELF-HOSTING.3/.3a. | `digit+ -> $0` |
 | `$<head>.<ident>(\.<ident>)*` | Dotted property-access chain over the shaped JSON object-key path / raw sub-rule tree | `$name.body`, `$1.body.subkey` |
 | `$<head>(\.<ident>\|\[<int>\])*` | Mixed dotted + non-negative-integer indexed-access chain | `$items[0].name`, `$matrix[0][1]`, `$a.b[0].c[1].d.e[2].r.z` |
