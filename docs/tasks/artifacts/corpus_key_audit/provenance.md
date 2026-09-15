@@ -7,29 +7,29 @@
 > `SV-CORPUS-GRAD.13e.3` measured twice*, which a `clause-cited` one is not. The number
 > below says how much of the published bar rests on evidence outside the standard.
 
-## `sv_2017` — 7486 keyed rows
+## `sv_2017` — 7485 keyed rows
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **603** | 8.1% | 285 | 318 |
-| `tool-testimony` | **1721** | 23.0% | 1672 | 49 |
-| `suite-convention` | **5161** | 68.9% | 5158 | 3 |
+| `clause-cited` | **606** | 8.1% | 289 | 317 |
+| `tool-testimony` | **1720** | 23.0% | 1671 | 49 |
+| `suite-convention` | **5158** | 68.9% | 5155 | 3 |
 | `UNCLASSIFIED` | **1** | 0.0% | 0 | 1 |
 
-⇒ **trust bound: 6883 of 7486 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 6879 of 7485 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
 ## `verilog_2005` — 2534 keyed rows
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **205** | 8.1% | 157 | 48 |
+| `clause-cited` | **206** | 8.1% | 159 | 47 |
 | `tool-testimony` | **483** | 19.1% | 472 | 11 |
 | `suite-convention` | **1844** | 72.8% | 1844 | 0 |
-| `UNCLASSIFIED` | **2** | 0.1% | 2 | 0 |
+| `UNCLASSIFIED` | **1** | 0.0% | 1 | 0 |
 
-⇒ **trust bound: 2329 of 2534 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 2328 of 2534 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
-## ⛔ The BAR's own rows (6, `sv_2017`) — a different population, a different number
+## ⛔ The BAR's own rows (1, `sv_2017`) — a different population, a different number
 
 The published defect bar is the `sv_2017` `divergence:unexplained_*` subset, **not** the whole
 key. A divergence tends to get INVESTIGATED, and investigation is exactly the event
@@ -38,12 +38,12 @@ key as a whole. Attaching the key-wide share to the bar overstates the claim.
 
 | provenance | bar rows | share |
 |---|---|---|
-| `clause-cited` | 1 | 16.7% |
-| `tool-testimony` | 1 | 16.7% |
-| `suite-convention` | 4 | 66.7% |
+| `clause-cited` | 0 | 0.0% |
+| `tool-testimony` | 0 | 0.0% |
+| `suite-convention` | 1 | 100.0% |
 | `UNCLASSIFIED` | 0 | 0.0% |
 
-⇒ **5 of 6 (83.3%)** of the rows *behind the published bar* rest on evidence outside the standard, against **91.9%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
+⇒ **1 of 1 (100.0%)** of the rows *behind the published bar* rest on evidence outside the standard, against **91.9%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
 
 ## By suite — where the non-clause evidence actually lives
 
@@ -51,10 +51,10 @@ key as a whole. Attaching the key-wide share to the bar overstates the claim.
 |---|---|---|---|---|---|
 | `iverilog` | 3134 | 384 | 522 | 2228 | 0 |
 | `verilator` | 3067 | 123 | 718 | 2226 | 0 |
-| `ispras-sv-tests` | 1147 | 37 | 0 | 1107 | ⛔ 3 |
-| `sv-tests` | 933 | 17 | 0 | 916 | 0 |
-| `sv2v` | 921 | 219 | 354 | 348 | 0 |
-| `Surelog` | 627 | 17 | 610 | 0 | 0 |
+| `ispras-sv-tests` | 1146 | 38 | 0 | 1106 | ⛔ 2 |
+| `sv-tests` | 933 | 18 | 0 | 915 | 0 |
+| `sv2v` | 921 | 220 | 354 | 347 | 0 |
+| `Surelog` | 627 | 18 | 609 | 0 | 0 |
 | `verible` | 128 | 9 | 0 | 119 | 0 |
 | `slang` | 63 | 2 | 0 | 61 | 0 |
 
@@ -75,14 +75,13 @@ nothing else. That the partition is EXHAUSTIVE is why the split is trustworthy.
 
 ## ⛔ The residual, VERBATIM — a census that hides its leftovers is a census you cannot check
 
-**3 of 10020 rows** (0.03%) match no rule. Every one is printed here rather than folded into a class, because a
+**2 of 10019 rows** (0.02%) match no rule. Every one is printed here rather than folded into a class, because a
 residual absorbed into the nearest bucket is exactly how a classifier stops being
 checkable. The first cut left **4 961** unclassified (49 %) and the vocabulary was
 extended by ENUMERATING those shapes, not by widening a rule until the number fell.
 
 - `ispras-sv-tests` / `must_reject` — pinned .8b.2: the committed text is syntactically broken - the a1 assert property's opening parenthesis is never closed (upstream typo); parse-level regardless of the intended 16.9.4 nested-gclk-function semantic rule
 - `ispras-sv-tests` / `must_accept` — pinned .8c.1: 12.8.2 early defparam hierarchical-name resolution ambiguity - pure elaboration semantics; defparam and the generate block are ordinary 1364-2005 BNF
-- `ispras-sv-tests` / `must_accept` — ispras-1364 POSITIVE pinned .8c.2 (KNOWN_TEXT_BUGS re-adjudicated, no errata flip): `begin_keywords "1364-2001" - 19.11 selects the 1364-2001 keyword set so 'uwire' is an ordinary identifier in scope; section 19: directives may appear anywhere in the source description (the sv-lane 22.14 begin_keywords mirror - directive-aware keyword selection is parser duty) - .13w: store-gate search residual:not_parsed_with_declarations
 
 ⚠️ **TWO of these ARE clause cites, so `clause-cited` is a LOWER bound, short by exactly 2.** They spell the clause as a bare dotted number (*"…pinned .8c.1: 12.8.2 early defparam…"*, *"…- 19.11 selects the 1364-2001 keyword set…"*), and a general bare-dotted-number rule is **deliberately not added**: `.8b.3` and `.13e.2` are task-leaf ids in the very same strings, so such a rule would classify every pinned row as clause-cited on its own bookkeeping. Two rows misfiled in the conservative direction is the cheaper error. The other two cite nothing external at all — they are the adjudicator's own reading of the file — which is a third trust profile, too small a population (2) to justify naming a class for.
 
@@ -90,15 +89,15 @@ extended by ENUMERATING those shapes, not by widening a rule until the number fe
 
 **`clause-cited`**
 
+- `Surelog` / `must_accept` — Surelog: golden log 1364_2005.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-
 - `Surelog` / `must_reject` — pinned .3.52: line 4 `parameter type AT;` - a class-body TYPE parameter without a default. IEEE 1800-2017 Annex A footnote 18: "It shall be legal to o
 - `Surelog` / `must_reject` — pinned .3.15: bare begin/end generate_block at line 5 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_
-- `Surelog` / `must_reject` — pinned .3.52: line 8 `(states_t) state1;` - a PARENTHESISED type in a variable declaration (the file's own comment: "Test parenthesized type variable 
 
 **`tool-testimony`**
 
-- `Surelog` / `must_accept` — Surelog: golden log 1364_2005.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-
 - `Surelog` / `must_accept` — Surelog: golden log 3SigsSensList.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1
 - `Surelog` / `must_accept` — Surelog: golden log AaFirstTest.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 180
+- `Surelog` / `must_accept` — Surelog: golden log AllPackageSignal.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEE
 
 **`suite-convention`**
 
@@ -110,5 +109,4 @@ extended by ENUMERATING those shapes, not by widening a rule until the number fe
 
 - `ispras-sv-tests` / `must_reject` — pinned .8b.2: the committed text is syntactically broken - the a1 assert property's opening parenthesis is never closed (upstream typo); parse-level r
 - `ispras-sv-tests` / `must_accept` — pinned .8c.1: 12.8.2 early defparam hierarchical-name resolution ambiguity - pure elaboration semantics; defparam and the generate block are ordinary 
-- `ispras-sv-tests` / `must_accept` — ispras-1364 POSITIVE pinned .8c.2 (KNOWN_TEXT_BUGS re-adjudicated, no errata flip): `begin_keywords "1364-2001" - 19.11 selects the 1364-2001 keyword 
 

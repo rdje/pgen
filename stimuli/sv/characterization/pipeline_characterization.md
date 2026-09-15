@@ -28,7 +28,7 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 | pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `3c45dee8091da00f3c047e49ea336cd94bf062d375bae3d07644cab424f570bd` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `9b86536adaf192ccb0eeb02af281aee1b6ee7a8475fd82e80787b986eb693355` |
 
-Measured at `HEAD` = `0b21c72f1+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `ff3f6400a+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -147,16 +147,16 @@ Measured at `HEAD` = `0b21c72f1+dirty`; the parse binary is a **debug** build (t
 | `divergence:explained_svpp_macro_use` | 1025 | 1005 | 16 | 4 | 0 | 0 |
 | `deferred:no_sv_key` | 596 | 568 | 27 | 1 | 0 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 350 | 0 | 0 | 0 |
-| `deferred:svpp_owned` | 244 | 109 | 103 | 32 | 0 | 0 |
+| `deferred:svpp_owned` | 245 | 109 | 104 | 32 | 0 | 0 |
 | `divergence:explained_svpp_conditional` | 195 | 194 | 1 | 0 | 0 | 0 |
 | `divergence:explained_svpp_include` | 133 | 23 | 103 | 7 | 0 | 0 |
 | `deferred:impl_varying` | 90 | 89 | 1 | 0 | 0 | 0 |
 | `divergence:explained_store_gate` | 58 | 0 | 58 | 0 | 0 | 0 |
 | `deferred:verilog_ams_lane` | 25 | 5 | 19 | 1 | 0 | 0 |
 | `deferred:ni_unimplemented` | 6 | 6 | 0 | 0 | 0 | 0 |
-| `divergence:unexplained_rejects_valid` | 5 | 4 | 1 | 0 | 0 | 0 |
+| `divergence:explained_svpp_keywords_region` | 4 | 4 | 0 | 0 | 0 | 0 |
 | `divergence:explained_svpp_protected_envelope` | 4 | 2 | 1 | 1 | 0 | 0 |
-| `divergence:unexplained_accepts_invalid` | 1 | 0 | 1 | 0 | 0 | 0 |
+| `divergence:unexplained_rejects_valid` | 1 | 0 | 1 | 0 | 0 | 0 |
 
 ## What sits at the origin — the construct on the rejecting line, bucketed
 

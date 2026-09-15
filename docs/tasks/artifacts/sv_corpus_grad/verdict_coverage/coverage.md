@@ -6,14 +6,14 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e25d0dc69a579fb93a12abf713dd4b0f99b9fb402b6c884710c655c1e1b99199` |
-| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `dedaa9fe1ee993e043f075444648c03feff2647502ee2d865f4d456ac06b6652` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `0ed0df9a624fc8da760e4a584410d8b6b9106071472bd975fa9ea366c41c8cc0` |
+| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `ba5539a87e77c2ebc5400b46996f8df5392c68a1749224880a9df826a4226717` |
 
 ## The headline
 
-- **ADJUDICATED: 7,486 rows (45.8 %)**
+- **ADJUDICATED: 7,485 rows (45.8 %)**
 - **ROUTED: 2,606 rows (16.0 %)**
-- **NO VERDICT: 6,244 rows (38.2 %)**
+- **NO VERDICT: 6,245 rows (38.2 %)**
 
 ## Every class, bucketed
 
@@ -24,14 +24,14 @@
 | ADJUDICATED | `divergence:explained_svpp_conditional` | 195 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_include` | 133 | 0.8 % | parse stops on an `include - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_store_gate` | 58 | 0.4 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
-| ADJUDICATED | `divergence:unexplained_rejects_valid` | 5 | 0.0 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
+| ADJUDICATED | `divergence:explained_svpp_keywords_region` | 4 | 0.0 % | parse stops ON a word a begin_keywords region unreserves - IEEE 1800-2017 §22.14, applied by the expansion stage (SVPP-EXPANSION.8); token-exact tell (SV-CORPUS-GRAD.18) |
 | ADJUDICATED | `divergence:explained_svpp_protected_envelope` | 4 | 0.0 % | IEEE 1800-2017 §34 encrypted envelope - not source text yet |
-| ADJUDICATED | `divergence:unexplained_accepts_invalid` | 1 | 0.0 % | a known defect: invalid SV the parser accepts (the axis-2 bar) |
+| ADJUDICATED | `divergence:unexplained_rejects_valid` | 1 | 0.0 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
 | ROUTED | `deferred:v2005_profile_lane` | 2,606 | 16.0 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
 | NO VERDICT | `deferred:chained_only` | 4,933 | 30.2 % | multi-file design: needs `include/`define chaining to parse honestly - the MOST realistic RTL in the corpus, contributing nothing to the claim |
 | NO VERDICT | `deferred:no_sv_key` | 596 | 3.6 % | no upstream answer key exists - expectation underivable |
 | NO VERDICT | `deferred:not_source_text` | 350 | 2.1 % | the file is not SystemVerilog source text at all (a $readmemh memory image, a bare string literal, a tool command line) - it testifies to nothing about the parser; a CORPUS-COMPOSITION fact, stated per row (SV-CORPUS-GRAD.13c.1) |
-| NO VERDICT | `deferred:svpp_owned` | 244 | 1.5 % | conformance owned by the preprocessor lane, by design |
+| NO VERDICT | `deferred:svpp_owned` | 245 | 1.5 % | conformance owned by the preprocessor lane, by design |
 | NO VERDICT | `deferred:impl_varying` | 90 | 0.6 % | LRM leaves the behaviour implementation-defined |
 | NO VERDICT | `deferred:verilog_ams_lane` | 25 | 0.2 % | Verilog-AMS, a different language family |
 | NO VERDICT | `deferred:ni_unimplemented` | 6 | 0.0 % | upstream marks the construct not-implemented |
@@ -42,7 +42,7 @@
 - **1,170 corroborated** — the parse stops *on* the preprocessor construct. The label is positively verified.
 - **263 undecidable by position** — the label is neither corroborated nor refuted; only running an expander settles them (`.12b`).
 
-⇒ Rows contributing nothing to the confidence claim, counting these: **6,507 (39.8 %)**.
+⇒ Rows contributing nothing to the confidence claim, counting these: **6,508 (39.8 %)**.
 
 ## `NO VERDICT`, by suite — where the silence actually is
 
@@ -72,13 +72,14 @@
 | sv2v | `deferred:chained_only` | 3 |
 | Surelog | `deferred:svpp_owned` | 2 |
 | Surelog | `deferred:not_source_text` | 1 |
+| ispras-sv-tests | `deferred:svpp_owned` | 1 |
 | slang | `deferred:svpp_owned` | 1 |
 | sv-tests | `deferred:chained_only` | 1 |
 
 ## Inside `NO VERDICT` — what the parser ALREADY did on the row's own bytes (SV-CORPUS-GRAD.13a)
 
-- **ONE-SIDED POSITIVE — 1,855 rows (11.4 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
-  - 1,704 are compilation-unit-shaped; ⚠️ **151 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
+- **ONE-SIDED POSITIVE — 1,856 rows (11.4 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
+  - 1,705 are compilation-unit-shaped; ⚠️ **151 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
 - ⛔ **DARK — 4,039 rows (24.7 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
 - **NOT SOURCE TEXT — 350 rows (2.1 % of the corpus)** (SV-CORPUS-GRAD.13c.1): the file is a `$readmemh` memory image, a bare string literal or a tool command line, decided from its BYTES by the adjudicator. It never was a parse input, so it is neither testimony nor DARK — it stays in the denominator as a stated fact about the corpus's composition, and the class is PERMANENT and bounded below. ⛔ Before `.13c.1` these rows were counted as DARK `chained_only`, a defect worklist no chaining could ever burn down.
 
@@ -87,11 +88,11 @@
 | `deferred:chained_only` | 4,933 | 1,037 | 151 | 3,745 | 0 |
 | `deferred:no_sv_key` | 596 | 544 | 0 | 52 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 0 | 0 | 350 |
-| `deferred:svpp_owned` | 244 | 106 | 0 | 138 | 0 |
+| `deferred:svpp_owned` | 245 | 107 | 0 | 138 | 0 |
 | `deferred:impl_varying` | 90 | 6 | 0 | 84 | 0 |
 | `deferred:verilog_ams_lane` | 25 | 5 | 0 | 20 | 0 |
 | `deferred:ni_unimplemented` | 6 | 6 | 0 | 0 | 0 |
-| **TOTAL** | **6,244** | **1,704** | **151** | **4,039** | **350** |
+| **TOTAL** | **6,245** | **1,705** | **151** | **4,039** | **350** |
 
 ## Permanent deferrals — by construction, and BOUNDED (SV-CORPUS-GRAD.13f)
 
@@ -99,12 +100,12 @@ A permanent deferral is a CLAIM: no future work on the parser, the answer key or
 
 | class | rows | ceiling | why nothing can ever adjudicate it |
 |---|---:|---:|---|
-| `deferred:svpp_owned` | 244 | 244 | the row's conformance question is about the PREPROCESSOR (macro/conditional/include semantics the parser never sees) and is answered by the svpp lane, by design of the two-parser architecture — no grammar or key change on this lane can move it |
+| `deferred:svpp_owned` | 245 | 245 | the row's conformance question is about the PREPROCESSOR (macro/conditional/include semantics the parser never sees) and is answered by the svpp lane, by design of the two-parser architecture — no grammar or key change on this lane can move it |
 | `deferred:impl_varying` | 90 | 90 | the suite's own contract marks the verdict implementation-dependent (ispras TYPE VARYING) — the LRM leaves the behaviour to the implementation, so no answer key can exist |
 | `deferred:verilog_ams_lane` | 25 | 25 | the descriptor runs the file under -gverilog-ams: a different LANGUAGE (Verilog-AMS), outside IEEE 1800's scope; owned by the parked VERILOG-AMS tree, never by this grammar |
 | `deferred:ni_unimplemented` | 6 | 6 | the upstream runner marks the construct NI (Not Implemented) and skips the test, so the suite itself holds no expectation to compare against |
 | `deferred:not_source_text` | 350 | 350 | the bytes are not source text in any language this grammar describes - a $readmemh memory image (IEEE 1800-2017 §21.4), a bare string literal, a tool command line - so no answer key, no include/define chaining and no grammar revision can produce a verdict ABOUT SYSTEMVERILOG from them; the row is a statement about the corpus's composition |
-| **TOTAL** | **715** | | 4.4 % of the corpus, permanent by construction |
+| **TOTAL** | **716** | | 4.4 % of the corpus, permanent by construction |
 
 ⛔ `deferred:chained_only` and `deferred:no_sv_key` are NOT permanent: chaining and a future key could give those rows verdicts, so they stay open work. ⭐ The FRAGMENT-shaped one-sided positives above (SV-CORPUS-GRAD.13g) are ruled **unadjudicable as whole files**: a fragment parsed entry-relative would yield an accept with no key to compare against, so it cannot move the bar either way — the population stays visible in the fragment column and is never counted as testimony.
 
@@ -174,6 +175,7 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:svpp_owned` | 2 | pinned SVPP-EXPANSION.6b.1: line 57 'localparam type p0_rq2_t = if0.y_if0.rq2_t;' - a type named THROUGH AN INTERFACE INSTANCE,… |
 | `deferred:svpp_owned` | 1 | Surelog: golden log PreProcMacro.log reports [SNT:] syntax errors - upstream keys this single-source unit parse-level invalid -… |
 | `deferred:svpp_owned` | 1 | pinned .3.43: lines 37-41 'pure function bit [8-1:0] dpii_f_bit8 ... bit [32-1:0] dpii_f_bit32' - five UNCONDITIONAL packed-vec… |
+| `deferred:svpp_owned` | 1 | pinned .8b.2: under 'begin_keywords "1364-2005" (22.14) 'interface'/'endinterface' are ordinary identifiers and the items match… |
 | `deferred:svpp_owned` | 1 | pinned SV-CORPUS-GRAD.12b.1: line 110 'std::randomize(limit_63bits[i]) with { ... }' - an INDEXED variable as a randomize argum… |
 | `deferred:svpp_owned` | 1 | pinned SV-CORPUS-GRAD.12b.1: line 152 'foreach (twod[i, j]);' - a foreach whose body is the NULL statement; IEEE 1800-2017 A.6.… |
 | `deferred:svpp_owned` | 1 | pinned SV-CORPUS-GRAD.12b.1: line 170 'foreach (twod[i, j]);' - the same null-body foreach as t_foreach.v (IEEE 1800-2017 A.6.8… |
@@ -254,21 +256,21 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 ## Under the PIPELINE — the same rows re-read through preprocess→parse (SVPP-EXPANSION.6c.1)
 
-> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`e9780b8df6b165be9ce5159504a29a0701436666b9773c486724d1cdf4d11875`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
+> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`7df6885af1d7380d011309e346c0f88b98d5728a5698c8c4b4d40e7b9d372126`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
 
-**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `9140/2606/4590/3310/5`** (raw: `7486/2606/6244/4039/6`).
+**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `9140/2606/4590/3310/1`** (raw: `7485/2606/6245/4039/1`).
 
-- **ADJUDICATED: 9,140 rows (56.0 %)** (raw 7,486, +1,654)
+- **ADJUDICATED: 9,140 rows (56.0 %)** (raw 7,485, +1,655)
 - **ROUTED: 2,606 rows (16.0 %)** (raw 2,606, +0)
-- **NO VERDICT: 4,590 rows (28.1 %)** (raw 6,244, -1,654)
+- **NO VERDICT: 4,590 rows (28.1 %)** (raw 6,245, -1,655)
 
 | bucket | class under the pipeline | rows | % | why |
 |---|---|---:|---:|---|
 | ADJUDICATED | `match` | 5,695 | 34.9 % | expected and observed agree - the row testifies FOR the parser |
-| ADJUDICATED | `pipeline:corroborated` | 1,224 | 7.5 % | a must-accept row the raw lane explained away by preprocessing PASSES once preprocessed — the explanation held; the row testifies FOR the parser |
+| ADJUDICATED | `pipeline:corroborated` | 1,228 | 7.5 % | a must-accept row the raw lane explained away by preprocessing PASSES once preprocessed — the explanation held; the row testifies FOR the parser |
 | ADJUDICATED | `pipeline:must_reject:match_under_expansion` | 450 | 2.8 % | a row the key expects rejected IS rejected in its own text under the pipeline — the raw lane could not reach the construct |
 | ADJUDICATED | `divergence:explained_store_gate` | 58 | 0.4 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
-| ADJUDICATED | `divergence:unexplained_rejects_valid` | 5 | 0.0 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
+| ADJUDICATED | `divergence:unexplained_rejects_valid` | 1 | 0.0 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
 | ROUTED | `deferred:v2005_profile_lane` | 2,606 | 16.0 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
 | NO VERDICT | `pipeline:chained:unreached_in_unit` | 1,923 | 11.8 % | DARK UNDER THE PIPELINE: a member whose every including unit rejects elsewhere (.6d.2) — the unit's own origin row carries the verdict |
 | NO VERDICT | `pipeline:chained:rejects_own_file` | 706 | 4.3 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |

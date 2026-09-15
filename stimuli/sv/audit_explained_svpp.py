@@ -67,6 +67,16 @@ inlines `include -- and PASSES EVERYTHING ELSE THROUGH.  A parse stuck on `times
 stuck on a token that survives preprocessing unchanged, so running svpp cannot fix it.
 Those rows are misclassified no matter where they sit in the file.
 
+THE FIFTH CLASS (SV-CORPUS-GRAD.18) -- a `begin_keywords REGION, judged by its word
+--------------------------------------------------------------------------------
+Since SVPP-EXPANSION.8 the expansion stage renders a region's non-keywords as escaped
+identifiers (IEEE 1800-2017 §22.14 + §5.6.1). The directive itself still passes through,
+so the window test above says nothing about a region -- one can span a whole file. A
+`keywords_region` row is instead judged TOKEN-EXACTLY: the choking token must be a word
+the enclosing region unreserves under the lane's profile (STUCK-ON-UNRESERVED-WORD);
+anything else disproves the label (REGION-DOES-NOT-REACH). Same predicate as the
+adjudicator's (`keywords_region_stop`), asserted equal per row like the rest.
+
 THE RESIDUE (a signal, explicitly NOT a proof)
 ----------------------------------------------
     stuck_offset > last_tick_offset, or stuck between two ticks on ordinary syntax
@@ -104,9 +114,11 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 # predicate instead of a copy that can drift away from it (SV-CORPUS-GRAD.12a).
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from adjudicate_external_corpus import (           # noqa: E402
+    KEYWORDS_REGION_FLAG,
     SVPP_PASSTHROUGH,
     blank_comments_and_strings,
     first_alterable_tick,
+    keywords_region_stop,
     svpp_can_explain_failure,
 )
 
@@ -202,7 +214,10 @@ def probe(probe_bin: Path, path: Path, timeout_s: int):
 
 
 # The verdicts that assert the label is FALSE -- must equal the shipped predicate.
-DISPROVEN_VERDICTS = ("FALSIFIED", "STUCK-ON-PASSTHROUGH", "NO-TICK-AT-ALL")
+# SV-CORPUS-GRAD.18: a `keywords_region` row is judged by the TOKEN-EXACT tell and by nothing
+# else -- STUCK-ON-UNRESERVED-WORD corroborates it, REGION-DOES-NOT-REACH disproves it. The
+# window verdicts above never apply to that class (a region can span the whole file).
+DISPROVEN_VERDICTS = ("FALSIFIED", "STUCK-ON-PASSTHROUGH", "NO-TICK-AT-ALL", "REGION-DOES-NOT-REACH")
 
 
 def stuck_offset_of(stripped: str, furthest):
@@ -272,6 +287,9 @@ def main():
                     help="parallel probe invocations (corpus provenance uses 8)")
     ap.add_argument("--timeout", type=int, default=60,
                     help="per-file probe timeout (corpus provenance uses 60 s)")
+    ap.add_argument("--profile", default="sv_2017",
+                    help="the lane's parse profile (a `begin_keywords region unreserves words "
+                         "RELATIVE to it, SV-CORPUS-GRAD.18)")
     args = ap.parse_args()
 
     if not args.probe_bin.is_file():
@@ -303,12 +321,18 @@ def main():
         furthest, surface, tail = probe(args.probe_bin, path, args.timeout)
         stuck = stuck_offset_of(stripped, furthest)
         verdict, tick_name = classify(stripped, furthest, stuck, first_tick, last_tick)
+        if cls == KEYWORDS_REGION_FLAG and furthest is not None:
+            # SV-CORPUS-GRAD.18: the fifth class has no window -- the tell names the word.
+            hit = keywords_region_stop(raw, furthest, args.profile)
+            verdict, tick_name = (("STUCK-ON-UNRESERVED-WORD", hit[0]) if hit
+                                  else ("REGION-DOES-NOT-REACH", ""))
         at = stuck if stuck is not None else furthest
         # ⭐ DIFFERENTIAL SELF-CHECK (SV-CORPUS-GRAD.12a). This instrument's rich
         # verdict and the adjudicator's boolean are two implementations of one model.
         # Assert they agree on every row, so a future edit to either surfaces here
         # instead of silently moving corpus rows.
-        shipped_says_disproven = not svpp_can_explain_failure(raw, furthest)
+        shipped_says_disproven = not svpp_can_explain_failure(
+            raw, furthest, dep_flag=cls if cls == KEYWORDS_REGION_FLAG else "", profile=args.profile)
         disagree = shipped_says_disproven != (verdict in DISPROVEN_VERDICTS)
         return {
             "class": cls, "suite": suite, "relpath": rel,

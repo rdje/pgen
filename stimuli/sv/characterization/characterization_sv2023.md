@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `bcd1193a41755e65c9817213e5704ef79e9f894537c015daef9026f8382724c3` |
+| parse binary | `rust/target/release/parseability_probe` | `71016b2a31d6029a65e57a67f244b1c0118be42f491fbe594fa87ed0da4db6b0` |
 | grammar | `grammars/systemverilog.ebnf` | `955af4e5a593de192e87ff7bed6820f3971873ce4d49f664942d7ad2f4fb8a94` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `fe2a293d88a0f00cac5de8bc9a21ccc1719ce182fefa0655a6a727b06727ec32` |
 | generated parser | `generated/systemverilog_parser.rs` | `99a683380af7486f47225766a64d20d8bdf176758ab0988d9dc0e2f4fc7a5ecf` |
 | results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `aa3cbc42852ae8da43be306f2e451395bc85f1a1a52c4c4ae950ae495550b8e3` |
 | positions (output) | `stimuli/sv/characterization/positions_sv2023.tsv` | `7de278d413af9f09c0f8ca97af73192555a439f0c382e6825b31f94d32b8821e` |
 
-Measured at `HEAD` = `a60fad7f7+dirty` (2026-09-14).
+Measured at `HEAD` = `ff3f6400a+dirty` (2026-09-15).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -44,9 +44,9 @@ Measured at `HEAD` = `a60fad7f7+dirty` (2026-09-14).
 
 | parameter | value | source for this run |
 |---|---|---|
-| per-file timeout | 60 s | caller |
-| parallel jobs | 8 | caller |
-| max files | 0 (no cap) | caller |
+| per-file timeout | 60 s | provenance |
+| parallel jobs | 8 | provenance |
+| max files | 0 (no cap) | provenance |
 | parse binary | `rust/target/release/parseability_probe` | provenance |
 
 ## Deadline proximity and serial re-confirmation
@@ -65,7 +65,7 @@ Measured at `HEAD` = `a60fad7f7+dirty` (2026-09-14).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `6.91` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `6.52` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 

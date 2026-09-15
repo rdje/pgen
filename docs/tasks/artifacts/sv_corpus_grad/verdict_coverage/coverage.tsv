@@ -5,13 +5,13 @@ ROUTED	deferred:v2005_profile_lane	2606	15.95
 ADJUDICATED	divergence:explained_svpp_macro_use	1025	6.27
 NO VERDICT	deferred:no_sv_key	596	3.65
 NO VERDICT	deferred:not_source_text	350	2.14
-NO VERDICT	deferred:svpp_owned	244	1.49
+NO VERDICT	deferred:svpp_owned	245	1.50
 ADJUDICATED	divergence:explained_svpp_conditional	195	1.19
 ADJUDICATED	divergence:explained_svpp_include	133	0.81
 NO VERDICT	deferred:impl_varying	90	0.55
 ADJUDICATED	divergence:explained_store_gate	58	0.36
 NO VERDICT	deferred:verilog_ams_lane	25	0.15
 NO VERDICT	deferred:ni_unimplemented	6	0.04
-ADJUDICATED	divergence:unexplained_rejects_valid	5	0.03
+ADJUDICATED	divergence:explained_svpp_keywords_region	4	0.02
 ADJUDICATED	divergence:explained_svpp_protected_envelope	4	0.02
-ADJUDICATED	divergence:unexplained_accepts_invalid	1	0.01
+ADJUDICATED	divergence:unexplained_rejects_valid	1	0.01

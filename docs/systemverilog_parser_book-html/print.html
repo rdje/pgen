@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9810718d.js";
+            window.path_to_searchindex_js = "searchindex-2f3b30d1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -259,15 +259,15 @@ inapplicable one.</li>
 </thead>
 <tbody>
 <tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">6 065</td><td style="text-align: right">37.1 %</td></tr>
-<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 415</td><td style="text-align: right">8.7 %</td></tr>
-<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">6</td><td style="text-align: right">0.0 %</td></tr>
+<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 419</td><td style="text-align: right">8.7 %</td></tr>
+<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">1</td><td style="text-align: right">0.0 %</td></tr>
 <tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 606</td><td style="text-align: right">16.0 %</td></tr>
-<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 244</td><td style="text-align: right">38.2 %</td></tr>
+<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 245</td><td style="text-align: right">38.2 %</td></tr>
 <tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
 </tbody>
 </table>
 </div>
-<p>Only <strong>7 486 rows (45.8 %)</strong> were asked a question they could answer, and <strong>4 039</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6065/7486 would quietly drop the 38.2 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
+<p>Only <strong>7 485 rows (45.8 %)</strong> were asked a question they could answer, and <strong>4 039</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6065/7485 would quietly drop the 38.2 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -621,6 +621,7 @@ context the pipeline takes, and each has the same spelling on both CLIs:</p>
 <tr><td>include search path</td><td><code>--sv-include-dir DIR</code> (repeatable, ordered)</td><td>where <code>`include "x.svh"</code> is looked for after the including file’s own directory</td></tr>
 <tr><td>predefined macros</td><td><code>--sv-define NAME</code> / <code>--sv-define NAME=TEXT</code> (repeatable, ordered)</td><td>seeded into the macro table before the first line is read, exactly as if <code>`define NAME TEXT</code> stood at the top of the unit; <code>NAME</code> alone defines it with <strong>empty</strong> text (the meaning a bare <code>`define NAME</code> line has). A predefine is an ordinary definition: <code>`ifdef</code>, <code>`undef</code> and the redefinition policy treat it as one</td></tr>
 <tr><td>the compilation unit</td><td><code>--sv-unit-file F</code> (repeatable, ordered)</td><td>the files preprocessed <strong>before</strong> the input, under the <strong>same macro table</strong>; the input is the unit’s last file</td></tr>
+<tr><td>a formal inside a plain <code>"…"</code> string</td><td><code>--sv-plain-string-substitution standard|paste_delimited|all</code> (default <code>standard</code>)</td><td>what a formal’s name inside a plain string literal in MACRO TEXT means: <code>standard</code> — the string is opaque, IEEE 1800-2017 §22.5.1’s own <code>`define H(x) "Hello, x"</code> prints <code>Hello, x</code>; <code>paste_delimited</code> — only a formal marked by paste tokens on both sides (<code>"…[``i``]…"</code>, OpenTitan’s idiom) is substituted; <code>all</code> — every formal substituted and every paste joined (Icarus’s reading). The same spelling on <code>ast_pipeline --preprocess-systemverilog</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -850,6 +851,87 @@ envelope pass through as before. An envelope with no <code>end_protected</code> 
 a string quote — SystemVerilog has none (§5.9) — so <code>`define DV_FCOV_INSTANTIATE_CG(NAME_, COND_ = 1'b1, ARGS_ = ())</code> had been read as <em>two</em> formals since the scanner’s first commit, a third actual
 dropped without a word and <code> new</code>ARGS_ `` pasted into the legal identifier <code>newARGS_</code>. Only a rule
 that <em>refuses</em> (extra actuals) made it visible; the fix moved four OpenTitan files to <code>pass</code>.</p>
+<p><strong>The order around a paste</strong> (<code>SVPP-EXPANSION.5</code>(i)). A <code>``</code> token <em>“delimits lexical tokens
+without introducing white space, allowing identifiers to be constructed”</em> (§22.5.1), and the identifier
+being constructed is very often a <strong>macro name</strong>: UVM’s <code> `uvm_pack_</code>TYPE<code>(ARG, p) </code>, OpenTitan’s
+<code> `dv_</code>SEV_(…) <code>, Surelog's </code> ```rname<code>_ADR </code>. Two rules decide what such a chain means, and both
+are Verilator’s measured readings (its own <code>t_preproc.v</code> goldens) and sv2v’s:</p>
+<ul>
+<li><strong>An operand that is a defined macro usage is expanded before the join.</strong> <code> `A</code>b<code>C `` with `` `A `` = `a` and `` `C `` = `c` is `abc`; `` XXS_</code>SOME <code>with</code> <code>SOME `` = </code>some<code>is</code>XXS_some<code>; `` </code>XTYPE<code>_frame </code> with <code>`XTYPE</code> = <code>sonet</code> is the identifier <code>sonet_frame</code> — and
+stays one even when a macro named <code>sonet_frame</code> exists, because the joined text is not looked up
+again.</li>
+<li><strong>An undefined usage joined by a paste is looked up as the whole constructed name, in place.</strong>
+<code> `QA</code><em>b <code>with no `QA` and a `QA_b` is</code> <code>QA_b ``'s expansion; `` </code>CHOICE</em><code>FOO```SUFFIX </code> with
+<code>`SUFFIX</code> = <code>_MAGIC</code> is <code>`CHOICE_FOO_MAGIC</code>’s — not <code>`CHOICE_FOO</code> followed by <code>_MAGIC</code>,
+which is what the engine produced until this slice (<code>1_MAGIC</code>, a token no parser accepts) because the
+substitution step had deleted the pastes before the rescan could see what they joined. A constructed
+function-like usage collects its argument list as written, so an actual’s own macro usage is still
+expanded <em>“only after substitution into the outer macro text”</em>, the order §22.5.1 gives every actual.</li>
+</ul>
+<p>The reference is sv2v’s <code>test/lex/macro_macro.sv</code>, whose own <code>macro_macro.v</code> expects <code>$display(3, 4)</code>:</p>
+<pre><code class="language-systemverilog">`define SUFFIX _MAGIC
+`define CHOICE_FOO 1
+`define CHOICE_FOO_MAGIC 3
+`define MACRO2(A, B) `CHOICE_``A```SUFFIX , `CHOICE_``B```SUFFIX
+$display(`MACRO2(FOO, BAR));     // 3 , 4 — Verilator 5.050 and sv2v; the engine read 1_MAGIC , 2_MAGIC
+</code></pre>
+<p>⚠️ The tools do not all agree here, and the disagreement is recorded rather than smoothed over: Icarus
+13.0 reads <code>1_MAGIC</code> (it looks the left side up as soon as it is joined) and, for a base name that is
+itself a defined macro, <code>my_prefix_my_suffix</code> where Verilator reads <code>`PREFIX_my_suffix</code>. The standard’s
+own sentence — a paste <em>constructs</em> an identifier — is the whole-name reading, which is also the one
+sv2v’s reference and Verilator’s goldens take, so it is the one shipped. Over the corpus the change
+moved exactly one expansion of the 188 files that carry a paste at all, the sv2v row above; the record,
+with the three-way comparison against both tools re-runnable
+(<code>docs/tasks/artifacts/svpp_expansion/paste_order/probe.sh</code>), is in <code>docs/tasks/SVPP-EXPANSION.md</code>. What
+that comparison also shows, and what is deliberately <strong>not</strong> decided by this rule: a macro usage
+substituted into a <code>`"…`"</code> string region is not expanded here while both tools expand it, and a
+formal inside a plain <code>"…"</code> string is substituted here (as Icarus does) while Verilator keeps the
+string verbatim — <code>SVPP-EXPANSION.5</code>(j) and (k), owned, next.</p>
+<p><strong>The string region</strong> (<code>SVPP-EXPANSION.5</code>(j)). §22.5.1 says what a <code>`"…`"</code> region is in one sentence: <em>“the
+expansion shall include the quotation mark, substitution of actual arguments, and expansions of embedded
+macros”</em> — three things. The engine did the first two, on one of its two paths: the renderer lived in the
+function-macro substitution step, so an OBJECT macro’s region was never rendered at all (OpenTitan’s
+<code>`define SSCTRL_PATH `"`SSCTRL_HPATH`"</code> reached the parser with its markers on and was refused inside
+<code>{</code>SSCTRL_PATH, “.”, signal}<code>), and a usage embedded in a region — through an actual (`` </code>stringify(<code>name1) ``) or in the body (`` </code>“<code>SSCTRL_HPATH</code>” <code>) — was never expanded because the rescan does not enter a string. The escaped quote </code> <code>\</code>“ <code>was mis-rendered too: the close scan matched its last two bytes, so the clause's own</code> <code>define msg(x,y) </code>“x: <code>\</code>“y<code>\</code>”<code>" `` came out as </code>“left side: <code>\"right side</code>"”<code>where the clause prints</code>“left side: "right side"”`. One renderer now does all three, in the rescan, for both paths, and it applies to
+expansion text only:</p>
+<pre><code class="language-systemverilog">`define SSCTRL_HPATH tb.dut.u_otbn_core.u_otbn_start_stop_control
+`define SSCTRL_PATH  `"`SSCTRL_HPATH`"
+return {`SSCTRL_PATH, ".", signal};   // {"tb.dut.u_otbn_core.u_otbn_start_stop_control", ".", signal}
+`define msg(x,y) `"x: `\`"y`\`"`"
+$display(`msg(left side,right side));  // $display("left side: \"right side\"");  — the clause's example
+$display(`"standalone`");              // unchanged: the form is defined for macro text (sv2v string_macro.sv:9 is
+                                       //   pinned must-reject on it); Verilator renders it, Icarus leaves it
+</code></pre>
+<p>An undefined usage inside a region, or a function-like one with no argument list, stays as written, backtick and
+all (Surelog’s own golden for its <code>PreprocString</code> test keeps the bare <code>`message</code>). A rendered literal is ONE
+line (§5.9): an embedded macro whose body spans lines — OpenTitan’s <code>`DV_LC_TX_DIST</code> inside a stringified
+<code>`DV_CHECK_STD_RANDOMIZE_WITH_FATAL</code> condition — has each newline rendered as a space, which is Verilator’s
+reading (its <code>twoline</code> golden <code>"first        second"</code>) and the only one a parser can read; Icarus leaves the raw
+newline, and so did this engine for a multi-line actual until now. With the region rendered,
+an empty argument list <code>()</code> inside one is read as the clause’s <em>“An actual argument may be empty … substituted by
+… nothing if no default is specified”</em> — one empty actual when the macro declares formals — where the engine had
+counted zero actuals and refused <code>`thru()</code> as missing (<code>.5</code>(j′)); both tools read it empty. Over the corpus the
+change moved 20 of the 483 expansions that carry a region and 7 of the 107 that carry an empty invocation — every
+one a rendering, three OpenTitan sequence files and four OpenTitan testbenches now carrying real hierarchical
+paths inside their strings, and exactly one verdict: the OpenTitan interface row above. What sv2v’s <code>macro.sv</code>
+does — closing a region with a bare <code>"</code> — is sv2v’s extension (Verilator refuses the file, the clause says a <code>"</code>
+<em>“must have a terminating “”</em>) and is left as written; the row is a pinned must-reject either way. The three-way
+comparison is re-runnable (<code>docs/tasks/artifacts/svpp_expansion/string_region/probe.sh</code>).</p>
+<p><strong>A plain string in macro text is opaque</strong> (<code>SVPP-EXPANSION.5</code>(k)). The same clause that defines the <code>`"</code> form
+says of a plain one: *“the use of “ always starts a string literal and must have a terminating “. Any characters
+embedded inside this string literal, including <code>", become part of the string in the replaced macro text"* — and its own worked example is `` </code>define H(x) “Hello, x” <code>, which *"will print: Hello, x"*. The engine had been substituting a formal there, which is Icarus's reading and which MANGLES a message whose prose happens to be a formal's name — the census read 66 such sites against 6 that rely on it: iverilog's </code> <code>define check(value, expected, error) `` printed </code>“  8’h5 %0h, got %0h“<code>for</code>“  expected %0h, got %0h“<code>, OpenTitan's </code>pwrmgr_base_vseq.sv<code>printed</code>“in %0d fast clock
+cycles_before_rst_lc_src”<code>, UVM's field macros warned about </code>“UVM_ALL_ON|UVM_HEX”<code>instead of</code>“FLAG”`. The six
+that rely on substitution are design code written for commercial simulators — OpenTitan’s
+<code> "tb.dut.gen_classes[</code>i<code>].u_accu.u_prim_count.cnt_q[0]" </code>, where the paste tokens MARK the formal — so the two
+tool readings are the named values of one policy, with the standard’s as the default:</p>
+<pre><code class="language-text">--sv-plain-string-substitution standard          "Hello, x"                         (the clause; Verilator 5.050)
+--sv-plain-string-substitution paste_delimited   "tb.dut.gen_classes[0]…" — only a ``formal`` is substituted, prose stays
+--sv-plain-string-substitution all               every formal substituted, every paste joined (Icarus 13.0)
+</code></pre>
+<p>Over the corpus the default moved 67 of 16 388 expansions and every changed line sits inside a plain string; the
+paste-order probe now agrees with Verilator on all fourteen of its rows. ⚠️ A consumer feeding OpenTitan-style DV code
+names <code>paste_delimited</code>; nobody is served by <code>all</code> except a reproduction of Icarus, which is why it is spelled out
+rather than left as an unnamed default.</p>
 <p><strong><code>`begin_keywords</code> regions are rendered, not ignored</strong> (<code>SVPP-EXPANSION.8</code>). IEEE 1800-2017 §22.14
 lets a block of source select <em>which identifiers are reserved as keywords</em>, from a version of IEEE 1364
 or IEEE 1800: inside <code>`begin_keywords "1364-2001"</code> … <code>`end_keywords</code>, <code>logic</code> is an ordinary

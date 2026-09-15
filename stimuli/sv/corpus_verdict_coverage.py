@@ -105,6 +105,10 @@ CLASSES = {
         "ADJUDICATED", "parse stops on an `include - positionally gated since .12a"),
     "divergence:explained_svpp_protected_envelope": (
         "ADJUDICATED", "IEEE 1800-2017 §34 encrypted envelope - not source text yet"),
+    "divergence:explained_svpp_keywords_region": (
+        "ADJUDICATED", "parse stops ON a word a begin_keywords region unreserves - IEEE 1800-2017 "
+                       "§22.14, applied by the expansion stage (SVPP-EXPANSION.8); token-exact tell "
+                       "(SV-CORPUS-GRAD.18)"),
     "divergence:explained_store_gate": (
         "ADJUDICATED", "the sound store gate refuses a provably-undeclared type identifier "
                        "(SV-PARSE-STRICT boundary); proven per row: the file parses once the "

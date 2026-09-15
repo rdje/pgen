@@ -101,6 +101,7 @@ Cores-VeeR-EL2	verification/block/lib_ahb_to_axi4/ahb_to_axi4_wrapper.sv	deferre
 Cores-VeeR-EL2	verification/block/lsu_tl/el2_lsu_trigger_wrapper.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	verification/block/pmp/el2_pmp_wrapper.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	verification/block/pmp_random/el2_pmp_wrapper.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
+Surelog	tests/1364_2005/dut.v	divergence:explained_svpp_keywords_region	not-in-audit	pass	-		-	corroborated	
 Surelog	tests/AllBinding/dut.sv	deferred:chained_only	NO-ALTERABLE-TICK/FACT-GATED-CROSS-FILE	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/AllBinding/dut.sv:1:41
 Surelog	tests/AllBinding/enum.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/AllPackageSignal/dut.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
@@ -656,8 +657,9 @@ ispras-sv-tests	ieee-1800-2012/22/22.06_01.sv	divergence:explained_svpp_conditio
 ispras-sv-tests	ieee-1800-2012/22/22.06_02.sv	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 ispras-sv-tests	ieee-1800-2012/22/22.06_03.sv	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 ispras-sv-tests	ieee-1800-2012/22/22.13_01.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
+ispras-sv-tests	ieee-1800-2012/22/22.14.01_01.sv	divergence:explained_svpp_keywords_region	not-in-audit	pass	-		-	corroborated	
 ispras-sv-tests	ieee-1800-2012/22/22.14.01_02.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/22/22.14.01_02.sv:10:13
-ispras-sv-tests	ieee-1800-2012/22/22.14.01_04.sv	divergence:unexplained_accepts_invalid	divergence:unexplained_accepts_invalid	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/22/22.14.01_04.sv:10:18
+ispras-sv-tests	ieee-1800-2012/22/22.14.01_04.sv	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/22/22.14.01_04.sv:10:18
 ispras-sv-tests	ieee-1800-2012/23/23.10_01.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 ispras-sv-tests	ieee-1800-2012/34/34.03.01_02.sv	divergence:explained_svpp_protected_envelope	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/begin_keywords_1800_2023.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/begin_keywords_1800_2023.v:3:16
@@ -5182,6 +5184,7 @@ sv-tests	tests/chapter-22/22.9--unconnected_drive-invalid-3.sv	match	match	fail	
 sv-tests	tests/chapter-22/dummy_include.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 sv-tests	tests/chapter-22/include_directory/defs.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 sv-tests	tests/chapter-5/5.6--wrong-identifiers.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-5/5.6--wrong-identifiers.sv:17:6
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-begin-keywords.sv	divergence:explained_svpp_keywords_region	not-in-audit	pass	-		-	corroborated	
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-preprocessor-macro_0.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-preprocessor-macro_1.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -5432,6 +5435,7 @@ sv2v	test/error/unmatched_endif.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_
 sv2v	test/error/unmatched_ifdef.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	unterminated conditional block in '/Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/unmatched_ifdef.sv'
 sv2v	test/error/unmatched_ifndef.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	unterminated conditional block in '/Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/unmatched_ifndef.sv'
 sv2v	test/error/var_var.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/error/var_var.sv:3:8
+sv2v	test/lex/begin_keywords.sv	divergence:explained_svpp_keywords_region	not-in-audit	pass	-		-	corroborated	
 sv2v	test/lex/cond.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/file_line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pp_fail	engine		-	refused_engine	include cycle detected: /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/file_line.sv -> /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/file_line.sv
 sv2v	test/lex/line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pp_fail	engine		-	refused_engine	"invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/line.sv:7: include path must be quoted or angle-bracketed (IEEE 1800-2017 §22.4 Syntax 22-1: `include ""f"

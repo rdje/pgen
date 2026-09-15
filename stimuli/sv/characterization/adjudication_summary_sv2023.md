@@ -5,20 +5,20 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | suite | rows | match | UNEXPLAINED div | explained div | deferred |
 |---|---|---|---|---|---|
 | Cores-VeeR-EL2 | 102 | 0 | 0 | 0 | 102 |
-| Surelog | 828 | 580 | 1 | 46 | 201 |
+| Surelog | 828 | 580 | 0 | 47 | 201 |
 | black-parrot | 205 | 0 | 0 | 0 | 205 |
 | friscv | 441 | 0 | 0 | 0 | 441 |
-| ispras-sv-tests | 1266 | 802 | 2 | 16 | 446 |
+| ispras-sv-tests | 1266 | 802 | 0 | 17 | 447 |
 | iverilog | 3799 | 1034 | 0 | 234 | 2531 |
 | opentitan | 3983 | 0 | 0 | 0 | 3983 |
 | scr1 | 50 | 0 | 0 | 0 | 50 |
 | slang | 92 | 54 | 1 | 8 | 29 |
-| sv-tests | 1028 | 809 | 1 | 123 | 95 |
-| sv2v | 953 | 500 | 1 | 79 | 373 |
+| sv-tests | 1028 | 809 | 0 | 124 | 95 |
+| sv2v | 953 | 500 | 0 | 80 | 373 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 120 | 0 | 8 | 24 |
 | verilator | 3263 | 2157 | 1 | 913 | 192 |
-| **total** | **16336** | **6056** | **7** | **1427** | **8846** |
+| **total** | **16336** | **6056** | **2** | **1431** | **8847** |
 
 ## Verdict-class detail
 
@@ -29,19 +29,19 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | deferred:ni_unimplemented | 6 |
 | deferred:no_sv_key | 596 |
 | deferred:not_source_text | 350 |
-| deferred:svpp_owned | 240 |
+| deferred:svpp_owned | 241 |
 | deferred:v2005_profile_lane | 2606 |
 | deferred:verilog_ams_lane | 25 |
 | divergence:explained_store_gate | 58 |
 | divergence:explained_svpp_conditional | 195 |
 | divergence:explained_svpp_include | 133 |
+| divergence:explained_svpp_keywords_region | 4 |
 | divergence:explained_svpp_macro_use | 1037 |
 | divergence:explained_svpp_protected_envelope | 4 |
-| divergence:unexplained_accepts_invalid | 1 |
-| divergence:unexplained_rejects_valid | 6 |
+| divergence:unexplained_rejects_valid | 2 |
 | match | 6056 |
 
-**The sv_2023 arm's burn-down baseline = the UNEXPLAINED divergence count (7: rejects-valid 6, accepts-invalid 1, crash 0)** - a separate arm from the sv_2017 baseline over the same files.
+**The sv_2023 arm's burn-down baseline = the UNEXPLAINED divergence count (2: rejects-valid 2, accepts-invalid 0, crash 0)** - a separate arm from the sv_2017 baseline over the same files.
 
 ✅ **Re-read under 1800-2023 (.14b.3):** 48 inherited `must_reject` rulings carry over MECHANICALLY - every 1800-2017 production their 2017 basis cites reads identically in 1800-2023 Annex A (`production_parity.py`, its artifact `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/parity.md`) - and 72 carry over BY HAND with the changed 2023 production cited in the basis.
 

@@ -3,7 +3,7 @@ ADJUDICATED	match	5695	34.86
 ROUTED	deferred:v2005_profile_lane	2606	15.95
 ADJUDICATED	pipeline:chained:accepted_under_expansion	0	0.00
 NO VERDICT	pipeline:chained:unreached_in_unit	1923	11.77
-ADJUDICATED	pipeline:corroborated	1224	7.49
+ADJUDICATED	pipeline:corroborated	1228	7.52
 NO VERDICT	pipeline:chained:rejects_own_file	706	4.32
 NO VERDICT	deferred:no_sv_key	596	3.65
 ADJUDICATED	pipeline:must_reject:match_under_expansion	450	2.75
@@ -22,10 +22,10 @@ NO VERDICT	pipeline:refuted:vendor_identity_branch	9	0.06
 NO VERDICT	pipeline:refused_engine	7	0.04
 NO VERDICT	pipeline:refuted:driver_define	7	0.04
 NO VERDICT	deferred:ni_unimplemented	6	0.04
-ADJUDICATED	divergence:unexplained_rejects_valid	5	0.03
 NO VERDICT	pipeline:refused_context	5	0.03
 NO VERDICT	pipeline:svpp_owned:refused_context	2	0.01
 NO VERDICT	pipeline:refuted:cross_file_define	1	0.01
 NO VERDICT	pipeline:refuted:preprocessor_item	1	0.01
 NO VERDICT	pipeline:svpp_owned:hollow	1	0.01
-TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	9140/2606/4590/3310/5	
+ADJUDICATED	divergence:unexplained_rejects_valid	1	0.01
+TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	9140/2606/4590/3310/1	

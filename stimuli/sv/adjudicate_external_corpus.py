@@ -1211,8 +1211,13 @@ def strip_comments_and_strings(text: str) -> str:
     return COMMENT_STRING_RE.sub(" ", text)
 
 
-def preproc_dependency(raw_text: str):
+def preproc_dependency(raw_text: str, profile: str = "sv_2017"):
     """Return the strongest svpp dependency flag for a file, or ''.
+
+    SV-CORPUS-GRAD.18: the WEAKEST flag is `keywords_region` - the file opens a `begin_keywords
+    region that unreserves at least one word under `profile` (IEEE 1800-2017 §22.14, applied as
+    text by the expansion stage since SVPP-EXPANSION.8). Profile-relative by construction: a
+    "1364-2005" region unreserves 124 words under sv_2017 and none under verilog_2005.
 
     ⛔ This is a WHOLE-FILE existence test and that is correct for what it is asked
     below on the `must_reject` path: "could the intended syntax error be hidden until
@@ -1235,6 +1240,8 @@ def preproc_dependency(raw_text: str):
             return "macro_use"
     if COND_RE.search(text):
         return "conditional"
+    if keywords_region_below_profile(raw_text, profile):
+        return KEYWORDS_REGION_FLAG
     return ""
 
 
@@ -1248,6 +1255,11 @@ def preproc_dependency(raw_text: str):
 # deliberately absent: `line is preprocessor-adjacent but not one of the three scoped
 # operations, `pragma protect belongs to the §34 envelope lane, and treating an unclear
 # case as ALTERABLE is the choice that cannot manufacture a false reclassification.
+# ⭐ `begin_keywords / `end_keywords STAY in this set after SVPP-EXPANSION.8 made the stage
+# render a region's non-keywords as escaped identifiers (IEEE 1800-2017 §22.14): the DIRECTIVE
+# still reaches the parser byte-for-byte, so a parse stopped ON it is still not the
+# preprocessor's - what the stage alters is the REGION's text, and that dependency is judged by
+# its own TOKEN-EXACT tell (`keywords_region_stop`, SV-CORPUS-GRAD.18), never by this window.
 SVPP_PASSTHROUGH = {
     "timescale", "default_nettype", "celldefine", "endcelldefine", "resetall",
     "begin_keywords", "end_keywords", "unconnected_drive", "nounconnected_drive",
@@ -1304,6 +1316,131 @@ def first_alterable_tick(stripped: str):
         if TICK_RE.match(stripped, m.start()).group(1) not in SVPP_PASSTHROUGH:
             return m.start()
     return None
+
+
+# ---------------------------------------------------------------------------
+# SV-CORPUS-GRAD.18 — the FIFTH explanation: a `begin_keywords region (IEEE 1800-2017 §22.14)
+# ---------------------------------------------------------------------------
+# Since SVPP-EXPANSION.8 (PGEN-SVPP-EXPANSION-0022) the EXPANSION stage applies §22.14 as text:
+# inside a region whose version reserves FEWER words than the parse profile, every word the
+# profile reserves and the region does not is rendered as an ESCAPED identifier (§5.6.1), so
+# `reg [63:0] logic;` under `begin_keywords "1364-2001" reaches the parser as `reg [63:0] \logic ;`.
+# The RAW lane does not preprocess, so its parse stops ON that word - a failure the preprocessor
+# lane explains exactly the way a macro use does, and the answer key had no class for it: four
+# such rows sat on the sv_2017 bar for as long as the bar existed, and the pipeline lane - which
+# PARSES them - never re-read them, because it re-reads `explained_svpp_*` and `deferred:*` rows.
+#
+# ⛔ NOT a whole-file test, and NOT the `.12a` window test either. A region can span a whole file
+# (69 corpus rows sit under one `begin_keywords "1364-2005"`), so "the parse stops inside a
+# region" would re-admit the whole-file reading `.12` measured as 26 false labels. The tell is
+# TOKEN-EXACT: the token the parser choked on (the first non-layout byte at or after
+# `furthest_position`) must be an identifier-shaped word that the ENCLOSING region unreserves
+# under THIS lane's profile - the very word the expansion stage would escape. Granted on that
+# evidence only; a row with no banked position keeps today's answer (the gate's asymmetry, .12a).
+#
+# The word sets are the ones the engine uses: `stimuli/sv/check_sv_keyword_versions.py` derives
+# Tables 22-1…22-6 and §22.14.4's exclusion list from the three in-repo standards and holds
+# `rust/src/sv_keyword_versions.rs` equal to them (doctrine SV-KEYWORD-VERSIONS) - imported, never
+# copied, so the adjudicator cannot drift from the renderer.
+KEYWORDS_REGION_FLAG = "keywords_region"
+BEGIN_KEYWORDS_AT_RE = re.compile(r'`begin_keywords\s+"([^"\n]*)"')
+KEYWORDS_DIRECTIVE_RE = re.compile(r"`(begin_keywords|end_keywords)\b")
+IDENT_AT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_$]*")
+_KV_MODULE = None
+_KV_TABLES = None
+
+
+def _kv():
+    """`stimuli/sv/check_sv_keyword_versions.py`, imported by path - the tables are DERIVED from the
+    in-repo standards there, never copied here."""
+    global _KV_MODULE
+    if _KV_MODULE is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "pgen_check_sv_keyword_versions", Path(__file__).resolve().parent / "check_sv_keyword_versions.py")
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules["pgen_check_sv_keyword_versions"] = mod
+        spec.loader.exec_module(mod)
+        _KV_MODULE = mod
+    return _KV_MODULE
+
+
+def _kv_tables():
+    global _KV_TABLES
+    if _KV_TABLES is None:
+        tables, problems = _kv().derive()
+        if problems:
+            raise SystemExit("adjudicator: the keyword-version tables did not derive cleanly "
+                             "(SV-KEYWORD-VERSIONS): " + "; ".join(problems))
+        _KV_TABLES = tables
+    return _KV_TABLES
+
+
+def region_unreserved_words(profile: str, specifier: str) -> frozenset:
+    """The words `profile` reserves and a `begin_keywords "<specifier>"` region does not - exactly the
+    set the expansion stage escapes (§22.14 + §5.6.1). Empty for a specifier no IEEE edition lists
+    (a Verilog-AMS version: the engine refuses the directive and renders nothing) and for a region at
+    or above the profile (the stage can unreserve a keyword, never reserve a non-keyword)."""
+    kv = _kv()
+    if profile not in kv.PROFILE_VERSION:
+        raise ValueError(f"unknown parse profile {profile!r}")
+    tables = _kv_tables()
+    try:
+        region = kv.reserved_words_of(tables, specifier)
+    except ValueError:
+        return frozenset()
+    return frozenset(kv.reserved_words_of(tables, kv.PROFILE_VERSION[profile]) - region)
+
+
+def keywords_region_at(text_comments_blanked: str, offset: int):
+    """The version_specifier of the innermost `begin_keywords region enclosing `offset`, or None.
+    §22.14: "The `begin_keywords…`end_keywords directive pair can be nested. Each nested pair is
+    stacked" - a stack, popped by `end_keywords; an unmatched `end_keywords is ignored here (the
+    engine diagnoses it). `text_comments_blanked` keeps string literals (the specifier is one)."""
+    open_regions = []
+    for m in KEYWORDS_DIRECTIVE_RE.finditer(text_comments_blanked):
+        if m.start() >= offset:
+            break
+        if m.group(1) == "end_keywords":
+            if open_regions:
+                open_regions.pop()
+            continue
+        spec = BEGIN_KEYWORDS_AT_RE.match(text_comments_blanked, m.start())
+        open_regions.append(spec.group(1) if spec else None)
+    return open_regions[-1] if open_regions else None
+
+
+def keywords_region_stop(raw_text: str, furthest, profile: str):
+    """The TOKEN-EXACT tell: `(word, specifier)` when the parse stopped ON a word the enclosing
+    `begin_keywords region unreserves under `profile`, else None. No position => None: the tell is
+    positive evidence, never a default (the caller decides what an absent position means)."""
+    if furthest is None:
+        return None
+    stripped = blank_comments_and_strings(raw_text)
+    stuck = None
+    for i in range(min(furthest, len(stripped)), len(stripped)):
+        if not stripped[i].isspace():
+            stuck = i
+            break
+    if stuck is None:
+        return None
+    m = IDENT_AT_RE.match(stripped, stuck)
+    if not m:
+        return None
+    specifier = keywords_region_at(blank_comments_only(raw_text), stuck)
+    if specifier is None:
+        return None
+    word = m.group(0)
+    if word in region_unreserved_words(profile, specifier):
+        return (word, specifier)
+    return None
+
+
+def keywords_region_below_profile(raw_text: str, profile: str) -> bool:
+    """WHOLE-FILE existence, for the dependency flag (and through it the `must_reject` arm): does the
+    file open a region that unreserves at least one word under `profile`?"""
+    return any(region_unreserved_words(profile, spec)
+               for spec in BEGIN_KEYWORDS_AT_RE.findall(blank_comments_only(raw_text)))
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -1439,8 +1576,12 @@ def load_positions(path: Path, label: str):
     return out
 
 
-def svpp_can_explain_failure(raw_text: str, furthest):
+def svpp_can_explain_failure(raw_text: str, furthest, dep_flag: str = "", profile: str = "sv_2017"):
     """Could running svpp plausibly change THIS parse failure?
+
+    SV-CORPUS-GRAD.18: for `dep_flag == "keywords_region"` the answer is the TOKEN-EXACT tell
+    (`keywords_region_stop`), never the window below - a region can span the whole file. Every
+    other flag is judged as before; an absent position keeps today's answer for all of them.
 
     `furthest` is the probe's `furthest_position` - the deepest byte any branch
     CONSUMED, not the offending token's offset, so the layout gap between the two must
@@ -1454,6 +1595,8 @@ def svpp_can_explain_failure(raw_text: str, furthest):
     """
     if furthest is None:
         return True                       # no position banked - keep today's answer
+    if dep_flag == KEYWORDS_REGION_FLAG:
+        return keywords_region_stop(raw_text, furthest, profile) is not None
     stripped = blank_comments_and_strings(raw_text)
     stuck = None
     for i in range(min(furthest, len(stripped)), len(stripped)):
@@ -1541,13 +1684,24 @@ def reject_arm_demotion(dep_flag: str, *, position_refutes_dependency: bool = Fa
         # sees - the reject expectation is only meaningful at chain level (leaf .4).
         return ("chained_only",
                 " - but `include-dependent: reject expectation is chain-level")
-    if dep_flag in ("macro_use", "conditional"):
+    if dep_flag in ("macro_use", "conditional", KEYWORDS_REGION_FLAG):
         if position_refutes_dependency:
             # SV-CORPUS-GRAD.13s: the file DOES carry the construct and the parse provably
             # stopped where expansion cannot reach, so the dependency is real and irrelevant to
             # THIS reject. Keeping `must_reject` states the parser is correct WITH A CITE
             # instead of deferring a reject nothing in the svpp lane will ever explain.
             return None
+        if dep_flag == KEYWORDS_REGION_FLAG:
+            # SV-CORPUS-GRAD.18 - the same mirror for a `begin_keywords region: the intended error
+            # may exist only once the region's non-keywords are escaped (ispras 22.14.01_04.sv -
+            # `interface if2; endinterface` is an error under "1364-2005" and an interface under
+            # bare sv_2017 lexing, so the raw lane ACCEPTS it), and a raw-text reject INSIDE the
+            # region may stand on a word the rendering legalises. The caller's refutation is the
+            # token-exact tell: a reject that does not stop on an unreserved word keeps its cite.
+            return ("out_of_scope_with_cause",
+                    " - but keywords-region-dependent: the reject expectation is only "
+                    "meaningful post-preprocessing (svpp lane; IEEE 1800-2017 22.14 is applied "
+                    "by the expansion stage, SVPP-EXPANSION.8)")
         # Mirror of the include rule (leaf .8b.1): the intended syntax error may only
         # materialize after macro expansion / conditional resolution, which isolation parse of
         # the raw text never performs - a raw-text reject would testify for the wrong reason.
@@ -1706,6 +1860,7 @@ def _self_check_arm_split():
     for flag, want in (("include", "chained_only"),
                        ("macro_use", "out_of_scope_with_cause"),
                        ("conditional", "out_of_scope_with_cause"),
+                       (KEYWORDS_REGION_FLAG, "out_of_scope_with_cause"),
                        ("", None),
                        ("protected", None)):
         got = reject_arm_demotion(flag)
@@ -1725,7 +1880,9 @@ def _self_check_arm_split():
                                 ("", True, None),
                                 ("protected", True, None),
                                 ("macro_use", False, "out_of_scope_with_cause"),
-                                ("conditional", False, "out_of_scope_with_cause")):
+                                ("conditional", False, "out_of_scope_with_cause"),
+                                (KEYWORDS_REGION_FLAG, True, None),
+                                (KEYWORDS_REGION_FLAG, False, "out_of_scope_with_cause")):
         got = reject_arm_demotion(flag, position_refutes_dependency=refuted)
         got_class = got[0] if got else None
         if got_class != want:
@@ -2952,13 +3109,23 @@ V2005_LRM_PINNED = {
     # each into a REJECT, and each rejection is CORRECT under IEEE 1364-2005 — verified by
     # reading the tracked LRM, not from the ivtest driver key, which is upstream TOOL testimony
     # and is outranked by a clause cite (.3.14a/.3.14b/.3.15).
+    # ---- SV-CORPUS-GRAD.18 (PGEN-SV-CORPUS-GRAD-0396) — a .13c.2k pin read Annex B without the file's
+    # own region. Line 1 is `begin_keywords "1364-2001-noconfig"`, and IEEE 1364-2005 §19.11
+    # (docs/verilog/2005/md/section-19-compiler-directives.md:852-866) / IEEE 1800-2017 §22.14.4 say that
+    # version "behaves similarly to the '1364-2001' version_specifier, with the exception that the
+    # following identifiers are excluded from the reserved list: cell config design endconfig incdir
+    # include instance liblist library use … they may be used as normal Verilog identifiers within the
+    # corresponding `begin_keywords...`end_keywords region". iverilog runs the file as
+    # `normal,-g2001-noconfig` (regress-vlg.list:1048, gold pr1758122.gold). The bare shape WITHOUT a
+    # region stays must-reject (pin `invalid_keyword_instance_name.sv`).
     "ivtest/ivltests/pr1758122.v": (
-        "must_reject", "pinned .13c.2k: line 18 `adder #(W) instance(A[j], B[j], Y[j]);` names "
-        "a module instance `instance`, which IEEE 1364-2005 Annex B:59 lists as a KEYWORD - and "
-        "that annex's own preamble says keywords are predefined NONESCAPED identifiers and only "
-        "an ESCAPED identifier is not treated as one. A.4.1.1 name_of_instance therefore has no "
-        "derivation for it. Reserved in IEEE 1800-2023 Annex B:113 too, so the verdict does not "
-        "change with the edition. PGEN accepted this until the raw-`identifier` hole closed"),
+        "must_accept", "pinned .18 (supersedes .13c.2k): line 18 `adder #(W) instance(A[j], B[j], Y[j]);` "
+        "names a module instance `instance` INSIDE the file's line-1 `begin_keywords \"1364-2001-noconfig\" "
+        "region, and IEEE 1364-2005 19.11 / IEEE 1800-2017 22.14.4 exclude `instance` from that version's "
+        "reserved list ('may be used as normal Verilog identifiers within the corresponding region'); "
+        "iverilog's own descriptor runs it as normal,-g2001-noconfig with a gold (regress-vlg.list:1048). "
+        "The .13c.2k pin cited Annex B:59 without the region - the raw lane does not preprocess, so the "
+        "row is the preprocessor lane's (explained_svpp_keywords_region)"),
     "ivtest/ivltests/pr1787423.v": (
         "must_reject", "pinned .13c.2k: line 15 `pulldown (pd1, pd2);` gives a pull gate TWO "
         "output terminals. IEEE 1364-2005 A.3.1 "
@@ -5051,6 +5218,84 @@ def adjudicate(expected, observed, dep_flag):
     raise ValueError(f"unknown expected verdict {expected!r}")
 
 
+def _self_test_keywords_region() -> int:
+    """SV-CORPUS-GRAD.18 arms: the fifth explanation is granted on the TOKEN-EXACT tell and on nothing
+    else, in both directions, profile-relative, and its word sets are the engine's own."""
+    failing = []
+
+    def arm(label, ok):
+        print(f"  {'PASS' if ok else 'FAIL'}  {label}")
+        if not ok:
+            failing.append(label)
+
+    F = KEYWORDS_REGION_FLAG
+    region_2001 = "`begin_keywords \"1364-2001\"\nmodule top;\n  reg [63:0] logic;\nendmodule\n`end_keywords\n"
+    at_logic = region_2001.index("logic;")
+    gap_before = region_2001.index("] logic") + 1            # furthest_position lands on the layout gap
+    arm("R1 a 1364-2001 region under sv_2017 is the keywords_region dependency (and no stronger flag)",
+        preproc_dependency(region_2001) == F)
+    arm("R2 the same region under verilog_2005 still unreserves a word (uwire) - the flag is profile-relative",
+        preproc_dependency(region_2001, "verilog_2005") == F)
+    arm("R3 a region AT the profile unreserves nothing: no dependency",
+        preproc_dependency(region_2001.replace("1364-2001", "1800-2017")) == ""
+        and preproc_dependency(region_2001.replace("1364-2001", "1364-2005"), "verilog_2005") == "")
+    arm("R4 a region ABOVE the profile unreserves nothing (the stage cannot reserve a non-keyword)",
+        preproc_dependency(region_2001.replace("1364-2001", "1800-2023")) == ""
+        and preproc_dependency(region_2001.replace("1364-2001", "1800-2017"), "verilog_2005") == "")
+    arm("R5 a Verilog-AMS specifier no edition lists is no region (the engine refuses the directive)",
+        preproc_dependency(region_2001.replace("1364-2001", "VAMS-2.3")) == "")
+    arm("R6 a stronger flag wins the NAME: a conditional in the same file reads conditional",
+        preproc_dependency("`ifdef A\n`endif\n" + region_2001) == "conditional")
+    arm("R7 the tell: the parse stopping ON `logic` inside the region (from the layout gap or the word itself)",
+        keywords_region_stop(region_2001, gap_before, "sv_2017") == ("logic", "1364-2001")
+        and keywords_region_stop(region_2001, at_logic, "sv_2017") == ("logic", "1364-2001"))
+    arm("R8 the tell refuses a word the region STILL reserves (`logic` under \"1800-2005\" - ispras 22.14.01_02)",
+        keywords_region_stop(region_2001.replace("1364-2001", "1800-2005"), at_logic, "sv_2017") is None)
+    arm("R9 the tell refuses a stop INSIDE the region that is not on an unreserved word (`module`)",
+        keywords_region_stop(region_2001, region_2001.index("module"), "sv_2017") is None)
+    below = "module m;\n  reg logic;\nendmodule\n`begin_keywords \"1364-2001\"\n`end_keywords\n"
+    arm("R10 the tell refuses a stop OUTSIDE every region, even with a region later in the file",
+        keywords_region_stop(below, below.index("logic"), "sv_2017") is None)
+    commented = "// `begin_keywords \"1364-2001\"\nmodule m;\n  reg logic;\nendmodule\n"
+    arm("R11 a commented-out directive opens no region",
+        keywords_region_stop(commented, commented.index("logic"), "sv_2017") is None
+        and preproc_dependency(commented) == "")
+    nested = ("`begin_keywords \"1364-1995\"\ntask foo;\n  integer automatic = 2;\nendtask\n"
+              "`begin_keywords \"1364-2005\"\ntask automatic bar;\n  integer logic = 3;\nendtask\n"
+              "`end_keywords\ntask baz;\n  integer cell = 3;\nendtask\n`end_keywords\n")
+    arm("R12 nesting is a STACK (sv2v lex/begin_keywords.sv): the inner region rules `logic`, the outer rules `cell` after the inner closes",
+        keywords_region_stop(nested, nested.index("automatic = 2"), "sv_2017") == ("automatic", "1364-1995")
+        and keywords_region_stop(nested, nested.index("logic = 3"), "sv_2017") == ("logic", "1364-2005")
+        and keywords_region_stop(nested, nested.index("cell = 3"), "sv_2017") == ("cell", "1364-1995"))
+    arm("R13 profile-relative words: `uwire` is unreserved under a 1364-2001 region for verilog_2005 and sv_2017 alike; `logic` only for sv_2017",
+        "uwire" in region_unreserved_words("verilog_2005", "1364-2001")
+        and "uwire" in region_unreserved_words("sv_2017", "1364-2001")
+        and "logic" in region_unreserved_words("sv_2017", "1364-2001")
+        and "logic" not in region_unreserved_words("verilog_2005", "1364-2001"))
+    arm("R14 22.14.4: the noconfig region unreserves the ten config words + uwire under verilog_2005 (iverilog pr1758122.v: `instance`)",
+        region_unreserved_words("verilog_2005", "1364-2001-noconfig")
+        == frozenset({"uwire", "cell", "config", "design", "endconfig", "incdir", "include", "instance",
+                      "liblist", "library", "use"}))
+    arm("R15 the gate reads the tell for this flag and keeps today's answer with no position",
+        svpp_can_explain_failure(region_2001, at_logic, dep_flag=F)
+        and not svpp_can_explain_failure(region_2001, region_2001.index("module"), dep_flag=F)
+        and svpp_can_explain_failure(region_2001, None, dep_flag=F))
+    arm("R16 the gate for the OTHER flags is untouched by the region (a stop before every alterable tick stays refuted)",
+        not svpp_can_explain_failure("module m;\n  BADTOKEN\nendmodule\n`define W 8\n", 0))
+    arm("R17 the reject arm mirrors the region: demoted on the dependency alone, kept when the tell refutes it",
+        (reject_arm_demotion(F) or (None,))[0] == "out_of_scope_with_cause"
+        and reject_arm_demotion(F, position_refutes_dependency=True) is None)
+    arm("R18 the tables are the engine's: the profile sets are 248 / 248 / 124 words (Annex B of each edition)",
+        len(_kv().reserved_words_of(_kv_tables(), "1800-2017")) == 248
+        and len(_kv().reserved_words_of(_kv_tables(), "1800-2023")) == 248
+        and len(_kv().reserved_words_of(_kv_tables(), "1364-2005")) == 124)
+    if failing:
+        print(f"keywords-region self-test: FAIL ({len(failing)} failing)")
+        return 1
+    print("keywords-region self-test: PASS (0 failing)")
+    return 0
+
+
 def _self_test_extension_guard(ivtest_dir: Path) -> int:
     """SV-CORPUS-GRAD.13e.3 RED CONTROL. The vendor-extension guard fires on ZERO rows
     at HEAD, and a guard never observed firing is not known to work
@@ -5218,15 +5463,17 @@ def key_2017(suite, rel, text, vidx, ividx, sidx):
     raise SystemExit(f"unknown suite {suite!r} in results.tsv")
 
 
-def finish_row(suite, rel, observed, text, expected, basis, positions):
+def finish_row(suite, rel, observed, text, expected, basis, positions, profile="sv_2017"):
     """The edition-INDEPENDENT tail every lane runs after its key: the not-source-text guard, the
     preprocessor-dependency flag with its .12a refutation, the .13s reject-arm demotion, and the
     verdict. One body for three lanes (SV-CORPUS-GRAD.14b.2); byte-identical to the two inline
-    copies it replaced (the tracked manifests re-derive unchanged)."""
+    copies it replaced (the tracked manifests re-derive unchanged). `profile` is the lane's parse
+    profile - the ONE edition-dependent input, needed since SV-CORPUS-GRAD.18 because a
+    `begin_keywords region unreserves words RELATIVE to the profile."""
     expected, basis = apply_not_source_text(suite, rel, text, expected, basis)
     dep_flag = ""
     if expected in ("must_accept", "must_reject"):
-        dep_flag = preproc_dependency(text)
+        dep_flag = preproc_dependency(text, profile)
     if expected == "must_reject":
         # SV-CORPUS-GRAD.12c.3 F3 - the WHOLE-FILE arm, structurally unable to OBTAIN a
         # failure position; .13s hands it one DECIDED boolean and nothing else, computed
@@ -5235,21 +5482,40 @@ def finish_row(suite, rel, observed, text, expected, basis, positions):
             dep_flag,
             position_refutes_dependency=bool(
                 dep_flag and observed == "fail"
-                and not svpp_can_explain_failure(text, positions.get((suite, rel)))))
+                and not svpp_can_explain_failure(text, positions.get((suite, rel)),
+                                                 dep_flag=dep_flag, profile=profile)))
         if demotion is not None:
             expected, basis_suffix = demotion
             basis += basis_suffix
     if expected != "must_accept":
         dep_flag = ""
-    elif (dep_flag and observed == "fail"
-            and not svpp_can_explain_failure(text, positions.get((suite, rel)))):
-        # SV-CORPUS-GRAD.12a - the file DOES carry a preprocessor construct, but
-        # the parse stops at a point svpp provably cannot reach or alter, so the
-        # dependency is real and irrelevant to THIS failure. Dropping the flag
-        # returns the row to `unexplained_rejects_valid`, where it always belonged.
-        dep_flag = ""
-        basis += (" - .12a: parse stops where svpp cannot alter the text, so the "
-                  "preprocessor dependency does not explain THIS failure")
+    elif observed == "fail":
+        region_hit = keywords_region_stop(text, positions.get((suite, rel)), profile)
+        if region_hit is not None:
+            # SV-CORPUS-GRAD.18 - the TOKEN-EXACT tell outranks every whole-file flag: the parse
+            # stopped ON the very word the expansion stage escapes, so this is the explanation
+            # whatever else the file carries.
+            word, specifier = region_hit
+            dep_flag = KEYWORDS_REGION_FLAG
+            basis += (f" - .18: the parse stops on `{word}`, a word the {profile} profile reserves "
+                      f"and the begin_keywords \"{specifier}\" region does not (IEEE 1800-2017 "
+                      "22.14); the expansion stage renders it escaped (SVPP-EXPANSION.8) and the "
+                      "raw lane does not preprocess")
+        elif dep_flag == KEYWORDS_REGION_FLAG:
+            # The file opens such a region but the parse does not stop on a word it unreserves -
+            # the region is real and irrelevant to THIS failure (same asymmetry as .12a below).
+            dep_flag = ""
+            basis += (" - .18: the file opens a begin_keywords region but the parse does not "
+                      "stop on a word the region unreserves, so the region does not explain "
+                      "THIS failure")
+        elif dep_flag and not svpp_can_explain_failure(text, positions.get((suite, rel))):
+            # SV-CORPUS-GRAD.12a - the file DOES carry a preprocessor construct, but
+            # the parse stops at a point svpp provably cannot reach or alter, so the
+            # dependency is real and irrelevant to THIS failure. Dropping the flag
+            # returns the row to `unexplained_rejects_valid`, where it always belonged.
+            dep_flag = ""
+            basis += (" - .12a: parse stops where svpp cannot alter the text, so the "
+                      "preprocessor dependency does not explain THIS failure")
     verdict = adjudicate(expected, observed, dep_flag)
     return (suite, rel, observed, expected, verdict, basis)
 
@@ -5611,7 +5877,8 @@ def main():
     if args.self_test:
         return (_self_test_extension_guard(args.subs_root / "iverilog" / "ivtest")
                 | _self_test_store_gate()
-                | _self_test_edition_keyword())
+                | _self_test_edition_keyword()
+                | _self_test_keywords_region())
 
     verify_outcome_identity(args.report, [args.results, args.positions],
                             rerun="stimuli/run_external_corpus.sh sv")
@@ -5755,7 +6022,8 @@ def main():
             text = read_text(resolve(suite, rel))
             e17, b17 = key_2017(suite, rel, text, vidx, ividx, sidx)
             e23, b23 = key_2023(suite, rel, e17, b17)
-            manifest23.append(finish_row(suite, rel, observed, text, e23, b23, positions23))
+            manifest23.append(finish_row(suite, rel, observed, text, e23, b23, positions23,
+                                         profile="sv_2023"))
         manifest23 = edition_keyword_pass("sv_2023", manifest23, resolve, positions23)
         manifest23 = store_gate_pass("sv_2023", manifest23, resolve, args.report_sv2023,
                                      store_gate_cache, args.store_gate_jobs)
@@ -5876,7 +6144,8 @@ def main():
     for suite, rel, observed in v_rows:
         text = read_text(args.subs_root / suite / rel)
         expected, basis = expect_v2005(suite, rel, text, ividx)
-        v_manifest.append(finish_row(suite, rel, observed, text, expected, basis, positions))
+        v_manifest.append(finish_row(suite, rel, observed, text, expected, basis, positions,
+                                     profile="verilog_2005"))
 
     v_manifest = store_gate_pass("verilog_2005", v_manifest, resolve_corpus_path(args), args.report_v2005,
                                  store_gate_cache, args.store_gate_jobs)
