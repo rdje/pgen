@@ -10,17 +10,17 @@
 
 - keyed rows scanned: **499** (sv_2017 41, verilog_2005 458)
 - distinct normalized upstream messages: **176**
-- contradictory classes, NAIVE attribution (every message ← the row's verdict): **2**
+- contradictory classes, NAIVE attribution (every message ← the row's verdict): **3**
 - contradictory classes, DECIDING-EVIDENCE attribution: **0**
-- ⇒ false positives removed: **2** of 2 (**100%** of the founding report)
+- ⇒ false positives removed: **3** of 3 (**100%** of the founding report)
 
 ## Attribution provenance — where each row's key actually came from
 
 | expected | provenance | rows |
 |---|---|---|
-| `must_accept` | `clause-cited` | 1 |
-| `must_accept` | `whole-golden:accept-claim` | 477 |
-| `must_reject` | `clause-cited` | 10 |
+| `must_accept` | `clause-cited` | 3 |
+| `must_accept` | `whole-golden:accept-claim` | 472 |
+| `must_reject` | `clause-cited` | 13 |
 | `must_reject` | `quoted-decider` | 11 |
 
 `clause-cited` rows contribute NO message class: their key rests on the clause, which the north star ranks above tool testimony (`pr1704726a`'s basis says so in its own words). `whole-golden:accept-claim` is exact rather than a fallback — a `must_accept` key asserts that EVERY message present is post-parse. `whole-golden:UNDETERMINED` is the conservative fallback for a `must_reject` row whose basis records no quotable decider; it keeps the row in the worklist.
@@ -28,7 +28,7 @@
 ## ⛔ Honest power bound — how much could this census have found?
 
 A contradiction needs a class on BOTH sides, so the census can only ever reach the
-intersection. After attribution the reject side is **4 classes** wide against **124** on the accept side — quoting `0` without that ratio would read as a far stronger clean bill than it is.
+intersection. After attribution the reject side is **4 classes** wide against **122** on the accept side — quoting `0` without that ratio would read as a far stronger clean bill than it is.
 
 | reject-side deciding class | `must_reject` rows | `must_accept` rows carrying it |
 |---|---|---|
@@ -55,4 +55,5 @@ Kept so the correction is auditable rather than asserted.
 |---|---|---|
 | `Unresolved wire X cannot have multiple drivers.` | **4** — `uwire_fail`, `uwire_fail2`, `uwire_fail3`, `uwire_fail4` | **1** — `br_gh1087b` |
 | `X has already been declared in this scope.` | **1** — `br_gh1225b` | **3** — `pr1704726a`, `pr1704726c`, `pr1704726d` |
+| `Inout port expression must support continuous assignment.` | **1** — `pr1833024` | **1** — `br_gh1178a` |
 

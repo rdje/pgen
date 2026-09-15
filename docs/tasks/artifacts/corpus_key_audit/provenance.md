@@ -22,12 +22,12 @@
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **217** | 8.6% | 159 | 58 |
-| `tool-testimony` | **473** | 18.7% | 462 | 11 |
-| `suite-convention` | **1843** | 72.7% | 1843 | 0 |
+| `clause-cited` | **232** | 9.2% | 161 | 71 |
+| `tool-testimony` | **471** | 18.6% | 460 | 11 |
+| `suite-convention` | **1830** | 72.2% | 1830 | 0 |
 | `UNCLASSIFIED` | **1** | 0.0% | 1 | 0 |
 
-⇒ **trust bound: 2317 of 2534 (91.4%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 2302 of 2534 (90.8%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
 ## ⛔ The BAR's own rows (1, `sv_2017`) — a different population, a different number
 
@@ -43,13 +43,13 @@ key as a whole. Attaching the key-wide share to the bar overstates the claim.
 | `suite-convention` | 1 | 100.0% |
 | `UNCLASSIFIED` | 0 | 0.0% |
 
-⇒ **1 of 1 (100.0%)** of the rows *behind the published bar* rest on evidence outside the standard, against **91.8%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
+⇒ **1 of 1 (100.0%)** of the rows *behind the published bar* rest on evidence outside the standard, against **91.6%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
 
 ## By suite — where the non-clause evidence actually lives
 
 | suite | rows | `clause-cited` | `tool-testimony` | `suite-convention` | `UNCLASSIFIED` |
 |---|---|---|---|---|---|
-| `iverilog` | 3134 | 385 | 522 | 2227 | 0 |
+| `iverilog` | 3134 | 400 | 520 | 2214 | 0 |
 | `verilator` | 3067 | 123 | 718 | 2226 | 0 |
 | `ispras-sv-tests` | 1146 | 38 | 0 | 1106 | ⛔ 2 |
 | `sv-tests` | 933 | 18 | 0 | 915 | 0 |

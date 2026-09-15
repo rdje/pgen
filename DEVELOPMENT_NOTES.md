@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-15 — SV-CORPUS-GRAD.20 (`PGEN-SV-CORPUS-GRAD-0398`): the residue of a bar is a set of families, and each family has one instrument
+
+- **Parse the residue under the OTHER profile before ruling on it.** Eighteen rows, one probe run under `sv_2017`/`sv_2023`: four ACCEPT (edition contrast — SV text in a `.v` file), fourteen REJECT. Of the fourteen, eleven have no derivation in either standard (key errors from one tool's extensions) and three do (grammar gaps). The split was mechanical before any clause was read, and it decided which instrument each row gets: a pass, a pin, or a grammar leaf.
+- **A tell must name the evidence it needs, and no more.** The define tell fires only ON a `` `define ``; the type tell only on a stop LINE that binds an 1800-only keyword AND that `sv_2017` accepts; neither adds a whole-file flag, so no other row's basis moves. Pre-registering the population (rows stuck ON a define: 195 / 204 / 45, all already explained but two) is what makes "exactly 15 movers" a checked claim rather than a hope.
+- **Nine pins are not nine judgements.** Each pin is two productions, a reproducer that REJECTS on three profiles and a control that ACCEPTS, and the runner re-checks all of them on every commit; the descriptor that keyed the row (`normal`, `normal,-gspecify`) is quoted so nobody later mistakes a tool's extension for the standard again.
+- **Bold brackets in Annex A are tokens.** Three timing-check productions were transcribed with `[ … ]` as EBNF optionality where the standard prints literal brackets (`edge[01, 0x]`, `terminal[expr]`); the PDF-to-text extraction drops the bold. A grammar transcribed from extracted text should be audited for that class wholesale — routed with the three rows to `.3.63`.
+- **Promotion**: *classify a residue by parsing it under the other profile first*; *a tell names its token and adds no flag*; *a pin is a reproducer/control pair with two cites, never a sentence*.
+
 ## 2026-09-15 — SV-CORPUS-GRAD.19 (`PGEN-SV-CORPUS-GRAD-0397`): read the bar at its token, and a family falls out
 
 - **Group the bar by the token the parser choked on, not by the suite that supplied the row.** The `verilog_2005` bar looked like thirty unrelated files; resolved to their stuck token, eleven of them stop on `++`/`--`. One clause and one mechanical test settled all eleven in one pass, where per-file reading would have produced eleven rulings.

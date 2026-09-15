@@ -2701,6 +2701,9 @@ either a match, a lane deferral, or a **named** explanation: `explained_svpp_inc
 `SVPP-EXPANSION.8` and the raw lane, which does not preprocess, cannot see; judged
 token-exactly, never by a window, because a region can span a whole file; the pipeline lane
 re-reads every such row by parsing it, and all four read `corroborated`),
+`explained_svpp_macro_definition` (`SV-CORPUS-GRAD.20`: the parse stops **on** a `` `define ``
+directive inside a design element, text the preprocessor consumes and the raw lane admits only at
+the top level; token-exact as well),
 `explained_timeout`, and `explained_store_gate` (`SV-CORPUS-GRAD.13w`: the parser's *sound store
 gate* refused a provably-undeclared type identifier, and the row parses the moment that one name
 is declared — see the blockquote under the live tuple below; since `SV-CORPUS-GRAD.13x.e` the class
@@ -2750,9 +2753,17 @@ A.8.6 lists no increment or decrement operator and its for loop takes a `variabl
 its step, while IEEE 1800-2017 A.8.6 derives `inc_or_dec_operator ::= ++ | --`. The keys that said
 otherwise were a tool's testimony: Icarus compiles `i++` under `-g2005` as an extension, and
 sv2v's harness checks its "Verilog-2005" goldens with that same `iverilog -g2005`, so `++i`
-survives in them. In both passes the second condition — the *other* profile accepts the bytes — is
-the guard against a grammar hole hiding behind the token: a row that fails it stays exactly where
-it was. Spec outranks tool, and the original basis is kept verbatim behind every correction.
+survives in them. A third reading, the **edition-type pass** (`SV-CORPUS-GRAD.20`), re-keys a `verilog_2005` row
+whose stop *line* binds an 1800-only keyword before the stop — `logic [3:0] bus;` in a `.v` file —
+again only when the `sv_2017` profile accepts the same bytes, which it could not do with that word
+as an identifier. In all three passes the second condition — the *other* profile accepts the bytes —
+is the guard against a grammar hole hiding behind the token: a row that fails it stays exactly where
+it was. Spec outranks tool, and the original basis is kept verbatim behind every correction. Where a
+suite's key is a *single* tool's acceptance of a shape neither edition derives (a bare `#1` on a
+module instance, an empty ordered parameter, a list of path inputs on `=>`, a port declaration in a
+port-less module, a pull gate with three terminals), the row is pinned `must_reject` with the two
+productions cited and a reproducer/control pair in `stimuli/sv/adjudication_repros/`, so the ruling
+is re-checked by parsing on every commit.
 
 ⚠️ And an explained label is a statement about the *input*, not a clean bill of health for the
 parser: it says this file is not honest parser input. Of the 33 rows above, 29 were stuck exactly at

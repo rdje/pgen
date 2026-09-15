@@ -2986,6 +2986,78 @@ def expect_ispras_v2005(relpath: str, text: str):
 V2005_ANNEX_A = "docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt"
 
 V2005_LRM_PINNED = {
+    # ---- SV-CORPUS-GRAD.20 (PGEN-SV-CORPUS-GRAD-0398) — nine ivtest `normal` rows whose key was Icarus's
+    # acceptance of a shape neither IEEE 1364-2005 nor IEEE 1800-2017 derives (both profiles REJECT each;
+    # reproducer + control pins in stimuli/sv/adjudication_repros/). Spec outranks tool; the descriptor is
+    # quoted so the testimony stays on the record.
+    "ivtest/ivltests/pr1716276.v": (
+        "must_reject", "pinned .20: line 25 'param_test #( , 4) submod(clk, 1'b1, fsm);' - an EMPTY element in "
+        "an ordered parameter value assignment. IEEE 1364-2005 A.4.1.1 ordered_parameter_assignment ::= expression "
+        "(docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:399-403); IEEE 1800-2017 "
+        "A.4.1.1 ordered_parameter_assignment ::= param_expression (docs/systemverilog/2017/md/section-41-data-read-api.md"
+        ":1795-1807) - neither edition derives an empty element. ivtest regress-vlg.list: normal (Icarus accepts it as an "
+        "extension). Pins: invalid_empty_ordered_parameter_assignment.sv / control_ordered_parameter_assignments.sv"),
+    "ivtest/ivltests/pr3194155.v": (
+        "must_reject", "pinned .20: line 10 'foo #1 bar1(1'b0);' - a bare delay between a MODULE name and its instance. "
+        "IEEE 1364-2005 A.4.1 module_instantiation ::= module_identifier [ parameter_value_assignment ] module_instance "
+        "with parameter_value_assignment ::= # ( list_of_parameter_assignments ) (docs/verilog/2005/txt/section-Annex_A-"
+        "normative-formal-syntax-definition.txt:396-399) - the parentheses are the production's; a bare delay belongs to "
+        "gate/UDP instantiations (A.3.1, A.5.4: udp_instance ::= [ name_of_udp_instance ] ( output_terminal , "
+        "input_terminal { , input_terminal } ), :505-507), whose instances need terminals. IEEE 1800-2017 A.4.1.1 the "
+        "same (:1795). ivtest regress-vlg.list: normal (Icarus extension). Pins: invalid_module_instance_bare_delay.sv / "
+        "control_module_instance_parenthesised_parameter.sv"),
+    "ivtest/ivltests/z1.v": (
+        "must_reject", "pinned .20: line 11 'bar #345 bar1();' - a bare delay between a MODULE name and its instance "
+        "(line 12's 'bar #(456) bar2();' is the legal spelling). IEEE 1364-2005 A.4.1 / A.4.1.1 parameter_value_assignment "
+        "::= # ( list_of_parameter_assignments ) (docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition"
+        ".txt:396-399); udp_instance needs terminals (:505-507); IEEE 1800-2017 A.4.1.1 the same (:1795). ivtest "
+        "regress-vlg.list: normal (Icarus extension). Pins: invalid_module_instance_bare_delay.sv / "
+        "control_module_instance_parenthesised_parameter.sv"),
+    "ivtest/ivltests/z2.v": (
+        "must_reject", "pinned .20: line 11 'bar #3 bar1();' - a bare delay between a MODULE name and its instance. "
+        "IEEE 1364-2005 A.4.1 / A.4.1.1 parameter_value_assignment ::= # ( list_of_parameter_assignments ) "
+        "(docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:396-399); udp_instance needs "
+        "terminals (:505-507); IEEE 1800-2017 A.4.1.1 the same (:1795). ivtest regress-vlg.list: normal (Icarus "
+        "extension). Pins: invalid_module_instance_bare_delay.sv / control_module_instance_parenthesised_parameter.sv"),
+    "ivtest/ivltests/pr2834340.v": (
+        "must_reject", "pinned .20: line 6 'pulldown (weak0) pd1 (r1a,r1c,r1o);' - a pull gate with THREE terminals. "
+        "IEEE 1364-2005 A.3.1 pull_gate_instance ::= [ name_of_gate_instance ] ( output_terminal ) - exactly ONE "
+        "(docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:362); IEEE 1800-2017 A.3.1 the "
+        "same (docs/systemverilog/2017/md/section-41-data-read-api.md:1747) - the .13c.2k ruling on pr1787423.v, applied. "
+        "ivtest regress-vlg.list: normal (Icarus extension). Pins: invalid_pull_gate_two_terminals.sv / "
+        "control_pull_gate_one_terminal.sv"),
+    "ivtest/ivltests/pr2834340b.v": (
+        "must_reject", "pinned .20: line 14 'pullup (weak1) pu1 (rlc,rlo);' - a pull gate with TWO terminals. IEEE "
+        "1364-2005 A.3.1 pull_gate_instance ::= [ name_of_gate_instance ] ( output_terminal ) - exactly ONE "
+        "(docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:362); IEEE 1800-2017 A.3.1 the "
+        "same (:1747) - the .13c.2k ruling on pr1787423.v, applied. ivtest regress-vlg.list: normal (Icarus extension). "
+        "Pins: invalid_pull_gate_two_terminals.sv / control_pull_gate_one_terminal.sv"),
+    "ivtest/ivltests/pr1877743.v": (
+        "must_reject", "pinned .20: line 84 '(a, b, ci => co) = 1.5;' - a LIST of path inputs joined by the PARALLEL "
+        "connection. IEEE 1364-2005 A.7.2 parallel_path_description ::= ( specify_input_terminal_descriptor "
+        "[ polarity_operator ] => specify_output_terminal_descriptor ) - ONE input; a list takes full_path_description "
+        "::= ( list_of_path_inputs [ polarity_operator ] *> list_of_path_outputs ) (docs/verilog/2005/txt/section-Annex_A-"
+        "normative-formal-syntax-definition.txt:655-658; 14.2.2 'The operator *> establishes a full connection ... The "
+        "operator => establishes a parallel connection', docs/verilog/2005/md/section-14-specify-blocks.md:143-146); IEEE "
+        "1800-2017 A.7.2 the same (docs/systemverilog/2017/md/section-41-data-read-api.md:2590-2599). ivtest "
+        "regress-vlg.list: normal,-gspecify (Icarus extension). Pins: invalid_parallel_path_list_of_inputs.sv / "
+        "control_full_path_list_of_inputs.sv"),
+    "ivtest/ivltests/specify_01.v": (
+        "must_reject", "pinned .20: line 13 '(clk,d => q) = (tR_clk_q,tF_clk_q);' - a LIST of path inputs joined by the "
+        "PARALLEL connection. IEEE 1364-2005 A.7.2 parallel_path_description takes ONE specify_input_terminal_descriptor "
+        "before =>; a list takes *> (docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:655-658; "
+        "14.2.2, docs/verilog/2005/md/section-14-specify-blocks.md:143-146); IEEE 1800-2017 A.7.2 the same (:2590-2599). "
+        "ivtest regress-vlg.list: normal,-gspecify (Icarus extension). Pins: invalid_parallel_path_list_of_inputs.sv / "
+        "control_full_path_list_of_inputs.sv"),
+    "ivtest/ivltests/module_output_port_var2.v": (
+        "must_reject", "pinned .20: line 5 'output reg a;' in 'module test;' - a port declaration in the body of a module "
+        "whose header lists NO ports. IEEE 1364-2005 A.1.2 (docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-"
+        "definition.txt:29-36): a module with list_of_ports holds { module_item } (port_declaration ; among them); a "
+        "module with [ list_of_port_declarations ] - the only form 'module test;' can take - holds { non_port_module_item }, "
+        "which has no port declaration. IEEE 1800-2017 A.1.2 / A.1.4 the same split (module_nonansi_header ... "
+        "{ module_item } vs module_ansi_header ... { non_port_module_item }, docs/systemverilog/2017/md/section-41-data-"
+        "read-api.md:108-115, 327, 356). ivtest regress-vlg.list: normal (Icarus extension). Pins: "
+        "invalid_port_declaration_in_portless_module.sv / control_port_declaration_with_port_list.sv"),
     # ---- SV-CORPUS-GRAD.3.47 (PGEN-SV-CORPUS-GRAD-0377) ------------------------------------------
     # A string literal continued across a line with a trailing backslash is IEEE 1800 §5.9; IEEE 1364-2005
     # §3.6 says "contained on a single line" and A.8.8 spells the string as any characters EXCEPT a new line.
@@ -5209,6 +5281,187 @@ def _self_test_edition_operator() -> int:
     return 0
 
 
+# ---- SV-CORPUS-GRAD.20: the EDITION-TYPE pass (verilog_2005 lane) -----------------------------------
+# The third edition reading, alongside .3.37 (a keyword bound as a NAME under sv) and .19 (an operator
+# under verilog_2005). A verilog_2005 row keyed must_accept whose parse stops on a LINE that binds an
+# 1800-only keyword (`logic`, `bit`, `int`, ...) before the stop, AND which the sv_2017 profile ACCEPTS,
+# is SystemVerilog text: sv_2017 could not accept that word as an identifier, so the line uses it as a
+# keyword, and IEEE 1364-2005 has no such keyword (Annex B) and no such data type (A.2.2.1). Measured on
+# iverilog br_gh1178a/b/c.v and br_gh1182.v (`logic [3:0] bus;` in a `.v` file the suite lists under
+# vlg). An escaped identifier (`\logic`) is not a keyword and is skipped.
+EDITION_TYPE_BASIS_TAG = "EDITION-TYPE (SV-CORPUS-GRAD.20)"
+
+
+def stuck_line_1800_keyword(text: str, furthest):
+    """`(word, at)` when the line the parse stopped on binds an 1800-only keyword BEFORE the stop
+    (comments and strings blanked, the layout gap skipped, an escaped identifier ignored), else
+    `(None, at)`; `(None, None)` with no position."""
+    if furthest is None:
+        return None, None
+    stripped = blank_comments_and_strings(text)
+    i = min(furthest, len(stripped))
+    while i < len(stripped) and stripped[i].isspace():
+        i += 1
+    line_start = stripped.rfind("\n", 0, i) + 1
+    only = keywords_1800_only()
+    for m in _IDENT_RE.finditer(stripped, line_start, i):
+        if m.start() > 0 and stripped[m.start() - 1] == "\\":
+            continue
+        if m.group(0) in only:
+            return m.group(0), i
+    return None, i
+
+
+def edition_type_pass(lane, manifest, resolve, positions, *, measurer=None):
+    """SV-CORPUS-GRAD.20. Every row keyed must_accept and observed `fail` is a candidate; the row is
+    re-keyed must_reject (=> `match`) iff the stop line binds an 1800-only keyword before the stop AND
+    the sv_2017 profile accepts the bytes (measured here). Every other row is byte-identical."""
+    if measurer is None:
+        def measurer(raw):
+            sg = _sg()
+            m = sg.machinery()
+            saved = m.PROFILE
+            m.PROFILE = "sv_2017"
+            try:
+                ok, _surface, _furthest, _trace = m.probe_text(raw, trace=False)
+            finally:
+                m.PROFILE = saved
+            return bool(ok)
+    out = []
+    ruled = 0
+    for suite, rel, observed, expected, verdict, basis in manifest:
+        # ⛔ ONE condition, no `continue`: every row reaches `out.append` (the .3.37 lesson).
+        if expected == "must_accept" and observed == "fail":
+            text = read_text(resolve(suite, rel))
+            word, at = stuck_line_1800_keyword(text, positions.get((suite, rel)))
+            if word is not None and measurer(text):
+                line = text.count("\n", 0, at) + 1
+                expected, verdict, ruled = "must_reject", "match", ruled + 1
+                basis = (f"{EDITION_TYPE_BASIS_TAG}: the {lane} parse stops at byte {at} (line {line}) on a line that "
+                         f"binds '{word}' - a word IEEE 1800-2017 Annex B Table B.1 reserves (docs/systemverilog/2017/md/"
+                         "section-41-data-read-api.md:3599-3858) and IEEE 1364-2005 Annex B does not "
+                         "(docs/verilog/2005/md/section-Annex_B-normative-list-of-keywords.md) - as a KEYWORD: the sv_2017 "
+                         "profile ACCEPTS these bytes (measured here, by parsing), which it could not do with that word as "
+                         "an identifier, so the line is SystemVerilog text with no 1364-2005 derivation (1364-2005 A.2.2.1 "
+                         "lists no such data type). Spec outranks tool. Original key: must_accept - " + basis)
+        out.append((suite, rel, observed, expected, verdict, basis))
+    print(f"edition-type pass [{lane}]: {ruled} row(s) re-keyed must_reject (the stop line binds an 1800-only keyword; sv_2017 accepts)",
+          file=sys.stderr)
+    return out
+
+
+def _self_test_edition_type() -> int:
+    """SV-CORPUS-GRAD.20 arms for the edition-type pass, the same shape as .19's."""
+    import tempfile
+    fails = []
+    calls = []
+
+    def check(name, cond):
+        print(f"  {'PASS' if cond else 'FAIL'}  edition-type: {name}")
+        if not cond:
+            fails.append(name)
+
+    with tempfile.TemporaryDirectory(dir=str(Path(__file__).resolve().parent.parent.parent / "rust/target")) as td:
+        d = Path(td)
+        (d / "s").mkdir()
+        bodies = {"a.v": "module a;\n  logic [3:0] bus;\nendmodule\n",
+                  "b.v": "module b;\n  int i y;\nendmodule\n",
+                  "c.v": "module c;\n  reg x y;\nendmodule\n",
+                  "d.v": "module d;\n  wire \\logic , x y;\nendmodule\n",
+                  "e.v": "module e;\n  reg /* logic */ x y;\nendmodule\n",
+                  "f.v": "module f;\n  reg z;\n  logic q;\nendmodule\n",
+                  "g.v": "module g; endmodule\n",
+                  "h.v": "module h;\n  bit b;\nendmodule\n"}
+        for name, body in bodies.items():
+            (d / "s" / name).write_text(body)
+        positions = {("s", "a.v"): bodies["a.v"].index("[3:0]"), ("s", "b.v"): bodies["b.v"].index("y;"),
+                     ("s", "c.v"): bodies["c.v"].index("y;"), ("s", "d.v"): bodies["d.v"].index("y;"),
+                     ("s", "e.v"): bodies["e.v"].index("y;"), ("s", "f.v"): bodies["f.v"].index("z;"),
+                     ("s", "h.v"): bodies["h.v"].index("b;")}
+        manifest = [("s", "a.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key A"),
+                    ("s", "b.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key B"),
+                    ("s", "c.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key C"),
+                    ("s", "d.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key D"),
+                    ("s", "e.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key E"),
+                    ("s", "f.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key F"),
+                    ("s", "g.v", "pass", "must_accept", "match", "key G"),
+                    ("s", "h.v", "fail", "must_reject", "match", "key H")]
+
+        def measurer(raw):
+            calls.append(raw)
+            return "int i y" not in raw            # b.v: the fake sv_2017 refuses
+
+        out = edition_type_pass("verilog_2005", manifest, lambda s_, r_: d / s_ / r_, positions, measurer=measurer)
+        by = {(r[0], r[1]): r for r in out}
+        check("a.v (`logic [3:0] bus;`, stop on `[`, measurer accepts) is re-keyed must_reject and matches",
+              by[("s", "a.v")][3] == "must_reject" and by[("s", "a.v")][4] == "match"
+              and by[("s", "a.v")][5].startswith(EDITION_TYPE_BASIS_TAG) and "'logic'" in by[("s", "a.v")][5]
+              and by[("s", "a.v")][5].endswith("Original key: must_accept - key A"))
+        check("b.v (`int` on the stop line, measurer refuses) is byte-identical", by[("s", "b.v")] == manifest[1])
+        check("c.v (no 1800-only keyword on the stop line) is byte-identical and never measured", by[("s", "c.v")] == manifest[2])
+        check("d.v (an ESCAPED \\logic is an identifier, not a keyword) is byte-identical and never measured",
+              by[("s", "d.v")] == manifest[3])
+        check("e.v (the word only inside a comment) is byte-identical and never measured", by[("s", "e.v")] == manifest[4])
+        check("f.v (the keyword on a LATER line than the stop) is byte-identical and never measured", by[("s", "f.v")] == manifest[5])
+        check("g.v (a match) and h.v (a must_reject) are byte-identical and never measured",
+              by[("s", "g.v")] == manifest[6] and by[("s", "h.v")] == manifest[7])
+        check("every row came out exactly once, in order", [r[:2] for r in out] == [r[:2] for r in manifest])
+        check("the measurer ran exactly for a and b", sorted(c.split("module ")[1][0] for c in calls) == ["a", "b"])
+        check("stuck_line_1800_keyword: no position => (None, None)", stuck_line_1800_keyword("x", None) == (None, None))
+    if fails:
+        print(f"edition-type self-test: FAIL ({len(fails)} failing)")
+        return 1
+    print("edition-type self-test: PASS (0 failing)")
+    return 0
+
+
+# ---- SV-CORPUS-GRAD.20: the DEFINE tell - a stop ON a text-macro definition -------------------------
+# `define is consumed by the preprocessor (IEEE 1800-2017 §22.5.1) and the raw lane, which does not
+# preprocess, admits the directive only at the top level (`opaque_directive_line`); inside a design
+# element the parse stops ON it. A file whose only preprocessor construct is a definition carries none
+# of the four whole-file flags (KNOWN_DIRECTIVES are not `macro_use`), so such a row was unexplained.
+# TOKEN-EXACT, like the region tell: the stop must be ON the directive itself. Measured: iverilog
+# macro_redefinition.v / macro_replacement.v (four `define lines inside `module test();`).
+MACRO_DEFINITION_FLAG = "macro_definition"
+
+
+def stuck_on_define(text: str, furthest) -> bool:
+    """True iff the parse stopped ON a `define directive (comments and strings blanked, the layout
+    gap skipped). No position => False: the tell is positive evidence, never a default."""
+    if furthest is None:
+        return False
+    stripped = blank_comments_and_strings(text)
+    i = min(furthest, len(stripped))
+    while i < len(stripped) and stripped[i].isspace():
+        i += 1
+    m = TICK_RE.match(stripped, i)
+    return bool(m) and m.group(1) == "define"
+
+
+def _self_test_macro_definition_tell() -> int:
+    fails = []
+
+    def check(name, cond):
+        print(f"  {'PASS' if cond else 'FAIL'}  macro-definition tell: {name}")
+        if not cond:
+            fails.append(name)
+
+    body = "module m;\n`define X 1\n`define X 1\nendmodule\n"
+    check("a stop ON the define (from the layout gap or the backtick) fires",
+          stuck_on_define(body, body.index("`define") - 1) and stuck_on_define(body, body.index("`define")))
+    check("a stop elsewhere does not", not stuck_on_define(body, 0) and not stuck_on_define(body, body.index("endmodule")))
+    check("a commented-out define is not a directive", not stuck_on_define("module m;\n// `define X\nendmodule\n", 10))
+    check("an undef is not a definition (the parser admits it in scope)", not stuck_on_define("module m;\n`undef X\nendmodule\n", 10))
+    check("no position => False", not stuck_on_define(body, None))
+    check("the class name the tell yields is the sixth explained-by-preprocessing class",
+          adjudicate("must_accept", "fail", MACRO_DEFINITION_FLAG) == "divergence:explained_svpp_macro_definition")
+    if fails:
+        print(f"macro-definition self-test: FAIL ({len(fails)} failing)")
+        return 1
+    print("macro-definition self-test: PASS (0 failing)")
+    return 0
+
+
 def _self_test_edition_keyword() -> int:
     """SV-CORPUS-GRAD.3.37 arms: the pass re-keys ONLY a row that stops ON an 1800-only keyword AND
     that the fake verilog_2005 measurer accepts; a keyword stop the measurer refuses (`null` in a
@@ -5654,6 +5907,12 @@ def finish_row(suite, rel, observed, text, expected, basis, positions, profile="
             dep_flag = ""
             basis += (" - .12a: parse stops where svpp cannot alter the text, so the "
                       "preprocessor dependency does not explain THIS failure")
+        if not dep_flag and stuck_on_define(text, positions.get((suite, rel))):
+            # SV-CORPUS-GRAD.20 - the TOKEN-EXACT define tell (see MACRO_DEFINITION_FLAG).
+            dep_flag = MACRO_DEFINITION_FLAG
+            basis += (" - .20: the parse stops ON a text-macro definition directive (IEEE 1800-2017 22.5.1) - "
+                      "text the preprocessor consumes and the raw lane, which does not preprocess, admits only "
+                      "at the top level; the pipeline strips it")
     verdict = adjudicate(expected, observed, dep_flag)
     return (suite, rel, observed, expected, verdict, basis)
 
@@ -6017,7 +6276,9 @@ def main():
                 | _self_test_store_gate()
                 | _self_test_edition_keyword()
                 | _self_test_keywords_region()
-                | _self_test_edition_operator())
+                | _self_test_edition_operator()
+                | _self_test_edition_type()
+                | _self_test_macro_definition_tell())
 
     verify_outcome_identity(args.report, [args.results, args.positions],
                             rerun="stimuli/run_external_corpus.sh sv")
@@ -6287,6 +6548,7 @@ def main():
                                      profile="verilog_2005"))
 
     v_manifest = edition_operator_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
+    v_manifest = edition_type_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
     v_manifest = store_gate_pass("verilog_2005", v_manifest, resolve_corpus_path(args), args.report_v2005,
                                  store_gate_cache, args.store_gate_jobs)
     _sg().save_cache(args.store_gate_cache, store_gate_cache)

@@ -109,6 +109,10 @@ CLASSES = {
         "ADJUDICATED", "parse stops ON a word a begin_keywords region unreserves - IEEE 1800-2017 "
                        "§22.14, applied by the expansion stage (SVPP-EXPANSION.8); token-exact tell "
                        "(SV-CORPUS-GRAD.18)"),
+    "divergence:explained_svpp_macro_definition": (
+        "ADJUDICATED", "parse stops ON a text-macro definition directive inside a design element - "
+                       "text the preprocessor consumes (IEEE 1800-2017 §22.5.1); token-exact tell "
+                       "(SV-CORPUS-GRAD.20)"),
     "divergence:explained_store_gate": (
         "ADJUDICATED", "the sound store gate refuses a provably-undeclared type identifier "
                        "(SV-PARSE-STRICT boundary); proven per row: the file parses once the "
