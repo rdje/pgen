@@ -1,0 +1,5 @@
+@entry: true
+s := item ( !dot comma item )* -> {first: $1, raw: $2, far: $2::9*}
+item := /[a-z]+/
+comma := ","
+dot := "."

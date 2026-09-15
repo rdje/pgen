@@ -34,8 +34,19 @@ style this tokenizer reads (a rule per `name :=`, `#` and `//` comments, `/…/`
 break sequences across lines inside one parenthesis; measured 2026-09-10 this tokenizer reads
 `'(' expression ')'` as ONE element there, so its slot numbering is not the engine's and a green
 reading there would be an instrument blind spot, not evidence. They are OUT OF SCOPE here, and the
-engine-side lint routed by `.3.61` is where they will be read. An out-of-scope grammar passed
-explicitly is audited anyway and says so.
+engine-side lint READS THEM: `--lint-grammar`'s `template_binds_lookahead_child`
+(`ENGINE-UNIVERSAL-SERVICES.106`, landed 2026-09-15) works from the frontend's own child numbering,
+so the five bootstrap-chain grammars are covered there and measured at 0. An out-of-scope grammar
+passed explicitly is audited anyway and says so.
+
+⭐ THE TWO INSTRUMENTS ARE COMPLEMENTARY, AND EACH ONE'S BLIND SPOT IS THE OTHER'S POPULATION.
+The engine arm decides only what is STRUCTURAL — `la_slot`, a lookahead inside an extraction, an
+extraction past the group's arity, and a raw-bound guard-opened group. The `separator` reading below
+is an INTENT inference that cannot be lifted there: the CORRECTED `list_of_type_assignments` writes
+`$2::3*` over a group that still OPENS with a lookahead, so a structural rule of that shape would
+fire on the SHIPPED grammar. Measured on the founding population (`git show
+9646dc98:grammars/systemverilog.ebnf`): this auditor reads 10, the engine lint reads 8, and the two
+it cannot reach are exactly the separator rows — which is why this file stays.
 
 Usage:
   python3 scripts/lookahead_slot_audit.py                 # the default scope, exit 0 = clean, 1 = findings

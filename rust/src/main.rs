@@ -4742,8 +4742,9 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     use pgen::ast_pipeline::grammar_wellformedness::{
         classify_left_recursion, detect_always_succeeds_alternatives, detect_nonterminating_rules,
         detect_nullable_repetition, detect_ordered_choice_shadowing,
-        detect_profile_gated_lookaheads, detect_profile_orphans, detect_unbound_fact_kinds,
-        detect_uncompilable_regex_terminals, detect_undefined_references, detect_unreachable_rules,
+        detect_lookahead_slot_templates, detect_profile_gated_lookaheads, detect_profile_orphans,
+        detect_unbound_fact_kinds, detect_uncompilable_regex_terminals, detect_undefined_references,
+        detect_unreachable_rules,
     };
     use pgen::ast_pipeline::semantic_directive_registry::parse_semantic_string_list;
     let g = &grammar.grammar_tree;
@@ -4839,6 +4840,19 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     let bad_regex = detect_uncompilable_regex_terminals(
         &unfiltered_grammar.grammar_tree,
         &unfiltered_grammar.rule_order,
+    );
+    // ENGINE-UNIVERSAL-SERVICES.106 — a RETURN TEMPLATE that binds a LOOKAHEAD child. ⛔ Runs on
+    // the UNFILTERED bundle, like every other static class here: codegen always emits the FULL
+    // grammar, so a template gated out of the requested profile is still compiled and still wrong.
+    // The subject is the pair (alternative's child list, that alternative's template) — the same
+    // pair `validate_annotations_with_grammar` already reads for `W_RET_POS_RULE_BOUND`, whose
+    // verdict is a COUNT (`$N > slots`) and is therefore blind to WHICH child slot N is. Ten such
+    // sites shipped in grammars/systemverilog.ebnf and this lint read rc 0 on that grammar
+    // (SV-CORPUS-GRAD.3.61): the accept set never moves, so no parse-verdict gate can see it.
+    let lookahead_slot_templates = detect_lookahead_slot_templates(
+        &unfiltered_grammar.grammar_tree,
+        &unfiltered_grammar.rule_order,
+        unfiltered_grammar.annotations.as_ref(),
     );
     let all_profiles: Vec<String> = profile_universe.into_iter().collect();
     // A profile-specific orphan needs ≥2 profiles to exist (the "satisfiable elsewhere" test).
@@ -4959,7 +4973,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         )
     };
     println!(
-        "grammar lint: '{}' ({} rules) — {}, non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), undefined_references={} (error), uncompilable_regex_terminals={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?}), profile_gated_negative_lookaheads={} (note — the guard is STILL ENFORCED under the gating profile since ENGINE-UNIVERSAL-SERVICES.46 (c); reported because the reading is non-obvious), profile_gated_positive_lookaheads={} (note — the path is DEAD under the gating profile; monotonic, deliberately not bypassed)",
+        "grammar lint: '{}' ({} rules) — {}, non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), undefined_references={} (error), uncompilable_regex_terminals={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?}), profile_gated_negative_lookaheads={} (note — the guard is STILL ENFORCED under the gating profile since ENGINE-UNIVERSAL-SERVICES.46 (c); reported because the reading is non-obvious), profile_gated_positive_lookaheads={} (note — the path is DEAD under the gating profile; monotonic, deliberately not bypassed), template_binds_lookahead_child={} (error)",
         grammar.grammar_name,
         g.len(),
         left_recursion_headline,
@@ -4974,7 +4988,8 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         orphans.len(),
         all_profiles,
         gated_lookaheads_negative,
-        gated_lookaheads_positive
+        gated_lookaheads_positive,
+        lookahead_slot_templates.len()
     );
     // QUANT-PLUS-ITER.2: name the resolved entry rule. Until this landed no surface at
     // default verbosity reported a grammar's start symbol at all, so a helper rule
@@ -5063,8 +5078,14 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     for issue in &nonterm {
         println!("  [error] {}", issue.message());
     }
+    // ENGINE-UNIVERSAL-SERVICES.106 — never capped either: the class is silent everywhere else in
+    // the tree (the accept set does not move), so a reader who does not see the site cannot find it.
+    for issue in &lookahead_slot_templates {
+        println!("  [error] {}", issue.message());
+    }
 
     if nonterm.is_empty()
+        && lookahead_slot_templates.is_empty()
         && orphans.is_empty()
         && shadow.is_empty()
         && unreachable.is_empty()
@@ -5077,6 +5098,17 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         let mut problems = Vec::new();
         if !nonterm.is_empty() {
             problems.push(format!("{} non-terminating rule(s)", nonterm.len()));
+        }
+        // ENGINE-UNIVERSAL-SERVICES.106: a template binding a lookahead child emits a WRONG TREE
+        // with an unchanged accept set. Gated on the same footing as the other decidable-from-the-
+        // text error classes, and free on day one by the SV-CORPUS-GRAD.13e.11 rule that a guard is
+        // safe to make blocking exactly when the fix precedes it — SV-CORPUS-GRAD.3.61 repaired all
+        // ten SV sites, and every shipped grammar was MEASURED at 0 before this became an error.
+        if !lookahead_slot_templates.is_empty() {
+            problems.push(format!(
+                "{} template(s) binding a lookahead child",
+                lookahead_slot_templates.len()
+            ));
         }
         if !orphans.is_empty() {
             problems.push(format!("{} profile-orphan rule(s)", orphans.len()));

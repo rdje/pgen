@@ -120,6 +120,61 @@ Both corrections are held by a control the census refuses to run without — a g
 to the defect is a profile appearing in no `@profiles` list. Without it, "regex reports 0" and "the
 instrument never tested regex's shipping profile" are the same output.
 
+### The lookahead-slot arm (`template_binds_lookahead_child`)
+
+A lookahead (`!x`, `&x`, `!( … )`) is a **child** of the sequence it stands in. It derives nothing —
+it consumes no input — but it **occupies a positional slot** and binds an empty node. So `$1` on
+
+```ebnf
+type_assignment_sv_2017 := !kw_type declaration_identifier assign data_type
+                        -> {name: $1, value: $2}
+```
+
+is the *guard*, not the name: every `parameter type T = int` parsed correctly and returned
+`name: []`, `value: T` — the default type simply gone. That shipped from release `1.0.79` to
+`1.0.229`, **150 releases**, with every gate in this repository green, and it was not alone: ten
+templates in `grammars/systemverilog.ebnf` bound a lookahead, one of them filling an argument list
+with the guard's empty nodes and another with commas.
+
+⛔ **Nothing could see it, and the reason is worth stating plainly: the accept set never moved.**
+The parser is *right* — it parses exactly the strings the grammar declares. Only the **tree** is
+wrong. A corpus sweep compares verdicts; an AST-identity sweep compares one release with the one
+before, and a consistently wrong tree is byte-identical to itself release after release; the
+certificate reads *reachability*, not *bindings*. The one check that came closest,
+`W_RET_POS_RULE_BOUND`, compares a template's **maximum index** against the branch's **slot count** —
+a question every one of the ten sites answers correctly.
+
+`--lint-grammar` now reports the class as an **error**, with four kinds, each decidable from the
+engine's own child numbering:
+
+| kind | shape | what the template gets |
+|---|---|---|
+| `la_slot` | `$N` and child *N* is a lookahead | an empty node |
+| `slice_child` | `$N::K*` and child *K* of the repeated group at slot *N* is a lookahead | an empty node per repetition |
+| `slice_arity` | `$N::K*` past the group's arity | nothing |
+| `raw_guarded` | `$N`, no extraction, on a group that **opens** with a lookahead | the guard's empty node beside every item |
+
+⭐ **Two instruments, complementary by construction.** The doctrine `LOOKAHEAD-SLOT-TEMPLATES`
+(`scripts/lookahead_slot_audit.py`) re-tokenizes the grammar's *spelling*, so it declares a
+twelve-grammar scope list and cannot read the bootstrap-chain grammars, whose `'('` token style its
+tokenizer misreads. The lint arm reads the **frontend's own** child numbering, so it covers every
+grammar the engine can load — those five included — and it gates. What it deliberately does **not**
+decide is the auditor's fifth reading, an extraction that lands on a *separator* after a guard
+shifted the numbering: that is an inference about intent, and the corrected
+`list_of_type_assignments` ships `$2::3*` over a group that *still* opens with a lookahead, so a
+structural rule of that shape would fire on the shipped grammar. Measured on the founding population
+(release `1.0.229`): the auditor reads **10**, the lint reads **8**, and the two it cannot reach are
+exactly those separator rows. Each instrument's blind spot is the other's population, which is why
+both stay.
+
+⚠️ And a note on reading a detector's own output: the first cut of this arm treated
+`ExtractionTarget::Index` as 1-based when the frontend stores it **zero-based**. It still printed
+findings — eight became seven and the set shifted — and its message quoted `$2::1*` for a template
+whose author had written `$2::2*`. A count that looks plausible is not evidence; **a detector that
+names a slot must print the author's own spelling, because that is the only part of its output a
+reader can check against the grammar.**
+
+
 ## The duality: two proofs of the same property
 
 Reachability is provable two independent ways, and PGEN uses **both**:

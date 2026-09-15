@@ -1,0 +1,6 @@
+@entry: true
+s := !kw_b item ( comma !dot item )* -> {name: $1, rest: $3::2*, raw: $3}
+item := /[a-z]+/
+kw_b := "b"
+comma := ","
+dot := "."

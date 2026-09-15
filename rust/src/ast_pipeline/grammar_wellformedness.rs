@@ -25,6 +25,7 @@ use super::semantic_runtime::{
     SemanticPredicatePhase, SemanticRuntimeDirective, parse_semantic_runtime_directive,
 };
 use super::{ASTNode, ASTValue, Annotations, SemanticAnnotation, TokenValue, parse_quantifier_bounds};
+use super::unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 use std::collections::{HashMap, HashSet};
 
 /// A detected grammar well-formedness issue.
@@ -223,6 +224,37 @@ pub enum WellformednessIssue {
         positive: bool,
         target_profiles: Vec<String>,
     },
+    /// ERROR (ENGINE-UNIVERSAL-SERVICES.106) — a RETURN TEMPLATE binds a LOOKAHEAD child.
+    ///
+    /// ⛔ A lookahead (`!x`, `&x`, `!( … )`) is a CHILD of the sequence it stands in: it occupies a
+    /// positional slot and binds an EMPTY node, so `$N` counts it and a guard at the head of a
+    /// repeated group shifts every later child by one. The accept set never moves — the parse is
+    /// identical — so every gate this repository had stayed green while the emitted TREE was wrong.
+    /// MEASURED (`SV-CORPUS-GRAD.3.61`, 2026-09-10): ten such sites shipped in
+    /// `grammars/systemverilog.ebnf`, one of them since release `1.0.79`, and `--lint-grammar` read
+    /// rc 0 on that grammar exactly as on the corrected one, because nothing compared a template's
+    /// indices with its own alternative's child list.
+    ///
+    /// ⚠️ **STRUCTURAL ONLY, and the bound is stated rather than discovered.** Every kind below is
+    /// decidable from the engine's own child numbering. The textual auditor
+    /// `scripts/lookahead_slot_audit.py` additionally reports an extraction that lands on a
+    /// SEPARATOR terminal (`comma`/`semi`/`colon`) after a guard shifted the numbering — that is an
+    /// INTENT inference, not a structural fact, and it cannot be lifted here: the corrected
+    /// `list_of_type_assignments` writes `$2::3*` over a group that still OPENS with a lookahead,
+    /// so a rule "any extraction on a guard-opened group is suspect" would fire on the SHIPPED
+    /// grammar. Two of the ten founding sites are that kind and are named as out of this arm's
+    /// reach rather than silently missed.
+    TemplateBindsLookaheadChild {
+        rule: String,
+        /// 1-based branch index within the rule's top-level ordered choice.
+        branch_index: usize,
+        /// The structural kind: `la_slot`, `slice_child`, `slice_arity` or `raw_guarded`.
+        kind: &'static str,
+        /// The template as the author wrote it.
+        annotation: String,
+        /// What the engine's own child numbering says about the referenced slot.
+        detail: String,
+    },
 }
 
 impl WellformednessIssue {
@@ -307,7 +339,237 @@ impl WellformednessIssue {
                     )
                 }
             }
+            WellformednessIssue::TemplateBindsLookaheadChild {
+                rule,
+                branch_index,
+                kind,
+                annotation,
+                detail,
+            } => format!(
+                "grammar well-formedness ERROR [{kind}]: rule '{rule}' branch {branch_index} binds a LOOKAHEAD child. {detail} A lookahead is a CHILD of the sequence it stands in — it occupies a positional slot and binds an EMPTY node — so `$N` counts it and a guard at the head of a repeated group shifts every later child by one. ⛔ The accept set does NOT move, so no parse-verdict gate can see this: the parser is right and the TREE is wrong. Template: {annotation}. Fix: renumber the template against the alternative's real child list (the guard included), or lift the guard out of the numbered sequence."
+            ),
         }
+    }
+}
+
+/// ENGINE-UNIVERSAL-SERVICES.106 — does any RETURN TEMPLATE bind a LOOKAHEAD child?
+///
+/// ⛔ **THE ENGINE'S OWN CHILD NUMBERING, NOT A RE-TOKENIZATION.** This reads the loaded
+/// `grammar_tree` (the view codegen compiles) beside `annotations.branch_return_annotations`, so
+/// every grammar the frontend can read is covered and the slot numbers are the ones the emitted
+/// parser will use. The textual auditor `scripts/lookahead_slot_audit.py` (doctrine
+/// `LOOKAHEAD-SLOT-TEMPLATES`) re-tokenizes the grammar's SPELLING and therefore declares a
+/// twelve-grammar scope, excluding the bootstrap chain whose `'('` token style its tokenizer
+/// misreads; this arm has no such blind spot.
+///
+/// FOUR STRUCTURAL KINDS, each decidable without inferring intent:
+///   * `la_slot`     — `$N` and child N of the alternative is a lookahead: it binds an EMPTY node.
+///   * `slice_child` — `$N::K*` and child K of the repeated group at slot N is a lookahead.
+///   * `slice_arity` — `$N::K*` and the repeated group at slot N has fewer than K children.
+///   * `raw_guarded` — `$N` with no extraction on a group that OPENS with a lookahead: the
+///                     envelope carries the guard's empty node beside every item.
+///
+/// ⚠️ **THE BOUND IS STATED RATHER THAN DISCOVERED**: the textual auditor also reports an
+/// extraction landing on a SEPARATOR terminal after a guard shifted the numbering. That is an
+/// INTENT inference and it cannot be lifted here — the CORRECTED `list_of_type_assignments` writes
+/// `$2::3*` over a group that still opens with a lookahead, so any rule of the form "an extraction
+/// on a guard-opened group is suspect" would fire on the SHIPPED grammar. Measured on the founding
+/// population (`git show 9646dc98:grammars/systemverilog.ebnf`): this arm reads 8 of the 10 sites
+/// and the 2 it cannot reach are exactly that kind.
+pub fn detect_lookahead_slot_templates(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    annotations: Option<&Annotations>,
+) -> Vec<WellformednessIssue> {
+    let Some(annotations) = annotations else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    // Deterministic order: the grammar's own rule order, then any annotated rule the order omits.
+    let mut names: Vec<&String> = rule_order.iter().collect();
+    let mut extra: Vec<&String> = annotations
+        .branch_return_annotations
+        .keys()
+        .filter(|name| !rule_order.iter().any(|r| r == *name))
+        .collect();
+    extra.sort();
+    names.extend(extra);
+    for rule_name in names {
+        let Some(branch_annotations) = annotations.branch_return_annotations.get(rule_name) else {
+            continue;
+        };
+        let Some(rule_ast) = grammar.get(rule_name) else {
+            continue;
+        };
+        let branches: Vec<&ASTNode> = match rule_ast {
+            ASTNode::Or { alternatives } => alternatives.iter().collect(),
+            other => vec![other],
+        };
+        for (idx, branch_annotation) in branch_annotations.iter().enumerate() {
+            let Some(annotation) = branch_annotation else {
+                continue;
+            };
+            let Some(template) = annotation.parsed_ast.as_ref() else {
+                continue;
+            };
+            let Some(branch_ast) = branches.get(idx) else {
+                continue; // the OOB case is already W_RET_BRANCH_INDEX_OOB's
+            };
+            let ASTNode::Sequence { elements } = branch_ast else {
+                continue; // only a sequence exposes positional slots (positional_capture_bound)
+            };
+            let mut refs = Vec::new();
+            collect_template_slot_refs(template, false, &mut refs);
+            for (index, extraction) in refs {
+                if index == 0 || index > elements.len() {
+                    continue; // W_RET_POS_RULE_BOUND's population, not this arm's
+                }
+                let child = &elements[index - 1];
+                match extraction {
+                    None => match child {
+                        ASTNode::Lookahead { positive, .. } => out.push(
+                            WellformednessIssue::TemplateBindsLookaheadChild {
+                                rule: rule_name.clone(),
+                                branch_index: idx + 1,
+                                kind: "la_slot",
+                                annotation: annotation.annotation_content.clone(),
+                                detail: format!(
+                                    "${index} is child {index} of {} and that child is a {} lookahead, so it binds [].",
+                                    elements.len(),
+                                    if *positive { "POSITIVE" } else { "NEGATIVE" }
+                                ),
+                            },
+                        ),
+                        _ => {
+                            if let Some(group) = repeated_group_children(child)
+                                && matches!(group.first(), Some(ASTNode::Lookahead { .. }))
+                            {
+                                out.push(WellformednessIssue::TemplateBindsLookaheadChild {
+                                    rule: rule_name.clone(),
+                                    branch_index: idx + 1,
+                                    kind: "raw_guarded",
+                                    annotation: annotation.annotation_content.clone(),
+                                    detail: format!(
+                                        "${index} binds the repeated group at slot {index} RAW, and that group OPENS with a lookahead, so every repetition's envelope carries the guard's empty node."
+                                    ),
+                                });
+                            }
+                        }
+                    },
+                    // ⛔ `k` is ZERO-BASED: the frontend stores `$N::K*` as
+                    // `ExtractionTarget::Index(K - 1)` (`unified_return_ast.rs`, `user_idx - 1`).
+                    // The first cut of this arm read it as 1-based and reported
+                    // `list_of_type_assignments` as `$2::1*` taking the guard — the right VERDICT
+                    // by the wrong ARITHMETIC, which is the worst kind of green. Messages print the
+                    // author's own spelling (`k + 1`).
+                    Some(k) => {
+                        let Some(group) = repeated_group_children(child) else {
+                            continue;
+                        };
+                        let spelled = k + 1;
+                        if k >= group.len() {
+                            out.push(WellformednessIssue::TemplateBindsLookaheadChild {
+                                rule: rule_name.clone(),
+                                branch_index: idx + 1,
+                                kind: "slice_arity",
+                                annotation: annotation.annotation_content.clone(),
+                                detail: format!(
+                                    "${index}::{spelled}* extracts child {spelled} of the repeated group at slot {index}, which has only {} child(ren).",
+                                    group.len()
+                                ),
+                            });
+                        } else if let ASTNode::Lookahead { positive, .. } = &group[k] {
+                            out.push(WellformednessIssue::TemplateBindsLookaheadChild {
+                                rule: rule_name.clone(),
+                                branch_index: idx + 1,
+                                kind: "slice_child",
+                                annotation: annotation.annotation_content.clone(),
+                                detail: format!(
+                                    "${index}::{spelled}* extracts child {spelled} of the repeated group at slot {index}, and that child is a {} lookahead, so it binds [].",
+                                    if *positive { "POSITIVE" } else { "NEGATIVE" }
+                                ),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    out
+}
+
+/// The children of a repeated group, when `node` IS one: a `Quantified` whose element is a
+/// `Sequence`. A quantified single element has one child and is returned as such, so
+/// `$N::1*` on it is in range and `$N::2*` is an arity finding.
+fn repeated_group_children(node: &ASTNode) -> Option<&[ASTNode]> {
+    let ASTNode::Quantified { element, .. } = node else {
+        return None;
+    };
+    match element.as_ref() {
+        ASTNode::Sequence { elements } => Some(elements.as_slice()),
+        other => Some(std::slice::from_ref(other)),
+    }
+}
+
+/// Every `(slot, extraction)` a template reads off the CURRENT rule's child list: `$N` yields
+/// `(N, None)` and `$N::K*` yields `(N, Some(K))`. `::first` / `::last` are deliberately NOT
+/// reported — their index is not fixed by the template, so a structural verdict about which child
+/// they land on is not available. `in_extraction` stops a `QuantifiedExtraction`'s own base from
+/// also being reported as a raw reference.
+fn collect_template_slot_refs(
+    template: &UnifiedReturnAST,
+    in_extraction: bool,
+    out: &mut Vec<(usize, Option<usize>)>,
+) {
+    match template {
+        UnifiedReturnAST::PositionalRef { index } => {
+            if !in_extraction {
+                out.push((*index, None));
+            }
+        }
+        UnifiedReturnAST::QuantifiedExtraction { base, target } => {
+            if let UnifiedReturnAST::PositionalRef { index } = base.as_ref() {
+                if let ExtractionTarget::Index(k) = target {
+                    out.push((*index, Some(*k)));
+                }
+            }
+            collect_template_slot_refs(base, true, out);
+        }
+        UnifiedReturnAST::Spread { base } | UnifiedReturnAST::FlattenSpread { base } => {
+            collect_template_slot_refs(base, in_extraction, out);
+        }
+        UnifiedReturnAST::PropertyAccess { base, .. } => {
+            collect_template_slot_refs(base, true, out);
+        }
+        UnifiedReturnAST::ArrayAccess { base, index } => {
+            collect_template_slot_refs(base, true, out);
+            collect_template_slot_refs(index, in_extraction, out);
+        }
+        UnifiedReturnAST::Object { properties } => {
+            let mut keys: Vec<&String> = properties.keys().collect();
+            keys.sort();
+            for key in keys {
+                collect_template_slot_refs(&properties[key], false, out);
+            }
+        }
+        UnifiedReturnAST::Array { elements } => {
+            for element in elements {
+                collect_template_slot_refs(element, false, out);
+            }
+        }
+        UnifiedReturnAST::LrChainFold {
+            initial, suffixes, ..
+        } => {
+            collect_template_slot_refs(initial, false, out);
+            collect_template_slot_refs(suffixes, false, out);
+        }
+        UnifiedReturnAST::StringLiteral { .. }
+        | UnifiedReturnAST::NumberLiteral { .. }
+        | UnifiedReturnAST::BooleanLiteral { .. }
+        | UnifiedReturnAST::NullLiteral
+        | UnifiedReturnAST::Identifier { .. }
+        | UnifiedReturnAST::Passthrough
+        | UnifiedReturnAST::MatchedText => {}
     }
 }
 
@@ -6133,4 +6395,197 @@ mod tests {
         );
         assert!(c.genuine.is_empty());
     }
+
+    // ---- ENGINE-UNIVERSAL-SERVICES.106: a return template binding a LOOKAHEAD child ----------
+
+    /// One helper so every arm below is a statement about the DETECTOR and not about scaffolding.
+    fn lookahead_slot_case(
+        branch: ASTNode,
+        template: UnifiedReturnAST,
+        spelling: &str,
+    ) -> Vec<WellformednessIssue> {
+        use crate::ast_pipeline::BranchAnnotation;
+        let grammar: HashMap<String, ASTNode> = HashMap::from([("s".to_string(), branch)]);
+        let mut annotations = Annotations::default();
+        annotations.branch_return_annotations.insert(
+            "s".to_string(),
+            vec![Some(BranchAnnotation {
+                annotation_type: "return_object".to_string(),
+                annotation_content: spelling.to_string(),
+                parsed_ast: Some(template),
+            })],
+        );
+        detect_lookahead_slot_templates(&grammar, &["s".to_string()], Some(&annotations))
+    }
+
+    fn la(name: &str) -> ASTNode {
+        ASTNode::Lookahead {
+            element: Box::new(rule_ref(name)),
+            positive: false,
+        }
+    }
+
+    fn star(elements: Vec<ASTNode>) -> ASTNode {
+        ASTNode::Quantified {
+            element: Box::new(ASTNode::Sequence { elements }),
+            quantifier: "*".to_string(),
+        }
+    }
+
+    #[test]
+    fn la_slot_a_positional_ref_on_a_lookahead_child_is_reported() {
+        // `s := !kw_type ident assign data_type -> {name: $1, value: $2}` — the SHIPPED shape of
+        // `type_assignment_sv_2017` from release 1.0.79 to 1.0.229: `$1` is the GUARD, so every
+        // `parameter type T = int` read `name: []` and lost its default type for 150 releases.
+        let issues = lookahead_slot_case(
+            ASTNode::Sequence {
+                elements: vec![la("kw_type"), rule_ref("ident"), rule_ref("data_type")],
+            },
+            UnifiedReturnAST::Object {
+                properties: HashMap::from([
+                    (
+                        "name".to_string(),
+                        Box::new(UnifiedReturnAST::PositionalRef { index: 1 }),
+                    ),
+                    (
+                        "value".to_string(),
+                        Box::new(UnifiedReturnAST::PositionalRef { index: 2 }),
+                    ),
+                ]),
+            },
+            "{name: $1, value: $2}",
+        );
+        assert_eq!(issues.len(), 1, "expected exactly the $1 finding: {issues:?}");
+        assert!(
+            matches!(&issues[0], WellformednessIssue::TemplateBindsLookaheadChild { kind, .. } if *kind == "la_slot"),
+            "{issues:?}"
+        );
+    }
+
+    #[test]
+    fn slice_child_an_extraction_landing_on_the_guard_is_reported() {
+        // `s := item ( !dot comma item )* -> [$1, $2::2*]` — the `.13c.2s` argument lists: the
+        // guard is child 1, so `::2*` takes the COMMA and `::1*` would take the guard itself.
+        // ⛔ The index is stored ZERO-BASED (`$2::2*` is `Index(1)`), which is the arithmetic the
+        // first cut of this detector got wrong while still printing a finding.
+        let branch = ASTNode::Sequence {
+            elements: vec![
+                rule_ref("item"),
+                star(vec![la("dot"), rule_ref("comma"), rule_ref("item")]),
+            ],
+        };
+        let guard_slice = UnifiedReturnAST::Array {
+            elements: vec![UnifiedReturnAST::QuantifiedExtraction {
+                base: Box::new(UnifiedReturnAST::PositionalRef { index: 2 }),
+                target: ExtractionTarget::Index(0),
+            }],
+        };
+        let issues = lookahead_slot_case(branch.clone(), guard_slice, "[$2::1*]");
+        assert_eq!(issues.len(), 1, "{issues:?}");
+        assert!(
+            matches!(&issues[0], WellformednessIssue::TemplateBindsLookaheadChild { kind, .. } if *kind == "slice_child"),
+            "{issues:?}"
+        );
+
+        // ⭐ THE TWO-SIDED HALF: `::3*` on the SAME group is the CORRECTED spelling and must be
+        // silent. `list_of_type_assignments` ships exactly that over a guard-opened group, so a
+        // rule "any extraction on a guard-opened group is suspect" would fire on the shipped
+        // grammar — which is why the separator-shift kind is left to the textual auditor.
+        let corrected = UnifiedReturnAST::Array {
+            elements: vec![UnifiedReturnAST::QuantifiedExtraction {
+                base: Box::new(UnifiedReturnAST::PositionalRef { index: 2 }),
+                target: ExtractionTarget::Index(2),
+            }],
+        };
+        assert!(
+            lookahead_slot_case(branch, corrected, "[$2::3*]").is_empty(),
+            "the correctly renumbered extraction must be silent"
+        );
+    }
+
+    #[test]
+    fn slice_arity_an_extraction_past_the_group_is_reported() {
+        let issues = lookahead_slot_case(
+            ASTNode::Sequence {
+                elements: vec![
+                    rule_ref("item"),
+                    star(vec![la("dot"), rule_ref("comma"), rule_ref("item")]),
+                ],
+            },
+            UnifiedReturnAST::QuantifiedExtraction {
+                base: Box::new(UnifiedReturnAST::PositionalRef { index: 2 }),
+                target: ExtractionTarget::Index(8),
+            },
+            "$2::9*",
+        );
+        assert_eq!(issues.len(), 1, "{issues:?}");
+        assert!(
+            matches!(&issues[0], WellformednessIssue::TemplateBindsLookaheadChild { kind, .. } if *kind == "slice_arity"),
+            "{issues:?}"
+        );
+    }
+
+    #[test]
+    fn raw_guarded_a_group_opening_with_a_lookahead_bound_raw_is_reported() {
+        // `mixed_string_parameter_port_list`'s shape: the envelope carries the guard's empty node
+        // beside every item. ⛔ A group that does NOT open with a lookahead is silent, which is the
+        // control that keeps this from being "any raw group bind".
+        let guarded = ASTNode::Sequence {
+            elements: vec![
+                rule_ref("item"),
+                star(vec![la("dot"), rule_ref("comma"), rule_ref("item")]),
+            ],
+        };
+        let issues = lookahead_slot_case(
+            guarded,
+            UnifiedReturnAST::PositionalRef { index: 2 },
+            "$2",
+        );
+        assert_eq!(issues.len(), 1, "{issues:?}");
+        assert!(
+            matches!(&issues[0], WellformednessIssue::TemplateBindsLookaheadChild { kind, .. } if *kind == "raw_guarded"),
+            "{issues:?}"
+        );
+
+        let unguarded = ASTNode::Sequence {
+            elements: vec![
+                rule_ref("item"),
+                star(vec![rule_ref("comma"), rule_ref("item")]),
+            ],
+        };
+        assert!(
+            lookahead_slot_case(unguarded, UnifiedReturnAST::PositionalRef { index: 2 }, "$2")
+                .is_empty(),
+            "a group that does not open with a lookahead is not raw_guarded"
+        );
+    }
+
+    #[test]
+    fn a_lookahead_the_template_never_references_is_silent() {
+        // The population is TEMPLATES, not lookaheads: a guard nothing binds is correct grammar.
+        assert!(
+            lookahead_slot_case(
+                ASTNode::Sequence {
+                    elements: vec![la("kw_type"), rule_ref("ident")],
+                },
+                UnifiedReturnAST::PositionalRef { index: 2 },
+                "$2",
+            )
+            .is_empty()
+        );
+    }
+
+    #[test]
+    fn no_annotations_and_a_non_sequence_branch_are_both_silent() {
+        let grammar: HashMap<String, ASTNode> =
+            HashMap::from([("s".to_string(), rule_ref("item"))]);
+        assert!(detect_lookahead_slot_templates(&grammar, &["s".to_string()], None).is_empty());
+        // A branch that is not a Sequence exposes no positional slots — `positional_capture_bound`
+        // returns 0 there and `W_RET_BRANCH_NOT_SEQUENCE` owns that population, not this arm.
+        assert!(
+            lookahead_slot_case(la("kw_type"), UnifiedReturnAST::PositionalRef { index: 1 }, "$1")
+                .is_empty()
+        );
+    }
+
 }
