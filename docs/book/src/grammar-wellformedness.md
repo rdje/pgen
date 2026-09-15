@@ -2737,6 +2737,23 @@ relabelling*:
 - **It is reported as an adjudication correction, never as burn-down yield.** The tree states the
   before→after in both directions and separately from any grammar work.
 
+Two later corrections follow the same two rules and are worth naming because they run in *opposite
+directions* across the edition boundary, and each is decided by a clause plus a parse rather than by
+reading the file. The **edition-keyword pass** (`SV-CORPUS-GRAD.3.37`) re-keys an `sv_2017` row
+`must_reject` when its parse stops ON a word IEEE 1800-2017 Annex B reserves and IEEE 1364-2005
+Annex B does not (`var`, `global`, `new`, …) *and* the `verilog_2005` profile accepts the same
+bytes: a Verilog-2005 test binding such a word as a name is legal 1364-2005 and not SystemVerilog, so
+the SV parser's refusal was the standard's. The **edition-operator pass** (`SV-CORPUS-GRAD.19`)
+is its mirror on the `verilog_2005` lane: a row keyed `must_accept` whose parse stops ON `++` or
+`--` is re-keyed `must_reject` when the `sv_2017` profile accepts the same bytes — IEEE 1364-2005
+A.8.6 lists no increment or decrement operator and its for loop takes a `variable_assignment` in
+its step, while IEEE 1800-2017 A.8.6 derives `inc_or_dec_operator ::= ++ | --`. The keys that said
+otherwise were a tool's testimony: Icarus compiles `i++` under `-g2005` as an extension, and
+sv2v's harness checks its "Verilog-2005" goldens with that same `iverilog -g2005`, so `++i`
+survives in them. In both passes the second condition — the *other* profile accepts the bytes — is
+the guard against a grammar hole hiding behind the token: a row that fails it stays exactly where
+it was. Spec outranks tool, and the original basis is kept verbatim behind every correction.
+
 ⚠️ And an explained label is a statement about the *input*, not a clean bill of health for the
 parser: it says this file is not honest parser input. Of the 33 rows above, 29 were stuck exactly at
 the macro; the other 4 used one elsewhere in the file and had stopped at an unrelated construct. A

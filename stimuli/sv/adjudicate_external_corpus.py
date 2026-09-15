@@ -5071,6 +5071,144 @@ def edition_keyword_pass(lane, manifest, resolve, positions, *, measurer=None):
     return out
 
 
+# ---- SV-CORPUS-GRAD.19: the EDITION-OPERATOR pass (verilog_2005 lane) ---------------------------
+# The mirror of .3.37 in the other direction. A file the verilog_2005 lane keys must_accept whose
+# parse stops ON `++` / `--` is SystemVerilog text: IEEE 1364-2005 A.8.6 lists no increment or
+# decrement operator (unary_operator / binary_operator, docs/verilog/2005/txt/section-Annex_A-
+# normative-formal-syntax-definition.txt:951-957) and A.6.8's for loop takes a variable_assignment
+# in its step (:621), so the text has no 1364-2005 derivation; IEEE 1800-2017 A.8.6
+# `inc_or_dec_operator ::= ++ | --` (docs/systemverilog/2017/md/section-41-data-read-api.md:3225)
+# derives it. The keys that said otherwise are a tool's testimony: Icarus 13.0 compiles `i++` under
+# -g2005 as well (measured 2026-09-15 on ivtest random.v), and sv2v's goldens are checked by that
+# same iverilog, so `++i` survives in "Verilog-2005" output. Spec outranks tool. The re-key is
+# MECHANICAL and two-sided: the stop must be ON the operator (comments and strings blanked, the
+# layout gap skipped) AND the sv_2017 profile must ACCEPT the same bytes - the guard against a
+# grammar hole hiding behind the operator, exactly as .3.37 demanded the verilog_2005 accept.
+EDITION_OPERATOR_BASIS_TAG = "EDITION-OPERATOR (SV-CORPUS-GRAD.19)"
+INC_OR_DEC_OPERATORS = ("++", "--")
+
+
+def stuck_operator(text: str, furthest):
+    """`(op, at)` when the parse stopped ON `++` or `--` (comments and strings blanked, the layout
+    gap after `furthest` skipped), else `(None, at)`; `(None, None)` with no position."""
+    if furthest is None:
+        return None, None
+    stripped = blank_comments_and_strings(text)
+    i = min(furthest, len(stripped))
+    while i < len(stripped) and stripped[i].isspace():
+        i += 1
+    op = stripped[i:i + 2]
+    return (op, i) if op in INC_OR_DEC_OPERATORS else (None, i)
+
+
+def edition_operator_pass(lane, manifest, resolve, positions, *, measurer=None):
+    """SV-CORPUS-GRAD.19. Every row keyed must_accept and observed `fail` is a candidate; the row is
+    re-keyed must_reject (=> `match`) iff the parse stops ON `++` / `--` AND the sv_2017 profile
+    accepts the bytes (measured here). Every other row is byte-identical on the way out; the basis
+    carries the byte, the line, the operator and both cites."""
+    if measurer is None:
+        def measurer(raw):
+            sg = _sg()
+            m = sg.machinery()
+            saved = m.PROFILE
+            m.PROFILE = "sv_2017"
+            try:
+                ok, _surface, _furthest, _trace = m.probe_text(raw, trace=False)
+            finally:
+                m.PROFILE = saved
+            return bool(ok)
+    out = []
+    ruled = 0
+    for suite, rel, observed, expected, verdict, basis in manifest:
+        # ⛔ ONE condition, no `continue`: every row reaches `out.append` (the .3.37 lesson).
+        if expected == "must_accept" and observed == "fail":
+            text = read_text(resolve(suite, rel))
+            op, at = stuck_operator(text, positions.get((suite, rel)))
+            if op is not None and measurer(text):
+                line = text.count("\n", 0, at) + 1
+                expected, verdict, ruled = "must_reject", "match", ruled + 1
+                basis = (f"{EDITION_OPERATOR_BASIS_TAG}: the {lane} parse stops at byte {at} (line {line}) ON `{op}` - "
+                         "IEEE 1364-2005 A.8.6 lists no increment/decrement operator (docs/verilog/2005/txt/"
+                         "section-Annex_A-normative-formal-syntax-definition.txt:951-957) and A.6.8's for loop takes a "
+                         "variable_assignment in its step (:621), so the text has no 1364-2005 derivation; IEEE 1800-2017 "
+                         "A.8.6 inc_or_dec_operator ::= ++ | -- (docs/systemverilog/2017/md/section-41-data-read-api.md:3225) "
+                         "derives it and the sv_2017 profile ACCEPTS these bytes (measured here, by parsing) - SystemVerilog "
+                         "text in a Verilog-2005 lane; Icarus 13.0 compiles it under -g2005 too (an extension, measured), "
+                         "which is the reading the suite's key records - a Verilog tool's testimony. Spec outranks tool. "
+                         "Original key: must_accept - " + basis)
+        out.append((suite, rel, observed, expected, verdict, basis))
+    print(f"edition-operator pass [{lane}]: {ruled} row(s) re-keyed must_reject (parse stopped ON ++/--; sv_2017 accepts)",
+          file=sys.stderr)
+    return out
+
+
+def _self_test_edition_operator() -> int:
+    """SV-CORPUS-GRAD.19 arms: the pass re-keys ONLY a row that stops ON `++`/`--` AND that the fake
+    sv_2017 measurer accepts; an operator stop the measurer refuses, a non-operator stop, an operator
+    inside a comment or a string, and a non-candidate row all pass through byte-identical."""
+    import tempfile
+    fails = []
+    calls = []
+
+    def check(name, cond):
+        print(f"  {'PASS' if cond else 'FAIL'}  edition-operator: {name}")
+        if not cond:
+            fails.append(name)
+
+    with tempfile.TemporaryDirectory(dir=str(Path(__file__).resolve().parent.parent.parent / "rust/target")) as td:
+        d = Path(td)
+        (d / "s").mkdir()
+        bodies = {"a.v": "module a;\ninteger i;\ninitial for (i = 0; i < 4; i++) $display(i);\nendmodule\n",
+                  "b.v": "module b;\ninteger i;\ninitial begin i = 0; i++; end\nendmodule\n",
+                  "c.v": "module c;\nreg x;\nendmodule\n",
+                  "d.v": "module d; // i++ in a comment\ninitial $display(\"i++\");\nreg y;\nendmodule\n",
+                  "e.v": "module e;\ninteger i;\ninitial for (i = 4; i > 0; --i) $display(i);\nendmodule\n",
+                  "f.v": "module f; endmodule\n",
+                  "g.v": "module g;\ninteger i;\ninitial i++;\nendmodule\n"}
+        for name, body in bodies.items():
+            (d / "s" / name).write_text(body)
+        positions = {("s", "a.v"): bodies["a.v"].index("i++") + 1, ("s", "b.v"): bodies["b.v"].index("++"),
+                     ("s", "c.v"): bodies["c.v"].index("x;"), ("s", "d.v"): bodies["d.v"].index("reg y"),
+                     ("s", "e.v"): bodies["e.v"].index("--"), ("s", "g.v"): bodies["g.v"].index("++")}
+        manifest = [("s", "a.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key A"),
+                    ("s", "b.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key B"),
+                    ("s", "c.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key C"),
+                    ("s", "d.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key D"),
+                    ("s", "e.v", "fail", "must_accept", "divergence:explained_svpp_macro_use", "key E"),
+                    ("s", "f.v", "pass", "must_accept", "match", "key F"),
+                    ("s", "g.v", "fail", "must_reject", "match", "key G")]
+
+        def measurer(raw):
+            calls.append(raw)
+            return "i++; end" not in raw            # b.v: the fake sv_2017 refuses
+
+        out = edition_operator_pass("verilog_2005", manifest, lambda s_, r_: d / s_ / r_, positions, measurer=measurer)
+        by = {(r[0], r[1]): r for r in out}
+        check("a.v (stops ON ++ from the layout gap, measurer accepts) is re-keyed must_reject and matches",
+              by[("s", "a.v")][3] == "must_reject" and by[("s", "a.v")][4] == "match"
+              and by[("s", "a.v")][5].startswith(EDITION_OPERATOR_BASIS_TAG) and "line 3" in by[("s", "a.v")][5]
+              and by[("s", "a.v")][5].endswith("Original key: must_accept - key A"))
+        check("e.v (stops ON --, an explained_svpp row, measurer accepts) is re-keyed the same way",
+              by[("s", "e.v")][3] == "must_reject" and by[("s", "e.v")][4] == "match")
+        check("b.v (stops ON ++, measurer refuses) is byte-identical", by[("s", "b.v")] == manifest[1])
+        check("c.v (stops on a non-operator) is byte-identical and never measured", by[("s", "c.v")] == manifest[2])
+        check("d.v (the operator only inside a comment and a string; the stop is on `reg`) is byte-identical",
+              by[("s", "d.v")] == manifest[3])
+        check("f.v (a match) and g.v (a must_reject) are byte-identical and never measured",
+              by[("s", "f.v")] == manifest[5] and by[("s", "g.v")] == manifest[6])
+        check("every row came out exactly once, in order", [r[:2] for r in out] == [r[:2] for r in manifest])
+        check("the measurer ran exactly for the operator stops (a, b, e)",
+              sorted(c.split("module ")[1][0] for c in calls) == ["a", "b", "e"])
+        check("stuck_operator: no position => (None, None); a `--` inside a string is not a stop",
+              stuck_operator("x", None) == (None, None)
+              and stuck_operator("initial $display(\"--\"); reg z;", 8)[0] is None)
+    if fails:
+        print(f"edition-operator self-test: FAIL ({len(fails)} failing)")
+        return 1
+    print("edition-operator self-test: PASS (0 failing)")
+    return 0
+
+
 def _self_test_edition_keyword() -> int:
     """SV-CORPUS-GRAD.3.37 arms: the pass re-keys ONLY a row that stops ON an 1800-only keyword AND
     that the fake verilog_2005 measurer accepts; a keyword stop the measurer refuses (`null` in a
@@ -5878,7 +6016,8 @@ def main():
         return (_self_test_extension_guard(args.subs_root / "iverilog" / "ivtest")
                 | _self_test_store_gate()
                 | _self_test_edition_keyword()
-                | _self_test_keywords_region())
+                | _self_test_keywords_region()
+                | _self_test_edition_operator())
 
     verify_outcome_identity(args.report, [args.results, args.positions],
                             rerun="stimuli/run_external_corpus.sh sv")
@@ -6147,6 +6286,7 @@ def main():
         v_manifest.append(finish_row(suite, rel, observed, text, expected, basis, positions,
                                      profile="verilog_2005"))
 
+    v_manifest = edition_operator_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
     v_manifest = store_gate_pass("verilog_2005", v_manifest, resolve_corpus_path(args), args.report_v2005,
                                  store_gate_cache, args.store_gate_jobs)
     _sg().save_cache(args.store_gate_cache, store_gate_cache)

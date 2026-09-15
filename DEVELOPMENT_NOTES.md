@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-15 — SV-CORPUS-GRAD.19 (`PGEN-SV-CORPUS-GRAD-0397`): read the bar at its token, and a family falls out
+
+- **Group the bar by the token the parser choked on, not by the suite that supplied the row.** The `verilog_2005` bar looked like thirty unrelated files; resolved to their stuck token, eleven of them stop on `++`/`--`. One clause and one mechanical test settled all eleven in one pass, where per-file reading would have produced eleven rulings.
+- **A permissive tool's "compiles" is not "valid in the standard".** Icarus accepts `i++` under `-g2005`; sv2v checks its goldens with that Icarus; so both suites' keys inherited an extension as if it were the standard. The `.3.37` lesson in the other direction: the key must be derived from the clause, and the tool's verdict recorded as what it is.
+- **Keep the two-sided guard.** Re-keying on the token alone would file a grammar hole as an edition contrast; requiring the other profile to ACCEPT the same bytes is what turns "the parser refused it" into "the standard refuses it". The two macro rows that fail the guard are the proof the guard is live.
+- **Promotion**: *resolve a bar to its stuck tokens before choosing the next slice*; *a tool's acceptance under an edition flag is testimony about the tool*.
+
 ## 2026-09-15 — SV-CORPUS-GRAD.18 (`PGEN-SV-CORPUS-GRAD-0396`): the engine learned a clause and the answer key did not, so parsed rows stayed defects
 
 - **A lane that re-reads only what the key already explains cannot see a row the key never classified.** `SVPP-EXPANSION.8` measured four rows going `fail → pass` under the pipeline and recorded the pipeline bar `9 → 8` without asking why it was not `9 → 4`. The answer: the re-adjudication re-reads `explained_svpp*`, `deferred:*` and `must_reject` rows; an `unexplained_rejects_valid` row is, by construction, never re-read, so the pipeline tuple inherited the raw verdict. When the ENGINE gains an operation, the KEY needs the matching class in the same breath — otherwise the bar reports a defect the product has already fixed.
