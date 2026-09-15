@@ -18,9 +18,20 @@ THE PROOF, PER ROW, BY PARSING. Nothing here is relabelled by argument. A row ea
      names the parser DEMANDED AND LACKED at the failure, declare them, repeat; `minimize`:
      drop every declaration the parse does not need). The winning names and forms are published
      beside the verdict, so a reader can re-run the proof;
-  2. no wildcard import in the file names a package the file does not declare — there the
-     boundary says ACCEPT, so a rejection would be the gate being UNSOUND, a defect for
-     `SV-PARSE-STRICT`, and the row stays in the bar with that reason;
+  2. no wildcard import of a package the file does not declare stands BEFORE the use the gate
+     refused — there the boundary says ACCEPT, so a rejection would be the gate being UNSOUND, a
+     defect for `SV-PARSE-STRICT`, and the row stays in the bar with that reason.
+     ⛔ (SV-CORPUS-GRAD.17(a)) "BEFORE" is the LRM's own word and it was missing until 2026-09-15.
+     IEEE 1800-2017 §26.3 (section-26-packages.md:209-210 and :224): an identifier is potentially locally
+     visible "if there is a wildcard import of a package BEFORE THAT POINT within the current
+     scope", and for the outer scopes "the potentially locally visible identifiers DEFINED PRIOR
+     TO THE POINT OF THE REFERENCE". An import that starts after the refused use can supply
+     nothing there. The file-wide test kept `reversed_definition.sv` in the bar on an
+     `import pkg2::*;` sixty-five lines BELOW the refusal, while route 1b had already published
+     the proof. The anchor is the deepest use the search proved refused — exact for route 1c (an
+     offset into the file's own bytes) and, for route 1b, measured on the RENAMED text, which is
+     never shorter than the original, so the comparison errs toward FIRING and never toward
+     excusing; with no anchor (route 1) the file-wide test stands unchanged;
   3. no package `export` — visibility the file cannot settle on its own;
   1b. (SV-CORPUS-GRAD.13x.e) — when route 1 fails because the file ITSELF declares the demanded
      name with a kind the use-site cannot take (`wire w; w x;`, `package pkg; ... extends pkg`,
@@ -38,6 +49,28 @@ THE PROOF, PER ROW, BY PARSING. Nothing here is relabelled by argument. A row ea
      clause that DEFINES them; §19.6.1.4 is the example that uses them): the file owes no
      declaration for those, so the
      demand itself is a grammar defect and the row stays in the bar.
+
+  1c. (SV-CORPUS-GRAD.17(b)) — route 1 with ONE subtraction removed and its own round budget,
+     tried only when routes 1 and 1b have BOTH failed, so no verdict either produces can move.
+     Route 1 (`drive`) refuses to declare a name the file declares itself, and route 1b reaches
+     those names by RENAMING; neither reaches the third case, a name DECLARED ONLY AFTER ITS USE.
+     Route 1 skips it, and route 1b's rename keeps one use and renames the declaration, so a file
+     with k pre-declaration uses needs k rounds and builds a `__pgen_decl__pgen_decl…` chain
+     (MEASURED on an sv_2023 row: seven levels deep and still growing). ⭐ The parser does not
+     refuse a REDECLARATION — `class T; endclass … typedef logic T;` parses — so the honest minimal
+     transformation is to declare the name EARLIER and leave the file's own declaration standing.
+     What that proves is exactly IEEE 1800-2017 §6.18, *"The declaration of a user-defined data
+     type shall precede any reference to its type_identifier"* (section-65536-216-bits.md:575-576).
+     `HierBitSlice/dut.sv` is the row: 14 type names it never declares plus `scalar_t`, used at
+     line 9 and declared at line 50. It read `residual:not_parsed_with_declarations (demanded:
+     FLOAT32_EXP_WIDTH,FLOAT32_SIG_WIDTH)` — two PARAMETER names the wide fallback harvested when
+     the search had nothing else to try. ⛔ The BOUND is the other half of the defect: the failure
+     region is local, so the fixed point admits about one name per round and this row converges at
+     round 15, one past `drive`'s `MAX_ROUNDS` of 14 — published state that cannot be raised, so
+     route 1c carries `ROUNDS_1C` instead. Every candidate is still admitted by `drive`'s own rule
+     (a name that makes the parse reach LESS far is refused) and `minimize` drops every declaration
+     the parse does not need, so the published prelude is minimal in names AND in kinds
+     (`declared_as:<kind>`).
 
 THE MEMO. Measuring costs a real parse per round per row (~3 min for 250 rows), so the verdicts
 are memoised in a TRACKED cache keyed by (lane, suite, relpath, file sha256, parser binary
@@ -108,13 +141,25 @@ def machinery():
     return _MACHINERY
 
 
-def soundness_reason(stripped: str, names) -> str | None:
+def soundness_reason(stripped: str, names, anchor: int | None = None) -> str | None:
     """Why a rejection may NOT be the sound gate — conditions 2..4 of the module docstring.
-    `stripped` has comments and strings blanked, so a mention inside a comment is not a fact."""
+    `stripped` has comments and strings blanked, so a mention inside a comment is not a fact.
+
+    `anchor` (SV-CORPUS-GRAD.17(a)) is the byte offset of the DEEPEST use the search proved the
+    gate refused. IEEE 1800-2017 §26.3 makes visibility from a wildcard import positional in both
+    directions it is searched — "a wildcard import of a package BEFORE THAT POINT within the
+    current scope", then "the potentially locally visible identifiers DEFINED PRIOR TO THE POINT
+    OF THE REFERENCE" for each outer scope — so an import starting after the refused use cannot
+    have supplied the name and cannot make the refusal unsound. `anchor=None` (route 1, and every
+    caller that cannot name the use) keeps the file-wide test exactly as it was, so this argument
+    can only ever REMOVE a residual, never create one."""
     declared_packages = set(PACKAGE_DECL_RE.findall(stripped))
-    for pkg in WILDCARD_IMPORT_RE.findall(stripped):
-        if pkg not in declared_packages:
-            return "residual:unresolved_wildcard_import"
+    for mm in WILDCARD_IMPORT_RE.finditer(stripped):
+        if mm.group(1) in declared_packages:
+            continue
+        if anchor is not None and mm.start() > anchor:
+            continue  # §26.3: an import below the refused use is not in scope at it
+        return "residual:unresolved_wildcard_import"
     if EXPORT_RE.search(stripped):
         return "residual:package_export"
     if any(n in PREDEFINED_TYPE_NAMES for n in names):
@@ -133,15 +178,21 @@ def measure(raw: str, profile: str) -> tuple:
     none_wrapper = next(w for w in m.WRAPPERS if w[0] == "none")
     widest = m.FORM_LADDER[-1]
     ok, names, _rounds, _furthest = m.drive(raw, none_wrapper, widest, reserved)
+    stripped = m.blank_comments_and_strings(raw)
     if not ok:
         other = other_kind_explanation(m, raw, reserved)
         if other is not None:
-            fixed_names, fixed_forms = other
-            reason = soundness_reason(m.blank_comments_and_strings(raw), fixed_names)
+            fixed_names, fixed_forms, anchors = other
+            reason = soundness_reason(stripped, fixed_names, anchor=max(anchors, default=None))
             return (reason or EXPLAINED, tuple(fixed_names), tuple(f"{REDECLARED_PREFIX}{f}" for f in fixed_forms))
+        composed = composed_explanation(m, raw, reserved)                     # SV-CORPUS-GRAD.17(b)
+        if composed is not None:
+            c_names, c_forms, c_anchor = composed
+            reason = soundness_reason(stripped, c_names, anchor=c_anchor)
+            return (reason or EXPLAINED, tuple(c_names), tuple(c_forms))
         return ("residual:not_parsed_with_declarations", tuple(sorted(names)), ())
     keep, forms = m.minimize(raw, none_wrapper, names, widest)
-    reason = soundness_reason(m.blank_comments_and_strings(raw), keep)
+    reason = soundness_reason(stripped, keep)
     return (reason or EXPLAINED, tuple(sorted(keep)), tuple(forms))
 
 
@@ -149,16 +200,27 @@ REDECLARED_PREFIX = "redeclared_as:"
 RENAME_SUFFIX = "__pgen_decl"
 
 
+def kept_occurrence(stripped: str, name: str, stuck: int) -> int | None:
+    """The byte offset of the occurrence of `name` the gate refused: the last one at-or-before the
+    parser's furthest byte, else the nearest one. None when fewer than two code occurrences exist
+    (route 1b has no subject there). Split out of `rename_except_nearest` by SV-CORPUS-GRAD.17(a)
+    so the offset can be PUBLISHED as the soundness anchor instead of being discarded."""
+    hits = [mm.start() for mm in re.finditer(r"\b" + re.escape(name) + r"\b", stripped)]
+    if len(hits) < 2:
+        return None
+    before = [h for h in hits if h <= stuck]
+    return max(before) if before else min(hits, key=lambda h: abs(h - stuck))
+
+
 def rename_except_nearest(raw: str, stripped: str, name: str, stuck: int) -> str | None:
     """Every code occurrence of `name` (decided on the comment/string-blanked twin, which keeps
     offsets) is renamed `<name>__pgen_decl` EXCEPT the one whose start is nearest at-or-before the
     parser's furthest byte — the use the gate refused. None when fewer than two code occurrences
     exist (then the plain prelude of route 1 was the whole story and this route has no subject)."""
-    hits = [mm.start() for mm in re.finditer(r"\b" + re.escape(name) + r"\b", stripped)]
-    if len(hits) < 2:
+    keep = kept_occurrence(stripped, name, stuck)
+    if keep is None:
         return None
-    before = [h for h in hits if h <= stuck]
-    keep = max(before) if before else min(hits, key=lambda h: abs(h - stuck))
+    hits = [mm.start() for mm in re.finditer(r"\b" + re.escape(name) + r"\b", stripped)]
     out, pos = [], 0
     for h in hits:
         out.append(raw[pos:h])
@@ -169,20 +231,22 @@ def rename_except_nearest(raw: str, stripped: str, name: str, stuck: int) -> str
 
 
 def other_kind_explanation(m, raw: str, reserved):
-    """Route 1b, as a FIXED POINT like `drive`: returns (names, forms) — the demanded names whose
-    own other occurrences were renamed and which were declared as `forms[i]` — when the bytes then
-    parse; None otherwise. One name per round: the demanded names nearest the failure are tried
+    """Route 1b, as a FIXED POINT like `drive`: returns (names, forms, anchors) — the demanded
+    names whose own other occurrences were renamed, the kind each was declared as, and the byte
+    offset of the use the gate refused for each (SV-CORPUS-GRAD.17(a): that offset IS the
+    soundness anchor §26.3 asks for, and it was being computed and thrown away) — when the bytes
+    then parse; None otherwise. One name per round: the demanded names nearest the failure are tried
     first, each single-form rung in ladder order; a step is ADOPTED only if the bytes parse or the
     parse reaches strictly further than before (the `drive` admission rule, so a rename can never
     make a row look explained by moving the failure backwards). Measured need for the loop:
     `t_implements_noninterface_bad.v` carries TWO wrong-kind uses (`implements` on a class,
     `extends` on an interface class) and one rename explains neither alone."""
     single_forms = [f for rung in m.FORM_LADDER for f in rung if len(rung) == 1]
-    text, prelude, done, forms = raw, "", [], []
+    text, prelude, done, forms, anchors = raw, "", [], [], []
     for _round in range(m.MAX_ROUNDS):
         ok, surface, furthest, _ = m.probe_text(prelude + text, trace=False)
         if ok:
-            return (tuple(done), tuple(forms)) if done else None
+            return (tuple(done), tuple(forms), tuple(anchors)) if done else None
         reach0 = max(furthest or 0, surface or 0)
         stuck = reach0 - len(prelude)
         stripped = m.blank_comments_and_strings(text)
@@ -195,24 +259,93 @@ def other_kind_explanation(m, raw: str, reserved):
             renamed = rename_except_nearest(text, stripped, name, stuck)
             if renamed is None:
                 continue
+            keep = kept_occurrence(stripped, name, stuck)
             for form in single_forms:
                 decl = m.FORM_TEXT[form].format(n=name)
                 ok2, s2, f2, _ = m.probe_text(prelude + decl + renamed, trace=False)
                 if ok2:
-                    step = (name, form, decl, renamed)     # a form that COMPLETES the parse wins the round
+                    step = (name, form, decl, renamed, keep)  # a form that COMPLETES the parse wins the round
                     break
                 reach2 = max(f2 or 0, s2 or 0) - len(decl)
                 if reach2 > best_reach:                     # otherwise the (name, form) that reaches FURTHEST —
-                    best_reach, fallback = reach2, (name, form, decl, renamed)  # `class` on an interface-class
+                    best_reach, fallback = reach2, (name, form, decl, renamed, keep)  # `class` on an interface-class
                     # demand advances a few bytes, `iclass` advances to the next violation (measured 67 vs 135)
             if step:
                 break
         step = step or fallback
         if step is None:
             return None
-        name, form, decl, renamed = step
+        name, form, decl, renamed, keep = step
         prelude, text = prelude + decl, renamed
-        done.append(name); forms.append(form)
+        done.append(name); forms.append(form); anchors.append(keep)
+    return None
+
+
+DECLARED_PREFIX = "declared_as:"
+# ⛔ ROUTE 1C CARRIES ITS OWN ROUND BUDGET, and the reason is the second half of the defect.
+# `drive`'s `MAX_ROUNDS` is 14 and is PUBLISHED STATE (it bounds every route-1 and route-1b verdict
+# in the tracked memo), so it cannot be raised. But the failure REGION is local, so the fixed point
+# admits roughly ONE name per round: `HierBitSlice/dut.sv` converges at round 15 and 14 cut it off
+# one name short of `local_thread_idx_t` — the row read `residual` because of the BOUND, not because
+# of the question. The loop self-terminates the moment a round admits nothing and `names` only
+# grows, so this is a safety bound and not a target; 64 is four times the deepest live row.
+ROUNDS_1C = 64
+
+
+def composed_explanation(m, raw: str, reserved):
+    """Route 1c (SV-CORPUS-GRAD.17(b)) — `drive` with ONE subtraction removed: the names the file
+    itself declares. Returns (names, forms, anchor) — the minimal prelude and the deepest byte the
+    search proved refused — or None.
+
+    ⛔ CALLED ONLY AFTER ROUTES 1 AND 1B HAVE BOTH FAILED, so it is strictly additive: neither is
+    asked twice and no verdict either produces can move.
+
+    WHY IT IS JUST A SUBTRACTION. Route 1 (`drive`) refuses to declare a name the file declares
+    itself — a sound instinct, because a second declaration could mask a real defect — and `.13x.e`
+    added route 1b to reach those names by RENAMING instead. But a name DECLARED ONLY AFTER ITS USE
+    is a third case that neither reaches: route 1 skips it, and route 1b's rename keeps one use and
+    renames the declaration, so a file with k pre-declaration uses needs k rounds and builds a
+    `__pgen_decl__pgen_decl…` chain that grows the text quadratically (MEASURED on an sv_2023 row:
+    seven levels deep and still climbing). The parser does not refuse a redeclaration —
+    `class T; endclass … typedef logic T;` parses — so the honest minimal transformation is simply
+    to declare the name EARLIER and leave the file's own declaration standing: what that proves is
+    exactly IEEE 1800-2017 §6.18, *"The declaration of a user-defined data type shall precede any
+    reference to its type_identifier"* (section-65536-216-bits.md:575-576).
+
+    Every candidate is still admitted by `drive`'s own rule — a name that makes the parse reach LESS
+    far is refused — and `m.minimize` then drops every declaration the parse does not need, so the
+    published prelude is minimal in names AND in kinds."""
+    none_wrapper = next(w for w in m.WRAPPERS if w[0] == "none")
+    widest = m.FORM_LADDER[-1]
+    names: set = set()
+    anchor = 0
+    for _round in range(ROUNDS_1C):
+        text = m.compose(raw, none_wrapper, names, widest)
+        prelude_len = len(m.prelude_for(names, widest))
+        ok, surface, furthest, _ = m.probe_text(text, trace=False)
+        if ok:
+            if not names:
+                return None                  # route 1's own question; `measure` already asked it
+            keep, forms = m.minimize(raw, none_wrapper, names, widest)
+            return (tuple(sorted(keep)), tuple(f"{DECLARED_PREFIX}{f}" for f in forms), anchor)
+        stuck = furthest if furthest is not None else surface
+        if stuck is not None:
+            anchor = max(anchor, stuck - prelude_len)
+        missing = m.demanded_missing(text, reserved)
+        if not missing:
+            return None
+        stripped = m.blank_comments_and_strings(text)
+        region = m.failure_region_names(stripped, stuck) if stuck is not None else set()
+        fresh = (missing & region) - names          # ⛔ the ONE difference from `drive`: no `- declared`
+        if not fresh:
+            fresh = missing - names                 # the same WIDE fallback, admission prunes it
+            if not fresh:
+                return None
+        base = m.reach(raw, none_wrapper, names, widest)
+        admitted = {n for n in fresh if m.reach(raw, none_wrapper, names | {n}, widest) >= base}
+        if not admitted:
+            return None
+        names |= admitted
     return None
 
 
@@ -311,6 +444,18 @@ def explain_rows(lane: str, candidates, report_binary_sha: str, binary_path: Pat
 
 
 def basis_suffix(row: dict) -> str:
+    forms_list = str(row["forms"]).split("+")
+    # ⛔ `startswith`, never `in`: `declared_as:` is a SUBSTRING of `redeclared_as:`, so a
+    # containment test files every route-1b row as route 1c (caught by the two bar rows).
+    if row["verdict"] == EXPLAINED and all(f.startswith(DECLARED_PREFIX) for f in forms_list):
+        rung = ", ".join(f[len(DECLARED_PREFIX):] for f in forms_list)
+        return (" - .17(b): route 1 skips every name the file DECLARES ITSELF, so a parse that stops on a name "
+                "the file declares only AFTER that use could not be reached by it (and route 1b's rename needs one "
+                "round per pre-declaration use, building a `__pgen_decl` chain); with "
+                f"`{row['names']}` declared ({rung}) and the file's own later declaration left standing, the bytes "
+                "parse - IEEE 1800-2017 6.18, \"The declaration of a user-defined data type shall precede any "
+                "reference to its type_identifier\", and the sound store gate (SV-PARSE-STRICT boundary) is the "
+                "only obstacle")
     if row["verdict"] == EXPLAINED and str(row["forms"]).startswith(REDECLARED_PREFIX):
         names = str(row["names"]).split(",")
         forms = [f[len(REDECLARED_PREFIX):] if f.startswith(REDECLARED_PREFIX) else f for f in str(row["forms"]).split("+")]
@@ -360,6 +505,17 @@ def _self_test() -> int:
           soundness_reason(strip("package p; export q::*; endpackage\nmodule t; T x; endmodule\n"), ("T",)) == "residual:package_export")
     check("an LRM-predefined type name is a residual (grammar defect, not a missing declaration)",
           soundness_reason(strip("module t; endmodule\n"), ("CrossQueueType",)) == "residual:predefined_type_name")
+    # SV-CORPUS-GRAD.17(a) — condition 2 is POSITIONAL (IEEE 1800-2017 §26.3, "before that point"),
+    # and the default with no anchor is the file-wide test exactly as it shipped.
+    _pos = strip("module t; T x; endmodule\nmodule u; import ext_pkg::*; endmodule\n")
+    check(".17(a): an unresolved wildcard import BELOW the refused use cannot supply it — sound",
+          soundness_reason(_pos, ("T",), anchor=_pos.index("T x")) is None)
+    check(".17(a) RED: the same import ABOVE the refused use still keeps the row in the bar",
+          soundness_reason(_pos, ("T",), anchor=len(_pos) - 1) == "residual:unresolved_wildcard_import")
+    check(".17(a): with NO anchor the file-wide test is unchanged (route 1 cannot move)",
+          soundness_reason(_pos, ("T",)) == "residual:unresolved_wildcard_import")
+    check(".17(a): a RESOLVED package is never a trigger, anchor or not",
+          soundness_reason(strip("package p; endpackage\nimport p::*;\nmodule t; T x; endmodule\n"), ("T",), anchor=0) is None)
     # the memo
     with tempfile.TemporaryDirectory(dir=str(ROOT / "rust/target")) as td:
         d = Path(td)
@@ -419,6 +575,8 @@ def _self_test() -> int:
             check("a binary that is not the report's REFUSES to measure", "REFUSED" in str(e))
     # live: the parser itself, if built
     if m.PROBE.is_file():
+        m.PROFILE = PROFILES["sv_2017"]
+        reserved_live = m.sv_reserved_words(m.GRAMMAR)
         v = measure("module t;\n  T x;\nendmodule\n", "sv_2017")
         check("LIVE: `T x;` in a module is explained by declaring `T` as a class", v == (EXPLAINED, ("T",), ("class",)))
         v = measure("module t;\n  int x;\nendmodule\n", "sv_2017")
@@ -450,6 +608,21 @@ def _self_test() -> int:
                     "interface class Icls; endclass\nclass ClsBad2 extends Icls; endclass\n", "sv_2017")
         check("LIVE 1b fixed point: TWO wrong-kind uses in one file are explained in two rounds (iclass, then class)",
               v == (EXPLAINED, ("NotIcls", "Icls"), (f"{REDECLARED_PREFIX}iclass", f"{REDECLARED_PREFIX}class")))
+        # SV-CORPUS-GRAD.17(b) — route 1c. `U` is never declared (route 1 reaches it, but the row
+        # as a whole fails); `T` is declared only AFTER the use — route 1 skips every name in
+        # `declared_type_names` and route 1b cannot rename a name with one code occurrence, so the
+        # row falls through both. Route 1c is route 1 without that one subtraction.
+        _both = "module top;\n  U u;\n  T t;\nendmodule\ntypedef logic T;\n"
+        check(".17(b): route 1b ALONE cannot explain a file that also needs a plain declaration",
+              other_kind_explanation(m, _both, reserved_live) is None)
+        v = measure(_both, "sv_2017")
+        check(".17(b) LIVE: route 1c explains it — BOTH names declared, the file's own later typedef left standing",
+              v == (EXPLAINED, ("T", "U"), (f"{DECLARED_PREFIX}class",)))
+        check(".17(b): the parser does not refuse a redeclaration — which is WHY no rename is needed",
+              m.probe_text("class T; endclass\nmodule m;\n  T x;\nendmodule\ntypedef logic T;\n", trace=False)[0] is True)
+        v = measure("module top;\n  U u;\n  T t;\n  foo bar baz qux;\nendmodule\ntypedef logic T;\n", "sv_2017")
+        check(".17(b) RED: an unrelated second failure keeps the composed row RESIDUAL",
+              v[0] == "residual:not_parsed_with_declarations")
     else:
         check("LIVE arms need rust/target/release/parseability_probe (absent)", False)
     print(f"store_gate_explanations self-test: {'PASS' if not fails else 'FAIL'} ({len(fails)} failing)")

@@ -14,7 +14,7 @@ Both lanes parse the SAME population — every `.sv` / `.svh` / `.v` file under 
 | grammar raw ast | `grammars/systemverilog.ebnf` | `fe2a293d88a0f00cac5de8bc9a21ccc1719ce182fefa0655a6a727b06727ec32` |
 | sv_2017 results (output) | `stimuli/sv/characterization/results.tsv` | `9b86536adaf192ccb0eeb02af281aee1b6ee7a8475fd82e80787b986eb693355` |
 | sv_2023 results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `aa3cbc42852ae8da43be306f2e451395bc85f1a1a52c4c4ae950ae495550b8e3` |
-| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `75fa5b1c6706eef59967f8edc6af905a8a4f7999e60353c5d73366a4de4a4deb` |
+| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e25d0dc69a579fb93a12abf713dd4b0f99b9fb402b6c884710c655c1e1b99199` |
 
 ## The matrix
 

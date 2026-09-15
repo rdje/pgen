@@ -28,7 +28,7 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 | pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `54da7fc8400537707d2153cdfde9b9ef909f80f5f559cc6dc49aadef8996b9fa` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `9b86536adaf192ccb0eeb02af281aee1b6ee7a8475fd82e80787b986eb693355` |
 
-Measured at `HEAD` = `a60fad7f7+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `6dfd86cb8+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -151,10 +151,10 @@ Measured at `HEAD` = `a60fad7f7+dirty`; the parse binary is a **debug** build (t
 | `divergence:explained_svpp_conditional` | 195 | 194 | 1 | 0 | 0 | 0 |
 | `divergence:explained_svpp_include` | 133 | 23 | 103 | 7 | 0 | 0 |
 | `deferred:impl_varying` | 90 | 89 | 1 | 0 | 0 | 0 |
-| `divergence:explained_store_gate` | 56 | 0 | 56 | 0 | 0 | 0 |
+| `divergence:explained_store_gate` | 58 | 0 | 58 | 0 | 0 | 0 |
 | `deferred:verilog_ams_lane` | 25 | 5 | 19 | 1 | 0 | 0 |
-| `divergence:unexplained_rejects_valid` | 7 | 4 | 3 | 0 | 0 | 0 |
 | `deferred:ni_unimplemented` | 6 | 6 | 0 | 0 | 0 | 0 |
+| `divergence:unexplained_rejects_valid` | 5 | 4 | 1 | 0 | 0 | 0 |
 | `divergence:explained_svpp_protected_envelope` | 4 | 2 | 1 | 1 | 0 | 0 |
 | `divergence:unexplained_accepts_invalid` | 1 | 0 | 1 | 0 | 0 | 0 |
 

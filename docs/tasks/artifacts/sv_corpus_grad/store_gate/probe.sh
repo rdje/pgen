@@ -8,7 +8,7 @@
 # commit and in CI; before it, this bank was run by nothing and sat RED for six commits.
 set -u
 cd "$(dirname "$0")/../../../../.." || exit 2
-DECLARED=10
+DECLARED=12
 pass=0; fail=0
 arm() { # arm <name> <rc>  (rc 0 = PASS)
   if [ "$2" -eq 0 ]; then pass=$((pass+1)); echo "  PASS  $1"; else fail=$((fail+1)); echo "  FAIL  $1"; fi
@@ -139,6 +139,54 @@ stale = sum(1 for r in rows if r.get("instrument_sha256") != live)
 print(f"first={first} noop={noop} edited={edited} tracked_rows={len(rows)} tracked_stale={stale}")
 PY
 ); grep -Eq '^first=1 noop=0 edited=1 tracked_rows=[0-9]+ tracked_stale=0$' <<<"$out"; arm "A10 the memo key carries the instrument digest: an edit re-measures, a no-op does not, every tracked row carries the live digest ($out)" $?
+
+# A11 (SV-CORPUS-GRAD.17) the two use-before-declaration rows leave the bar EXPLAINED, and the memo says
+# by WHICH move. reversed_definition.sv: route 1b, freed by the positional condition 2 (.17(a) - the proof
+# was already published and an `import pkg2::*;` 65 lines BELOW the refusal was overriding it), so every
+# form reads `redeclared_as:`. HierBitSlice/dut.sv: route 1c, so every form reads `declared_as:` AND the
+# prelude carries MORE THAN `drive`'s MAX_ROUNDS of 14 names - the second half of .17(b) is that the row
+# converges at round 15 and the shared bound cut it off one name short, so a 14-name prelude here would
+# mean the budget regressed.
+out=$(python3 - <<'PY'
+import csv, importlib.util
+spec = importlib.util.spec_from_file_location("sg", "stimuli/sv/store_gate_explanations.py")
+sg = importlib.util.module_from_spec(spec); spec.loader.exec_module(sg)
+rows = {(r["lane"], r["suite"], r["relpath"]): r for r in csv.DictReader(
+    (l for l in open("stimuli/sv/characterization/store_gate_cache.tsv") if not l.startswith("#")), delimiter="\t")}
+a = rows.get(("sv_2017", "verible", "verible/verilog/tools/kythe/testdata/reversed_definition.sv"), {})
+b = rows.get(("sv_2017", "Surelog", "tests/HierBitSlice/dut.sv"), {})
+bn = [n for n in b.get("names", "").split(",") if n]
+ok = (a.get("verdict") == "explained" and a.get("names") == "class2,class3,class4,pkg_class1"
+      and all(f.startswith(sg.REDECLARED_PREFIX) for f in a.get("forms", "x").split("+"))
+      and b.get("verdict") == "explained" and "scalar_t" in bn and len(bn) > sg.machinery().MAX_ROUNDS
+      and all(f.startswith(sg.DECLARED_PREFIX) for f in b.get("forms", "x").split("+")))
+print(("OK " if ok else "MISMATCH ") + f"revdef={a.get('verdict')}/{a.get('forms')} "
+      + f"hbs={b.get('verdict')}/{len(bn)} names/{b.get('forms')}")
+PY
+); grep -q '^OK ' <<<"$out"; arm "A11 .17: both rows explained - 1b under the positional condition 2, 1c with a prelude past the old bound ($out)" $?
+
+# A12 (SV-CORPUS-GRAD.17) THE ORACLE THIS LEAF DID NOT BUILD. Surelog's own tracked golden log — the very
+# artifact the row's `basis` cites as "upstream testimony that the unit's single source parses" — partitions
+# the file exactly on declare-before-use (IEEE 1800-2017 §6.18: "The declaration of a user-defined data type
+# shall precede any reference to its type_identifier"): `scalar_t` is linted `Unsupported typespec` at lines
+# 9 and 35, the ONLY two uses BEFORE its line-50 typedef, at NONE of the fourteen after, and the three types
+# the file declares before use are never linted at all. Two-sided, and not a number this repository produced.
+out=$(python3 - <<'PY'
+import re
+from pathlib import Path
+log = Path("stimuli/sv/subs/Surelog/tests/HierBitSlice/HierBitSlice.log").read_text(errors="replace")
+src = Path("stimuli/sv/subs/Surelog/tests/HierBitSlice/dut.sv").read_text()
+linted = sorted({int(m) for m in re.findall(r"dut\.sv:(\d+):\d+: Unsupported typespec, scalar_t", log)})
+uses = [i for i, l in enumerate(src.splitlines(), 1) if re.search(r"\bscalar_t\b", l)]
+decl = next(i for i, l in enumerate(src.splitlines(), 1) if "typedef logic[31:0] scalar_t;" in l)
+before = [u for u in uses if u < decl]
+after = [u for u in uses if u > decl]
+clean = len(re.findall(r"Unsupported typespec, (?:float32_t|vector_t|decoded_instruction_t)", log))
+ok = linted == before and len(after) >= 10 and clean == 0
+print(("ORACLE-AGREES " if ok else "ORACLE-DISAGREES ")
+      + f"decl={decl} linted={linted} uses_before={before} uses_after={len(after)} declared_before_use_lints={clean}")
+PY
+); grep -q '^ORACLE-AGREES ' <<<"$out"; arm "A12 .17: Surelog's own golden log lints scalar_t at EXACTLY its pre-declaration uses ($out)" $?
 
 echo "store_gate bank: ${pass}/${DECLARED} as declared (fail=${fail})"
 [ "$pass" -eq "$DECLARED" ] && [ "$fail" -eq 0 ]

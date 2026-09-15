@@ -6,7 +6,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `75fa5b1c6706eef59967f8edc6af905a8a4f7999e60353c5d73366a4de4a4deb` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e25d0dc69a579fb93a12abf713dd4b0f99b9fb402b6c884710c655c1e1b99199` |
 | v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `dedaa9fe1ee993e043f075444648c03feff2647502ee2d865f4d456ac06b6652` |
 
 ## The headline
@@ -23,8 +23,8 @@
 | ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,025 | 6.3 % | parse stops on a macro use - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_conditional` | 195 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_include` | 133 | 0.8 % | parse stops on an `include - positionally gated since .12a |
-| ADJUDICATED | `divergence:explained_store_gate` | 56 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
-| ADJUDICATED | `divergence:unexplained_rejects_valid` | 7 | 0.0 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
+| ADJUDICATED | `divergence:explained_store_gate` | 58 | 0.4 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
+| ADJUDICATED | `divergence:unexplained_rejects_valid` | 5 | 0.0 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
 | ADJUDICATED | `divergence:explained_svpp_protected_envelope` | 4 | 0.0 % | IEEE 1800-2017 §34 encrypted envelope - not source text yet |
 | ADJUDICATED | `divergence:unexplained_accepts_invalid` | 1 | 0.0 % | a known defect: invalid SV the parser accepts (the axis-2 bar) |
 | ROUTED | `deferred:v2005_profile_lane` | 2,606 | 16.0 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
@@ -256,7 +256,7 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 > Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`69ebef2a5d9f66d28b872e9cc9743f00600e39cd8fe10177d90d277c81508779`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
 
-**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `9135/2606/4595/3314/7`** (raw: `7486/2606/6244/4039/8`).
+**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `9135/2606/4595/3314/5`** (raw: `7486/2606/6244/4039/6`).
 
 - **ADJUDICATED: 9,135 rows (55.9 %)** (raw 7,486, +1,649)
 - **ROUTED: 2,606 rows (16.0 %)** (raw 2,606, +0)
@@ -267,8 +267,8 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | ADJUDICATED | `match` | 5,695 | 34.9 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `pipeline:corroborated` | 1,223 | 7.5 % | a must-accept row the raw lane explained away by preprocessing PASSES once preprocessed — the explanation held; the row testifies FOR the parser |
 | ADJUDICATED | `pipeline:must_reject:match_under_expansion` | 450 | 2.8 % | a row the key expects rejected IS rejected in its own text under the pipeline — the raw lane could not reach the construct |
-| ADJUDICATED | `divergence:explained_store_gate` | 56 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
-| ADJUDICATED | `divergence:unexplained_rejects_valid` | 7 | 0.0 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
+| ADJUDICATED | `divergence:explained_store_gate` | 58 | 0.4 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
+| ADJUDICATED | `divergence:unexplained_rejects_valid` | 5 | 0.0 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
 | ROUTED | `deferred:v2005_profile_lane` | 2,606 | 16.0 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
 | NO VERDICT | `pipeline:chained:unreached_in_unit` | 1,923 | 11.8 % | DARK UNDER THE PIPELINE: a member whose every including unit rejects elsewhere (.6d.2) — the unit's own origin row carries the verdict |
 | NO VERDICT | `pipeline:chained:rejects_own_file` | 710 | 4.3 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |

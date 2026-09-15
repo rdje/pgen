@@ -138,7 +138,7 @@ Concrete grammar changes (engine untouched — [[feedback_prefer_grammar_leave_e
 - ID: `SV-PARSE-STRICT`
   Status: `active`
   Goal: the SV parser rejects provably-undeclared type/nettype identifiers at parse time, soundly.
-  Children: `SV-PARSE-STRICT.1`, `SV-PARSE-STRICT.2`, `SV-PARSE-STRICT.3`
+  Children: `SV-PARSE-STRICT.1`, `SV-PARSE-STRICT.2`, `SV-PARSE-STRICT.3`, `SV-PARSE-STRICT.4`
 
 - ID: `SV-PARSE-STRICT.1`
   Status: `done`
@@ -161,15 +161,26 @@ Concrete grammar changes (engine untouched — [[feedback_prefer_grammar_leave_e
   Verification: `pending`
   Commit: `pending`
 
+- ID: `SV-PARSE-STRICT.4`
+  Status: `todo` (ROUTED + PARKED 2026-09-15 by `SV-CORPUS-GRAD.17`, `PGEN-SV-CORPUS-GRAD-0395`; found while proving the `.13w` store-gate explanations, NOT blocking the SV release — it blocks no bar row, and the row that exposed it leaves the bar by a proof that never reaches this shape)
+  Goal: the unresolved-wildcard-import ESCAPE covers every declaration shape, not only the `net_declaration` alias branch — today `T x = new();` under an in-scope `import pkg::*;` of a package the unit does not declare is REJECTED although the parser cannot prove `T` undeclared, which is the one direction the `2026-06-09` director-confirmed boundary forbids ("accepts when it cannot prove").
+  Measured (release `parseability_probe` `bcd1193a…`, `--profile sv_2017`, the five tracked shapes under `docs/tasks/artifacts/sv_parse_strict/wildcard_escape_shapes/`, re-derived by its `probe.sh`): with `import pkg::*;` in scope and `pkg` nowhere declared, `T x;` **PASS**, `T x = 1;` **PASS**, `T x[3];` **PASS**, `T x = new();` **FAIL** (`furthest_position=38` at module scope, `34` at compilation-unit scope); with `class T; endclass` present, `T x = new();` **PASS**. WHERE: `wildcard_escape_nettype_identifier` (`grammars/systemverilog.ebnf:5224`) is reached only from the `net_declaration` alias branch — a net cannot take a class-`new` initializer, so the class-variable reading is the only one that could accept the shape and it is store-gated with no escape.
+  Acceptance: `T x = new();` under an unresolved wildcard import ACCEPTS; every `.2` reject case still REJECTS (`endmodulemodule b;`, `module a; zzqq yy;`, `foo_type b;` with NO import, bare `nt a;`); the SV corpus lanes show no `pass → fail` and the accept-set move is enumerated.
+  Verification: `pending`
+  Commit: `pending`
+
 ## Current Frontier
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | — | `SV-PARSE-STRICT.2` | `done` | The sound-gating fix landed (`PGEN-SV-PARSE-STRICT-0002`); the generator-found `endmodulemodule b;` over-acceptance is REJECTED, corpus 14/14. |
-| 1 | `SV-PARSE-STRICT.3` | `deferred` | The broader ungated identifier-categorization class (port-header / net-type family, `GRAMMAR-WELLFORMED.A2.1` "(4b)"); `.2` proved the idiom + corpus-safety. Activate on demand. |
+| 2 | `SV-PARSE-STRICT.3` | `deferred` | The broader ungated identifier-categorization class (port-header / net-type family, `GRAMMAR-WELLFORMED.A2.1` "(4b)"); `.2` proved the idiom + corpus-safety. Activate on demand. |
+| 1 | `SV-PARSE-STRICT.4` | `todo` | ⛔ The ESCAPE IS NARROWER THAN THE BOUNDARY IT IMPLEMENTS, and only one declaration shape shows it: `T x = new();` under an unresolved `import pkg::*;` is refused although the parser cannot prove `T` undeclared (`T x;`, `T x = 1;` and `T x[3];` all accept). ROUTED + PARKED by `SV-CORPUS-GRAD.17` — it blocks no axis-2 bar row. |
 
-The parser bug is FIXED (`.2` done). The only open child (`.3`, the sibling
-ungated-categorization rules) is `deferred`.
+The `.1`/`.2` parser bug is FIXED. Two children are open: `.4` (an
+over-REJECTION inside the confirmed boundary, routed 2026-09-15, the direction
+opposite to `.1`/`.2`'s over-acceptance) and `.3` (the sibling
+ungated-categorization rules), `deferred`.
 
 ## Decisions
 

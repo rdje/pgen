@@ -48,8 +48,8 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 | Outcome | Rows | Share of the corpus |
 |---|---:|---:|
 | **Passing** — the parser's verdict matches the answer key | 6 065 | 37.1 % |
-| Divergence with a recorded explanation | 1 413 | 8.6 % |
-| **Known defects** — divergence with no explanation | 8 | 0.0 % |
+| Divergence with a recorded explanation | 1 415 | 8.7 % |
+| **Known defects** — divergence with no explanation | 6 | 0.0 % |
 | Routed to another lane's manifest | 2 606 | 16.0 % |
 | **No verdict** — nothing is known about these rows | 6 244 | 38.2 % |
 | Total | 16 336 | 100.0 % |
