@@ -45,7 +45,7 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 
 **Corpus.** ⛔ **NO THIRD-PARTY CORPUS EXISTS** — the language is authored by PGEN itself, so no third-party corpus exists or ever will. NOT a measurement gap -- leg 3 is unreachable by construction and the qualifier is `Provisional (ceiling)`.
 
-**What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. **1 tree own this family's remaining work**, and **26** cross-cutting trees can gate any family.
+**What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. **1 tree own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 
 | Open tree | Status verdict | Where the detail lives |
 |---|---|---|

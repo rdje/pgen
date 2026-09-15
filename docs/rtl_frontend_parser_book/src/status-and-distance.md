@@ -45,7 +45,7 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 
 **Corpus.** ⛔ **NOT MEASURED** — whether a corpus for the full standard counts against this SUBSET language is an open ruling; until it is made, a corpus count would be measured against a denominator nobody has agreed to. Owed by `DONE-BAR.3`.
 
-**What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. **0 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
+**What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. **0 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 
 No open tree is attributed to this family — every tree that owned its work is closed. That is not the same as meeting the bar: the legs above are what decide `Done`, and cross-cutting work can still gate this family.
 

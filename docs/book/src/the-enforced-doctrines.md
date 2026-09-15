@@ -119,9 +119,9 @@ Steps 4 and 5 are enforced, not suggested. That is the whole point.
 
 <!-- BEGIN DERIVED: scripts/report_doctrines.sh --markdown -->
 
-**41 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **8**, oracle + structural **1**, structural **18**, structural + oracle **5**.
+**42 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **8**, oracle + structural **1**, structural **19**, structural + oracle **5**.
 
-**Depth, derived:** median **1926** bytes per description, thinnest **783** (`LESSON-PROMOTION`) — every one of the 41 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
+**Depth, derived:** median **1983** bytes per description, thinnest **783** (`LESSON-PROMOTION`) — every one of the 42 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
 
 Rows are in **registration order**, oldest first — so the bottom of this table is what the repository learned most recently.
 
@@ -167,7 +167,8 @@ Rows are in **registration order**, oldest first — so the bottom of this table
 | 38 | [`EBNF-ALTERNATIVE-PARITY`](#ebnf-alternative-parity) | structural + oracle | `scripts/check_ebnf_alternative_parity.sh` |
 | 39 | [`SV-RESERVED-WORDS`](#sv-reserved-words) | oracle | `scripts/check_sv_reserved_words.sh` |
 | 40 | [`SV-KEYWORD-VERSIONS`](#sv-keyword-versions) | oracle | `scripts/check_sv_keyword_versions.sh` |
-| 41 | [`PIPELINE-LANE-CURRENCY`](#pipeline-lane-currency) | structural | `scripts/check_pipeline_lane_currency.sh` |
+| 41 | [`DATA-LOCALITY`](#data-locality) | structural | `scripts/check_data_locality.sh` |
+| 42 | [`PIPELINE-LANE-CURRENCY`](#pipeline-lane-currency) | structural | `scripts/check_pipeline_lane_currency.sh` |
 
 ### `MEMORY-ARCH`
 
@@ -408,6 +409,12 @@ the SV grammar's two reserved-word regexes **EQUAL the LRM tables they stand for
 *oracle* · enforced by `scripts/check_sv_keyword_versions.sh`
 
 the preprocessor's IEEE 1800-2017 §22.14 **per-version keyword tables** (`rust/src/sv_keyword_versions.rs`) EQUAL the tables the LRM carries — derived on every run from `docs/systemverilog/2017/md/section-22-compiler-directives.md:844-1264` and compared as SETS in both directions. The tables decide which identifiers a `` `begin_keywords `` region hands the parser as ESCAPED identifiers (`SVPP-EXPANSION.8`), so a wrong table is an **accept-set change nothing else can see**. ⛔ **The PDF→md extraction MERGES table bodies and DISPLACES them past the prose**, so the two split points are DERIVED, each by an oracle blind to the others: Table 22-2 vs 22-3 is not separable by ANY property of the 1800 text — the merged body is strictly alphabetical, so *every* split point is admissible — and is split by **IEEE 1364-2005 §19.11 Tables 19-2/19-3/19-4**, a different standard and a different PDF, whose difference is then checked EQUAL to the merged body; Table 22-4 vs 22-5 has no second document and is split at the **UNIQUE** cut that leaves both tables strictly increasing — the body carries exactly one descent (`within` → `accept_on`) — and a body whose descent count is not *(tables − 1)* is **REFUSED rather than guessed**. Σ of all six tables is held equal to Annex B Table B.1 (**248**), which is §22.14.9's own sentence, and the 1800-2017 and 1800-2023 extractions are held equal word for word. The profile map and the admitted-specifier lists are held equal to `grammars/systemverilog.ebnf`'s own `@profile_alias` and `keywords_version_specifier_*` declarations, so the stage that RENDERS and the stage that PARSES cannot disagree about a profile. `--self-test` drives six refusal arms (a planted missing word, a planted foreign word, a planted wrong profile mapping, a planted missing admitted specifier, a two-descent body, and a GREEN control on the real tree). The instrument is `stimuli/sv/check_sv_keyword_versions.py` (gate / `--write` / `--print` / `--self-test`).
+
+### `DATA-LOCALITY`
+
+*structural* · enforced by `scripts/check_data_locality.sh`
+
+no tracked **LIVE** code path creates project-owned scratch OUTSIDE the repository volume — the director's standing policy (project instructions §13, [[project_north_star]]), which until 2026-09-15 was enforced by nobody. **FOUNDING MEASUREMENT** (`DATA-LOCALITY.1`): **19 live sites in 11 files** — 7 `std::env::temp_dir()`, 7 `tempfile::tempdir()`, 4 bare/off-volume `mktemp` templates, 1 Python `TemporaryDirectory()` — and **one is PRODUCTION**: the parse harness built its generated parser, its scratch crate and its compiled binary under the system temp root, a different volume on this host. ⛔⛔ The finding had been published eighteen commits earlier as a *26-test housekeeping item in one module*, routed, fixed **in that module**, and never re-read — ⇒ *a routed item is not closed by the fix; it is closed by someone re-reading the route*, and the CLASS it belonged to was never counted. ⛔⛔⛔ **The classifier was wrong three times before it was trusted, each cut pinned as a self-test arm**: cut 1 matched the CALL and read every repo-rooted template as a breach (**52** reported, **4** real); cut 2 required a terminator after the flags and read a template's opening QUOTE as the end of the call; cut 3 decided by the NAME of the variable a template used and so reported three CORRECT derived-path sites. The third is where it stops being a spelling list: a variable reference is **RESOLVED against its own assignments in the same file** before the verdict, because the question is where the path *resolves*, never what the call looks like. ⭐ **TWO POPULATIONS, and the second is not a backlog**: `docs/tasks/artifacts/**` holds one-shot PROBE scripts kept as the evidence of a measurement already taken (67 sites in 46 files); rewriting them would falsify the record of what was run, so they are COUNTED and CLASSIFIED on every run — the exemption is a number, not a silence. The live surface is held at **zero**, free on day one by the `SV-CORPUS-GRAD.13e.11` rule (all 19 repaired first, behind one helper `pgen::repo_scratch`, so the answer cannot drift one convenience call at a time). **11 self-test arms**: 10 classifier cases over all four `mktemp` spellings and both directions of a derived variable, plus a REACH arm that FAILS if the frozen population ever reads zero — *a census that gets clean by looking less is the failure mode that looks most like success*.
 
 ### `PIPELINE-LANE-CURRENCY`
 

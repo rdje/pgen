@@ -284,6 +284,7 @@
       "COMPILER-ELABORATOR": "platform",
       "CORPUS-GRAD-ALL": "cross-cutting",
       "CORPUS-KEY-AUDIT": "cross-cutting",
+      "DATA-LOCALITY": "process",
       "DEFAULT-PROFILE": "cross-cutting",
       "DIAG-SEVERITY": "cross-cutting",
       "DOCPATH": "process",

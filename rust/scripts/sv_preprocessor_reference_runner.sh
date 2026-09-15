@@ -109,7 +109,11 @@ fi
 
 mkdir -p "$(dirname "$output_file")" "$(dirname "$diagnostics_file")"
 
-stderr_file="$(mktemp "${TMPDIR:-/tmp}/svpp_reference_runner_stderr.XXXXXX")"
+# DATA-LOCALITY.2: the repo volume, derived at run time from this script's own location —
+# never $TMPDIR, which on this host is off the repository volume.
+svpp_scratch="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/rust/target/svpp_reference_runner"
+mkdir -p "$svpp_scratch"
+stderr_file="$(mktemp "$svpp_scratch/stderr.XXXXXX")"
 trap 'rm -f "$stderr_file"' EXIT
 
 emit_empty_diagnostics() {

@@ -434,7 +434,7 @@ mod tests {
 
     #[test]
     fn artifact_roundtrip_preserves_type_name_facts() {
-        let dir = tempfile::tempdir().expect("tmpdir");
+        let dir = tempfile::Builder::new().prefix("library_test").tempdir_in(crate::repo_scratch::scratch_root()).expect("tmpdir");
         let facts = vec![
             sample_fact("el2_trigger_pkt_t", "typedef"),
             sample_fact("el2_lsu_pkt_t", "typedef"),
@@ -459,7 +459,7 @@ mod tests {
 
     #[test]
     fn kinds_outside_the_exportable_set_are_filtered_on_write() {
-        let dir = tempfile::tempdir().expect("tmpdir");
+        let dir = tempfile::Builder::new().prefix("library_test").tempdir_in(crate::repo_scratch::scratch_root()).expect("tmpdir");
         let facts = vec![
             sample_fact("el2_trigger_pkt_t", "typedef"),
             SemanticFactRecord {
@@ -488,7 +488,7 @@ mod tests {
     fn richer_fact_kinds_export_when_in_the_exportable_set() {
         // `.b.5.3`: export is no longer hard-limited to `type_name`. Any kind
         // the caller lists as exportable round-trips through the library.
-        let dir = tempfile::tempdir().expect("tmpdir");
+        let dir = tempfile::Builder::new().prefix("library_test").tempdir_in(crate::repo_scratch::scratch_root()).expect("tmpdir");
         let facts = vec![
             fact_of_kind("type_name", "uvm_object", "class"),
             fact_of_kind("class_decl", "uvm_component", "class"),
@@ -517,7 +517,7 @@ mod tests {
         // A grammar that declares fact kinds but marks them all
         // `exportable: false` exports nothing — the artifact is well-formed
         // with an empty `facts` array.
-        let dir = tempfile::tempdir().expect("tmpdir");
+        let dir = tempfile::Builder::new().prefix("library_test").tempdir_in(crate::repo_scratch::scratch_root()).expect("tmpdir");
         let facts = vec![
             fact_of_kind("type_name", "t", "typedef"),
             fact_of_kind("class_decl", "c", "class"),
@@ -536,14 +536,14 @@ mod tests {
 
     #[test]
     fn missing_artifact_returns_not_found() {
-        let dir = tempfile::tempdir().expect("tmpdir");
+        let dir = tempfile::Builder::new().prefix("library_test").tempdir_in(crate::repo_scratch::scratch_root()).expect("tmpdir");
         let err = read_artifact(dir.path(), "package", "does_not_exist").expect_err("expect err");
         assert!(matches!(err, LibraryError::NotFound(_)));
     }
 
     #[test]
     fn artifact_kind_or_name_mismatch_is_parse_error() {
-        let dir = tempfile::tempdir().expect("tmpdir");
+        let dir = tempfile::Builder::new().prefix("library_test").tempdir_in(crate::repo_scratch::scratch_root()).expect("tmpdir");
         let facts = vec![sample_fact("x", "typedef")];
         write_artifact(
             dir.path(),

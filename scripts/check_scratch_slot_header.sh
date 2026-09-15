@@ -121,7 +121,9 @@ restore_header() {
   else
     body="$(cat "$SLOT")"
   fi
-  tmp="$(mktemp "${TMPDIR:-/tmp}/scratch_hdr.XXXXXX")" || return 2
+  # DATA-LOCALITY.2: the repo volume, derived at run time — never $TMPDIR
+  mkdir -p "$ROOT/rust/target" || return 2
+  tmp="$(mktemp "$ROOT/rust/target/scratch_hdr.XXXXXX")" || return 2
   { printf '%s\n' "$committed"; printf '%s\n' "$body"; } > "$tmp"
   mv "$tmp" "$SLOT" || return 2
   note "restored the committed header; your probe body is preserved below it."

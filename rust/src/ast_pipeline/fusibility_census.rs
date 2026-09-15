@@ -6081,7 +6081,9 @@ mod tests {
             "rule_entry_counts": {"tok": 20, "top": 10},
             "rule_committed_counts": {"tok": 2, "top": 10},
         });
-        let dir = std::env::temp_dir();
+        // `DATA-LOCALITY.2`: the repository volume, derived at run time — never `$TMPDIR`.
+        let dir = crate::repo_scratch::repo_scratch_dir("fusibility_census_test")
+            .expect("repo scratch dir");
         let path = dir.join(format!(
             "pgen_fusibility_outcome_test_{}.json",
             std::process::id()
@@ -6288,7 +6290,10 @@ mod tests {
             "rule_entry_counts": {"z": 10u64, "s": 8u64, "n": 5u64, "range": 1u64},
             "rule_committed_counts": {"z": 4u64, "s": 8u64, "n": 2u64, "range": 1u64},
         });
-        let path = std::env::temp_dir().join(format!(
+        // `DATA-LOCALITY.2`: the repository volume, derived at run time — never `$TMPDIR`.
+        let path = crate::repo_scratch::repo_scratch_dir("fusibility_census_test")
+            .expect("repo scratch dir")
+            .join(format!(
             "pgen_quant_exposure_test_{}.json",
             std::process::id()
         ));
@@ -6562,7 +6567,9 @@ mod tests {
             "rule_committed_counts": {"tok_wrapper": 2, "tok": 2, "top": 10, "fat": 3},
             "rule_memo_hit_counts": {"tok": 5, "top": 3, "fat": 2},
         });
-        let dir = std::env::temp_dir();
+        // `DATA-LOCALITY.2`: the repository volume, derived at run time — never `$TMPDIR`.
+        let dir = crate::repo_scratch::repo_scratch_dir("fusibility_census_test")
+            .expect("repo scratch dir");
         let path = dir.join(format!(
             "pgen_inline_exposure_test_{}.json",
             std::process::id()
@@ -7052,7 +7059,9 @@ mod tests {
             "rule_committed_counts": {"top": 6, "a": 5, "b": 12},
             "rule_memo_hit_counts": {"a": 1, "b": 3},
         });
-        let dir = std::env::temp_dir();
+        // `DATA-LOCALITY.2`: the repository volume, derived at run time — never `$TMPDIR`.
+        let dir = crate::repo_scratch::repo_scratch_dir("fusibility_census_test")
+            .expect("repo scratch dir");
         let path = dir.join(format!(
             "pgen_cascade_outcome_test_{}.json",
             std::process::id()

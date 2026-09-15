@@ -68,7 +68,7 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 | `nvc` | 2 074 | 594 | 1 480 | 28.6 % |
 | `vunit` | 294 | 84 | 210 | 28.6 % |
 
-**What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. **0 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
+**What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. **0 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 
 No open tree is attributed to this family — every tree that owned its work is closed. That is not the same as meeting the bar: the legs above are what decide `Done`, and cross-cutting work can still gate this family.
 

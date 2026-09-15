@@ -120,7 +120,11 @@ require_features() {
 # (TOOLBOX 1.9) runs before it publishes a number.
 self_test() {
     local tmp
-    tmp="$(mktemp -d)"
+    # DATA-LOCALITY.2: the repo volume, derived at run time from this script's own location
+    # (the doctrine-check convention) — never $TMPDIR.
+    local self_root; self_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    mkdir -p "$self_root/rust/target"
+    tmp="$(mktemp -d "$self_root/rust/target/require_ast_pipeline_features.XXXXXX")"
     # shellcheck disable=SC2064
     trap "rm -rf '$tmp'" RETURN
 

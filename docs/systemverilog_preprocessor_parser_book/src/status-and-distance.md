@@ -45,7 +45,7 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 
 **Corpus.** ⛔ **NOT MEASURED** — the language is standardized, so a corpus exists in the world, but none is wired into this repository. An UNMET leg, never an inapplicable one. Owed by `CORPUS-GRAD-ALL.1`.
 
-**What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. **1 tree own this family's remaining work**, and **26** cross-cutting trees can gate any family.
+**What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. **1 tree own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 
 | Open tree | Status verdict | Where the detail lives |
 |---|---|---|

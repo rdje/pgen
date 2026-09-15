@@ -26,7 +26,9 @@ warn() { printf 'knowledge-map: WARNING: %s\n' "$1" >&2; }
 ids_file=""; tmpmap=""
 cleanup() { [ -n "$ids_file" ] && rm -f "$ids_file"; [ -n "$tmpmap" ] && rm -f "$tmpmap"; }
 trap cleanup EXIT
-ids_file="$(mktemp)"; tmpmap="$(mktemp)"
+# DATA-LOCALITY.2: scratch derives from the repo root at run time, never $TMPDIR
+scratch_dir="$ROOT/rust/target/knowledge_map_gate"; mkdir -p "$scratch_dir"
+ids_file="$(mktemp "$scratch_dir/ids.XXXXXX")"; tmpmap="$(mktemp "$scratch_dir/map.XXXXXX")"
 
 # --- 1 + 2: per-file required-field validation; collect ids ---
 for d in $KM_SCAN_DIRS; do

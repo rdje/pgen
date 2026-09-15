@@ -597,14 +597,13 @@ fn surface_reports_feature_enabled(line: &str, feature: &str) -> bool {
 }
 
 fn fresh_temp_dir() -> Result<PathBuf, HarnessError> {
-    // A unique, harness-owned dir under the system temp root. Uniqueness without `Date::now`/randomness
-    // (unavailable/nondeterministic here): the process id + a monotonic per-process counter.
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static COUNTER: AtomicU64 = AtomicU64::new(0);
-    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-    let dir = std::env::temp_dir().join(format!("pgen_parse_harness_{}_{}", std::process::id(), n));
-    std::fs::create_dir_all(&dir)?;
-    Ok(dir)
+    // `DATA-LOCALITY.2`: a unique, harness-owned dir INSIDE THE REPOSITORY. It used to sit under the
+    // system temp root, which on the director's host is a different volume — and what this directory
+    // holds is not incidental scratch: it is the generated parser, the scratch crate and the compiled
+    // binary the harness builds for a grammar, i.e. project-owned build output by any reading of the
+    // policy. Uniqueness is unchanged (process id + a monotonic per-process counter; no clock, no
+    // randomness — neither is deterministic here); only the root moved.
+    Ok(crate::repo_scratch::repo_scratch_dir("pgen_parse_harness")?)
 }
 
 #[cfg(test)]

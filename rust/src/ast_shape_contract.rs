@@ -789,7 +789,7 @@ mod tests {
                 ]
             ]
         });
-        let dir = tempfile::tempdir().expect("tempdir");
+        let dir = tempfile::Builder::new().prefix("ast_shape_contract_test").tempdir_in(crate::repo_scratch::scratch_root()).expect("tempdir");
         let path = dir.path().join("crosscheck_probe.json");
         std::fs::write(&path, serde_json::to_string_pretty(&json).unwrap()).expect("write probe");
 

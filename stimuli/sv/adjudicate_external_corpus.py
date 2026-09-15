@@ -5126,7 +5126,11 @@ def _self_test_extension_guard(ivtest_dir: Path) -> int:
         ("REFUSAL: main.cc stops initialising gn_icarus_misc_flag",
          lambda t: t.replace("bool gn_icarus_misc_flag = true;", "// removed")),
     ):
-        with tempfile.TemporaryDirectory() as td:
+        # `DATA-LOCALITY.2`: the scratch tree is derived from the repository root at run time,
+        # never `$TMPDIR` — a copytree of the iverilog checkout is project-owned data.
+        _dl_scratch = REPO_ROOT / "rust" / "target" / "adjudicator_refusals"
+        _dl_scratch.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(_dl_scratch)) as td:
             fake_ivl = Path(td) / "iverilog"
             shutil.copytree(ivtest_dir.parent, fake_ivl, symlinks=True,
                             ignore=shutil.ignore_patterns("ivtest"))

@@ -1284,7 +1284,9 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn unique_temp_path(file_name: &str) -> PathBuf {
-        let mut path = std::env::temp_dir();
+        // `DATA-LOCALITY.2`: the repository volume, derived at run time — never `$TMPDIR`.
+        let mut path = pgen::repo_scratch::repo_scratch_dir("parseability_probe_test")
+            .expect("repo scratch dir");
         let now_nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("time")
