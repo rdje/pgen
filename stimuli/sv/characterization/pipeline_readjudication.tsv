@@ -5441,7 +5441,7 @@ sv2v	test/lex/macro_arg_escape.sv	divergence:explained_svpp_macro_use	STUCK-ON-S
 sv2v	test/lex/macro_boundary.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/macro_ifdef.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
 sv2v	test/lex/macro_iv.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
-sv2v	test/lex/macro_macro.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:preprocessor_item	stimuli/sv/subs/sv2v/test/lex/macro_macro.sv:16:20
+sv2v	test/lex/macro_macro.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/macro_string.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/macro_vendor_comment.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/macro_whitespace.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	

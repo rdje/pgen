@@ -1781,7 +1781,11 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   files declare differently are REPORTED and left unapplied.
 - **What the expansion stage guarantees** (the `SVPP-EXPANSION.5` / `.6b.2` / `.6b.5` rules, each with its
   clause and a corpus reproducer in `docs/tasks/SVPP-EXPANSION.md`): object and function-like macros with
-  actuals and defaults (§22.5.1), the `` `` `` paste and `` `" `` / `` `\`" `` string forms, a `$ident` never
+  actuals and defaults (§22.5.1), the `` `` `` paste and `` `" `` / `` `\`" `` string forms — the paste with
+  the ORDER §22.5.1's *"allowing identifiers to be constructed"* implies (`SVPP-EXPANSION.5`(i), 2026-09-15): an
+  operand that is a defined macro usage is expanded before the join, an undefined usage joined by a paste is
+  looked up as the WHOLE constructed name in place, and a constructed function-like usage collects its
+  arguments unexpanded (Verilator's and sv2v's readings; Icarus differs and is recorded) —, a `$ident` never
   substituted (A.9.3), a missing or extra actual REFUSED (`E_SVPP_MISSING_MACRO_ARGUMENT`,
   `E_SVPP_EXTRA_MACRO_ARGUMENT`; §22.5.1 *"shall be an error"*), direct or indirect recursion REFUSED
   (`E_SVPP_RECURSIVE_MACRO`, §22.5.1 — by PROVENANCE: a usage the caller wrote starts its own expansion, a

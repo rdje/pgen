@@ -968,6 +968,15 @@ Where this prose and the inventory disagree, the inventory wins.
   `W_SVPP_MALFORMED_KEYWORDS_DIRECTIVE`; new event kind `KeywordsRegion`. ⛔ A consumer walking the AST sees
   the ESCAPED spelling at a rendered site — `{kind: "escaped_identifier"}`-shaped, body `\logic ` — and the
   source map maps it back to the unescaped bytes the author wrote.
+- **The order around a ``` `` ``` paste, landed 2026-09-15 (`SVPP-EXPANSION.5`(i)).** A paste constructs an
+  identifier (§22.5.1), and the identifier is often a macro name: an operand that is a DEFINED macro usage is
+  expanded before the join (`` `A``b```C `` → `abc`), an UNDEFINED usage joined by a paste is looked up as the
+  whole constructed name in place (`` `CHOICE_``FOO```SUFFIX `` → `` `CHOICE_FOO_MAGIC ``, `` `QA``_b `` →
+  `` `QA_b ``), and a constructed function-like usage (`` `uvm_pack_``TYPE``(ARG, p) ``) collects its arguments
+  as written. These are Verilator 5.050's and sv2v's readings, measured against both with a re-runnable
+  three-way probe; Icarus 13.0 reads the left side as soon as it is joined and is recorded as the outlier. The
+  paste tokens now survive substitution and are consumed by the rescan; inside any string literal they are
+  removed at substitution as before.
 - The live measurement of the expansion is the SV parser book's chapter
   `docs/systemverilog_parser_book/src/preprocess-parse-pipeline.md`, not this family's status page: this
   family's corpus leg stays NOT MEASURED because no corpus of directive files is wired, and the expansion's

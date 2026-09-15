@@ -1,0 +1,17 @@
+oracles: verilator=Verilator 5.050 2026-07-01 rev vUNKNOWN-built20260701 ; iverilog=Icarus Verilog version 13.0 (stable) (v13_0)
+PGEN=V   PGEN=I   V=I       input
+yes      NO       NO        stimuli/sv/subs/sv2v/test/lex/macro_macro.sv
+yes      yes      yes       stimuli/sv/subs/sv2v/test/lex/macro_arg_invoke.sv
+yes      yes      yes       stimuli/sv/subs/Surelog/tests/PpLppdr/dut.sv
+NO       NO       yes       stimuli/sv/subs/iverilog/ivtest/ivltests/sv_macro3a.v
+NO       NO       NO        stimuli/sv/subs/iverilog/ivtest/ivltests/sv_macro3b.v
+yes      yes      yes       stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh374.v
+NO       NO       NO        stimuli/sv/subs/verilator/test_regress/t/t_preproc_str_undef.v
+NO       NO       yes       stimuli/sv/subs/verilator/test_regress/t/t_preproc_strify_join.v
+yes      yes      yes       stimuli/sv/subs/verilator/test_regress/t/t_preproc_ttempty.v
+NO       yes      NO        docs/tasks/artifacts/svpp_expansion/paste_order/shapes/s1_paste_inside_a_plain_string.sv
+yes      yes      yes       docs/tasks/artifacts/svpp_expansion/paste_order/shapes/s2_actual_is_an_undefined_usage.sv
+yes      yes      yes       docs/tasks/artifacts/svpp_expansion/paste_order/shapes/s3_actual_is_a_defined_usage.sv
+NO       NO       NO        docs/tasks/artifacts/svpp_expansion/paste_order/shapes/s4_constructed_function_usage_stringizes_its_argument.sv
+yes      yes      yes       docs/tasks/artifacts/svpp_expansion/paste_order/shapes/s5_defined_left_usage_and_defined_whole_name.sv
+PASTE-ORDER-PROBE: rows=14 pgen_eq_verilator=8 pgen_eq_iverilog=8 verilator_eq_iverilog=9 ast_pipeline=rust/target/debug/ast_pipeline

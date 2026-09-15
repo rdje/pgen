@@ -731,7 +731,13 @@ impl PreprocessorState {
 
         self.output = apply_renderings(&text, &replacements, &mut self.source_map);
         for (file, line, detail) in events {
-            self.push_event(PreprocessorEventKind::KeywordsRegion, &file, line, true, detail);
+            self.push_event(
+                PreprocessorEventKind::KeywordsRegion,
+                &file,
+                line,
+                true,
+                detail,
+            );
         }
         for (code, file, line, message, detail) in warnings {
             self.push_warning(code, &file, line, message, detail)?;
@@ -2621,8 +2627,39 @@ fn expand_macros_in_text(
         while ident_end < bytes.len() && is_ident_continue(bytes[ident_end]) {
             ident_end += 1;
         }
-        let name = &text[ident_start..ident_end];
         let usage_start = i;
+        // `SVPP-EXPANSION.5`(i): an UNDEFINED usage immediately followed by a ``` `` ``` paste is the
+        // LEFT END of a CONSTRUCTED usage — `` `CHOICE_``A```SUFFIX `` (sv2v `macro_macro.sv`),
+        // `` `uvm_pack_``TYPE``(ARG, p) `` (UVM), `` ```rname``_ADR `` (Surelog). §22.5.1: a paste
+        // "delimits lexical tokens without introducing white space, allowing identifiers to be
+        // constructed"; the identifier being constructed is the MACRO NAME, so the chain is joined
+        // HERE, with every operand that is itself a defined usage expanded first (Verilator's
+        // `` `A``b```C `` → `abc`, `` XXS_```SOME `` → `XXS_some`; sv2v's `` `CHOICE_``FOO```SUFFIX ``
+        // → `` `CHOICE_FOO_MAGIC ``), and the WHOLE constructed name is then looked up below, in
+        // place, so a function-like result collects its arguments still UNEXPANDED (the order
+        // §22.5.1 gives every actual). Before this, `substitute_function_macro_body` deleted the
+        // paste tokens while it substituted, so `` `CHOICE_``FOO```SUFFIX `` reached this scan as
+        // `` `CHOICE_FOO`SUFFIX `` and the FIRST defined prefix won: `1_MAGIC` where sv2v and
+        // Verilator both read `3`. A DEFINED left operand never gets here: it is expanded by the
+        // ordinary path and the paste after it is dropped by the loop, which is the same
+        // expand-first reading (`` `A``_b `` with `A` and `A_b` both defined is `a_b` in Verilator,
+        // Icarus and here). A source line (`user_mask` = `None`) keeps its paste for the parser.
+        let mut joined: std::borrow::Cow<'_, str> =
+            std::borrow::Cow::Borrowed(&text[ident_start..ident_end]);
+        if user_mask.is_some()
+            && !macros.contains_key(joined.as_ref())
+            && text[ident_end..].starts_with("``")
+        {
+            let (suffix, chain_end, operand_expanded) = join_paste_chain(
+                text, ident_end, macros, depth, events, file, line, expanding, user_mask,
+            )?;
+            if operand_expanded {
+                expanded_any = true;
+            }
+            joined = std::borrow::Cow::Owned(format!("{joined}{suffix}"));
+            ident_end = chain_end;
+        }
+        let name: &str = joined.as_ref();
         let Some(def) = macros.get(name) else {
             if let Some(expanded) = expand_builtin_macro(name, file, line) {
                 out.push_str(&expanded);
@@ -2752,6 +2789,110 @@ fn expand_macros_in_text(
     } else {
         Ok(out)
     }
+}
+
+/// `SVPP-EXPANSION.5`(i): join the ``` `` ``` paste chain that follows the left operand of a
+/// CONSTRUCTED macro usage (see the call site in [`expand_macros_in_text`]). `start` is the index of
+/// the first paste token. Returns the joined suffix, the index just past the chain, and whether any
+/// operand was a defined macro usage that was expanded on the way.
+///
+/// Operands, left to right, each preceded by its paste: an identifier fragment (`_ADR`, `3`) is
+/// appended as written; a DEFINED macro usage (`` `SUFFIX ``, `` `SOMEP(foo) ``) is expanded — through
+/// [`expand_macros_in_text`] on exactly its own bytes, so provenance, the recursion check and the
+/// depth guard are the ordinary ones — and its expansion appended; an UNDEFINED usage is kept as
+/// written, backtick and all, so the constructed name fails its lookup and the parser reports the
+/// byte rather than this stage guessing. A paste that is followed by neither — `` `X``( `` — joins
+/// nothing and ends the chain (`` `uvm_pack_``int``(ARG, p) ``: the parentheses belong to the
+/// constructed usage, which the caller looks up at the returned index).
+#[allow(clippy::too_many_arguments)] // one call site; the arguments ARE the expansion's context
+fn join_paste_chain(
+    text: &str,
+    start: usize,
+    macros: &HashMap<String, MacroDefinition>,
+    depth: usize,
+    events: &mut Vec<PreprocessorEvent>,
+    file: &Path,
+    line: usize,
+    expanding: &mut Vec<String>,
+    user_mask: Option<&[bool]>,
+) -> Result<(String, usize, bool)> {
+    let bytes = text.as_bytes();
+    let mut j = start;
+    let mut suffix = String::new();
+    let mut operand_expanded = false;
+    while text[j..].starts_with("``") {
+        let after = j + 2;
+        if after < bytes.len() && bytes[after] == b'`' {
+            let n_start = after + 1;
+            if n_start < bytes.len() && is_ident_start(bytes[n_start]) {
+                let mut n_end = n_start + 1;
+                while n_end < bytes.len() && is_ident_continue(bytes[n_end]) {
+                    n_end += 1;
+                }
+                let op_name = &text[n_start..n_end];
+                let op_end = match macros.get(op_name) {
+                    Some(def) if def.params.is_some() => {
+                        // a function-like operand takes its argument list along
+                        let mut k = n_end;
+                        while k < bytes.len() && bytes[k].is_ascii_whitespace() {
+                            k += 1;
+                        }
+                        parse_macro_invocation_arg_ranges(text, k).map(|(_, next)| next)
+                    }
+                    Some(_) => Some(n_end),
+                    None => None,
+                };
+                match op_end {
+                    Some(op_end) => {
+                        // the operand's own bytes, with the provenance they carry (a second pass
+                        // carries none: `Some(&[])` stays `Some(&[])`)
+                        let sub_mask: Option<&[bool]> = user_mask.map(|m| {
+                            if m.len() >= op_end {
+                                &m[after..op_end]
+                            } else {
+                                &[][..]
+                            }
+                        });
+                        let expansion = expand_macros_in_text(
+                            &text[after..op_end],
+                            macros,
+                            depth + 1,
+                            events,
+                            file,
+                            line,
+                            expanding,
+                            sub_mask,
+                        )?;
+                        suffix.push_str(&expansion);
+                        operand_expanded = true;
+                        j = op_end;
+                    }
+                    None => {
+                        suffix.push('`');
+                        suffix.push_str(op_name);
+                        j = n_end;
+                    }
+                }
+                continue;
+            }
+            // "````" — a paste followed by another: this one joins nothing
+            j = after;
+            continue;
+        }
+        if after < bytes.len() && is_ident_continue(bytes[after]) {
+            let mut k = after;
+            while k < bytes.len() && is_ident_continue(bytes[k]) {
+                k += 1;
+            }
+            suffix.push_str(&text[after..k]);
+            j = k;
+            continue;
+        }
+        // `` `X``( `` — the token after the paste is not a name: the paste joins nothing, the chain ends
+        j = after;
+        break;
+    }
+    Ok((suffix, j, operand_expanded))
 }
 
 fn has_unclosed_function_macro_invocation(
@@ -3150,14 +3291,25 @@ fn substitute_function_macro_body(
         out.push(ch);
         mask.extend(std::iter::repeat_n(false, ch.len_utf8()));
     }
-    fn push_actual(out: &mut String, mask: &mut Vec<bool>, actual: &str, actual_mask: &[bool]) {
-        // trimmed, the paste tokens removed DURING the scan so the mask stays aligned
+    // `SVPP-EXPANSION.5`(i): a paste token is a TOKEN of the expansion text — the rescan
+    // (`expand_macros_in_text`) is the one place that knows what its operands are, so it is kept
+    // here and consumed there. Inside a string literal — a `` `" `` region, or a plain `"…"` in the
+    // body — the rescan never looks, so a paste is removed DURING the substitution as before
+    // (`strip_paste`), the mask kept aligned byte for byte.
+    fn push_actual(
+        out: &mut String,
+        mask: &mut Vec<bool>,
+        actual: &str,
+        actual_mask: &[bool],
+        strip_paste: bool,
+    ) {
         let lead = actual.len() - actual.trim_start().len();
         let trimmed = actual.trim().as_bytes();
         let mut buf: Vec<u8> = Vec::with_capacity(trimmed.len());
         let mut k = 0usize;
         while k < trimmed.len() {
-            if k + 1 < trimmed.len() && trimmed[k] == b'`' && trimmed[k + 1] == b'`' {
+            if strip_paste && k + 1 < trimmed.len() && trimmed[k] == b'`' && trimmed[k + 1] == b'`'
+            {
                 k += 2;
                 continue;
             }
@@ -3169,12 +3321,22 @@ fn substitute_function_macro_body(
             std::str::from_utf8(&buf).expect("removing ASCII paste tokens keeps UTF-8 valid"),
         );
     }
+    // a plain `"…"` string literal in the body: the paste tokens inside it are stripped here (the
+    // rescan does not enter strings); what ELSE happens inside it — a formal is substituted there
+    // today, which IEEE 1800-2017 §22.5.1's "the use of \" always starts a string literal" reads
+    // against — is `SVPP-EXPANSION.5`(k)'s question and is deliberately left as it was
+    let mut in_plain_string = false;
+    let mut escaped_in_plain_string = false;
     let binding_mask =
         |token: &str| -> &[bool] { binding_masks.get(token).map(Vec::as_slice).unwrap_or(&[]) };
 
     while i < bytes.len() {
         if i + 2 <= bytes.len() && bytes[i] == b'`' && bytes[i + 1] == b'`' {
-            // the ``` `` ``` token-paste operator: the two sides join with nothing between
+            // the ``` `` ``` token-paste operator: the two sides join with nothing between — kept
+            // for the rescan outside a string literal (`.5`(i)), removed inside one
+            if !in_plain_string {
+                push_body(&mut out, &mut mask, "``");
+            }
             i += 2;
             continue;
         }
@@ -3226,7 +3388,7 @@ fn substitute_function_macro_body(
                         let token = &content[tok_start..k];
                         let system_name = tok_start > 0 && content_bytes[tok_start - 1] == b'$';
                         if let Some(arg) = bindings.get(token).filter(|_| !system_name) {
-                            push_actual(&mut out, &mut mask, arg, binding_mask(token));
+                            push_actual(&mut out, &mut mask, arg, binding_mask(token), true);
                         } else {
                             push_body(&mut out, &mut mask, token);
                         }
@@ -3253,7 +3415,7 @@ fn substitute_function_macro_body(
                 let token = &body[region_start..k];
                 if let Some(arg) = bindings.get(token) {
                     push_body(&mut out, &mut mask, "\"");
-                    push_actual(&mut out, &mut mask, arg, binding_mask(token));
+                    push_actual(&mut out, &mut mask, arg, binding_mask(token), true);
                     push_body(&mut out, &mut mask, "\"");
                     i = k;
                     continue;
@@ -3267,6 +3429,17 @@ fn substitute_function_macro_body(
 
         if !is_ident_start(bytes[i]) {
             let ch = source_char_at(body, i);
+            if in_plain_string {
+                if escaped_in_plain_string {
+                    escaped_in_plain_string = false;
+                } else if ch == '\\' {
+                    escaped_in_plain_string = true;
+                } else if ch == '"' {
+                    in_plain_string = false;
+                }
+            } else if ch == '"' {
+                in_plain_string = true;
+            }
             push_body_char(&mut out, &mut mask, ch);
             i += ch.len_utf8();
             continue;
@@ -3282,7 +3455,13 @@ fn substitute_function_macro_body(
         // `` `define MACRO_D(display) $display(display); `` expanded to `$"display"("display")`.
         let system_name = start > 0 && bytes[start - 1] == b'$';
         if let Some(arg) = bindings.get(token).filter(|_| !system_name) {
-            push_actual(&mut out, &mut mask, arg, binding_mask(token));
+            push_actual(
+                &mut out,
+                &mut mask,
+                arg,
+                binding_mask(token),
+                in_plain_string,
+            );
         } else {
             push_body(&mut out, &mut mask, token);
         }
@@ -3332,9 +3511,9 @@ fn is_ident_continue(b: u8) -> bool {
 mod tests {
     use super::{
         ConditionalSymbolPolicy, IncludePathPolicy, MacroDefinition, MacroParameter,
-        MacroRedefinitionPolicy, PredefinedMacro, PreprocessorDiagnosticSeverity,
-        PreprocessedOutput, PreprocessorEventKind, SvPreprocessorConfig, expand_function_macro,
-        normalize_macro_body_for_directives, parse_strict_warning_codes,
+        MacroRedefinitionPolicy, PredefinedMacro, PreprocessedOutput,
+        PreprocessorDiagnosticSeverity, PreprocessorEventKind, SvPreprocessorConfig,
+        expand_function_macro, normalize_macro_body_for_directives, parse_strict_warning_codes,
         preprocess_systemverilog_file, preprocess_systemverilog_unit,
     };
     use std::collections::HashMap;
@@ -4034,7 +4213,11 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             "`begin_keywords \"1364-2001\"\nmodule top;\n  reg [63:0] logic;\nendmodule\n`end_keywords\n",
             Some("sv_2017"),
         );
-        assert!(output.text.contains("reg [63:0] \\logic ;"), "{}", output.text);
+        assert!(
+            output.text.contains("reg [63:0] \\logic ;"),
+            "{}",
+            output.text
+        );
         assert!(output.diagnostics.is_empty());
     }
 
@@ -4062,10 +4245,26 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
              `end_keywords\nreg automatic;\n`end_keywords\n",
             Some("sv_2017"),
         );
-        assert!(output.text.contains("integer \\automatic  = 2;"), "{}", output.text);
-        assert!(output.text.contains("task automatic bar;"), "{}", output.text);
-        assert!(output.text.contains("integer \\logic  = 3;"), "{}", output.text);
-        assert!(output.text.contains("reg \\automatic ;"), "outer region resumes: {}", output.text);
+        assert!(
+            output.text.contains("integer \\automatic  = 2;"),
+            "{}",
+            output.text
+        );
+        assert!(
+            output.text.contains("task automatic bar;"),
+            "{}",
+            output.text
+        );
+        assert!(
+            output.text.contains("integer \\logic  = 3;"),
+            "{}",
+            output.text
+        );
+        assert!(
+            output.text.contains("reg \\automatic ;"),
+            "outer region resumes: {}",
+            output.text
+        );
     }
 
     /// §22.14.4: `"1364-2001-noconfig"` is `"1364-2001"` minus the ten configuration keywords, so
@@ -4076,8 +4275,16 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             "`begin_keywords \"1364-2001-noconfig\"\ntask automatic baz;\n  integer cell = 3;\nendtask\n`end_keywords\n",
             Some("sv_2017"),
         );
-        assert!(output.text.contains("task automatic baz;"), "{}", output.text);
-        assert!(output.text.contains("integer \\cell  = 3;"), "{}", output.text);
+        assert!(
+            output.text.contains("task automatic baz;"),
+            "{}",
+            output.text
+        );
+        assert!(
+            output.text.contains("integer \\cell  = 3;"),
+            "{}",
+            output.text
+        );
     }
 
     /// The rendering is LEXICAL: a keyword named inside a comment, a string or an existing escaped
@@ -4091,12 +4298,37 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
              wire \\automatic_already = 1'b1;\n  integer automatic;\nendmodule\n`end_keywords\n",
             Some("sv_2017"),
         );
-        assert!(output.text.contains("// automatic in a line comment"), "{}", output.text);
-        assert!(output.text.contains("/* automatic in a block comment */"), "{}", output.text);
-        assert!(output.text.contains("$display(\"automatic in a string\")"), "{}", output.text);
-        assert!(output.text.contains("wire \\automatic_already = 1'b1;"), "{}", output.text);
-        assert!(output.text.contains("integer \\automatic ;"), "{}", output.text);
-        assert_eq!(output.text.matches("\\automatic ").count(), 1, "{}", output.text);
+        assert!(
+            output.text.contains("// automatic in a line comment"),
+            "{}",
+            output.text
+        );
+        assert!(
+            output.text.contains("/* automatic in a block comment */"),
+            "{}",
+            output.text
+        );
+        assert!(
+            output.text.contains("$display(\"automatic in a string\")"),
+            "{}",
+            output.text
+        );
+        assert!(
+            output.text.contains("wire \\automatic_already = 1'b1;"),
+            "{}",
+            output.text
+        );
+        assert!(
+            output.text.contains("integer \\automatic ;"),
+            "{}",
+            output.text
+        );
+        assert_eq!(
+            output.text.matches("\\automatic ").count(),
+            1,
+            "{}",
+            output.text
+        );
     }
 
     /// The parse profile decides what has to be unreserved: under `verilog_2005` the parser never
@@ -4119,7 +4351,10 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             "`begin_keywords \"1364-2001\"\nmodule top;\n  reg [63:0] logic;\n  wire w;\nendmodule\n`end_keywords\n",
             Some("sv_2017"),
         );
-        let at = output.text.find("wire w;").expect("the line after the rendering");
+        let at = output
+            .text
+            .find("wire w;")
+            .expect("the line after the rendering");
         let entry = output
             .source_map
             .iter()
@@ -4129,11 +4364,21 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         // the map still TILES the rendered text: ascending, contiguous, and ending at its length
         let mut previous_end = 0usize;
         for entry in &output.source_map {
-            assert_eq!(entry.output_start, previous_end, "chunks tile without a gap");
-            assert!(entry.output_end <= output.text.len(), "chunk past the rendered text");
+            assert_eq!(
+                entry.output_start, previous_end,
+                "chunks tile without a gap"
+            );
+            assert!(
+                entry.output_end <= output.text.len(),
+                "chunk past the rendered text"
+            );
             previous_end = entry.output_end;
         }
-        assert_eq!(previous_end, output.text.len(), "the last chunk ends at the text");
+        assert_eq!(
+            previous_end,
+            output.text.len(),
+            "the last chunk ends at the text"
+        );
         // and the rendered token lives inside the chunk of the line that wrote it
         let rendered = output.text.find("\\logic ").expect("the rendering");
         let owner = output
@@ -4160,13 +4405,24 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             .iter()
             .find(|d| d.code == "W_SVPP_UNKNOWN_KEYWORDS_VERSION")
             .expect("the unknown specifier is reported");
-        assert!(diagnostic.message.contains("1364-2010"), "{}", diagnostic.message);
-        assert!(output.text.contains("reg logic;"), "no region opened: {}", output.text);
+        assert!(
+            diagnostic.message.contains("1364-2010"),
+            "{}",
+            diagnostic.message
+        );
+        assert!(
+            output.text.contains("reg logic;"),
+            "no region opened: {}",
+            output.text
+        );
 
         let dir = create_repo_scratch_dir("svpp_keywords_unknown_strict");
         let input = dir.join("top.sv");
-        fs::write(&input, "`begin_keywords \"1364-2010\"\nreg logic;\n`end_keywords\n")
-            .expect("write input");
+        fs::write(
+            &input,
+            "`begin_keywords \"1364-2010\"\nreg logic;\n`end_keywords\n",
+        )
+        .expect("write input");
         let config = SvPreprocessorConfig {
             parse_profile: Some("sv_2017".to_string()),
             strict_warning_codes: parse_strict_warning_codes("W_SVPP_UNKNOWN_KEYWORDS_VERSION"),
@@ -4186,18 +4442,33 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             Some("verilog_2005"),
         );
         let codes: Vec<&str> = output.diagnostics.iter().map(|d| d.code.as_str()).collect();
-        assert!(codes.contains(&"W_SVPP_KEYWORDS_VERSION_NOT_IN_EDITION"), "{codes:?}");
-        assert!(codes.contains(&"W_SVPP_KEYWORDS_VERSION_ABOVE_PROFILE"), "{codes:?}");
-        assert!(output.text.contains("module m; endmodule"), "{}", output.text);
+        assert!(
+            codes.contains(&"W_SVPP_KEYWORDS_VERSION_NOT_IN_EDITION"),
+            "{codes:?}"
+        );
+        assert!(
+            codes.contains(&"W_SVPP_KEYWORDS_VERSION_ABOVE_PROFILE"),
+            "{codes:?}"
+        );
+        assert!(
+            output.text.contains("module m; endmodule"),
+            "{}",
+            output.text
+        );
     }
 
     /// IEEE 1364-2005 §19.11: *"Each `begin_keywords directive must be paired with an
     /// `end_keywords directive."* An unpaired close is reported and renders nothing.
     #[test]
     fn an_unmatched_end_keywords_is_reported() {
-        let output = preprocess_with_profile("module m; endmodule\n`end_keywords\n", Some("sv_2017"));
+        let output =
+            preprocess_with_profile("module m; endmodule\n`end_keywords\n", Some("sv_2017"));
         assert_eq!(
-            output.diagnostics.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
+            output
+                .diagnostics
+                .iter()
+                .map(|d| d.code.as_str())
+                .collect::<Vec<_>>(),
             vec!["W_SVPP_UNMATCHED_END_KEYWORDS"]
         );
     }
@@ -4217,15 +4488,24 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             ..SvPreprocessorConfig::default()
         };
         let outputs = preprocess_systemverilog_unit(&[first, second], &config).expect("preprocess");
-        assert!(outputs[0].text.contains("reg \\automatic ;"), "{}", outputs[0].text);
-        assert!(outputs[1].text.contains("reg \\automatic ;"), "{}", outputs[1].text);
+        assert!(
+            outputs[0].text.contains("reg \\automatic ;"),
+            "{}",
+            outputs[0].text
+        );
+        assert!(
+            outputs[1].text.contains("reg \\automatic ;"),
+            "{}",
+            outputs[1].text
+        );
     }
 
     /// A file with no §22.14 directive is byte-identical to what it was before this pass existed —
     /// the whole corpus takes that path.
     #[test]
     fn a_file_with_no_region_is_untouched() {
-        let source = "module top;\n  logic [1:0] automatic_like;\n  wire interface_name;\nendmodule\n";
+        let source =
+            "module top;\n  logic [1:0] automatic_like;\n  wire interface_name;\nendmodule\n";
         let output = preprocess_with_profile(source, Some("sv_2017"));
         assert_eq!(output.text, source);
         assert!(output.diagnostics.is_empty());
@@ -4942,6 +5222,102 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             out.text
         );
         assert!(!out.text.contains("``"), "{}", out.text);
+    }
+
+    // ── SVPP-EXPANSION.5(i) — the ORDER around a ``` `` ``` paste ───────────────────────────────
+
+    /// Expand one source text through the whole stage and return the expanded text.
+    fn expand_text(prefix: &str, source: &str) -> String {
+        let dir = create_repo_scratch_dir(prefix);
+        let input = dir.join("top.sv");
+        fs::write(&input, source).expect("write");
+        preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand")
+            .text
+    }
+
+    #[test]
+    fn a_usage_on_the_right_of_a_paste_is_expanded_before_the_join() {
+        // sv2v test/lex/macro_macro.sv verbatim — its reference macro_macro.v reads 1 2 / 3 4 / 5 5
+        // and Verilator 5.050 (-E -P) reads the same; before this slice the engine read
+        // `1_MAGIC , 2_MAGIC` for line 16, because substitution had deleted the pastes and the
+        // first defined prefix, `CHOICE_FOO`, won the lookup (Icarus 13.0 reads it that way too;
+        // its line 17 is `_MAGIC , _MAGIC`, which nobody else reads)
+        let text = expand_text(
+            "svpp_paste_order_sv2v",
+            "`define SUFFIX _MAGIC\n`define CHOICE_FOO 1\n`define CHOICE_BAR 2\n`define CHOICE_FOO_MAGIC 3\n`define CHOICE_BAR_MAGIC 4\n`define CHOICE__MAGIC 5\n`define MACRO1(A, B) \\\n    `CHOICE_``A , `CHOICE_``B\n`define MACRO2(A, B) \\\n    `CHOICE_``A```SUFFIX , `CHOICE_``B```SUFFIX\n`define MACRO3 \\\n    `CHOICE_```SUFFIX , `CHOICE_```SUFFIX\nmodule top;\n    initial begin\n        $display(`MACRO1(FOO, BAR));\n        $display(`MACRO2(FOO, BAR));\n        $display(`MACRO3);\n    end\nendmodule\n",
+        );
+        assert!(text.contains("$display(1 , 2);"), "{text}");
+        assert!(text.contains("$display(3 , 4);"), "{text}");
+        assert!(text.contains("$display(5 , 5);"), "{text}");
+        assert!(!text.contains("``"), "{text}");
+    }
+
+    #[test]
+    fn a_defined_usage_as_a_paste_operand_is_expanded_before_the_join() {
+        // Verilator t_preproc.v bug283 (`C5`, EXP: abc) and XACTION3 (EXP: sonet_frame — the joined
+        // identifier is NOT looked up again although `sonet_frame` is a macro); and the shape both
+        // Verilator 5.050 and Icarus 13.0 read `x_y` / `a_b` for, where this engine read the WHOLE
+        // name's definition (`from_whole_name` / `whole`) because the paste was gone before the scan
+        let text = expand_text(
+            "svpp_paste_order_defined_left",
+            "`define A a\n`define B b\n`define C c\n`define C5 `A``b```C\n`define XTYPE sonet\n`define sonet_frame other_frame\n`define XACTION3 `XTYPE``_frame\n`define X x\n`define X_y from_whole_name\n`define M(arg) arg``_y\n`define A_b whole\n`define S5 `A``_b\nwire `C5;\nwire `XACTION3;\nwire `M(`X);\nwire `S5;\n",
+        );
+        assert!(text.contains("wire abc;"), "{text}");
+        assert!(text.contains("wire sonet_frame;"), "{text}");
+        assert!(text.contains("wire x_y;"), "{text}");
+        assert!(text.contains("wire a_b;"), "{text}");
+    }
+
+    #[test]
+    fn an_undefined_usage_joined_by_a_paste_is_looked_up_as_the_whole_name() {
+        // Verilator t_preproc.v `Q1` (EXP: module zzz ; endmodule — "the existence or non-existence
+        // of a base define can make a difference"), t_preproc_str_undef.v `name1` / `name3`
+        // (`PREFIX` undefined while `PREFIX_` and `PREFIX_SUFFIX` are defined: `PREFIX_my_suffix
+        // stays a usage of an undefined name — no partial lookup of `PREFIX_` — and `name3(PREFIX)`
+        // is `my_prefix_suffix`), and the bug1225 families (`XXE_```EMPTY` → XXE_, `XXS_```SOME` →
+        // XXS_some, `XYS_```SOMEP(foo)` → XYS_foo), each the line of t_preproc.out
+        let text = expand_text(
+            "svpp_paste_order_whole_name",
+            "`define QA_b zzz\n`define Q1 `QA``_b\n`define PREFIX_ my_prefix_\n`define SUFFIX my_suffix\n`define PREFIX_SUFFIX my_prefix_suffix\n`define name1 `PREFIX``_```SUFFIX\n`define name3(p) ```p``_SUFFIX\n`define EMPTY\n`define SOME some\n`define SOMEP(foo) foo\n`define XXE_FAMILY XXE_```EMPTY\n`define XXS_FAMILY XXS_```SOME\n`define XYS_FAMILY XYS_```SOMEP(foo)\nmodule `Q1 ; endmodule\nA `name1\nB `name3(PREFIX)\nC `XXE_FAMILY\nD `XXS_FAMILY\nE `XYS_FAMILY\n",
+        );
+        assert!(text.contains("module zzz ; endmodule"), "{text}");
+        assert!(text.contains("A `PREFIX_my_suffix\n"), "{text}");
+        assert!(text.contains("B my_prefix_suffix\n"), "{text}");
+        assert!(text.contains("C XXE_\n"), "{text}");
+        assert!(text.contains("D XXS_some\n"), "{text}");
+        assert!(text.contains("E XYS_foo\n"), "{text}");
+    }
+
+    #[test]
+    fn a_constructed_function_usage_takes_its_arguments_unexpanded() {
+        // UVM uvm_object_defines.svh: `uvm_pack_``TYPE``(ARG, __local_packer__) — the constructed
+        // name is looked up IN PLACE and its argument list is collected as written, which is the
+        // order §22.5.1 gives every actual; Surelog PpLppdr/dut.sv: ```rname``_ADR; sv2v
+        // macro_arg_invoke.sv: `inv1``inv2(str) and the empty-inv1 form ```MODULE(example6)
+        let text = expand_text(
+            "svpp_paste_order_constructed_fn",
+            "`define pack_int(A) got(A)\n`define P(T, A) `pack_``T``(A)\n`define FOO_ADR 32'h8\n`define REG_ADR(rname) ```rname``_ADR\n`define MODULE(str) module str; endmodule\n`define MACRO_C(inv1, inv2, str) `inv1``inv2(str)\nX `P(int, q)\nY `REG_ADR(FOO)\n`MACRO_C(MOD, ULE, example4)\n`MACRO_C(, MODULE, example6)\n",
+        );
+        assert!(text.contains("X got(q)\n"), "{text}");
+        assert!(text.contains("Y 32'h8\n"), "{text}");
+        assert!(text.contains("module example4; endmodule"), "{text}");
+        assert!(text.contains("module example6; endmodule"), "{text}");
+    }
+
+    #[test]
+    fn a_paste_inside_a_plain_string_in_a_macro_body_is_unchanged() {
+        // verible lint/testdata/macro_string_concatenation.sv: `define FOO(arg) "foo``arg``bar" —
+        // the rescan never enters a string literal, so the paste is still removed at substitution
+        // and the text reads "fooxbar" exactly as before this slice (Icarus 13.0 reads the same;
+        // Verilator 5.050 keeps the string verbatim, which is IEEE 1800-2017 §22.5.1's letter and
+        // `SVPP-EXPANSION.5`(k)'s question — deliberately not decided here)
+        let text = expand_text(
+            "svpp_paste_order_plain_string",
+            "`define FOO(arg) \"foo``arg``bar\"\nmodule t; initial $display(`FOO(x)); endmodule\n",
+        );
+        assert!(text.contains("$display(\"fooxbar\");"), "{text}");
+        assert!(!text.contains("``"), "{text}");
     }
 
     #[test]

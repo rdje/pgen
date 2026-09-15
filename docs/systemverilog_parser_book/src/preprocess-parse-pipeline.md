@@ -275,6 +275,48 @@ a string quote — SystemVerilog has none (§5.9) — so `` `define DV_FCOV_INST
 dropped without a word and `` new``ARGS_ `` pasted into the legal identifier `newARGS_`. Only a rule
 that *refuses* (extra actuals) made it visible; the fix moved four OpenTitan files to `pass`.
 
+**The order around a paste** (`SVPP-EXPANSION.5`(i)). A ``` `` ``` token *"delimits lexical tokens
+without introducing white space, allowing identifiers to be constructed"* (§22.5.1), and the identifier
+being constructed is very often a **macro name**: UVM's `` `uvm_pack_``TYPE``(ARG, p) ``, OpenTitan's
+`` `dv_``SEV_(…) ``, Surelog's `` ```rname``_ADR ``. Two rules decide what such a chain means, and both
+are Verilator's measured readings (its own `t_preproc.v` goldens) and sv2v's:
+
+- **An operand that is a defined macro usage is expanded before the join.** `` `A``b```C `` with
+  `` `A `` = `a` and `` `C `` = `c` is `abc`; `` XXS_```SOME `` with `` `SOME `` = `some` is
+  `XXS_some`; `` `XTYPE``_frame `` with `` `XTYPE `` = `sonet` is the identifier `sonet_frame` — and
+  stays one even when a macro named `sonet_frame` exists, because the joined text is not looked up
+  again.
+- **An undefined usage joined by a paste is looked up as the whole constructed name, in place.**
+  `` `QA``_b `` with no `QA` and a `QA_b` is `` `QA_b ``'s expansion; `` `CHOICE_``FOO```SUFFIX `` with
+  `` `SUFFIX `` = `_MAGIC` is `` `CHOICE_FOO_MAGIC ``'s — not `` `CHOICE_FOO `` followed by `_MAGIC`,
+  which is what the engine produced until this slice (`1_MAGIC`, a token no parser accepts) because the
+  substitution step had deleted the pastes before the rescan could see what they joined. A constructed
+  function-like usage collects its argument list as written, so an actual's own macro usage is still
+  expanded *"only after substitution into the outer macro text"*, the order §22.5.1 gives every actual.
+
+The reference is sv2v's `test/lex/macro_macro.sv`, whose own `macro_macro.v` expects `$display(3, 4)`:
+
+```systemverilog
+`define SUFFIX _MAGIC
+`define CHOICE_FOO 1
+`define CHOICE_FOO_MAGIC 3
+`define MACRO2(A, B) `CHOICE_``A```SUFFIX , `CHOICE_``B```SUFFIX
+$display(`MACRO2(FOO, BAR));     // 3 , 4 — Verilator 5.050 and sv2v; the engine read 1_MAGIC , 2_MAGIC
+```
+
+⚠️ The tools do not all agree here, and the disagreement is recorded rather than smoothed over: Icarus
+13.0 reads `1_MAGIC` (it looks the left side up as soon as it is joined) and, for a base name that is
+itself a defined macro, `my_prefix_my_suffix` where Verilator reads `` `PREFIX_my_suffix ``. The standard's
+own sentence — a paste *constructs* an identifier — is the whole-name reading, which is also the one
+sv2v's reference and Verilator's goldens take, so it is the one shipped. Over the corpus the change
+moved exactly one expansion of the 188 files that carry a paste at all, the sv2v row above; the record,
+with the three-way comparison against both tools re-runnable
+(`docs/tasks/artifacts/svpp_expansion/paste_order/probe.sh`), is in `docs/tasks/SVPP-EXPANSION.md`. What
+that comparison also shows, and what is deliberately **not** decided by this rule: a macro usage
+substituted into a `` `"…`" `` string region is not expanded here while both tools expand it, and a
+formal inside a plain `"…"` string is substituted here (as Icarus does) while Verilator keeps the
+string verbatim — `SVPP-EXPANSION.5`(j) and (k), owned, next.
+
 **`` `begin_keywords `` regions are rendered, not ignored** (`SVPP-EXPANSION.8`). IEEE 1800-2017 §22.14
 lets a block of source select *which identifiers are reserved as keywords*, from a version of IEEE 1364
 or IEEE 1800: inside `` `begin_keywords "1364-2001" `` … `` `end_keywords ``, `logic` is an ordinary
