@@ -1,0 +1,29 @@
+suite	files	defines	sites
+friscv	1	1	1
+ispras-sv-tests	1	1	1
+iverilog	12	12	12
+opentitan	6	6	8
+sv-tests	1	1	1
+sv2v	2	2	3
+uvm-core	2	4	7
+verible	1	1	1
+verilator	20	35	53
+TOTAL	46	63	87
+  friscv: stimuli/sv/subs/friscv/rtl/friscv_cache_blocks.sv  `define trace_read(...) $fwrite(f, "@ %0t: Port PNUM read @ 0x%x\n", $realtime, p``PNUM``_raddr);         $fwrite(f, "  Block:\n");   
+  ispras-sv-tests: stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/22/22.05.01_07.sv  `define H(...) "Hello, x"
+  iverilog: stimuli/sv/subs/iverilog/ivtest/ivltests/sv_type_identifier_parameter_decl_name.v  `define check(...) if ((value) !== (expected)) begin        $display("FAILED(%0d). %s", `__LINE__, error);        $display("  exp
+  iverilog: stimuli/sv/subs/iverilog/ivtest/ivltests/sv_type_identifier_parameter_type_param_name.v  `define check(...) if ((value) !== (expected)) begin        $display("FAILED(%0d). %s", `__LINE__, error);        $display("  exp
+  iverilog: stimuli/sv/subs/iverilog/ivtest/ivltests/sv_type_identifier_port_name.v  `define check(...) if ((value) !== (expected)) begin      $display("FAILED(%0d). %s", `__LINE__, error);      $display("  expecte
+  opentitan: stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/pwrmgr/dv/env/seq_lib/pwrmgr_base_vseq.sv  `define FAST_RESPONSE_ACTION(...) `uvm_info(`gfn, $sformatf(                      "fast_responder %s: Will drive %0s to %b in %0d fast clock cyc
+  opentitan: stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/alert_handler/dv/env/seq_lib/alert_handler_alert_accum_saturation_vseq.sv  `define CLASS_CNT_PATH(...) string class_``class_i``_path_0 =             "tb.dut.gen_classes[``i``].u_accu.u_prim_count.cnt_q[0]";      s
+  opentitan: stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/pwrmgr/dv/env/seq_lib/pwrmgr_base_vseq.sv  `define FAST_RESPONSE_ACTION(...) `uvm_info(`gfn, $sformatf(                      "fast_responder %s: Will drive %0s to %b in %0d fast clock cyc
+  sv-tests: stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_24.sv  `define H(...) "Hello, x"
+  sv2v: stimuli/sv/subs/sv2v/test/core/dimensions.v  `define DUMP_DIM(...) $display("    $size      %0d",              1 + (left >= right ? left - right : right - left));          $disp
+  sv2v: stimuli/sv/subs/sv2v/test/lex/macro.sv  `define MACRO_E(...) $display("s", `"s", `"ss");
+  uvm-core: stimuli/sv/uvm/uvm-core-2020.3.1/src/tlm2/uvm_tlm2_imps.svh  `define UVM_TLM_NB_TRANSPORT_FW_IMP(...) function uvm_tlm_sync_e nb_transport_fw(T t, ref P p, input uvm_tlm_time delay);       if (delay == null) begi
+  uvm-core: stimuli/sv/uvm/uvm-core-2020.3.1/src/tlm2/uvm_tlm2_imps.svh  `define UVM_TLM_NB_TRANSPORT_BW_IMP(...) function uvm_tlm_sync_e nb_transport_bw(T t, ref P p, input uvm_tlm_time delay);       if (delay == null) begi
+  uvm-core: stimuli/sv/uvm/uvm-core-2020.3.1/src/tlm2/uvm_tlm2_imps.svh  `define UVM_TLM_B_TRANSPORT_IMP(...) task b_transport(T t, uvm_tlm_time delay);                                   if (delay == null) begin         
+  verible: stimuli/sv/subs/verible/verible/verilog/tools/lint/testdata/macro_string_concatenation.sv  `define FOO(...) "foo``arg``bar"
+  verilator: stimuli/sv/subs/verilator/test_regress/t/t_preproc.v  `define withquote(...) a bar LLZZ "a" bar
+  verilator: stimuli/sv/subs/verilator/test_regress/t/t_preproc.v  `define bug191(...) $display("bits %d %d", $bits(foo), bits);
+  verilator: stimuli/sv/subs/verilator/test_regress/t/t_preproc.v  `define STR(...) "foo name baz"

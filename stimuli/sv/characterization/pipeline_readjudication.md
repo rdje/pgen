@@ -9,11 +9,11 @@
 | answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e25d0dc69a579fb93a12abf713dd4b0f99b9fb402b6c884710c655c1e1b99199` |
 | explained_svpp audit | `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/after/audit.tsv` | `e30149eb2dc125d24f0a27c537984fc2e11b6ba13062e0e62f162e7d02dfeded` |
 | dark chained_only audit | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv` | `a1107daee5ad2473a6061d15d6bdd6f79857afff44102c7f4651dd6687a615ea` |
-| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `b89c157bc1ff6e4edb729854a75cd35a4f705fe6a01a6cd8a5cabf4317b6e84a` |
+| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `3c45dee8091da00f3c047e49ea336cd94bf062d375bae3d07644cab424f570bd` |
 | refuted dispositions (`.6b`) | `stimuli/sv/characterization/refuted_dispositions.tsv` | `df5130629ae75fee021bd4c3d2ba362331b55bb51a1a5bdbd6025ef5a09be3fa` |
-| parse binary | `rust/target/debug/parseability_probe` | `74db56fca2d481cdf97ea629c2e69506bb25f8f5c4acb11190647887694f6df2` |
+| parse binary | `rust/target/debug/parseability_probe` | `da3933ee9380689ac64ce20908190f35f8017d0f1af3eba532a088abafd78910` |
 
-Measured at `HEAD` = `744e8b7fe+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
+Measured at `HEAD` = `0b21c72f1+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
 
 ## The headline
 

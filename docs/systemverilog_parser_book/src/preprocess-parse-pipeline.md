@@ -39,6 +39,7 @@ context the pipeline takes, and each has the same spelling on both CLIs:
 | include search path | `--sv-include-dir DIR` (repeatable, ordered) | where `` `include "x.svh" `` is looked for after the including file's own directory |
 | predefined macros | `--sv-define NAME` / `--sv-define NAME=TEXT` (repeatable, ordered) | seeded into the macro table before the first line is read, exactly as if `` `define NAME TEXT `` stood at the top of the unit; `NAME` alone defines it with **empty** text (the meaning a bare `` `define NAME `` line has). A predefine is an ordinary definition: `` `ifdef ``, `` `undef `` and the redefinition policy treat it as one |
 | the compilation unit | `--sv-unit-file F` (repeatable, ordered) | the files preprocessed **before** the input, under the **same macro table**; the input is the unit's last file |
+| a formal inside a plain `"…"` string | `--sv-plain-string-substitution standard\|paste_delimited\|all` (default `standard`) | what a formal's name inside a plain string literal in MACRO TEXT means: `standard` — the string is opaque, IEEE 1800-2017 §22.5.1's own `` `define H(x) "Hello, x" `` prints `Hello, x`; `paste_delimited` — only a formal marked by paste tokens on both sides (`"…[``i``]…"`, OpenTitan's idiom) is substituted; `all` — every formal substituted and every paste joined (Icarus's reading). The same spelling on `ast_pipeline --preprocess-systemverilog` |
 
 The unit flag is not a convenience. IEEE 1800-2017 §22.5.1 says: *"Once a text macro name has been
 defined, it can be used anywhere in the compilation unit where it is defined. There are no other
@@ -354,6 +355,29 @@ paths inside their strings, and exactly one verdict: the OpenTitan interface row
 does — closing a region with a bare `"` — is sv2v's extension (Verilator refuses the file, the clause says a `"`
 *"must have a terminating ""*) and is left as written; the row is a pinned must-reject either way. The three-way
 comparison is re-runnable (`docs/tasks/artifacts/svpp_expansion/string_region/probe.sh`).
+
+**A plain string in macro text is opaque** (`SVPP-EXPANSION.5`(k)). The same clause that defines the `` `" `` form
+says of a plain one: *"the use of " always starts a string literal and must have a terminating ". Any characters
+embedded inside this string literal, including `", become part of the string in the replaced macro text"* — and its
+own worked example is `` `define H(x) "Hello, x" ``, which *"will print: Hello, x"*. The engine had been substituting
+a formal there, which is Icarus's reading and which MANGLES a message whose prose happens to be a formal's name — the
+census read 66 such sites against 6 that rely on it: iverilog's `` `define check(value, expected, error) `` printed
+`"  8'h5 %0h, got %0h"` for `"  expected %0h, got %0h"`, OpenTitan's `pwrmgr_base_vseq.sv` printed `"in %0d fast clock
+cycles_before_rst_lc_src"`, UVM's field macros warned about `"UVM_ALL_ON|UVM_HEX"` instead of `"FLAG"`. The six
+that rely on substitution are design code written for commercial simulators — OpenTitan's
+`` "tb.dut.gen_classes[``i``].u_accu.u_prim_count.cnt_q[0]" ``, where the paste tokens MARK the formal — so the two
+tool readings are the named values of one policy, with the standard's as the default:
+
+```text
+--sv-plain-string-substitution standard          "Hello, x"                         (the clause; Verilator 5.050)
+--sv-plain-string-substitution paste_delimited   "tb.dut.gen_classes[0]…" — only a ``formal`` is substituted, prose stays
+--sv-plain-string-substitution all               every formal substituted, every paste joined (Icarus 13.0)
+```
+
+Over the corpus the default moved 67 of 16 388 expansions and every changed line sits inside a plain string; the
+paste-order probe now agrees with Verilator on all fourteen of its rows. ⚠️ A consumer feeding OpenTitan-style DV code
+names `paste_delimited`; nobody is served by `all` except a reproduction of Icarus, which is why it is spelled out
+rather than left as an unnamed default.
 
 **`` `begin_keywords `` regions are rendered, not ignored** (`SVPP-EXPANSION.8`). IEEE 1800-2017 §22.14
 lets a block of source select *which identifiers are reserved as keywords*, from a version of IEEE 1364

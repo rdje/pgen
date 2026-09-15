@@ -986,6 +986,13 @@ Where this prose and the inventory disagree, the inventory wins.
   in a SOURCE line is not rendered (the form is defined for macro text; Verilator renders it, Icarus does not — recorded).
   With it, `()` is one empty actual when the macro declares formals (`.5`(j′), §22.5.1 *"empty … by nothing if no
   default"*), the reading both reference tools take.
+- **A plain `"…"` string in macro text is opaque, landed 2026-09-15 (`SVPP-EXPANSION.5`(k)).** §22.5.1 `:370-372`: the
+  characters of a plain string literal "become part of the string in the replaced macro text", its own example
+  `` `define H(x) "Hello, x" `` printing `Hello, x`. `SvPreprocessorConfig::plain_string_substitution` /
+  `--sv-plain-string-substitution` names the two measured deviations — `paste_delimited` (only a formal marked by paste
+  tokens on both sides is substituted: OpenTitan's `"…[``i``]…"`) and `all` (every formal, every paste: Icarus 13.0) —
+  with `standard` the default. The engine had read `all` since the runtime module's first commit, which mangled 66 of
+  the corpus's 72 in-string formal sites (a message's prose replaced by an actual) to serve 6.
 - The live measurement of the expansion is the SV parser book's chapter
   `docs/systemverilog_parser_book/src/preprocess-parse-pipeline.md`, not this family's status page: this
   family's corpus leg stays NOT MEASURED because no corpus of directive files is wired, and the expansion's

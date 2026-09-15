@@ -20,9 +20,9 @@ use pgen::ebnf_frontend;
 #[cfg(feature = "generated_parsers")]
 use pgen::parser_registry;
 use pgen::sv_preprocessor::{
-    PredefinedMacro, preprocess_systemverilog_unit,
     ConditionalExprPolicy, ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy,
-    SvPreprocessorConfig, parse_strict_warning_codes, preprocess_systemverilog_file,
+    PlainStringSubstitutionPolicy, PredefinedMacro, SvPreprocessorConfig,
+    parse_strict_warning_codes, preprocess_systemverilog_file, preprocess_systemverilog_unit,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -565,6 +565,15 @@ struct Args {
     )]
     sv_conditional_symbol_policy: String,
 
+    /// `SVPP-EXPANSION.5`(k): a formal inside a plain "…" string in macro text — standard (opaque, IEEE 1800-2017 §22.5.1's own `H(x) "Hello, x"`), paste_delimited (OpenTitan's `"[``i``]"` idiom), all (Icarus's reading)
+    #[arg(
+        long,
+        default_value = "standard",
+        value_parser = ["standard", "paste_delimited", "all"],
+        requires = "preprocess_systemverilog"
+    )]
+    sv_plain_string_substitution: String,
+
     /// Conditional expression policy for `elsif in preprocessor mode: identifier_only, identifier_or_defined
     #[arg(
         long,
@@ -976,7 +985,10 @@ fn pipeline_main() -> Result<()> {
     // Handled BEFORE clap so the probe needs no input file and answers identically in EVERY feature
     // configuration — a binary that cannot answer it is, by definition, a pre-tripwire vintage. The
     // marker line is consumed by `pgen::parse_harness` (kept in lockstep with its parser there).
-    if std::env::args().skip(1).any(|a| a == "--report-feature-surface") {
+    if std::env::args()
+        .skip(1)
+        .any(|a| a == "--report-feature-surface")
+    {
         println!(
             "AST-PIPELINE-FEATURE-SURFACE: ebnf_dual_run={} generated_parsers={}",
             cfg!(feature = "ebnf_dual_run"),
@@ -1069,6 +1081,13 @@ fn pipeline_main() -> Result<()> {
                     )
                 },
             )?;
+        let plain_string_substitution =
+            PlainStringSubstitutionPolicy::parse(&args.sv_plain_string_substitution).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "invalid --sv-plain-string-substitution '{}'; expected standard|paste_delimited|all",
+                    args.sv_plain_string_substitution
+                )
+            })?;
         let conditional_expr_policy = ConditionalExprPolicy::parse(&args.sv_conditional_expr_policy)
             .ok_or_else(|| {
                 anyhow::anyhow!(
@@ -1101,6 +1120,7 @@ fn pipeline_main() -> Result<()> {
             },
             conditional_symbol_policy,
             conditional_expr_policy,
+            plain_string_substitution,
             strict_warning_codes,
             defines,
             parse_profile: args.sv_keyword_profile.clone(),
@@ -1112,13 +1132,16 @@ fn pipeline_main() -> Result<()> {
         let output = if unit_predecessors == 0 {
             preprocess_systemverilog_file(Path::new(&args.input_path), &config)?
         } else {
-            let mut unit: Vec<std::path::PathBuf> =
-                args.sv_unit_file.iter().map(std::path::PathBuf::from).collect();
+            let mut unit: Vec<std::path::PathBuf> = args
+                .sv_unit_file
+                .iter()
+                .map(std::path::PathBuf::from)
+                .collect();
             unit.push(std::path::PathBuf::from(&args.input_path));
             let mut outputs = preprocess_systemverilog_unit(&unit, &config)?;
-            outputs
-                .pop()
-                .ok_or_else(|| anyhow::anyhow!("the compilation unit produced no output for INPUT"))?
+            outputs.pop().ok_or_else(|| {
+                anyhow::anyhow!("the compilation unit produced no output for INPUT")
+            })?
         };
         if let Some(output_path) = args.output.as_deref() {
             std::fs::write(output_path, &output.text)?;
@@ -1235,10 +1258,8 @@ fn pipeline_main() -> Result<()> {
             &mut pipeline,
             args.emit_raw_ast_json.as_deref(),
         )?;
-        let grammar = apply_grammar_profile_filter(
-            unfiltered_grammar,
-            args.grammar_profile.as_deref(),
-        )?;
+        let grammar =
+            apply_grammar_profile_filter(unfiltered_grammar, args.grammar_profile.as_deref())?;
         return run_indirect_lr_plan_report(
             &grammar,
             args.indirect_lr_plan_json.as_deref(),
@@ -1382,8 +1403,10 @@ fn pipeline_main() -> Result<()> {
         // `apply_grammar_profile_filter` consumes its argument, so the canonical profile filter runs on
         // a clone of the bundle. The clone yields the SAME filtered grammar (output-identical) — only a
         // per-run allocation — so the canonical `CERTIFICATE-COVERAGE:` output stays byte-identical.
-        let grammar =
-            apply_grammar_profile_filter(unfiltered_grammar.clone(), args.grammar_profile.as_deref())?;
+        let grammar = apply_grammar_profile_filter(
+            unfiltered_grammar.clone(),
+            args.grammar_profile.as_deref(),
+        )?;
         #[cfg(feature = "generated_parsers")]
         return run_certificate_coverage_report(
             &grammar,
@@ -1478,11 +1501,10 @@ fn pipeline_main() -> Result<()> {
                         &output_rust,
                     )
                 });
-            let inventory =
-                pgen::ast_pipeline::EmittedReturnAnnotationInventory::from_annotations(
-                    &grammar.grammar_name,
-                    grammar.annotations.as_ref(),
-                );
+            let inventory = pgen::ast_pipeline::EmittedReturnAnnotationInventory::from_annotations(
+                &grammar.grammar_name,
+                grammar.annotations.as_ref(),
+            );
             let written = inventory.write_to_file(&inventory_path)?;
             println!(
                 "Return-annotation inventory: {} ({} entries)",
@@ -1943,11 +1965,10 @@ fn pipeline_main() -> Result<()> {
             // SV-EXH-PROOF.7.4.6.12: the run's entry rule is passed so a STORE-ENTRY-BLOCKED
             // target can be witnessed from it (the raised entry) instead of from its own rule,
             // whose empty store makes a mandatory positive store gate unsatisfiable at any budget.
-            let (witness_samples, witness_summary) = generator
-                .generate_target_witnesses(
-                    &target_report.targets,
-                    Some(resolved_entry_rule.as_str()),
-                )?;
+            let (witness_samples, witness_summary) = generator.generate_target_witnesses(
+                &target_report.targets,
+                Some(resolved_entry_rule.as_str()),
+            )?;
             println!("{}", witness_summary.summary_line());
             // SV-EXH-PROOF.7.4.6.13 (TOOL-BUILD, WHY+WHERE): price the `generate_or` depth-slack
             // retry per NESTING level, over the whole run (diverse + target-drive + witness
@@ -2729,8 +2750,8 @@ fn filter_annotations_by_profile(
     let mut lexical_follow_restrictions = annotations.lexical_follow_restrictions;
     lexical_follow_restrictions.retain(|rule_name, _| retained_rules.contains(rule_name));
 
-    let mut pre_lr_elim_branch_return_annotations = annotations
-        .pre_lr_elim_branch_return_annotations;
+    let mut pre_lr_elim_branch_return_annotations =
+        annotations.pre_lr_elim_branch_return_annotations;
     if let Some(snapshot) = pre_lr_elim_branch_return_annotations.as_mut() {
         snapshot.retain(|rule_name, _| retained_rules.contains(rule_name));
     }
@@ -2960,7 +2981,8 @@ fn run_directed_generation(grammar: &LoadedGrammar, run: DirectedGenerationRun) 
     };
 
     let mut directed = make_generator();
-    let outcome = directed.directed_k_path_generation(&entry_rule, rounds, samples_per_round, run.k);
+    let outcome =
+        directed.directed_k_path_generation(&entry_rule, rounds, samples_per_round, run.k);
 
     let mut diverse = make_generator();
     let budget = rounds.saturating_mul(samples_per_round);
@@ -3111,8 +3133,12 @@ fn run_directed_corpus_mimicry(grammar: &LoadedGrammar, run: &DirectedGeneration
     };
 
     let mut directed = make_generator();
-    let outcome =
-        directed.directed_corpus_mimicry_generation(&entry_rule, rounds, samples_per_round, &corpus);
+    let outcome = directed.directed_corpus_mimicry_generation(
+        &entry_rule,
+        rounds,
+        samples_per_round,
+        &corpus,
+    );
 
     let budget = rounds.saturating_mul(samples_per_round);
     let mut diverse = make_generator();
@@ -3450,9 +3476,12 @@ fn gather_cert_covered_sets(
     // defect from an expected diverse-generation miss. (error, sample) for the first few.
     let mut failures: Vec<(String, String)> = Vec::new();
     for sample in &diverse {
-        if let Some((parsed, covered)) =
-            pgen::parser_registry::parse_and_cover(&grammar.grammar_name, sample, profile, Some(entry_rule.as_str()))
-        {
+        if let Some((parsed, covered)) = pgen::parser_registry::parse_and_cover(
+            &grammar.grammar_name,
+            sample,
+            profile,
+            Some(entry_rule.as_str()),
+        ) {
             if parsed {
                 witness_covered.extend(covered);
             } else {
@@ -3544,9 +3573,12 @@ fn gather_cert_covered_sets(
                 reach_generator.generate_many(samples, Some(entry_rule.as_str()))
             {
                 for sample in &reach_samples {
-                    if let Some((parsed, covered)) =
-                        pgen::parser_registry::parse_and_cover(&grammar.grammar_name, sample, profile, Some(entry_rule.as_str()))
-                    {
+                    if let Some((parsed, covered)) = pgen::parser_registry::parse_and_cover(
+                        &grammar.grammar_name,
+                        sample,
+                        profile,
+                        Some(entry_rule.as_str()),
+                    ) {
                         if parsed {
                             witness_covered.extend(covered);
                         } else {
@@ -4038,7 +4070,11 @@ fn run_certificate_coverage_report(
         );
     }
     if !report.unknown.is_empty() {
-        let shown = if dump_all { report.unknown.len() } else { report.unknown.len().min(25) };
+        let shown = if dump_all {
+            report.unknown.len()
+        } else {
+            report.unknown.len().min(25)
+        };
         println!(
             "  UNKNOWN rules ({} of {} shown): {:?}",
             shown,
@@ -4138,9 +4174,16 @@ fn run_certificate_coverage_report(
         );
         for (i, (err, sample)) in canonical.failures.iter().take(shown).enumerate() {
             let preview: String = sample.chars().take(2000).collect();
-            let truncated = if sample.len() > preview.len() { " …[truncated]" } else { "" };
+            let truncated = if sample.len() > preview.len() {
+                " …[truncated]"
+            } else {
+                ""
+            };
             println!("    [{i}] error: {err}");
-            println!("    [{i}] sample ({} bytes): {preview}{truncated}", sample.len());
+            println!(
+                "    [{i}] sample ({} bytes): {preview}{truncated}",
+                sample.len()
+            );
         }
     }
 
@@ -4167,7 +4210,8 @@ fn run_certificate_coverage_report(
             }
             // Re-filter the UNFILTERED bundle by this config's profile (re-uses the canonical filter,
             // so the regex pcre2-by-default rule and profile-orphan filtering apply identically).
-            let cfg_grammar = apply_grammar_profile_filter(unfiltered_grammar.clone(), cfg_profile)?;
+            let cfg_grammar =
+                apply_grammar_profile_filter(unfiltered_grammar.clone(), cfg_profile)?;
             if !cfg_grammar.rule_order.iter().any(|r| r == cfg_entry) {
                 anyhow::bail!(
                     "--cert-union-config '{raw}': entry rule '{cfg_entry}' is not present in grammar \
@@ -4194,8 +4238,7 @@ fn run_certificate_coverage_report(
             witness_union.extend(sets.witness_covered);
             applied_configs.push(format!("{}:{}", cfg_entry, cfg_profile.unwrap_or("<none>")));
         }
-        let union_report =
-            certificate_coverage(&grammar.rule_order, &proof_union, &witness_union);
+        let union_report = certificate_coverage(&grammar.rule_order, &proof_union, &witness_union);
         println!(
             "CERTIFICATE-COVERAGE-UNION: grammar='{}' base_entry='{}' base_profile='{}' union_configs=[{}] total={} proof={} witness={} UNKNOWN={} fully_certified={}",
             grammar.grammar_name,
@@ -4431,7 +4474,10 @@ fn run_report_sample_parity(
     let mut defects: Vec<String> = Vec::new();
     for site in &samples {
         let required = if rule_join {
-            rule_satisfiable.get(&site.rule).cloned().unwrap_or_default()
+            rule_satisfiable
+                .get(&site.rule)
+                .cloned()
+                .unwrap_or_default()
         } else {
             profiles_requiring_sample(site, &rule_satisfiable, &branch_satisfiable)
         };
@@ -4740,11 +4786,11 @@ fn run_interpret_parse(
 
 fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
-        classify_left_recursion, detect_always_succeeds_alternatives, detect_nonterminating_rules,
-        detect_nullable_repetition, detect_ordered_choice_shadowing,
-        detect_lookahead_slot_templates, detect_profile_gated_lookaheads, detect_profile_orphans,
-        detect_unbound_fact_kinds, detect_uncompilable_regex_terminals, detect_undefined_references,
-        detect_unreachable_rules,
+        classify_left_recursion, detect_always_succeeds_alternatives,
+        detect_lookahead_slot_templates, detect_nonterminating_rules, detect_nullable_repetition,
+        detect_ordered_choice_shadowing, detect_profile_gated_lookaheads, detect_profile_orphans,
+        detect_unbound_fact_kinds, detect_uncompilable_regex_terminals,
+        detect_undefined_references, detect_unreachable_rules,
     };
     use pgen::ast_pipeline::semantic_directive_registry::parse_semantic_string_list;
     let g = &grammar.grammar_tree;
@@ -4808,9 +4854,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     if let Some(ann) = grammar.annotations.as_ref() {
         for (rule, entries) in &ann.semantic_annotations {
             for annotation in entries {
-                let is_profiles = annotation
-                    .name()
-                    .map(|n| n.trim().to_ascii_lowercase())
+                let is_profiles = annotation.name().map(|n| n.trim().to_ascii_lowercase())
                     == Some("profiles".to_string());
                 if !is_profiles {
                     continue;
@@ -5005,7 +5049,12 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         None => println!("  [error] grammar defines no rules, so it has no entry rule"),
     }
     print_lint_findings(&unreachable, "[error]", 40, "unreachable rules");
-    print_lint_findings(&undefined_refs, "[error]", 40, "undefined-reference findings");
+    print_lint_findings(
+        &undefined_refs,
+        "[error]",
+        40,
+        "undefined-reference findings",
+    );
     print_lint_findings(
         &bad_regex,
         "[error]",
@@ -5021,7 +5070,8 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     // grammar this line did not print AT ALL and the reader had no way to learn which rule was
     // rewritten without reaching for `--report-indirect-lr-plan`.
     if lr_report.elimination_ran
-        && !(lr_report.eliminated_rules.is_empty() && lr_report.indirect_eliminated_rules.is_empty())
+        && !(lr_report.eliminated_rules.is_empty()
+            && lr_report.indirect_eliminated_rules.is_empty())
     {
         let mut named: Vec<String> = lr_report.eliminated_rules.clone();
         named.extend(
@@ -5050,7 +5100,12 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     // fixed-terminal-prefix) is a SOUND, HARD-gated unreachability verdict — all authored grammars are
     // clean at 0. (The unsound `EarlierAlwaysMatches` warning was retired at A2.2; its observation is
     // now the non-verdict always-succeeds [note] printed below.)
-    print_lint_findings(&shadow, "[error]", 40, "shadowed (unreachable) branch findings");
+    print_lint_findings(
+        &shadow,
+        "[error]",
+        40,
+        "shadowed (unreachable) branch findings",
+    );
     // GRAMMAR-WELLFORMED.A2.2: the always-succeeds smell — a NON-VERDICT [note] (never gates).
     print_lint_findings(
         &always_notes,
@@ -5119,7 +5174,10 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         // fixed-prefix) is a SOUND HARD gate (all grammars clean at 0); the retired unsound
         // always-succeeds heuristic is a non-verdict [note] above, never gated (A2.2).
         if !shadow.is_empty() {
-            problems.push(format!("{} shadowed (unreachable) branch(es)", shadow.len()));
+            problems.push(format!(
+                "{} shadowed (unreachable) branch(es)",
+                shadow.len()
+            ));
         }
         // GRAMMAR-WELLFORMED.A1b: a defined-but-unreachable rule is a dead rule (Hopcroft–Ullman
         // "no useless symbols" — the reachable half). Hard failure.
@@ -5205,7 +5263,9 @@ fn run_indirect_lr_plan_report(
     json_path: Option<&str>,
     guard_dry_run: bool,
 ) -> Result<()> {
-    use pgen::ast_pipeline::indirect_lr_plan::{render_elements_display, survey_indirect_left_recursion};
+    use pgen::ast_pipeline::indirect_lr_plan::{
+        render_elements_display, survey_indirect_left_recursion,
+    };
     use std::collections::BTreeMap;
 
     let dump_all = std::env::var("PGEN_INDIRECT_LR_DUMP_ALL")
@@ -5424,7 +5484,11 @@ fn run_indirect_lr_plan_report(
             // transparent path, and the clone price is the chain. Measured: 6 of 129 SV sites.
             println!(
                 "    {} {} alt#{}{} — residual '{}' a greedy suffix could steal [guard={} seed={} first={} hops={} chain={}]",
-                if site.survives_rewrite { "⛔ starved by" } else { "·  benign site" },
+                if site.survives_rewrite {
+                    "⛔ starved by"
+                } else {
+                    "·  benign site"
+                },
                 site.rule,
                 site.alternative_index,
                 match (site.on_route, site.survives_rewrite) {
@@ -6961,8 +7025,8 @@ mod tests {
 
     fn unique_temp_path(file_name: &str) -> PathBuf {
         // `DATA-LOCALITY.2`: the repository volume, derived at run time — never `$TMPDIR`.
-        let mut path = pgen::repo_scratch::repo_scratch_dir("ast_pipeline_test")
-            .expect("repo scratch dir");
+        let mut path =
+            pgen::repo_scratch::repo_scratch_dir("ast_pipeline_test").expect("repo scratch dir");
         let now_nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("time")

@@ -24,6 +24,8 @@ pub struct SvPreprocessorConfig {
     pub macro_redefinition_policy: MacroRedefinitionPolicy,
     pub conditional_symbol_policy: ConditionalSymbolPolicy,
     pub conditional_expr_policy: ConditionalExprPolicy,
+    /// `SVPP-EXPANSION.5`(k): a formal inside a plain `"…"` string in macro text (default: the standard's opaque string)
+    pub plain_string_substitution: PlainStringSubstitutionPolicy,
     pub strict_warning_codes: HashSet<String>,
     /// `SVPP-EXPANSION.2`(a) — the compilation context's PREDEFINED macros (the `+define+` of every
     /// commercial front end). Each one is seeded into the macro table before the first source line
@@ -47,6 +49,7 @@ impl Default for SvPreprocessorConfig {
             macro_redefinition_policy: MacroRedefinitionPolicy::Allow,
             conditional_symbol_policy: ConditionalSymbolPolicy::AssumeFalseSilent,
             conditional_expr_policy: ConditionalExprPolicy::IdentifierOrDefined,
+            plain_string_substitution: PlainStringSubstitutionPolicy::Standard,
             strict_warning_codes: HashSet::new(),
             defines: Vec::new(),
             parse_profile: None,
@@ -145,6 +148,40 @@ impl ConditionalSymbolPolicy {
                 Some(Self::AssumeFalseWarn)
             }
             "error" | "strict" => Some(Self::Error),
+            _ => None,
+        }
+    }
+}
+
+/// `SVPP-EXPANSION.5`(k): what a FORMAL inside a plain `"…"` string literal in macro text means.
+/// IEEE 1800-2017 §22.5.1 (`:370-372`): *"the use of " always starts a string literal … Any
+/// characters embedded inside this string literal, including `", become part of the string in the
+/// replaced macro text"* — and its own example `` `define H(x) "Hello, x" `` prints `Hello, x`.
+/// The `` `" `` form exists because a plain string does NOT substitute. Verilator 5.050 reads it so;
+/// Icarus 13.0 substitutes every formal, and so did this engine, which MANGLES a message whose prose
+/// happens to contain a formal's name (`"  expected %0h, got %0h"` with a formal `expected`,
+/// `"in %0d fast clock cycles"` with `cycles` — 66 of the corpus's 72 such sites). Design code
+/// written for commercial simulators relies on the other 6: OpenTitan's paste-delimited idiom
+/// `"tb.dut.gen_classes[``i``].u_accu…"`, where the pastes MARK the formal. Three readings, each a
+/// measured population; the standard's is the default, the other two are named tool extensions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PlainStringSubstitutionPolicy {
+    /// the standard: a plain string in macro text is opaque — no formal substituted, no paste joined
+    #[default]
+    Standard,
+    /// OpenTitan's idiom: only a formal DELIMITED by paste tokens on both sides (`` ``i`` ``) is
+    /// substituted, the pastes removed; a bare word in prose stays prose
+    PasteDelimited,
+    /// Icarus's reading (this engine's until `.5`(k)): every formal substituted, every paste joined
+    All,
+}
+
+impl PlainStringSubstitutionPolicy {
+    pub fn parse(raw: &str) -> Option<Self> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "standard" | "lrm" | "opaque" => Some(Self::Standard),
+            "paste_delimited" | "paste-delimited" | "delimited" => Some(Self::PasteDelimited),
+            "all" | "substitute" | "icarus" => Some(Self::All),
             _ => None,
         }
     }
@@ -1205,6 +1242,7 @@ fn preprocess_text_internal(
                     exp_line,
                     &mut Vec::new(),
                     None,
+                    state.config.plain_string_substitution,
                 )?;
                 state.push_event(
                     PreprocessorEventKind::PassthroughLine,
@@ -1484,6 +1522,7 @@ fn preprocess_text_internal(
                             exp_line,
                             &mut Vec::new(),
                             None,
+                            state.config.plain_string_substitution,
                         )?;
                         state.push_event(
                             PreprocessorEventKind::PassthroughLine,
@@ -1559,6 +1598,7 @@ fn preprocess_text_internal(
                             exp_line,
                             &mut Vec::new(),
                             None,
+                            state.config.plain_string_substitution,
                         )?;
                         state.push_event(
                             PreprocessorEventKind::PassthroughLine,
@@ -1608,6 +1648,7 @@ fn preprocess_text_internal(
                 exp_line,
                 &mut Vec::new(),
                 None,
+                state.config.plain_string_substitution,
             )?;
             state.push_event(
                 PreprocessorEventKind::PassthroughLine,
@@ -2511,6 +2552,7 @@ fn expand_macros_in_text(
     line: usize,
     expanding: &mut Vec<String>,
     user_mask: Option<&[bool]>,
+    plain_strings: PlainStringSubstitutionPolicy,
 ) -> Result<String> {
     if depth > 16 {
         return Ok(text.to_string());
@@ -2632,6 +2674,7 @@ fn expand_macros_in_text(
                         line,
                         expanding,
                         user_mask,
+                        plain_strings,
                     )?;
                     out.push_str(&rendered);
                     if any_expanded {
@@ -2680,7 +2723,16 @@ fn expand_macros_in_text(
             && text[ident_end..].starts_with("``")
         {
             let (suffix, chain_end, operand_expanded) = join_paste_chain(
-                text, ident_end, macros, depth, events, file, line, expanding, user_mask,
+                text,
+                ident_end,
+                macros,
+                depth,
+                events,
+                file,
+                line,
+                expanding,
+                user_mask,
+                plain_strings,
             )?;
             if operand_expanded {
                 expanded_any = true;
@@ -2766,6 +2818,7 @@ fn expand_macros_in_text(
                 line,
                 name,
                 stack,
+                plain_strings,
             );
             stack.pop();
             let expanded = expanded?;
@@ -2787,7 +2840,8 @@ fn expand_macros_in_text(
                 &mut *expanding
             };
             stack.push(name.to_string());
-            let expanded = expand_object_macro(def, macros, depth + 1, file, line, stack);
+            let expanded =
+                expand_object_macro(def, macros, depth + 1, file, line, stack, plain_strings);
             stack.pop();
             let expanded = expanded?;
             events.push(PreprocessorEvent {
@@ -2820,6 +2874,7 @@ fn expand_macros_in_text(
             line,
             expanding,
             second_mask,
+            plain_strings,
         )
     } else {
         Ok(out)
@@ -2844,6 +2899,7 @@ fn expand_usage_at(
     line: usize,
     expanding: &mut Vec<String>,
     user_mask: Option<&[bool]>,
+    plain_strings: PlainStringSubstitutionPolicy,
 ) -> Result<Option<(String, usize)>> {
     let bytes = text.as_bytes();
     let n_start = at + 1;
@@ -2889,6 +2945,7 @@ fn expand_usage_at(
         line,
         expanding,
         sub_mask,
+        plain_strings,
     )?;
     Ok(Some((expansion, end)))
 }
@@ -2935,6 +2992,7 @@ fn render_macro_string_region(
     line: usize,
     expanding: &mut Vec<String>,
     user_mask: Option<&[bool]>,
+    plain_strings: PlainStringSubstitutionPolicy,
 ) -> Result<(String, bool)> {
     let bytes = text.as_bytes();
     let mut out = String::from("\"");
@@ -2952,7 +3010,16 @@ fn render_macro_string_region(
         }
         if bytes[k] == b'`' && k + 1 < close && is_ident_start(bytes[k + 1]) {
             match expand_usage_at(
-                text, k, macros, depth, events, file, line, expanding, user_mask,
+                text,
+                k,
+                macros,
+                depth,
+                events,
+                file,
+                line,
+                expanding,
+                user_mask,
+                plain_strings,
             )? {
                 Some((expansion, end)) if end <= close => {
                     out.push_str(&expansion);
@@ -3011,6 +3078,7 @@ fn join_paste_chain(
     line: usize,
     expanding: &mut Vec<String>,
     user_mask: Option<&[bool]>,
+    plain_strings: PlainStringSubstitutionPolicy,
 ) -> Result<(String, usize, bool)> {
     let bytes = text.as_bytes();
     let mut j = start;
@@ -3026,7 +3094,16 @@ fn join_paste_chain(
                     n_end += 1;
                 }
                 match expand_usage_at(
-                    text, after, macros, depth, events, file, line, expanding, user_mask,
+                    text,
+                    after,
+                    macros,
+                    depth,
+                    events,
+                    file,
+                    line,
+                    expanding,
+                    user_mask,
+                    plain_strings,
                 )? {
                     Some((expansion, op_end)) => {
                         suffix.push_str(&expansion);
@@ -3319,6 +3396,7 @@ fn expand_object_macro(
     file: &Path,
     line: usize,
     expanding: &mut Vec<String>,
+    plain_strings: PlainStringSubstitutionPolicy,
 ) -> Result<String> {
     expand_macros_in_text(
         &definition.body,
@@ -3329,6 +3407,7 @@ fn expand_object_macro(
         line,
         expanding,
         Some(&[]),
+        plain_strings,
     )
 }
 
@@ -3344,6 +3423,7 @@ fn expand_function_macro(
     line: usize,
     name: &str,
     expanding: &mut Vec<String>,
+    plain_strings: PlainStringSubstitutionPolicy,
 ) -> Result<String> {
     // `SVPP-EXPANSION.5`(g): a MISSING actual (the list is shorter than the formals) for a formal
     // WITHOUT a default is an error — IEEE 1800-2017 §22.5.1's own example:
@@ -3426,7 +3506,7 @@ fn expand_function_macro(
         binding_masks.insert(param.name.as_str(), mask);
     }
     let (substituted, mask) =
-        substitute_function_macro_body(&definition.body, &bindings, &binding_masks);
+        substitute_function_macro_body(&definition.body, &bindings, &binding_masks, plain_strings);
     expand_macros_in_text(
         &substituted,
         macros,
@@ -3436,6 +3516,7 @@ fn expand_function_macro(
         line,
         expanding,
         Some(&mask),
+        plain_strings,
     )
 }
 
@@ -3461,6 +3542,7 @@ fn substitute_function_macro_body(
     body: &str,
     bindings: &HashMap<&str, &str>,
     binding_masks: &HashMap<&str, Vec<bool>>,
+    plain_strings: PlainStringSubstitutionPolicy,
 ) -> (String, Vec<bool>) {
     let bytes = body.as_bytes();
     let mut i = 0usize;
@@ -3517,7 +3599,9 @@ fn substitute_function_macro_body(
         if i + 2 <= bytes.len() && bytes[i] == b'`' && bytes[i + 1] == b'`' {
             // the ``` `` ``` token-paste operator: the two sides join with nothing between — kept
             // for the rescan outside a string literal (`.5`(i)), removed inside one
-            if !in_plain_string {
+            // `.5`(k): inside a plain string the paste is the string's under the standard's reading
+            // (the literal is opaque) and removed under the two substituting readings
+            if !in_plain_string || plain_strings == PlainStringSubstitutionPolicy::Standard {
                 push_body(&mut out, &mut mask, "``");
             }
             i += 2;
@@ -3634,6 +3718,13 @@ fn substitute_function_macro_body(
             i += ch.len_utf8();
             continue;
         }
+        // `.5`(k): an escape inside a plain string escapes ONE character, and that character may
+        // start an identifier (`\n`, `\t`, `\"`) — it is consumed here, so the quote that follows
+        // it closes the string. Before this, `"%%Error: … got=%0x\n"` never closed and every formal
+        // after it on the line (Verilator's `` `checkh(gotv, expv) ``) read as inside the string.
+        if in_plain_string && escaped_in_plain_string {
+            escaped_in_plain_string = false;
+        }
         let start = i;
         i += 1;
         while i < bytes.len() && is_ident_continue(bytes[i]) {
@@ -3644,7 +3735,21 @@ fn substitute_function_macro_body(
         // ::= $[a-zA-Z0-9_$]{…}), so a formal named `display` is not inside it — sv2v `macro.sv`'s
         // `` `define MACRO_D(display) $display(display); `` expanded to `$"display"("display")`.
         let system_name = start > 0 && bytes[start - 1] == b'$';
-        if let Some(arg) = bindings.get(token).filter(|_| !system_name) {
+        // `SVPP-EXPANSION.5`(k): inside a plain string a formal is substituted only as the policy
+        // reads it — never (the standard), only when paste tokens delimit it on both sides
+        // (`` "[``i``]" ``, OpenTitan's idiom), or always (Icarus's reading)
+        let substitutable = match plain_strings {
+            _ if !in_plain_string => true,
+            PlainStringSubstitutionPolicy::Standard => false,
+            PlainStringSubstitutionPolicy::PasteDelimited => {
+                start >= 2 && &body[start - 2..start] == "``" && body[i..].starts_with("``")
+            }
+            PlainStringSubstitutionPolicy::All => true,
+        };
+        if let Some(arg) = bindings
+            .get(token)
+            .filter(|_| !system_name && substitutable)
+        {
             push_actual(
                 &mut out,
                 &mut mask,
@@ -3701,10 +3806,10 @@ fn is_ident_continue(b: u8) -> bool {
 mod tests {
     use super::{
         ConditionalSymbolPolicy, IncludePathPolicy, MacroDefinition, MacroParameter,
-        MacroRedefinitionPolicy, PredefinedMacro, PreprocessedOutput,
-        PreprocessorDiagnosticSeverity, PreprocessorEventKind, SvPreprocessorConfig,
-        expand_function_macro, normalize_macro_body_for_directives, parse_strict_warning_codes,
-        preprocess_systemverilog_file, preprocess_systemverilog_unit,
+        MacroRedefinitionPolicy, PlainStringSubstitutionPolicy, PredefinedMacro,
+        PreprocessedOutput, PreprocessorDiagnosticSeverity, PreprocessorEventKind,
+        SvPreprocessorConfig, expand_function_macro, normalize_macro_body_for_directives,
+        parse_strict_warning_codes, preprocess_systemverilog_file, preprocess_systemverilog_unit,
     };
     use std::collections::HashMap;
     use std::fs;
@@ -4076,6 +4181,7 @@ mod tests {
             1,
             "uvm_field_begin",
             &mut Vec::new(),
+            PlainStringSubstitutionPolicy::Standard,
         )
         .expect("expand");
         assert!(
@@ -5496,18 +5602,18 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
     }
 
     #[test]
-    fn a_paste_inside_a_plain_string_in_a_macro_body_is_unchanged() {
+    fn a_paste_inside_a_plain_string_is_the_strings_by_default() {
         // verible lint/testdata/macro_string_concatenation.sv: `define FOO(arg) "foo``arg``bar" —
-        // the rescan never enters a string literal, so the paste is still removed at substitution
-        // and the text reads "fooxbar" exactly as before this slice (Icarus 13.0 reads the same;
-        // Verilator 5.050 keeps the string verbatim, which is IEEE 1800-2017 §22.5.1's letter and
-        // `SVPP-EXPANSION.5`(k)'s question — deliberately not decided here)
+        // pinned by .5(i) as "fooxbar", the bytes of the day, with the ruling deferred to .5(k); .5(k)
+        // ruled with IEEE 1800-2017 §22.5.1 :370-372 (a plain string in macro text is opaque) and
+        // Verilator 5.050, so the default reading keeps the literal as written, pastes included.
+        // Icarus 13.0's "fooxbar" is `--sv-plain-string-substitution all`, and OpenTitan's
+        // paste-delimited idiom is `paste_delimited` (the_verible_paste_string_shape_under_each_reading).
         let text = expand_text(
             "svpp_paste_order_plain_string",
             "`define FOO(arg) \"foo``arg``bar\"\nmodule t; initial $display(`FOO(x)); endmodule\n",
         );
-        assert!(text.contains("$display(\"fooxbar\");"), "{text}");
-        assert!(!text.contains("``"), "{text}");
+        assert!(text.contains("$display(\"foo``arg``bar\");"), "{text}");
     }
 
     // ── SVPP-EXPANSION.5(j) — the `"…`" string region: "the expansion shall include the quotation
@@ -5657,6 +5763,165 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             "{text}"
         );
         assert!(!text.contains("first \n"), "{text}");
+    }
+
+    // ── SVPP-EXPANSION.5(k) — a formal inside a plain "…" string in macro text ─────────────────
+
+    /// Expand one source text under a plain-string policy and return the expanded text.
+    fn expand_text_with(
+        prefix: &str,
+        source: &str,
+        policy: PlainStringSubstitutionPolicy,
+    ) -> String {
+        let dir = create_repo_scratch_dir(prefix);
+        let input = dir.join("top.sv");
+        fs::write(&input, source).expect("write");
+        let config = SvPreprocessorConfig {
+            plain_string_substitution: policy,
+            ..SvPreprocessorConfig::default()
+        };
+        preprocess_systemverilog_file(&input, &config)
+            .expect("expand")
+            .text
+    }
+
+    #[test]
+    fn a_formal_inside_a_plain_string_is_the_strings_by_default() {
+        // IEEE 1800-2017 §22.5.1's own example (section-22-compiler-directives.md:340-352):
+        // `define H(x) "Hello, x" … $display(`H(world)); … will print: Hello, x — and the two lines
+        // before it: a `HI inside a plain string is not a usage. Verilator 5.050 reads all three so;
+        // Icarus 13.0 and this engine (until .5(k)) printed Hello, world. sv-tests
+        // 22.5.1--define-expansion_24.sv and ispras 22.05.01_07.sv carry the example verbatim.
+        let text = expand_text(
+            "svpp_plain_string_default",
+            "`define HI Hello\n`define LO \"`HI, world\"\n`define H(x) \"Hello, x\"\ninitial begin\n$display(\"`HI, world\");\n$display(`LO);\n$display(`H(world));\nend\n",
+        );
+        assert!(
+            text.contains(
+                "$display(\"`HI, world\");\n$display(\"`HI, world\");\n$display(\"Hello, x\");"
+            ),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn prose_that_names_a_formal_is_no_longer_mangled() {
+        // iverilog ivltests/sv_type_identifier_*.v: `define check(value, expected, error) …
+        // $display("  expected %0h, got %0h", expected, value) — the word inside the string is prose,
+        // the actual belongs after it; verilator t_*: "got='h%x exp='h%x" with formals exp/got;
+        // OpenTitan pwrmgr_base_vseq.sv: "in %0d fast clock cycles" with a formal `cycles`. 66 of the
+        // corpus's 72 in-string formal sites are this shape, every one substituted into its actual.
+        let text = expand_text(
+            "svpp_plain_string_prose",
+            "`define check(value, expected) $display(\"  expected %0h, got %0h\", expected, value);\n`check(a, 8'h5)\n",
+        );
+        assert!(
+            text.contains("$display(\"  expected %0h, got %0h\", 8'h5, a);"),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn a_paste_delimited_formal_inside_a_plain_string_is_the_idiom_the_knob_admits() {
+        // OpenTitan alert_handler_alert_accum_saturation_vseq.sv: `define CLASS_CNT_PATH(i)
+        // string class_``i``_path_0 = "tb.dut.gen_classes[``i``].u_accu.u_prim_count.cnt_q[0]"; —
+        // design code written for commercial simulators. Under the standard the literal is opaque
+        // (Verilator 5.050: the pastes stay inside the string); under paste_delimited the marked
+        // formal is substituted and the pastes removed, a bare word elsewhere in the same string
+        // stays prose; under all (Icarus's reading) every formal is substituted.
+        let src = "`define P(i) string class_``i``_path = \"tb.gen[``i``].cnt i\";\n`P(3)\n";
+        let standard = expand_text_with(
+            "svpp_plain_string_standard",
+            src,
+            PlainStringSubstitutionPolicy::Standard,
+        );
+        assert!(
+            standard.contains("string class_3_path = \"tb.gen[``i``].cnt i\";"),
+            "{standard}"
+        );
+        let delimited = expand_text_with(
+            "svpp_plain_string_delimited",
+            src,
+            PlainStringSubstitutionPolicy::PasteDelimited,
+        );
+        assert!(
+            delimited.contains("string class_3_path = \"tb.gen[3].cnt i\";"),
+            "{delimited}"
+        );
+        let all = expand_text_with(
+            "svpp_plain_string_all",
+            src,
+            PlainStringSubstitutionPolicy::All,
+        );
+        assert!(
+            all.contains("string class_3_path = \"tb.gen[3].cnt 3\";"),
+            "{all}"
+        );
+    }
+
+    #[test]
+    fn the_verible_paste_string_shape_under_each_reading() {
+        // verible lint/testdata/macro_string_concatenation.sv: `define FOO(arg) "foo``arg``bar" —
+        // Verilator 5.050 keeps "foo``arg``bar" (the standard), Icarus 13.0 reads "fooxbar" (all)
+        let src = "`define FOO(arg) \"foo``arg``bar\"\n$display(`FOO(x));\n";
+        assert!(
+            expand_text_with(
+                "svpp_verible_standard",
+                src,
+                PlainStringSubstitutionPolicy::Standard
+            )
+            .contains("$display(\"foo``arg``bar\");")
+        );
+        assert!(
+            expand_text_with(
+                "svpp_verible_delimited",
+                src,
+                PlainStringSubstitutionPolicy::PasteDelimited
+            )
+            .contains("$display(\"fooxbar\");")
+        );
+        assert!(
+            expand_text_with("svpp_verible_all", src, PlainStringSubstitutionPolicy::All)
+                .contains("$display(\"fooxbar\");")
+        );
+    }
+
+    #[test]
+    fn the_policy_parses_its_three_spellings_and_refuses_others() {
+        assert_eq!(
+            PlainStringSubstitutionPolicy::parse("standard"),
+            Some(PlainStringSubstitutionPolicy::Standard)
+        );
+        assert_eq!(
+            PlainStringSubstitutionPolicy::parse("paste_delimited"),
+            Some(PlainStringSubstitutionPolicy::PasteDelimited)
+        );
+        assert_eq!(
+            PlainStringSubstitutionPolicy::parse("all"),
+            Some(PlainStringSubstitutionPolicy::All)
+        );
+        assert_eq!(PlainStringSubstitutionPolicy::parse("sometimes"), None);
+        assert_eq!(
+            PlainStringSubstitutionPolicy::default(),
+            PlainStringSubstitutionPolicy::Standard
+        );
+    }
+
+    #[test]
+    fn an_escaped_character_inside_a_plain_string_closes_it_where_the_author_did() {
+        // verilator t_alias_unsup.v's `checkh(gotv, expv): `$write("… got=%0x exp=%0x\n", `__FILE__,
+        // `__LINE__, (gotv), (expv), "gotv", "expv")` — the `\n` escapes the `n`, the `"` after it
+        // closes the string, and the formals AFTER it are substituted; the words INSIDE the two
+        // trailing strings are not. Found by the whole-corpus diff of .5(k): an escape whose escaped
+        // character started an identifier was never cleared, so the string never closed.
+        let text = expand_text(
+            "svpp_plain_string_escape",
+            "`define checkh(gotv, expv) do if ((gotv) !== (expv)) $write(\"got=%0x exp=%0x\\n\", (gotv), (expv), \"gotv\", \"expv\"); while (0)\n`checkh(crc, 64'h1);\n",
+        );
+        assert!(
+            text.contains("do if ((crc) !== (64'h1)) $write(\"got=%0x exp=%0x\\n\", (crc), (64'h1), \"gotv\", \"expv\"); while (0);"),
+            "{text}"
+        );
     }
 
     #[test]

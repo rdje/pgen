@@ -123,6 +123,8 @@ un-self-tickable. Honest gap: that re-run is at CI, currently manual-only.
 | Binary | Build | Path | Used for |
 |---|---|---|---|
 | `parseability_probe` | `cargo build --release --features generated_parsers` (from `rust/`) | `./rust/target/release/parseability_probe` | parse a file, dump AST, trace, dashboards |
+
+⛔ **WARM A REBUILT OR COPIED BINARY ONCE BEFORE TIMING ANYTHING** (`SVPP-EXPANSION.5`(k), 2026-09-15): on this host the FIRST launch of a freshly built 83 MB probe took **43.49 s** (and exceeded a 60 s runner timeout the attempt before), the second **0.008 s**; a fresh copy is a new inode and pays again. It timed out the first two packages of a pipeline library pass (both parse in under half a second) and aborted a pin bank on `--parser-fingerprint`. Run `<binary> --parser-fingerprint` once after every build or `cp`, then measure — and read a timeout on a run's FIRST rows as this before reading it as the parser.
 | `ast_pipeline` | `cargo build --features "generated_parsers ebnf_dual_run"` (from `rust/`, debug) | `./rust/target/debug/ast_pipeline` | certificate-coverage, lint, gen-AST, stimuli, `.ebnf`-direct |
 
 `ast_pipeline` needs `--features ebnf_dual_run` to read a `.ebnf` directly, and `--features

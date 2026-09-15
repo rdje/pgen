@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # SVPP-EXPANSION.5(j) — the CLASS, diffed: every corpus file that carries a `" macro-string marker at all, plus the
 # four reference expansions the earlier .5 slices hold byte-identical, expanded standalone under the .5
-# include context by TWO ast_pipeline binaries (a pre-change one and the current one), and compared byte for
-# byte together with the exit code. The population is DERIVED by grep on every run, never stored.
+# include context — the LANE's per-suite context since .5(k), the .5 UVM+OpenTitan directories as a fallback — by TWO
+# ast_pipeline binaries (a pre-change one and the current one), and compared byte for byte together with the exit code. The population is DERIVED by grep on every run, never stored.
 # Usage: bash docs/tasks/artifacts/svpp_expansion/string_region/population_diff.sh <ast_pipeline.before> [<ast_pipeline.after>] [<needle>|REGEX_EMPTY_INVOCATION|ALL] [<workdir>]   # ALL = every lane file: a region reaching a file through an `include is invisible to any needle
 # Measured 2026-09-15 (PGEN-SVPP-EXPANSION-0026): see docs/tasks/SVPP-EXPANSION.md .5(j).
 set -u
@@ -20,10 +20,22 @@ rm -rf "$W"; mkdir -p "$W/before" "$W/after"
 { printf -- '--sv-include-dir\nstimuli/sv/uvm/uvm-core-2020.3.1/src\n'
   find stimuli/sv/subs/opentitan -name '*.svh' | sed 's#/[^/]*$##' | sort -u | sed 's/^/--sv-include-dir\n/'; } > "$W/include_dirs.txt"
 INC=$(tr '\n' ' ' < "$W/include_dirs.txt")
+# `.5`(k): the context is the LANE's own per-suite / per-file derivation (stimuli/sv/pipeline_context_args.sh,
+# minus --lib-in, which is a probe flag), so a suite whose includes the .5 UVM+OpenTitan directories cannot
+# resolve — VeeR's generated snapshots/default/el2_param.vh — expands as the lane expands it, and a refusal that
+# is identical on both binaries because BOTH could not find an include no longer reads as "identical". The .5
+# context is kept as a fallback for a file no suite claims.
+export ROOT="$PWD"
+# shellcheck source=stimuli/sv/pipeline_context_args.sh
+source stimuli/sv/pipeline_context_args.sh
+suite_of() { printf '%s' "$1" | sed -E 's#^stimuli/sv/subs/([^/]+)/.*#\1#; s#^stimuli/sv/uvm/.*#uvm-core#'; }
+export -f suite_of
 expand_one() { # <binary> <outdir> <file>
-  local bin=$1 out=$2 f=$3 n; n=$(echo "$f" | tr '/' '_')
+  local bin=$1 out=$2 f=$3 n suite flags; n=$(echo "$f" | tr '/' '_'); suite=$(suite_of "$f")
+  flags=$(context_args "$suite" "$f" 2>/dev/null | grep -v '^--lib-in' | tr '\t' ' ' | tr '\n' ' ')
+  [ -n "$flags" ] || flags="$INC"
   # shellcheck disable=SC2086
-  "$bin" "$f" --preprocess-systemverilog --output "$out/$n.pp" $INC > "$out/$n.log" 2>&1; echo $? > "$out/$n.rc"
+  "$bin" "$f" --preprocess-systemverilog --output "$out/$n.pp" $flags > "$out/$n.log" 2>&1; echo $? > "$out/$n.rc"
 }
 export -f expand_one; export INC
 expand_all() { # <binary> <outdir> — 8-way, like the lanes

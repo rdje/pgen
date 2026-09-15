@@ -293,6 +293,7 @@ SystemVerilog preprocess flags:
 - `--sv-include-dir` (repeatable)
 - `--sv-define NAME[=TEXT]` (repeatable, ordered — predefined macros)
 - `--sv-unit-file F` (repeatable, ordered — the compilation unit's earlier files)
+- `--sv-plain-string-substitution standard|paste_delimited|all` (default `standard`: a formal inside a plain `"…"` string in macro text is the string's, per IEEE 1800-2017 §22.5.1; `paste_delimited` admits OpenTitan's `"…[``i``]…"` idiom; `all` is Icarus's full substitution)
 - `--sv-include-max-depth`
 - `--sv-disallow-macro-redefine`
 - `--sv-include-path-policy`

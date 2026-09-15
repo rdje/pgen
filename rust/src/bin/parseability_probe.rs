@@ -134,6 +134,8 @@ struct GlobalOptions {
     sv_include_dirs: Vec<String>,
     sv_defines: Vec<String>,
     sv_unit_files: Vec<String>,
+    /// `SVPP-EXPANSION.5`(k): `--sv-plain-string-substitution standard|paste_delimited|all` (default standard)
+    sv_plain_string_substitution: Option<String>,
 }
 
 fn parse_positive_usize(value: &str, label: &str) -> Result<usize> {
@@ -232,10 +234,14 @@ fn strip_global_flags(args: &[String]) -> Result<(Vec<String>, GlobalOptions)> {
             if options.trace_rules.is_some() {
                 bail!("--trace-rules cannot be specified multiple times");
             }
-            let value = args
-                .get(idx + 1)
-                .ok_or_else(|| anyhow::anyhow!("--trace-rules requires a comma-separated rule-name list"))?;
-            let rules: Vec<String> = value.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
+            let value = args.get(idx + 1).ok_or_else(|| {
+                anyhow::anyhow!("--trace-rules requires a comma-separated rule-name list")
+            })?;
+            let rules: Vec<String> = value
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
             if rules.is_empty() {
                 bail!("--trace-rules list cannot be empty");
             }
@@ -301,7 +307,11 @@ fn strip_global_flags(args: &[String]) -> Result<(Vec<String>, GlobalOptions)> {
             idx += 1;
             continue;
         }
-        if args[idx] == "--sv-include-dir" || args[idx] == "--sv-define" || args[idx] == "--sv-unit-file" {
+        if args[idx] == "--sv-include-dir"
+            || args[idx] == "--sv-define"
+            || args[idx] == "--sv-unit-file"
+            || args[idx] == "--sv-plain-string-substitution"
+        {
             let flag = args[idx].clone();
             let value = args
                 .get(idx + 1)
@@ -312,6 +322,9 @@ fn strip_global_flags(args: &[String]) -> Result<(Vec<String>, GlobalOptions)> {
             match flag.as_str() {
                 "--sv-include-dir" => options.sv_include_dirs.push(value.clone()),
                 "--sv-define" => options.sv_defines.push(value.clone()),
+                "--sv-plain-string-substitution" => {
+                    options.sv_plain_string_substitution = Some(value.clone())
+                }
                 _ => options.sv_unit_files.push(value.clone()),
             }
             idx += 2;
@@ -331,7 +344,9 @@ fn strip_global_flags(args: &[String]) -> Result<(Vec<String>, GlobalOptions)> {
                 bail!("--dump-rule-call-counts-exclude cannot be specified multiple times");
             }
             let value = args.get(idx + 1).ok_or_else(|| {
-                anyhow::anyhow!("--dump-rule-call-counts-exclude requires a comma-separated rule-name list")
+                anyhow::anyhow!(
+                    "--dump-rule-call-counts-exclude requires a comma-separated rule-name list"
+                )
             })?;
             let rules: Vec<String> = value
                 .split(',')
@@ -491,6 +506,18 @@ fn load_probe_input(
         // identifiers a `` `begin_keywords `` region has to unreserve (IEEE 1800-2017 §22.14), so
         // the preprocess stage is told the same `--profile` the parse stage reads.
         parse_profile: options.profile.clone(),
+        // `SVPP-EXPANSION.5`(k): a formal inside a plain string in macro text — the standard's
+        // opaque string unless the caller names one of the two measured tool readings
+        plain_string_substitution: match options.sv_plain_string_substitution.as_deref() {
+            None => pgen::sv_preprocessor::PlainStringSubstitutionPolicy::Standard,
+            Some(raw) => pgen::sv_preprocessor::PlainStringSubstitutionPolicy::parse(raw)
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "invalid --sv-plain-string-substitution '{}'; expected standard|paste_delimited|all",
+                        raw
+                    )
+                })?,
+        },
         ..SvPreprocessorConfig::default()
     };
     let mut unit: Vec<std::path::PathBuf> = options
@@ -525,7 +552,11 @@ fn load_probe_input(
 /// same reason as `stack_probe:`: `stimuli/run_external_corpus.sh` captures this binary's stderr
 /// as a per-file corpus column, and an unconditional line would edit a tracked measurement.
 #[cfg(feature = "generated_parsers")]
-fn report_preprocess_summary(input_file: &str, options: &GlobalOptions, output: &PreprocessedOutput) {
+fn report_preprocess_summary(
+    input_file: &str,
+    options: &GlobalOptions,
+    output: &PreprocessedOutput,
+) {
     let macro_expansions = output
         .events
         .iter()
@@ -635,7 +666,10 @@ fn configure_runtime_trace(options: &GlobalOptions) -> Result<()> {
     // SV-EXH-PROOF.3.3.4.b.6.2.17 — propagate rule-level trace filter to the
     // parser_registry thread-local so subsequent parser invocations on this
     // thread apply it via `set_trace_rules` after construction.
-    let rules = options.trace_rules.as_ref().map(|v| v.iter().cloned().collect());
+    let rules = options
+        .trace_rules
+        .as_ref()
+        .map(|v| v.iter().cloned().collect());
     pgen::parser_registry::set_global_trace_rules(rules);
     // SV-EXH-PROOF.3.3.4.b.6.2.22 — propagate the per-rule call-count
     // dashboard top-N selector. None = no dashboard; Some(N) = show
@@ -784,8 +818,14 @@ fn command_parse(grammar_name: &str, input_file: &str, options: &GlobalOptions) 
     let input = load_probe_input(grammar_name, input_file, options)?;
     let sample = input.text().to_string();
     let library_options = parser_registry::LibraryOptions {
-        in_dir: options.library_in_dir.as_deref().map(std::path::PathBuf::from),
-        out_dir: options.library_out_dir.as_deref().map(std::path::PathBuf::from),
+        in_dir: options
+            .library_in_dir
+            .as_deref()
+            .map(std::path::PathBuf::from),
+        out_dir: options
+            .library_out_dir
+            .as_deref()
+            .map(std::path::PathBuf::from),
     };
     // GRAMMAR-WELLFORMED.H.12.8.4.3.1: an explicit `--entry-rule` parses from that alternate start
     // symbol via the entry-aware detail path; `None` keeps the byte-identical default-entry path
@@ -813,7 +853,11 @@ fn command_parse(grammar_name: &str, input_file: &str, options: &GlobalOptions) 
                 "parse_full passed for grammar '{}' on '{}'{}",
                 grammar_name,
                 input_file,
-                if input.preprocessed().is_some() { " [preprocessed]" } else { "" }
+                if input.preprocessed().is_some() {
+                    " [preprocessed]"
+                } else {
+                    ""
+                }
             );
             Ok(())
         }
@@ -880,7 +924,10 @@ fn report_stack_probe_refusal() {
         observation.cause,
         observation.depth,
         byte_field(measured, observation.used_bytes),
-        byte_field(observation.reservation_bytes > 0, observation.reservation_bytes),
+        byte_field(
+            observation.reservation_bytes > 0,
+            observation.reservation_bytes
+        ),
         byte_field(observation.budget_bytes > 0, observation.budget_bytes),
         byte_field(observation.bytes_per_frame > 0, observation.bytes_per_frame),
         pct,
@@ -1012,7 +1059,14 @@ fn command_parse_dump_ast(
     max_bytes: Option<usize>,
     options: &GlobalOptions,
 ) -> Result<()> {
-    let _ = (grammar_name, input_file, output_file, pretty, max_bytes, options);
+    let _ = (
+        grammar_name,
+        input_file,
+        output_file,
+        pretty,
+        max_bytes,
+        options,
+    );
     bail!("parseability_probe requires building with --features generated_parsers");
 }
 
@@ -1154,7 +1208,10 @@ fn command_stack_reservation() -> Result<()> {
             println!("host_memory_bytes=not_measured");
         }
     }
-    println!("share_divisor={}", dps::PARSE_STACK_HOST_MEMORY_SHARE_DIVISOR);
+    println!(
+        "share_divisor={}",
+        dps::PARSE_STACK_HOST_MEMORY_SHARE_DIVISOR
+    );
     println!("floor_bytes={}", dps::MIN_DEDICATED_PARSE_STACK_BYTES);
     println!("reference_bytes={}", dps::DEDICATED_PARSE_STACK_BYTES);
     Ok(())
@@ -1181,7 +1238,9 @@ fn probe_main() -> Result<()> {
         if args.len() != 2 {
             eprintln!("{}", usage());
             eprintln!();
-            eprintln!("--stack-reservation takes no arguments (it reports this host's own reservation)");
+            eprintln!(
+                "--stack-reservation takes no arguments (it reports this host's own reservation)"
+            );
             std::process::exit(2);
         }
         return command_stack_reservation();
@@ -1427,8 +1486,19 @@ mod tests {
     #[test]
     fn preprocess_flags_are_parsed_in_order_and_need_preprocess() {
         let (remaining, options) = strip_global_flags(&args(&[
-            "systemverilog", "top.sv", "--preprocess", "--sv-include-dir", "a", "--sv-define", "UVM",
-            "--sv-include-dir", "b", "--sv-define", "W=8", "--sv-unit-file", "first.svh",
+            "systemverilog",
+            "top.sv",
+            "--preprocess",
+            "--sv-include-dir",
+            "a",
+            "--sv-define",
+            "UVM",
+            "--sv-include-dir",
+            "b",
+            "--sv-define",
+            "W=8",
+            "--sv-unit-file",
+            "first.svh",
         ]))
         .expect("flags");
         assert_eq!(remaining, args(&["systemverilog", "top.sv"]));
@@ -1438,10 +1508,23 @@ mod tests {
         assert_eq!(options.sv_unit_files, args(&["first.svh"]));
 
         let refused = strip_global_flags(&args(&["systemverilog", "top.sv", "--sv-define", "UVM"]));
-        assert!(refused.is_err(), "a context flag without --preprocess is refused");
-        let refused = strip_global_flags(&args(&["systemverilog", "top.sv", "--preprocess", "--preprocess"]));
+        assert!(
+            refused.is_err(),
+            "a context flag without --preprocess is refused"
+        );
+        let refused = strip_global_flags(&args(&[
+            "systemverilog",
+            "top.sv",
+            "--preprocess",
+            "--preprocess",
+        ]));
         assert!(refused.is_err(), "--preprocess twice is refused");
-        let refused = strip_global_flags(&args(&["systemverilog", "top.sv", "--preprocess", "--sv-define"]));
+        let refused = strip_global_flags(&args(&[
+            "systemverilog",
+            "top.sv",
+            "--preprocess",
+            "--sv-define",
+        ]));
         assert!(refused.is_err(), "a context flag needs a value");
     }
 
@@ -1469,15 +1552,36 @@ mod tests {
     #[test]
     fn origin_maps_a_position_to_its_chunks_file_line_and_character_column() {
         let output = synthetic_output();
-        assert_eq!(origin_of_position(&output, 0).as_deref(), Some("/x/a.sv:1:1"));
-        assert_eq!(origin_of_position(&output, 9).as_deref(), Some("/x/a.sv:1:10"));
-        assert_eq!(origin_of_position(&output, 10).as_deref(), Some("/x/b.svh:7:1"));
-        assert_eq!(origin_of_position(&output, 13).as_deref(), Some("/x/b.svh:7:4"));
+        assert_eq!(
+            origin_of_position(&output, 0).as_deref(),
+            Some("/x/a.sv:1:1")
+        );
+        assert_eq!(
+            origin_of_position(&output, 9).as_deref(),
+            Some("/x/a.sv:1:10")
+        );
+        assert_eq!(
+            origin_of_position(&output, 10).as_deref(),
+            Some("/x/b.svh:7:1")
+        );
+        assert_eq!(
+            origin_of_position(&output, 13).as_deref(),
+            Some("/x/b.svh:7:4")
+        );
         // byte 16 sits AFTER the two-byte `é` (bytes 14-15): 5 characters in, so column 6 — chars, not bytes
-        assert_eq!(origin_of_position(&output, 16).as_deref(), Some("/x/b.svh:7:6"));
+        assert_eq!(
+            origin_of_position(&output, 16).as_deref(),
+            Some("/x/b.svh:7:6")
+        );
         // at / past the end of the text: the last chunk's end
-        assert_eq!(origin_of_position(&output, 21).as_deref(), Some("/x/b.svh:7:11"));
-        assert_eq!(origin_of_position(&output, 999).as_deref(), Some("/x/b.svh:7:11"));
+        assert_eq!(
+            origin_of_position(&output, 21).as_deref(),
+            Some("/x/b.svh:7:11")
+        );
+        assert_eq!(
+            origin_of_position(&output, 999).as_deref(),
+            Some("/x/b.svh:7:11")
+        );
         let empty = PreprocessedOutput {
             text: String::new(),
             source_map: Vec::new(),
@@ -1491,7 +1595,9 @@ mod tests {
     #[test]
     fn rejection_position_prefers_furthest_over_surface() {
         assert_eq!(
-            rejection_position("Parser did not consume full input at position 171 [furthest_position=8829, +8658 bytes deeper than surface position]"),
+            rejection_position(
+                "Parser did not consume full input at position 171 [furthest_position=8829, +8658 bytes deeper than surface position]"
+            ),
             Some(8829)
         );
         assert_eq!(rejection_position("failed at position 12"), Some(12));
@@ -1500,9 +1606,14 @@ mod tests {
 
     #[test]
     fn a_raw_rejection_is_untouched_and_a_preprocessed_one_carries_its_origin() {
-        let message = "x at position 3 [furthest_position=13, +10 bytes deeper than surface position]".to_string();
+        let message =
+            "x at position 3 [furthest_position=13, +10 bytes deeper than surface position]"
+                .to_string();
         let raw = ProbeInput::Raw("irrelevant".to_string());
-        assert_eq!(augment_rejection_with_origin(message.clone(), &raw), message);
+        assert_eq!(
+            augment_rejection_with_origin(message.clone(), &raw),
+            message
+        );
         let pre = ProbeInput::Preprocessed(synthetic_output());
         assert_eq!(
             augment_rejection_with_origin(message.clone(), &pre),

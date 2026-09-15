@@ -1789,7 +1789,10 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   rendered as ONE string literal in EXPANSION text on both the object- and the function-macro path, with its embedded
   macro usages expanded and `` `\`" `` rendered `\"` (`SVPP-EXPANSION.5`(j), 2026-09-15 — the clause's three things;
   a region in a SOURCE line is left as written, the form being defined for macro text), and `()` read as one empty
-  actual when the macro declares formals (`.5`(j′)) —, a `$ident` never
+  actual when the macro declares formals (`.5`(j′)), and a plain `"…"` string in macro text OPAQUE — no formal
+  substituted, no paste joined — as §22.5.1 `:370-372` and its own `H(x) "Hello, x"` read it (`.5`(k), 2026-09-15; the
+  two tool readings are `--sv-plain-string-substitution paste_delimited` (OpenTitan's marked-formal idiom) and `all`
+  (Icarus's), never the default) —, a `$ident` never
   substituted (A.9.3), a missing or extra actual REFUSED (`E_SVPP_MISSING_MACRO_ARGUMENT`,
   `E_SVPP_EXTRA_MACRO_ARGUMENT`; §22.5.1 *"shall be an error"*), direct or indirect recursion REFUSED
   (`E_SVPP_RECURSIVE_MACRO`, §22.5.1 — by PROVENANCE: a usage the caller wrote starts its own expansion, a
