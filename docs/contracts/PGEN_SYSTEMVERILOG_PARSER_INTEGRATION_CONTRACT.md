@@ -1811,7 +1811,11 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   `E_SVPP_UNKNOWN_KEYWORDS_VERSION` (§22.14: *"It shall be an error if an implementation does not recognize
   the version_specifier"*), `W_SVPP_KEYWORDS_VERSION_ABOVE_PROFILE` (the region reserves MORE than the
   profile — text can unreserve a keyword, it cannot reserve a non-keyword, so the region is applied only in
-  the direction text can express), `W_SVPP_KEYWORDS_VERSION_NOT_IN_EDITION` (the profile's own edition does
+  the direction text can express; ⭐ **that direction cannot produce an over-acceptance, and it is GATED**:
+  a specifier is admitted by a profile exactly when the profile's own edition lists it, and an edition lists
+  only versions at or below itself, so `admitted ⇒ subset ⇒ never above` — the `SV-KEYWORD-VERSIONS`
+  doctrine's `admitted_specifiers_are_subsets` arm re-derives that implication from the LRM tables on every
+  commit, so a future edition that broke it would fail the gate rather than turn this warning live), `W_SVPP_KEYWORDS_VERSION_NOT_IN_EDITION` (the profile's own edition does
   not define that specifier; the parser then refuses the directive), `W_SVPP_UNMATCHED_END_KEYWORDS`,
   `W_SVPP_MALFORMED_KEYWORDS_DIRECTIVE`. Event kind `KeywordsRegion` records each directive, the words the
   region unreserves and the tokens it rendered.

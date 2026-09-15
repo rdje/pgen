@@ -419,8 +419,9 @@ the ruling. Recorded durably in [[project_preprocess_parse_pipeline_is_the_sv_de
   `a_fresh_unit_does_not_see_a_previous_units_macros`, `a_unit_failure_names_the_file_that_failed`,
   `a_source_define_supersedes_a_predefine_under_the_default_policy`, `resetall_does_not_undefine_macros`);
   their scratch directories live under `rust/target/svpp_unit_tests/` on the repository volume
-  (`create_repo_scratch_dir`) — ⚠️ the 26 pre-existing tests use `std::env::temp_dir()`, off-volume;
-  routed, not changed here (see *Open questions*).
+  (`create_repo_scratch_dir`) — and so do the 26 pre-existing ones since `.5`(e) made `create_temp_dir` a
+  shim over the same helper (`grep -c 'temp_dir()' rust/src/sv_preprocessor.rs` = 0 at HEAD; the
+  *Open questions* entry that said otherwise is corrected).
 - Docs: `PGEN_USER_GUIDE.md` (the recipe, the controls list, the flag list),
   `docs/knowledge/ast-pipeline-cli-reference.md` (+ `KNOWLEDGE_MAP.md` regenerated),
   `docs/reference/RUST_CODEBASE_ANALYSIS.md` (the preprocessor's integration seam). ⛔ The platform book's
@@ -1699,6 +1700,31 @@ sentence (*"the full set … is listed in Annex B, which reflects the combinatio
 the 1800-2017 and 1800-2023 extractions are held equal word for word; the ten noconfig exclusions are taken
 from BOTH standards and checked identical and ⊆ Table 22-2.
 
+### ⛔ THE ONE DIRECTION THIS STAGE CANNOT RENDER — RULED OUT, NOT ROUTED (2026-09-15, `PGEN-SVPP-EXPANSION-0024`)
+
+Text can UNRESERVE a keyword (§5.6.1: an escaped identifier is not a keyword) and it cannot RESERVE a
+non-keyword. So a region naming a version that reserves MORE than the parse profile would be applied only
+half way — an OVER-ACCEPTANCE the stage cannot fix — and `.8` shipped that as a WARNING
+(`W_SVPP_KEYWORDS_VERSION_ABOVE_PROFILE`), which is a report, not a guarantee.
+
+Under a director challenge it was measured and then PROVEN instead:
+
+- **Reachable?** Over the 16 336 corpus rows there are **14 occurrences** of a specifier reserving more than
+  `verilog_2005` (`1800-2005` ×4, `1800-2009` ×2, `1800-2012` ×3, `1800-2017` ×2, `1800-2023` ×5), and **none
+  at all** above `sv_2017` / `sv_2023` (§22.14.9: `1800-2023` adds no reserved keyword to `1800-2017`).
+- **Can it bite?** No, and the reason is structural rather than lucky. A specifier is ADMITTED by a profile
+  exactly when that profile's own EDITION lists it (§22.14 Syntax 22-10, carried per profile by
+  `keywords_version_specifier_*`), and an edition lists only versions at or below itself ⇒ **admitted ⇒ subset
+  ⇒ never above**. Every one of those 14 occurrences is a PARSE REJECTION on the `verilog_2005` lane, because
+  `keywords_version_specifier_v2005` lists the four 1364 versions only. The warning can fire only where the
+  directive is already illegal.
+- **Held, not asserted.** `admitted_specifiers_are_subsets` is now an arm of `check_sv_keyword_versions.py`
+  under the `SV-KEYWORD-VERSIONS` doctrine: it derives each profile's set and each admitted specifier's set
+  from the LRM tables and FAILS if any admitted specifier reserves a word the profile does not. A future
+  edition — or a vendor specifier added to a profile's list — that broke the implication would fail the gate
+  instead of quietly turning the warning into a live over-acceptance. RED control in `--self-test`: a planted
+  `verilog_2005` that admits `"1800-2005"` is refused.
+
 ## Acceptance Checklist (enforced)
 
 - [x] **REPRODUCE / ISSUE** — the four `rejects_valid` bar rows and the one `accepts_invalid` row on the
@@ -1790,11 +1816,16 @@ from BOTH standards and checked identical and ⊆ Table 22-2.
   the decision, either way, is a ruling and not a drift. Owned by `.5`(d); until ruled, `.4`'s lane
   counts `uvm_pkg` and its dependants as rejects at this one origin.
 
-- ⚠️ **The preprocessor's 26 pre-existing unit tests write their scratch files to `std::env::temp_dir()`**,
-  which on this host is off the repository volume — against the data-locality rule
-  ([[project_north_star]]: data stays on the repo volume). Found by `.2` when adding tests; the nine new tests
-  use `create_repo_scratch_dir` (under `rust/target/svpp_unit_tests/`). Owed: move the 26 to the same helper
-  (a test-only change, one slice, no behaviour) — routed to `.5` as a housekeeping item so it is not lost.
+- ✅ **CLOSED, AND IT WAS ALREADY CLOSED WHEN THIS BULLET LAST READ "OWED" (corrected 2026-09-15 under a
+  director challenge, `PGEN-SVPP-EXPANSION-0024`).** The question was: the preprocessor's 26 pre-existing unit
+  tests write their scratch files to `std::env::temp_dir()`, off the repository volume, against the
+  data-locality rule ([[project_north_star]]). **`.5`(e) fixed it** (`PGEN-SVPP-EXPANSION-0006`, `afed30507`) by
+  making `create_temp_dir` a shim over `create_repo_scratch_dir`, so every test's scratch directory is under
+  `rust/target/svpp_unit_tests/` on the repository volume. Re-derived at HEAD:
+  `grep -c 'temp_dir()' rust/src/sv_preprocessor.rs` = **0** over 28 `create_temp_dir` call sites.
+  ⛔ **The routing outlived the fix by eighteen commits** — the fix landed in the leaf that the routing named,
+  and nothing walked back to the question that sent it there. ⇒ **a routed item is not closed by the fix; it is
+  closed by someone re-reading the route**, which is why this bullet now carries the command that decides it.
 
 - ✅ **The transformation-model fork and the output-form question are OVERTAKEN by measurement (2026-09-09,
   `.1`).** An expansion engine producing expanded source TEXT plus a byte-indexed source map has existed since
@@ -1829,6 +1860,53 @@ from BOTH standards and checked identical and ⊆ Table 22-2.
   transformation-model fork above).
 - Reuse boundary: how much of the substitution/resolution machinery can be parser-agnostic (a general
   directive-AST→expansion service) vs. SV-specific.
+
+## ROUTING EVIDENCE
+
+Every finding this tree has sent OUT of it, with what was MEASURED to place it there — and what would
+have to be true for the placement to be wrong. ⛔ An honest *"not checked outside this family"* is a legal
+answer here; a silent routing is not.
+
+### The off-volume test-scratch question → `.5`, and the route that outlived its own fix (2026-09-09 → corrected 2026-09-15)
+
+- **What was routed.** `.2` found the preprocessor's 26 pre-existing unit tests writing scratch files to
+  `std::env::temp_dir()`, off the repository volume, and routed the repair to `.5` as a housekeeping item.
+- **Does it reproduce outside this family?** The question was never about a parser family: it is a
+  DATA-LOCALITY breach in one Rust test module, and it was measured in that module only
+  (`rust/src/sv_preprocessor.rs`). Other families' tests were NOT checked at the time and are not covered
+  by this routing — stated rather than implied. (A repo-wide sweep for the same shape is not owed by this
+  tree; if one is wanted it belongs with the data-locality policy owner, not here.)
+- **What was measured to place it in `.5`?** `.5` was the leaf already editing that test module, so the
+  repair was one edit in the file the leaf had open — placement by FILE, not by plausibility.
+- **What would make the routing wrong, and was it checked?** It would be wrong if `.5` closed without doing
+  the work. ⛔ **It did the work — and the route was never re-read, so the question stayed open for eighteen
+  commits while the code was already correct.** Re-derived at HEAD under a director challenge
+  (`PGEN-SVPP-EXPANSION-0024`): `grep -c 'temp_dir()' rust/src/sv_preprocessor.rs` = **0** over 28
+  `create_temp_dir` call sites, which is a shim over `create_repo_scratch_dir` since `afed30507`
+  (`.5`(e)). ⇒ **a routed item is not closed by the fix; it is closed by someone re-reading the route**, and
+  every routing bullet in this tree now carries the command that decides it.
+
+### The parser questions of `.6b.4` / `.12b.1` → `SV-CORPUS-GRAD` (2026-09-09)
+
+- **Does it reproduce outside the family being routed to?** Yes, deliberately: each row was re-run on BOTH
+  SV profiles and, where the construct is not SV-only, on `verilog_2005` — that is why eleven of them came
+  back as the standard's own refusals rather than as SV grammar gaps, and two were re-routed AWAY from
+  `SV-CORPUS-GRAD` (one to `.5`(i) here, one to a driver-define tie).
+- **What was measured?** The probe's furthest TOKEN on the expanded text, not the mapped origin line —
+  `.12b.1`'s whole finding is that the mapped line is the last MAPPED byte and the construct is the token.
+- **What would make it wrong?** A row whose furthest token is inside a macro body (the preprocessor's, not
+  the parser's). Checked per row; the two that were, were re-routed.
+
+### `ENGINE-UNIVERSAL-SERVICES.107` / `SV-CORPUS-GRAD.3.62` — routed OUT of this tree's scope on purpose
+
+- **Does it reproduce outside SystemVerilog?** **Yes, and that is the evidence for the placement**: the
+  unterminated-block-comment defect is in the ENGINE's built-in layout skipper, and re-emitting all eleven
+  generated artifacts moved **seven** of them. Measured per family (a file ending in `/*` versus the same
+  file with the comment closed): `vhdl`, `return_annotation`, `rtl_frontend`, `rtl_const_expr` and `json`
+  all move the same way as `systemverilog`. Routing it to the SV tree alone would have been the misroute.
+- **What would make it wrong?** If the arm were SV-specific. It is not: `regex` is unaffected because it is
+  `@whitespace_sensitive`, and `ebnf` / `scratch` / `semantic_annotation` are unaffected because they claim
+  `"/*"` as their own token — four negatives that are properties, not coincidences.
 
 ## Blockers
 

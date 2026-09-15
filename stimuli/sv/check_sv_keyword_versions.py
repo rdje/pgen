@@ -398,6 +398,73 @@ def compare(text, tables, aliases):
                 f"keywords_version_specifier: grammar={sorted(grammar_spec[profile])} "
                 f"rust={sorted(rust_spec.get(profile, set()))}"
             )
+    problems += admitted_specifiers_are_subsets(tables, grammar_spec)
+    return problems
+
+
+# The reserved-word set each version selects, derived from the tables the same way the Rust module
+# builds it (§22.14.3/.5/.6/.7/.8 accumulate; §22.14.4 is the clause's one subtraction).
+VERSION_CHAIN = [
+    ("1364-1995", ["TABLE_22_1"]),
+    ("1364-2001", ["TABLE_22_1", "TABLE_22_2"]),
+    ("1364-2005", ["TABLE_22_1", "TABLE_22_2", "TABLE_22_3"]),
+    ("1800-2005", ["TABLE_22_1", "TABLE_22_2", "TABLE_22_3", "TABLE_22_4"]),
+    ("1800-2009", ["TABLE_22_1", "TABLE_22_2", "TABLE_22_3", "TABLE_22_4", "TABLE_22_5"]),
+    ("1800-2012", TABLE_NAMES),
+    ("1800-2017", TABLE_NAMES),
+    ("1800-2023", TABLE_NAMES),
+]
+PROFILE_VERSION = {"sv_2017": "1800-2017", "sv_2023": "1800-2023", "verilog_2005": "1364-2005"}
+
+
+def reserved_words_of(tables, specifier):
+    if specifier == "1364-2001-noconfig":
+        words = set(tables["TABLE_22_1"]) | set(tables["TABLE_22_2"])
+        return words - set(tables["NOCONFIG_EXCLUSIONS"])
+    for name, parts in VERSION_CHAIN:
+        if name == specifier:
+            words = set()
+            for part in parts:
+                words |= set(tables[part])
+            return words
+    raise ValueError(f"no reserved-word set for '{specifier}'")
+
+
+def admitted_specifiers_are_subsets(tables, grammar_spec):
+    """`SVPP-EXPANSION.8` — EVERY SPECIFIER A PROFILE ADMITS RESERVES A SUBSET OF THAT PROFILE.
+
+    ⛔ This is the arm that RULES OUT the one direction the preprocessor cannot render. It can
+    UNRESERVE a keyword (§5.6.1: an escaped identifier is not a keyword) and it cannot RESERVE a
+    non-keyword — no text can — so a region naming a version that reserves MORE than the parse
+    profile would be applied only half way, and that is an OVER-ACCEPTANCE the stage cannot fix.
+    The reason it can never bite is structural rather than lucky: a specifier is admitted by a
+    profile exactly when that profile's own EDITION lists it (§22.14 Syntax 22-10), and an edition
+    lists only versions at or below itself — so `admitted ⇒ subset ⇒ never above`, and the
+    directive is a PARSE REJECTION in every case where the warning could fire.
+
+    Measured (2026-09-15, 16 336 corpus rows): 14 occurrences of a specifier above `verilog_2005`
+    (`1800-2005` x4, `1800-2009` x2, `1800-2012` x3, `1800-2017` x2, `1800-2023` x5) and every one
+    of them is refused by `keywords_version_specifier_v2005`, which lists the four 1364 versions
+    only. Under `sv_2017` / `sv_2023` no specifier reserves more at all.
+
+    Held here rather than left as a warning in the runtime, so a future edition (or a vendor
+    specifier added to a profile's list) that broke the implication would FAIL this check instead
+    of silently turning the warning into a live over-acceptance.
+    """
+    problems = []
+    for profile in sorted(grammar_spec):
+        profile_words = reserved_words_of(tables, PROFILE_VERSION[profile])
+        for specifier in sorted(grammar_spec[profile]):
+            region_words = reserved_words_of(tables, specifier)
+            extra = sorted(region_words - profile_words)
+            if extra:
+                problems.append(
+                    f"profile {profile} ADMITS version_specifier \"{specifier}\", which reserves "
+                    f"{len(extra)} word(s) the profile does not ({' '.join(extra[:6])}"
+                    f"{' …' if len(extra) > 6 else ''}) — the preprocessor cannot RESERVE a "
+                    f"non-keyword, so this region would be applied only half way and the stage "
+                    f"would hand the parser an OVER-ACCEPTANCE it cannot see"
+                )
     return problems
 
 
@@ -438,6 +505,15 @@ def self_test():
         fails.append("a body with 2 descents was split into 2 tables instead of being refused")
     except ValueError:
         pass
+
+    # the subset arm: a planted profile that admits a RICHER version must be refused
+    planted_spec = {k: set(v) for k, v in grammar_specifiers().items()}
+    planted_spec["verilog_2005"] = planted_spec["verilog_2005"] | {"1800-2005"}
+    if not any("cannot RESERVE a non-keyword" in p
+               for p in admitted_specifiers_are_subsets(tables, planted_spec)):
+        fails.append("a profile admitting a RICHER version_specifier was not refused")
+    if admitted_specifiers_are_subsets(tables, grammar_specifiers()):
+        fails.append("control: the shipped profile/specifier lists must all be subsets")
 
     sizes = {name: len(tables[name]) for name in TABLE_NAMES + ["NOCONFIG_EXCLUSIONS"]}
     expected = {
