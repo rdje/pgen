@@ -977,6 +977,15 @@ Where this prose and the inventory disagree, the inventory wins.
   three-way probe; Icarus 13.0 reads the left side as soon as it is joined and is recorded as the outlier. The
   paste tokens now survive substitution and are consumed by the rescan; inside any string literal they are
   removed at substitution as before.
+- **The `` `"…`" `` string region, landed 2026-09-15 (`SVPP-EXPANSION.5`(j)).** §22.5.1's three things — *"the
+  quotation mark, substitution of actual arguments, and expansions of embedded macros"* — are done by ONE renderer in
+  the rescan, for the object-macro path (never rendered before: OpenTitan `otbn_ssctrl_if.sv`'s
+  `` `define SSCTRL_PATH `"`SSCTRL_HPATH`" `` reached the parser with its markers on) and the function-macro path
+  (whose substitution now emits the region with the actuals in place); an embedded usage is expanded, `` `\`" `` is
+  `\"` (the clause's own `msg` example was mis-rendered), an undefined or argument-less usage stays as written. A region
+  in a SOURCE line is not rendered (the form is defined for macro text; Verilator renders it, Icarus does not — recorded).
+  With it, `()` is one empty actual when the macro declares formals (`.5`(j′), §22.5.1 *"empty … by nothing if no
+  default"*), the reading both reference tools take.
 - The live measurement of the expansion is the SV parser book's chapter
   `docs/systemverilog_parser_book/src/preprocess-parse-pipeline.md`, not this family's status page: this
   family's corpus leg stays NOT MEASURED because no corpus of directive files is wired, and the expansion's

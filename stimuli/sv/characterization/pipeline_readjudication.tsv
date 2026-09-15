@@ -1209,9 +1209,9 @@ opentitan	hw/dv/sv/scoreboard/scoreboard_pkg.sv	deferred:chained_only	IN-WINDOW	
 opentitan	hw/dv/sv/scoreboard/scoreboard_queue.sv	deferred:chained_only	PRE-TICK/CROSS-LIBRARY	fail	own file		class header with a base class (`extends`)	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/dv/sv/scoreboard/scoreboard_queue.sv:5:51
 opentitan	hw/dv/sv/sec_cm/prim_count_if.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/dv/sv/sec_cm/prim_double_lfsr_if.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
-opentitan	hw/dv/sv/sec_cm/prim_onehot_check_if.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/dv/sv/sec_cm/prim_onehot_check_if.sv:69:534
+opentitan	hw/dv/sv/sec_cm/prim_onehot_check_if.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/dv/sv/sec_cm/prim_singleton_fifo_if.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
-opentitan	hw/dv/sv/sec_cm/prim_sparse_fsm_flop_if.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/dv/sv/sec_cm/prim_sparse_fsm_flop_if.sv:45:442
+opentitan	hw/dv/sv/sec_cm/prim_sparse_fsm_flop_if.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/dv/sv/sec_cm/sec_cm_base_if_proxy.sv	deferred:chained_only	PRE-TICK/CROSS-LIBRARY	fail	own file		class header with a base class (`extends`)	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/dv/sv/sec_cm/sec_cm_base_if_proxy.sv:6:54
 opentitan	hw/dv/sv/sec_cm/sec_cm_pkg.sv	deferred:chained_only	IN-WINDOW	fail	included file		class header with a base class (`extends`)	chained:hollow	stimuli/sv/subs/opentitan/hw/dv/sv/sec_cm/sec_cm_base_if_proxy.sv:6:54
 opentitan	hw/dv/sv/sec_cm/sec_cm_prim_count_bind.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
@@ -1560,7 +1560,7 @@ opentitan	hw/ip/dma/dv/env/dma_if.sv	deferred:chained_only	ONE-SIDED (raw pass)	
 opentitan	hw/ip/dma/dv/env/dma_pull_seq.sv	deferred:chained_only	PRE-TICK/FACT-GATED-CROSS-FILE	fail	own file	stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/dma_env_pkg.sv	class header with a base class (`extends`)	chained:unreached_in_unit	stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/dma_pull_seq.sv:5:63
 opentitan	hw/ip/dma/dv/env/dma_scoreboard.sv	deferred:chained_only	PRE-TICK/FACT-GATED-CROSS-FILE	fail	own file	stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/dma_env_pkg.sv	class header with a base class (`extends`)	chained:unreached_in_unit	stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/dma_scoreboard.sv:5:49
 opentitan	hw/ip/dma/dv/env/dma_seq_item.sv	deferred:chained_only	PRE-TICK/CROSS-LIBRARY	fail	own file	stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/dma_env_pkg.sv	class header with a base class (`extends`)	chained:unreached_in_unit	stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/dma_seq_item.sv:32:45
-opentitan	hw/ip/dma/dv/env/dma_sys_tl_if.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/dma_sys_tl_if.sv:49:345
+opentitan	hw/ip/dma/dv/env/dma_sys_tl_if.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/ip/dma/dv/env/dma_virtual_sequencer.sv	deferred:chained_only	PRE-TICK/FACT-GATED-CROSS-FILE	fail	own file	stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/dma_env_pkg.sv	class header with a base class (`extends`)	chained:unreached_in_unit	stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/dma_virtual_sequencer.sv:5:63
 opentitan	hw/ip/dma/dv/env/seq_lib/dma_abort_vseq.sv	deferred:chained_only	PRE-TICK/FACT-GATED-CROSS-FILE	fail	own file	stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/dma_env_pkg.sv	class header with a base class (`extends`)	chained:unreached_in_unit	stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/seq_lib/dma_abort_vseq.sv:6:46
 opentitan	hw/ip/dma/dv/env/seq_lib/dma_base_vseq.sv	deferred:chained_only	PRE-TICK/FACT-GATED-CROSS-FILE	fail	own file	stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/dma_env_pkg.sv	class header with a base class (`extends`)	chained:unreached_in_unit	stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/seq_lib/dma_base_vseq.sv:6:42
@@ -2008,7 +2008,7 @@ opentitan	hw/ip/otbn/dv/uvm/env/otbn_mac_bignum_if.sv	deferred:chained_only	ONE-
 opentitan	hw/ip/otbn/dv/uvm/env/otbn_rf_base_if.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/ip/otbn/dv/uvm/env/otbn_rnd_if.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/ip/otbn/dv/uvm/env/otbn_scoreboard.sv	deferred:chained_only	PRE-TICK/FACT-GATED-CROSS-FILE	fail	own file	stimuli/sv/subs/opentitan/hw/ip/otbn/dv/uvm/env/otbn_env_pkg.sv	class header with a base class (`extends`)	chained:unreached_in_unit	stimuli/sv/subs/opentitan/hw/ip/otbn/dv/uvm/env/otbn_scoreboard.sv:5:50
-opentitan	hw/ip/otbn/dv/uvm/env/otbn_ssctrl_if.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/ip/otbn/dv/uvm/env/otbn_ssctrl_if.sv:15:13
+opentitan	hw/ip/otbn/dv/uvm/env/otbn_ssctrl_if.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/ip/otbn/dv/uvm/env/otbn_trace_item.sv	deferred:chained_only	PRE-TICK/CROSS-LIBRARY	fail	own file	stimuli/sv/subs/opentitan/hw/ip/otbn/dv/uvm/env/otbn_env_pkg.sv	class header with a base class (`extends`)	chained:unreached_in_unit	stimuli/sv/subs/opentitan/hw/ip/otbn/dv/uvm/env/otbn_trace_item.sv:5:48
 opentitan	hw/ip/otbn/dv/uvm/env/otbn_trace_monitor.sv	deferred:chained_only	PRE-TICK/FACT-GATED-CROSS-FILE	fail	own file	stimuli/sv/subs/opentitan/hw/ip/otbn/dv/uvm/env/otbn_env_pkg.sv	class header with a base class (`extends`)	chained:unreached_in_unit	stimuli/sv/subs/opentitan/hw/ip/otbn/dv/uvm/env/otbn_trace_monitor.sv:5:49
 opentitan	hw/ip/otbn/dv/uvm/env/otbn_virtual_sequencer.sv	deferred:chained_only	PRE-TICK/FACT-GATED-CROSS-FILE	fail	own file	stimuli/sv/subs/opentitan/hw/ip/otbn/dv/uvm/env/otbn_env_pkg.sv	class header with a base class (`extends`)	chained:unreached_in_unit	stimuli/sv/subs/opentitan/hw/ip/otbn/dv/uvm/env/otbn_virtual_sequencer.sv:5:64
@@ -5154,7 +5154,7 @@ sv-tests	tests/chapter-22/22.5.1--define-expansion_3.sv	deferred:svpp_owned	-	pa
 sv-tests	tests/chapter-22/22.5.1--define-expansion_4.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 sv-tests	tests/chapter-22/22.5.1--define-expansion_5.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 sv-tests	tests/chapter-22/22.5.1--define-expansion_6.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_6.sv:19: `D invoked with 1 of 2 arguments and formal 'y' has no d
-sv-tests	tests/chapter-22/22.5.1--define-expansion_7.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_7.sv:18: `D invoked with 0 of 2 arguments and formal 'x' has no d
+sv-tests	tests/chapter-22/22.5.1--define-expansion_7.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_7.sv:18: `D invoked with 1 of 2 arguments and formal 'y' has no d
 sv-tests	tests/chapter-22/22.5.1--define-expansion_8.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	E_SVPP_EXTRA_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_8.sv:18: `D invoked with 3 arguments for 2 formals — IEEE 1800-20
 sv-tests	tests/chapter-22/22.5.1--define-expansion_9.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 sv-tests	tests/chapter-22/22.5.1--define.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
@@ -5435,7 +5435,7 @@ sv2v	test/error/var_var.sv	match	match	fail	own file		other	must_reject:match_un
 sv2v	test/lex/cond.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/file_line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pp_fail	engine		-	refused_engine	include cycle detected: /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/file_line.sv -> /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/file_line.sv
 sv2v	test/lex/line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pp_fail	engine		-	refused_engine	"invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/line.sv:7: include path must be quoted or angle-bracketed (IEEE 1800-2017 §22.4 Syntax 22-1: `include ""f"
-sv2v	test/lex/macro.sv	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/lex/macro.sv:142:33
+sv2v	test/lex/macro.sv	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/lex/macro.sv:142:14
 sv2v	test/lex/macro_arg_comment.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pp_fail	engine		-	refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/macro_arg_comment.sv:1: invalid macro parameter list: invalid macro parameter token '// comment
 sv2v	test/lex/macro_arg_escape.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/macro_boundary.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -6485,7 +6485,7 @@ verilator	test_regress/t/t_preproc_preproczero_bad.v	deferred:svpp_owned	-	fail	
 verilator	test_regress/t/t_preproc_resolve.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 verilator	test_regress/t/t_preproc_resolve/submod.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 verilator	test_regress/t/t_preproc_str_undef.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-verilator	test_regress/t/t_preproc_strify_join.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+verilator	test_regress/t/t_preproc_strify_join.v	deferred:svpp_owned	-	fail	own file		-	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_strify_join.v:6:1
 verilator	test_regress/t/t_preproc_stringend_bad.v	deferred:svpp_owned	-	fail	own file		-	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_stringend_bad.v:6:1
 verilator	test_regress/t/t_preproc_ttempty.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 verilator	test_regress/t/t_preproc_undefineall.v	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_undefineall.v:13:13

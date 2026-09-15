@@ -2996,7 +2996,16 @@ observation was simply unused.
 > **mislabelled deferral**, owned by `.13c`/`.13d`, not an under-reporting bar.
 
 > ⭐ **Live verdict-coverage tuple — `adjudicated/routed/no-verdict/dark/axis-2-bar` =
-> `7486/2606/6244/4039/6`; under the PIPELINE `9136/2606/4594/3313/5`.** (`SVPP-EXPANSION.5`(i), 2026-09-15,
+> `7486/2606/6244/4039/6`; under the PIPELINE `9140/2606/4590/3310/5`.** (`SVPP-EXPANSION.5`(j), 2026-09-15,
+> `PGEN-SVPP-EXPANSION-0026`, no release / schema bump — ENGINE tier, `rust/src/sv_preprocessor.rs` only: the `` `" `` string
+> region rendered by ONE renderer in the rescan for both macro paths — an embedded usage expanded, an object macro's region
+> rendered at all, `` `\`" `` a quote, a rendered literal ONE line (§5.9) — moved FOUR OpenTitan rows `fail → pass` under the
+> pipeline (`otbn_ssctrl_if.sv`, whose `` `define SSCTRL_PATH `"`SSCTRL_HPATH`" `` reached the parser with its markers on;
+> `prim_onehot_check_if.sv`, `prim_sparse_fsm_flop_if.sv`, `dma_sys_tl_if.sv`, whose stringified conditions had been emitted
+> as multi-line literals) and two no-verdict rows the other way (a paste in a SOURCE line now kept for the parser
+> consistently, a preprocessor test whose output is three bare strings): adjudicated 9 136 → 9 140, no-verdict 4 594 → 4 590,
+> dark 3 313 → 3 310, the bar unmoved at 5, the raw tuple untouched; the whole corpus — 16 388 expansions — diffed between the
+> two binaries, 46 moved, every one a rendering. Previously `SVPP-EXPANSION.5`(i), 2026-09-15,
 > `PGEN-SVPP-EXPANSION-0025`, no release / schema bump — ENGINE tier, `rust/src/sv_preprocessor.rs` only: the order around a
 > ``` `` ``` paste — a macro usage that is a paste operand is expanded before the join and an undefined usage joined by a paste
 > is looked up as the WHOLE constructed name, in place — moved sv2v `test/lex/macro_macro.sv` from `refuted:preprocessor_item`

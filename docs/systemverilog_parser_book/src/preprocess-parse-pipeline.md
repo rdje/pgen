@@ -317,6 +317,44 @@ substituted into a `` `"…`" `` string region is not expanded here while both t
 formal inside a plain `"…"` string is substituted here (as Icarus does) while Verilator keeps the
 string verbatim — `SVPP-EXPANSION.5`(j) and (k), owned, next.
 
+**The string region** (`SVPP-EXPANSION.5`(j)). §22.5.1 says what a `` `"…`" `` region is in one sentence: *"the
+expansion shall include the quotation mark, substitution of actual arguments, and expansions of embedded
+macros"* — three things. The engine did the first two, on one of its two paths: the renderer lived in the
+function-macro substitution step, so an OBJECT macro's region was never rendered at all (OpenTitan's
+`` `define SSCTRL_PATH `"`SSCTRL_HPATH`" `` reached the parser with its markers on and was refused inside
+`{`SSCTRL_PATH, ".", signal}`), and a usage embedded in a region — through an actual (`` `stringify(`name1) ``)
+or in the body (`` `"`SSCTRL_HPATH`" ``) — was never expanded because the rescan does not enter a string. The
+escaped quote `` `\`" `` was mis-rendered too: the close scan matched its last two bytes, so the clause's own
+`` `define msg(x,y) `"x: `\`"y`\`"`" `` came out as `"left side: `\"right side`\""` where the clause prints
+`"left side: \"right side\""`. One renderer now does all three, in the rescan, for both paths, and it applies to
+expansion text only:
+
+```systemverilog
+`define SSCTRL_HPATH tb.dut.u_otbn_core.u_otbn_start_stop_control
+`define SSCTRL_PATH  `"`SSCTRL_HPATH`"
+return {`SSCTRL_PATH, ".", signal};   // {"tb.dut.u_otbn_core.u_otbn_start_stop_control", ".", signal}
+`define msg(x,y) `"x: `\`"y`\`"`"
+$display(`msg(left side,right side));  // $display("left side: \"right side\"");  — the clause's example
+$display(`"standalone`");              // unchanged: the form is defined for macro text (sv2v string_macro.sv:9 is
+                                       //   pinned must-reject on it); Verilator renders it, Icarus leaves it
+```
+
+An undefined usage inside a region, or a function-like one with no argument list, stays as written, backtick and
+all (Surelog's own golden for its `PreprocString` test keeps the bare `` `message ``). A rendered literal is ONE
+line (§5.9): an embedded macro whose body spans lines — OpenTitan's `` `DV_LC_TX_DIST `` inside a stringified
+`` `DV_CHECK_STD_RANDOMIZE_WITH_FATAL `` condition — has each newline rendered as a space, which is Verilator's
+reading (its `twoline` golden `"first        second"`) and the only one a parser can read; Icarus leaves the raw
+newline, and so did this engine for a multi-line actual until now. With the region rendered,
+an empty argument list `()` inside one is read as the clause's *"An actual argument may be empty … substituted by
+… nothing if no default is specified"* — one empty actual when the macro declares formals — where the engine had
+counted zero actuals and refused `` `thru() `` as missing (`.5`(j′)); both tools read it empty. Over the corpus the
+change moved 20 of the 483 expansions that carry a region and 7 of the 107 that carry an empty invocation — every
+one a rendering, three OpenTitan sequence files and four OpenTitan testbenches now carrying real hierarchical
+paths inside their strings, and exactly one verdict: the OpenTitan interface row above. What sv2v's `macro.sv`
+does — closing a region with a bare `"` — is sv2v's extension (Verilator refuses the file, the clause says a `"`
+*"must have a terminating ""*) and is left as written; the row is a pinned must-reject either way. The three-way
+comparison is re-runnable (`docs/tasks/artifacts/svpp_expansion/string_region/probe.sh`).
+
 **`` `begin_keywords `` regions are rendered, not ignored** (`SVPP-EXPANSION.8`). IEEE 1800-2017 §22.14
 lets a block of source select *which identifiers are reserved as keywords*, from a version of IEEE 1364
 or IEEE 1800: inside `` `begin_keywords "1364-2001" `` … `` `end_keywords ``, `logic` is an ordinary

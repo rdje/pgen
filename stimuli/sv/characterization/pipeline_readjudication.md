@@ -9,18 +9,18 @@
 | answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e25d0dc69a579fb93a12abf713dd4b0f99b9fb402b6c884710c655c1e1b99199` |
 | explained_svpp audit | `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/after/audit.tsv` | `e30149eb2dc125d24f0a27c537984fc2e11b6ba13062e0e62f162e7d02dfeded` |
 | dark chained_only audit | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv` | `a1107daee5ad2473a6061d15d6bdd6f79857afff44102c7f4651dd6687a615ea` |
-| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `1a36e876e3227b4007d464683885c4c0e5df9fcf2af270d4167319788fdb5cb8` |
+| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `b89c157bc1ff6e4edb729854a75cd35a4f705fe6a01a6cd8a5cabf4317b6e84a` |
 | refuted dispositions (`.6b`) | `stimuli/sv/characterization/refuted_dispositions.tsv` | `df5130629ae75fee021bd4c3d2ba362331b55bb51a1a5bdbd6025ef5a09be3fa` |
-| parse binary | `rust/target/debug/parseability_probe` | `4447ddc74f796ec326301bf21703be34554770d09018072c56ae5f2657189f50` |
+| parse binary | `rust/target/debug/parseability_probe` | `74db56fca2d481cdf97ea629c2e69506bb25f8f5c4acb11190647887694f6df2` |
 
-Measured at `HEAD` = `47e1a615f+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
+Measured at `HEAD` = `744e8b7fe+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
 
 ## The headline
 
 - rows re-read: **6,905** (manifest rows in the three populations that the lane ran; 0 such rows have no lane row)
 - **explained_svpp** — must-accept rows the raw lane explained away by preprocessing (`divergence:explained_svpp_*`; `.12a`'s position test, `.12b`'s 263): 1,357 rows → `corroborated` 1,224, `refuted:cross_file_base_class` 103, `refuted:vendor_identity_branch` 9, `refused_engine` 7, `refuted:driver_define` 7, `refused_context` 5, `refuted:cross_file_define` 1, `refuted:preprocessor_item` 1
-- **chained_only** — multi-file design rows the raw lane could not judge (`deferred:chained_only`; `.13c`'s strata, `.13d`'s expansion-owned rows): 4,926 rows → `chained:accepted_under_expansion` 1,964, `chained:unreached_in_unit` 1,923, `chained:rejects_own_file` 710, `chained:refused_context` 210, `chained:hollow` 104, `chained:refused_engine` 15
-- **svpp_owned** — rows whose conformance the raw lane routed to the preprocessor lane (`deferred:svpp_owned`): 172 rows → `svpp_owned:accepted_under_expansion` 110, `svpp_owned:refused_engine` 30, `svpp_owned:rejects_own_file` 29, `svpp_owned:refused_context` 2, `svpp_owned:hollow` 1
+- **chained_only** — multi-file design rows the raw lane could not judge (`deferred:chained_only`; `.13c`'s strata, `.13d`'s expansion-owned rows): 4,926 rows → `chained:accepted_under_expansion` 1,968, `chained:unreached_in_unit` 1,923, `chained:rejects_own_file` 706, `chained:refused_context` 210, `chained:hollow` 104, `chained:refused_engine` 15
+- **svpp_owned** — rows whose conformance the raw lane routed to the preprocessor lane (`deferred:svpp_owned`): 172 rows → `svpp_owned:accepted_under_expansion` 109, `svpp_owned:rejects_own_file` 30, `svpp_owned:refused_engine` 30, `svpp_owned:refused_context` 2, `svpp_owned:hollow` 1
 - **must_reject** — rows the answer key expects REJECTED — the manifest's `expected`, or a pin the raw lane demoted (`.6b.1`); a pipeline pass here is an over-acceptance candidate: 450 rows → `must_reject:match_under_expansion` 450
 
 ## explained_svpp — the `.12a` position verdict against the parse that actually happened
@@ -85,7 +85,7 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 
 | `.13c` stratum | rows | `accepted_under_expansion` | `accepted_in_unit` | `rejects_own_file` | `hollow` | `unreached_in_unit` | `refused_context` | `refused_engine` |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `IN-WINDOW` | 1415 | 698 | 0 | 347 | 98 | 62 | 196 | 14 |
+| `IN-WINDOW` | 1415 | 702 | 0 | 343 | 98 | 62 | 196 | 14 |
 | `NO-ALTERABLE-TICK/CROSS-LIBRARY` | 4 | 0 | 0 | 4 | 0 | 0 | 0 | 0 |
 | `NO-ALTERABLE-TICK/FACT-GATED-CROSS-FILE` | 184 | 127 | 0 | 38 | 0 | 19 | 0 | 0 |
 | `NO-ALTERABLE-TICK/FACT-GATED-LOCAL-TYPE` | 2 | 0 | 0 | 0 | 0 | 2 | 0 | 0 |
@@ -99,13 +99,13 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 | `PRE-TICK/NO-FACT-GATE-AT-FAILURE` | 11 | 0 | 0 | 7 | 0 | 4 | 0 | 0 |
 | `PRE-TICK/UNDECLARED-ANYWHERE` | 14 | 0 | 0 | 11 | 0 | 2 | 1 | 0 |
 
-**The expansion-owned stratum** (`IN-WINDOW` + `PAST-LAST-TICK` with no cross-file channel — `.13d`'s pre-registered population): **1,460** rows in the audit; under the pipeline `accepted_under_expansion` 734, `accepted_in_unit` 0, `rejects_own_file` 352, `hollow` 98, `unreached_in_unit` 64, `refused_context` 198, `refused_engine` 14.
+**The expansion-owned stratum** (`IN-WINDOW` + `PAST-LAST-TICK` with no cross-file channel — `.13d`'s pre-registered population): **1,460** rows in the audit; under the pipeline `accepted_under_expansion` 738, `accepted_in_unit` 0, `rejects_own_file` 348, `hollow` 98, `unreached_in_unit` 64, `refused_context` 198, `refused_engine` 14.
 
 **The rows that still reject in their own file after expansion, by construct** (chained_only, all strata — the barrier BEHIND the macro barrier):
 
 | construct at the origin line | rows | one example (origin) |
 |---|---:|---|
-| other | 404 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` |
+| other | 400 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` |
 | class header with a base class (`extends`) | 215 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_driver.sv:4:37` |
 | a `::`-scoped name | 39 | `stimuli/sv/subs/Surelog/tests/UnitForeach/top2.v:5:45` |
 | a function / task header | 16 | `stimuli/sv/subs/Surelog/tests/ClassFuncProto/top.v:30:13` |
@@ -140,9 +140,9 @@ Every row whose expected verdict is `must_reject` — the manifest's column, or 
 
 | verdict | rows |
 |---|---:|
-| `svpp_owned:accepted_under_expansion` | 110 |
+| `svpp_owned:accepted_under_expansion` | 109 |
+| `svpp_owned:rejects_own_file` | 30 |
 | `svpp_owned:refused_engine` | 30 |
-| `svpp_owned:rejects_own_file` | 29 |
 | `svpp_owned:refused_context` | 2 |
 | `svpp_owned:hollow` | 1 |
 

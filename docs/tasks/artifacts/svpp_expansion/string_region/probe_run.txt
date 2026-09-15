@@ -1,0 +1,15 @@
+oracles: verilator=Verilator 5.050 2026-07-01 rev vUNKNOWN-built20260701 ; iverilog=Icarus Verilog version 13.0 (stable) (v13_0)
+PGEN=V   PGEN=I   V=I       input
+yes      yes      yes       stimuli/sv/subs/iverilog/ivtest/ivltests/sv_macro3a.v
+yes      NO       NO        stimuli/sv/subs/iverilog/ivtest/ivltests/sv_macro3b.v
+yes      NO       NO        stimuli/sv/subs/verilator/test_regress/t/t_preproc_str_undef.v
+yes      yes      yes       stimuli/sv/subs/verilator/test_regress/t/t_preproc_strify_join.v
+NO       NO       NO        stimuli/sv/subs/sv2v/test/lex/string_macro.sv
+yes      yes      yes       stimuli/sv/subs/sv2v/test/lex/macro_string.sv
+NO       NO       NO        stimuli/sv/subs/Surelog/tests/PreprocString/dut.sv
+yes      yes      yes       stimuli/sv/subs/opentitan/hw/ip/otbn/dv/uvm/env/otbn_ssctrl_if.sv
+yes      yes      yes       docs/tasks/artifacts/svpp_expansion/string_region/shapes/s1_the_clauses_own_msg_example_and_an_object_macro.sv
+NO       yes      NO        docs/tasks/artifacts/svpp_expansion/string_region/shapes/s2_region_in_a_source_line.sv
+yes      yes      yes       docs/tasks/artifacts/svpp_expansion/string_region/shapes/s3_region_arriving_through_an_actual.sv
+NO       NO       NO        docs/tasks/artifacts/svpp_expansion/string_region/shapes/s4_undefined_and_argumentless_usage_in_a_region.sv
+STRING-REGION-PROBE: rows=12 pgen_eq_verilator=8 pgen_eq_iverilog=7 verilator_eq_iverilog=6 ast_pipeline=rust/target/debug/ast_pipeline

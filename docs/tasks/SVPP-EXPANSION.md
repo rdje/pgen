@@ -156,6 +156,12 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
   below): a macro usage that is an OPERAND of a paste is expanded before the join, and an UNDEFINED usage joined by
   a paste is looked up as the WHOLE constructed name, in place, with its arguments still unexpanded (sv2v
   `test/lex/macro_macro.sv`, the `.6b.4` disposition that named this item).**
+  **(j) — a `` `" `` string region: "the expansion shall include the quotation mark, substitution of actual arguments, and
+  expansions of embedded macros" (IEEE 1800-2017 §22.5.1 `:366-368`) — ✅ done 2026-09-15 (`PGEN-SVPP-EXPANSION-0026`;
+  ENGINE tier, `rust/src/sv_preprocessor.rs` only; record + checklist below): an embedded macro usage inside a region is
+  expanded, and an OBJECT macro's region is rendered as a string at all — both readings shared by Verilator 5.050 and
+  Icarus 13.0 and found by `.5`(i)'s three-way probe; a region in a SOURCE line stays verbatim (the form is defined for
+  macro text, and sv2v `string_macro.sv:9` is pinned must-reject on exactly that).**
   Goal: the preprocessor DEFECTS the measurement finds, each its own slice with the toolbox chain
   (reproduce → root cause → fix → before/after → no regression): (a) a NEWLINE inside a `` `define ``'s
   formal-argument list — §22.5.1 `:46-47` *"separated by commas and optionally white space"*, §5.3 white space
@@ -232,7 +238,7 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | — | `.5`(i) | ✅ `done` | `PGEN-SVPP-EXPANSION-0025`: the ORDER around a paste — a usage that is a paste operand is expanded first, an undefined usage joined by a paste is the whole constructed name, looked up in place with its arguments unexpanded; sv2v `macro_macro.sv` `fail → pass`; the whole paste-carrying population (188 expansions) diffed before/after — exactly one moved; measured against Verilator 5.050 and Icarus 13.0 (they split; the standard's sentence and sv2v's reference decide) |
-| 1 | `.5`(j) | `pending` | a macro usage inside a `` `" `` string region: substituted through an actual it is not expanded (sv_macro3a/b, t_preproc_str_undef — both tools expand it), and an OBJECT macro's region is never rendered (t_preproc_strify_join); found by `.5`(i)'s three-way probe, rows `NO` |
+| — | `.5`(j) | ✅ `done` | `PGEN-SVPP-EXPANSION-0026`: the `` `" `` region — one renderer in the rescan for both macro paths (an embedded usage expanded, an object macro's region rendered, `` `\`" `` a quote, a rendered literal one line), `()` one empty actual; FOUR OpenTitan rows `fail → pass`, tuple `9140/2606/4590/3310/5`; the whole corpus diffed (46 of 16 388 expansions moved, all renderings); measured against Verilator 5.050 and Icarus 13.0 with the four splits recorded |
 | 2 | `.5`(k) | `pending` | a formal inside a plain `"…"` string in a macro body is substituted here and in Icarus, kept verbatim in Verilator — §22.5.1 `:370-372` reads with Verilator; a corpus census first, then the ruling |
 | — | `.7` | ✅ `done` | `PGEN-SVPP-EXPANSION-0021`: the SV integration contract's *Front End — the preprocess→parse pipeline* section (the command, the four-part context, the expansion guarantees and refusal codes, the source-map rule with the last-mapped-byte caveat, the library's facts files), the preprocessor contract's *Runtime Execution Stage* section (expansion = a sibling deliverable), the svpp book's status note, the platform page's *read twice* note, the user guide's single command; the two parser books' tracked HTML mirrors rebuilt (they had lagged four commits; the platform book's HTML is untracked output) |
 | ⛔ | `.6d.3` | `blocked` | the UVM library — `uvm_pkg.sv` must export: the director's `.5`(d) ruling on `const local` (`uvm_transaction.svh:443`), or an export-the-accepted-prefix engine change the ruling would make unnecessary; the price, measured: 164 rejecting OpenTitan packages, 1 923 unreached member rows, 273 dark rows gated on a `uvm_*` name |
@@ -1968,6 +1974,146 @@ rebuild linked over them, `rust/target/s5i/ast_pipeline.before`):
   - [x] **LOCKSTEP** — the SV parser book's *The Preprocess→Parse Pipeline* chapter (*The order around a paste*, with the sv2v example and the recorded tool split), the SV integration contract's *Front End* guarantees, the preprocessor contract's *Runtime Execution Stage*, the tracked probe + shapes + run under `docs/tasks/artifacts/svpp_expansion/paste_order/`, two pins (`fixed_paste_operand_macro_usage.sv`, `control_paste_operand_macro_usage_object.sv`, `preprocess=1`), the disposition table (the row retired — it is `corroborated` now and the instrument REFUSES a disposition for a row that moved), the re-adjudication / coverage artifacts and the live tuple, this tree, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`. No release / schema bump: the grammar and the generated parser are unchanged.
   - promotion: declined for now — the lesson (*one construct, two code paths, two answers: the path that had no substitution step was right by accident*) is stated in the code and in `DEVELOPMENT_NOTES.md`.
 
+## `.5`(j) the `` `"…`" `` string region — ✅ done 2026-09-15 (`PGEN-SVPP-EXPANSION-0026`): an embedded usage is expanded, an object macro's region is rendered, an escaped quote is a quote — and (j′) `()` is one empty actual
+
+**The clause.** IEEE 1800-2017 §22.5.1 (`docs/systemverilog/2017/md/section-22-compiler-directives.md:366-368`): *"An `"
+overrides the usual lexical meaning of " and indicates that the expansion shall include the quotation mark, substitution
+of actual arguments, and expansions of embedded macros. This allows string literals to be constructed from macro
+arguments."* — three things, and the engine did one of them, on one of its two paths. And `:220-221` for (j′): *"An
+actual argument may be empty or white space only, in which case the formal argument is substituted by the argument
+default if one is specified or by nothing if no default is specified."*
+
+**The rows — found by `.5`(i)'s three-way probe, every `NO` row of it.** (1) An embedded usage arriving through an
+ACTUAL was not expanded: iverilog `sv_macro3a.v` `` `stringify(`name1) `` read `"`name1"` here and
+`"my_prefix_my_suffix"` in BOTH Verilator 5.050 and Icarus 13.0 — and in iverilog's own tracked `gold/sv_macro3.gold`;
+verilator `t_preproc_str_undef.v` the same (its `.out`: `"`PREFIX_my_suffix"` / `"my_prefix_suffix"`). (2) An OBJECT
+macro's region was never rendered at all — the object path has no substitution step and the renderer lived in the
+substitution: verilator `t_preproc_strify_join.v` read `` `"foo-bar-qux`" `` here and `"foo-bar-qux"` in both tools
+(its `.out`), and — the design row — OpenTitan `hw/ip/otbn/dv/uvm/env/otbn_ssctrl_if.sv`'s
+`` `define SSCTRL_PATH `"`SSCTRL_HPATH`" `` reached the parser as `` {`"tb.dut…`", ".", signal} `` and was refused at
+`:15:13` (`chained:rejects_own_file`, a DARK row) where both tools read
+`{"tb.dut.u_otbn_core.u_otbn_start_stop_control", ".", signal}`. (3) The ESCAPED quote: the clause's own example
+(`:376-379`) `` `define msg(x,y) `"x: `\`"y`\`"`" `` *"expands to `$display("left side: \"right side\"");`"* — the engine
+emitted `"left side: `\"right side`\""` because the close finder matched the escaped quote's LAST TWO BYTES and ended the
+region at the first `` `\`" `` (iverilog `sv_macro2.v` and sv-tests `22.5.1--define-expansion_25.sv` are that example
+verbatim). (j′) verilator `t_pp_display.v:35` `` `msg(`thru(),) ``: rendering the region expands the `` `thru() `` inside
+it, and the engine read `()` as ZERO actuals and refused it as MISSING (`.5`(g)) — on an ordinary line too, measured on
+the pre-change binary — where both tools read one EMPTY actual (`$display(": \"\"")`) and the clause's own
+`` `MACRO3 ( ) // all arguments replaced by defaults `` needs the same reading.
+
+**Root cause (WHY + WHERE).** `substitute_function_macro_body` rendered the region INTO a plain `"…"` string at
+substitution time, and `expand_macros_in_text` never enters a string — so an embedded usage (the clause's third thing)
+could not be expanded, and the object-macro path, which has no substitution step, passed `` `" `` through verbatim
+(`out.push_str("`\"")`) and never rendered at all. Its close finder scanned for the two bytes `` `" `` without stepping
+over `` `\`" ``. `parse_macro_invocation_arg_ranges` pushes the last segment only `if s < e || !args.is_empty()`, so
+`()` yields no range and `expand_function_macro` counts zero actuals.
+
+**Pre-registration (before a byte moved)** — `rust/target/s5j/region_census.py` over FULL bodies (continuations joined):
+**468 files** carry a region in a `` `define ``; 3 of them in an OBJECT macro (otbn_ssctrl_if.sv, sv2v
+`string_macro.sv`, verilator `t_preproc_strify_join.v`), 3 embed a usage in the body's own text (the two above + Surelog
+`PreprocString/dut.sv`), 19 carry a paste inside a region, 6 the unclosed legacy form; a usage arriving through an
+ACTUAL is invisible to a body census, so the class is diffed instead (below). For (j′): **103 files** carry an empty
+invocation `` `NAME() ``; the frequent names are formal-less (`foo8()`, `foo64()`) or fully defaulted
+(`DV_ALERT_IF_CONNECT()` ×41), whose reading does not change; `D()` (two no-default formals) stays MISSING on its second
+formal. Expected: `otbn_ssctrl_if.sv` `fail → pass` under the pipeline (DARK → adjudicated, a design suite), byte moves
+with no verdict move on the corroborated rows above, `t_pp_display.v` unchanged in verdict (its `:40` source-line
+region is the pinned must-reject shape, `.6c.2`), sv2v `macro.sv` a must-reject row either way.
+
+**What shipped** (`rust/src/sv_preprocessor.rs` only; ZERO grammar / codegen / generated bytes; 8 tests, 82/82;
+rustfmt-clean):
+
+- `expand_usage_at` — the one place a usage at a byte is expanded on exactly its own bytes and mask slice (builtins
+  included), factored out of `.5`(i)'s chain walker and shared with the region renderer.
+- `find_macro_string_close` — the closer of a region, stepping over `` `\`" `` whole.
+- `render_macro_string_region` — ONE renderer, in the rescan, for BOTH paths: an embedded usage expanded through
+  `expand_usage_at` (undefined, or function-like with no argument list → kept as written, backtick and all — Surelog's
+  own golden for `PreprocString` keeps its bare `` `message ``), `` `\`" `` → `\"`, a paste joins, every other byte —
+  a plain `"` included — is the string's. Reached from `expand_macros_in_text` at `` `" `` in EXPANSION text only.
+- `substitute_function_macro_body` no longer renders: it substitutes the actuals INTO the region and emits it with its
+  markers on, escaped quotes and pastes copied as written, for the renderer. The unclosed legacy form is untouched.
+- ⛔ **A SOURCE line's second pass stays a source line.** The rescan's second pass carried `Some(&[])` for every text,
+  so a source line holding a usage was re-read as expansion text and its own `` `" `` rendered — which turned sv2v
+  `string_macro.sv:9` (`` $display(`"`FOO`"); ``, PINNED must-reject by `.6c.2`: the form is defined for macro text)
+  into an ACCEPT. Test 4 pins the verbatim source-line region. Verilator 5.050 renders a source-line region
+  (`"standalone"`), Icarus 13.0 leaves it, the clause scopes it to macro text — recorded, not followed.
+- (j′) `expand_function_macro`: `()` is one empty actual when the macro declares formals, the empty list of a
+  formal-less macro otherwise.
+- Tests: `a_macro_usage_embedded_in_a_string_region_is_expanded`, `an_object_macros_string_region_is_rendered`,
+  `an_escaped_quote_in_a_string_region_renders_as_a_quote` (the clause's example), `a_string_region_in_a_source_line_stays_verbatim`,
+  `an_undefined_or_argumentless_usage_in_a_region_stays_verbatim`, `pastes_inside_a_string_region_still_join` (UVM's
+  `` `"ARG[+]`" ``), `a_region_arriving_through_an_actual_is_rendered_where_it_lands` (Verilator's nested `quux`),
+  `an_empty_argument_list_is_one_empty_actual_when_the_macro_has_formals`.
+
+**Measured** (rebuilt debug binaries; the post-`-0025` binaries snapshotted first, `rust/target/s5j/ast_pipeline.before`):
+
+```text
+(1) POPULATION-DIFF, three needles then the WHOLE CORPUS (docs/tasks/artifacts/svpp_expansion/string_region/population_diff.sh,
+    8-way, the .5 include context, before = the post--0025 binary):
+      needle=`"  files=483 identical=463 moved=20     needle=`NAME() files=107 identical=100 moved=7
+      needle=``  files=188 identical=180 moved=8      needle=ALL  files=16388 identical=16342 moved=46, rc moved on 0
+    ⛔ the needles are BLIND to a region that reaches a file through an `` `include `` (OpenTitan's `DV_CHECK_*` /
+    `DV_STRINGIFY` live in dv_macros.svh): ALL found 26 more OpenTitan files than the region needle — packages,
+    interfaces, vseq lists, testbenches — every one a rendering; a scan of every changed line for an odd number of
+    unescaped quotes reads 0 (no literal left open across a line).
+(2) STRING-REGION-PROBE (probe_run.txt): rows=12 pgen_eq_verilator=8 pgen_eq_iverilog=7 verilator_eq_iverilog=6 —
+    the four PGEN≠Verilator rows: string_macro.sv (Verilator refuses the FILE, "Unterminated string" on sv2v's
+    plain-quote closer), PreprocString + s4 (MEM_ROOT undefined: Verilator refuses, Icarus drops `message, PGEN keeps
+    the bytes Surelog's golden keeps), s2 (the source-line region: Verilator renders, the clause and the .6c.2 pin do not)
+(3) cargo test --lib sv_preprocessor: 83 passed / 0 failed (74 + 9); clippy_on_rust_change ✅ on the formatted bytes
+    (GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS, 68 lints; guard peak 10 608 MB)
+(4) THE LANE (stimuli/run_pipeline_lane.sh all, debug probe, 8 jobs, 60 s, idle host, wall 410 s, peak 10 235 MB): files=16336 pass=12202 fail=3857 pp_fail=277 timeout=0 crash=0 against the tracked 12200 / 3859 / 277 / 0 — SIX rows moved, every one named above: opentitan otbn_ssctrl_if.sv, prim_onehot_check_if.sv, prim_sparse_fsm_flop_if.sv, dma_sys_tl_if.sv fail → pass; iverilog pr1741212.v (a source-line paste, no answer key) and verilator t_preproc_strify_join.v (three bare strings at file scope, svpp_owned) pass → fail; two origin moves with the verdict kept (sv2v macro.sv :142:33 → :142:14, t_pp_display.v the same line); the disposition table needs no row retired (0 dispositioned rows now pass); re-adjudication chained:accepted_under_expansion 1964 → 1968, chained:rejects_own_file 710 → 706, corroborated 1224 unchanged; PIPELINE-LANE-CURRENCY (1)(2)(3) OK; coverage: raw 7486/2606/6244/4039/6 UNCHANGED, pipeline 9136/2606/4594/3313/5 → 9140/2606/4590/3310/5 (adjudicated +4, no-verdict −4, dark −3, the bar unmoved); check_sv_corpus_denominator.sh OK after the anchor moved
+(5) pins (`stimuli/sv/run_adjudication_repros.py`): debug probe `checked=1214 armed=231 listed=607 preprocess_rows=13 failures=0` and the rebuilt release probe (the lowmem host recipe, installed at the provenance path) the same — 1210 / 605 / 11 before, the two new rows (`fixed_string_region_object_macro.sv` ACCEPT, `invalid_string_region_source_line.sv` REJECT — the pin runner refused a REJECT under class `control`, whose class IS the claim, so the negative control carries class `invalid` as the earlier keyword-region control does); the three RAW lanes (`stimuli/run_external_corpus.sh sv | sv2023 | sv2005`, release probe, into `PGEN_CORPUS_OUT_DIR`, verdict columns diffed): all three IDENTICAL — `sv_2017` 9 844 / 6 492 (16 336 rows), `sv_2023` 9 869 / 6 467, `verilog_2005` 2 313 / 293 (2 606 rows), 0 rows moved on any lane
+```
+
+**Two more things the class diff decided, both stated rather than smoothed over:**
+
+- **A string literal is ONE line.** §5.9 (`docs/systemverilog/2017/md/section-32-h-12ab-f001.md:101`): *"A string
+  literal shall be contained in a single line unless the newline character is immediately preceded by a \"* — and a
+  macro body's backslash-newline *"shall be replaced in the expanded macro with a newline"* (§22.5.1), so an embedded
+  usage whose body spans lines (`` `DV_LC_TX_DIST `` inside `` `DV_CHECK_STD_RANDOMIZE_WITH_FATAL ``'s stringified
+  condition, OpenTitan `cip_base_pkg.sv:118`) put a raw newline INSIDE the literal — eight lines of one string — which the
+  parser refuses (`$display("a\nb")` REJECT, `"a \<nl> b"` ACCEPT, measured). Verilator renders the newline as a space
+  (its `twoline` golden `"twoline: \"first        second\""`), Icarus leaves it raw. The one-line reading is the only one
+  a parser can read: every newline in a rendered literal becomes a space, its indentation kept (test 9, Verilator's
+  golden verbatim). ⭐ It also repaired what the OLD renderer had been emitting for a multi-line ACTUAL written by the
+  caller — `prim_onehot_check_if.sv` (3-line literal → 1), `spi_agent_pkg.sv` (6 → 1), `dma_sys_tl_if.sv` (2 → 1).
+- **A paste in a SOURCE line stays for the parser — consistently now.** iverilog `pr1741212.v:485`
+  `` $display( "cos(%s): %f", ``MATH_2_PI, cos(20*`MATH_2_PI) ); `` moved `pass → fail` under the lane: the source
+  line's second pass used to carry expansion-text provenance and DROPPED the author's paste — but only when a usage
+  shared the line (`$display( ``MATH_2_PI );` alone kept it), an accident, not a rule. `.6b.2`(i)'s stated rule is
+  *"in a source line it stays for the parser to judge"*, §22.5.1 defines ``` `` ``` for macro text, and the two tools
+  extend the form in two different ways (Verilator drops it, `MATH_2_PI`; Icarus STRINGIZES it, `"6.28"`). The row has
+  NO answer key (`deferred:no_sv_key`; ivtest expects it to compile under Icarus's reading), so no verdict is asserted
+  either way and the dark count is unchanged. Recorded as the strict reading, with both extensions named.
+- **`t_preproc_strify_join.v` moved `pass → fail` for the honest reason**: its expected output is three bare string
+  literals at file scope — a preprocessor test, not a design — and a bare `"foo-bar-qux"` is a parser refusal
+  (measured) where the unrendered `` `"foo-bar-qux`" `` had been tolerated as a stray directive token. A
+  `svpp_owned` row either way (NO VERDICT); the bytes now match its `.out`.
+
+**ROUTED — owned, each with the measurement that found it:**
+
+- **`.5`(k) — a formal inside a plain `"…"` string** (from `.5`(i), unchanged here): substituted here and in Icarus,
+  kept verbatim in Verilator; §22.5.1 `:370-372` reads with Verilator. A census first.
+- **sv2v's plain-quote closer** — `macro.sv:102` `` `define MACRO_F(t) $display(`"s t = `\`"t`\`""); `` closes a region
+  with a bare `"`; sv2v's reference renders `"s t = \"foo\""`, Verilator refuses the file (*Unterminated string*), and
+  the clause says *"the use of " always starts a string literal and must have a terminating ""*. NOT adopted: the region
+  stays as written, the row is a pinned must-reject (`:142`) either way. Recorded here so the sv2v extension is a known
+  reading, not a rediscovery; sv2v's own `macro_iv.sv` twin spells the standard's `` `\`"`" `` and renders.
+- **The lane does not carry a Surelog `.sl` driver's `-D`** — `PreprocString.sl` passes `-DMEM_ROOT=test` and
+  `pipeline_context_defines.tsv` has no row for it, so the lane reads `"`MEM_ROOT/rom.mem`message"` where Surelog's
+  golden reads `"test/rom.mem`message"`. A `.4c.1` follow-up (the deriver reads `+define+` and `-D` in some driver
+  shapes, not `.sl`); it changes no verdict today (the row is corroborated) and is named rather than left.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **REPRODUCE / ISSUE** — `./rust/target/debug/parseability_probe --parse systemverilog stimuli/sv/subs/opentitan/hw/ip/otbn/dv/uvm/env/otbn_ssctrl_if.sv --profile sv_2017 --preprocess <the lane's context>` → `[origin=…/otbn_ssctrl_if.sv:15:13]`, the `{` holding the unrendered `` `"tb.dut…`" ``; `ast_pipeline --preprocess-systemverilog --output` on `rust/target/s5j/msg.sv` (the clause's example) → `"left side: `\"right side`\""` where the clause prints `"left side: \"right side\""`; `STRING-REGION-PROBE` rows `NO` before the fix (sv_macro3a/b, str_undef, strify_join, PreprocString, s1, s3).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — correctness family: `furthest_position=` / `[origin=…:15:13]` on the OpenTitan row; the expansion text beside `verilator -E -P` and `iverilog -E` on the same bytes (`STRING-REGION-PROBE:` before: PGEN≠both on every region row); for (j′) the preprocessor's own `E_SVPP_MISSING_MACRO_ARGUMENT … `thru invoked with 0 of 1 arguments` on `rust/target/s5j/thru.sv` line 4 — an ORDINARY line — on the pre-change binary. WHERE: `substitute_function_macro_body`'s region branch (rendered at substitution; its two-byte close scan), `expand_macros_in_text`'s `` `" `` pass-through, `parse_macro_invocation_arg_ranges`'s `if s < e || !args.is_empty()`. WHY: the clause's three things (§22.5.1 `:366-368`) and its empty-actual sentence (`:220-221`).
+  - [x] **FIX** — engine tier (a preprocessor has no grammar): one renderer in the rescan for both paths, an escape-aware close finder, substitution emitting the region with its markers, `()` as one empty actual; the source-line second pass kept a source line. ZERO grammar / codegen / generated bytes.
+  - [x] **ADDRESSED (verified)** — the OpenTitan row `otbn_ssctrl_if.sv` `[origin=…:15:13]` → `parse_full passed … [preprocessed]` (`fail → pass` in the lane); the clause's `msg` example → `"left side: \"right side\""` (test 3; iverilog `sv_macro2.v` and sv-tests `22.5.1--define-expansion_25.sv` now render it verbatim, POPULATION-DIFF); `STRING-REGION-PROBE` `pgen_eq_verilator` 4 → 8 of 12 (the four remaining `NO` rows each a recorded tool split); `t_pp_display.v` `refuse → pass` at the preprocess stage on (j′); `cargo test --lib sv_preprocessor` 83/83 with the nine oracle-golden tests; the lane's four `fail → pass` rows; the pipeline tuple `9136/2606/4594/3313/5 → 9140/2606/4590/3310/5` through `SV-CORPUS-DENOMINATOR`'s gate.
+  - [x] **NO REGRESSION** — POPULATION-DIFF over the WHOLE corpus: 16 342 of 16 388 expansions BYTE-IDENTICAL, rc moved on 0, every one of the 46 movers a rendering, 0 changed lines with a literal left open; the lane's other 16 330 rows verdict-identical, the two `pass → fail` rows both NO VERDICT (`no_sv_key`, `svpp_owned`) with their readings recorded above; the raw tuple `7486/2606/6244/4039/6` unmoved; the bar unmoved at 5; pins (`stimuli/sv/run_adjudication_repros.py`): debug probe `checked=1214 armed=231 listed=607 preprocess_rows=13 failures=0` and the rebuilt release probe (the lowmem host recipe, installed at the provenance path) the same — 1210 / 605 / 11 before, the two new rows (`fixed_string_region_object_macro.sv` ACCEPT, `invalid_string_region_source_line.sv` REJECT — the pin runner refused a REJECT under class `control`, whose class IS the claim, so the negative control carries class `invalid` as the earlier keyword-region control does); the three RAW lanes (`stimuli/run_external_corpus.sh sv | sv2023 | sv2005`, release probe, into `PGEN_CORPUS_OUT_DIR`, verdict columns diffed): **all three IDENTICAL** — `sv_2017` 9 844 / 6 492 (16 336 rows), `sv_2023` 9 869 / 6 467, `verilog_2005` 2 313 / 293 (2 606 rows), 0 rows moved on any lane; `clippy_on_rust_change` ✅ on the formatted bytes (`GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS`, 68 lints); no grammar / codegen / generated byte moved; `bash scripts/check_doctrines.sh` ALL PASS (run at commit).
+  - [x] **LOCKSTEP** — the SV parser book chapter (*The string region*), the SV integration contract's *Front End* guarantees, the preprocessor contract's *Runtime Execution Stage*, the tracked probe + shapes + run + population diff under `docs/tasks/artifacts/svpp_expansion/string_region/`, the re-rendered re-adjudication / coverage artifacts and the live tuple, this tree, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`. No release / schema bump.
+  - promotion: declined for now — *a region is rendered where it lands, once, by the rescan* is stated in the code.
+
 ## Open questions
 
 - 🔎 **DIRECTOR CALL (2026-09-09, from `.3`): `const local T x = new(…)` — UVM's spelling is not Annex-A
@@ -2106,6 +2252,7 @@ answer here; a silent routing is not.
 | `2026-09-09` | `.6d.1` | the mechanism measured on four scratch chains (export → import → pass; same-dir; named import); the builder's smoke run (3 suites) then the full pass (407 files, 166 published, 0 cycles); the whole lane re-run (689 s, peak 9 797 MB): 425 movers, all `fail → pass`, 0 the other way; the pipeline tuple re-derived and anchored, the raw one unmoved; `PIPELINE-LANE-CURRENCY` OK + self-test 5/5 | ✅ |
 | `2026-09-09` | `.6d.2` | the library re-derived standalone with the membership table (226 s; verdicts identical to `-0019`); the re-adjudication re-read 2 059 members (0 / 89 / 1 923); the zero-accepted count verified from the dumps by a second script; coverage buckets the new classes; the tuple unmoved through the denominator gate; currency OK + self-test 5/5 | ✅ |
 | `2026-09-09` | `.7` | every contract sentence read from its source (`parseability_probe.rs:502-505`, `origin_of_position`, `grep -o E_SVPP_`, a real `facts.json`); `mdbook build` ×3 clean; `check_sv_contract_currency.sh` OK; no dump or tuple moved | ✅ |
+| `2026-09-15` | `.5`(j) | `cargo test --lib sv_preprocessor` 83/83 (9 new, each a Verilator / Icarus / sv2v / Surelog / LRM golden); POPULATION-DIFF by needle (region 483/463/20, empty invocation 107/100/7, paste 188/180/8) and over the WHOLE corpus `files=16388 identical=16342 moved=46`, rc moved 0, 0 literals left open; STRING-REGION-PROBE `rows=12 pgen_eq_verilator=8 pgen_eq_iverilog=7 verilator_eq_iverilog=6`; the lane (idle host) `files=16336 pass=12202 fail=3857 pp_fail=277 timeout=0` — six movers, four `fail → pass` (OpenTitan), two `pass → fail` (both NO VERDICT, recorded); re-adjudication OK, `PIPELINE-LANE-CURRENCY` OK; pipeline tuple `9136/2606/4594/3313/5 → 9140/2606/4590/3310/5`, raw unmoved; `check_sv_corpus_denominator.sh` OK; `clippy_on_rust_change` ✅; pins (`stimuli/sv/run_adjudication_repros.py`): debug probe `checked=1214 armed=231 listed=607 preprocess_rows=13 failures=0` and the rebuilt release probe (the lowmem host recipe, installed at the provenance path) the same — 1210 / 605 / 11 before, the two new rows (`fixed_string_region_object_macro.sv` ACCEPT, `invalid_string_region_source_line.sv` REJECT — the pin runner refused a REJECT under class `control`, whose class IS the claim, so the negative control carries class `invalid` as the earlier keyword-region control does); the three RAW lanes (`stimuli/run_external_corpus.sh sv \| sv2023 \| sv2005`, release probe, into `PGEN_CORPUS_OUT_DIR`, verdict columns diffed): **all three IDENTICAL** — `sv_2017` 9 844 / 6 492 (16 336 rows), `sv_2023` 9 869 / 6 467, `verilog_2005` 2 313 / 293 (2 606 rows), 0 rows moved on any lane | ✅ |
 | `2026-09-15` | `.5`(i) | `cargo test --lib sv_preprocessor` 74/74 (5 new, each a Verilator / sv2v golden); POPULATION-DIFF over every paste-carrying corpus file + the four `.5` references: `files=188 identical=187 moved=1` (sv2v `macro_macro.sv`); PASTE-ORDER-PROBE (Verilator 5.050 + Icarus 13.0, run): `rows=14 pgen_eq_verilator=8 pgen_eq_iverilog=8 verilator_eq_iverilog=9`, every PGEN≠Verilator row a routed `` `" ``-region / plain-string item; the `.1` census `73` unchanged; the whole lane run twice — run 2 (idle host) `files=16336 pass=12200 fail=3859 pp_fail=277 timeout=0`, exactly ONE row moved (`fail → pass`), run 1's single 60 s timeout a load artefact on a byte-identical 1.3 MB expansion; re-adjudication `corroborated 1223 → 1224`; pipeline tuple `9135/2606/4595/3314/5 → 9136/2606/4594/3313/5`, raw unmoved; `PIPELINE-LANE-CURRENCY` OK; `check_sv_corpus_denominator.sh` OK; pins `checked=1210 … preprocess_rows=11 failures=0` on BOTH probes; the three RAW lanes (`stimuli/run_external_corpus.sh sv \| sv2023 \| sv2005`, the rebuilt release probe installed at the provenance path `rust/target/release/parseability_probe`, into `PGEN_CORPUS_OUT_DIR` and diffed on the verdict columns): **all three IDENTICAL** — `sv_2017` 9 844 / 6 492 (16 336 rows), `sv_2023` 9 869 / 6 467, `verilog_2005` 2 313 / 293 (2 606 rows), 0 rows moved on any lane — byte-inert by construction (`--parse` without `--preprocess` never enters the expansion) and measured anyway; `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` on the FORMATTED bytes → `✅ clippy_on_rust_change completed.` (strict source lint, the generated-parser stage, `GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS — 68 pinned lints, all still in clippy::correctness`; guard exit 0, peak 7 263 MB); `cargo test --lib sv_preprocessor` re-run on the same bytes: 74 passed / 0 failed | ✅ |
 | `2026-09-14` | `.8` | `cargo test --lib sv_preprocessor` 69/69 (13 new) + `--lib sv_keyword_versions` 6/6; `python3 stimuli/sv/check_sv_keyword_versions.py --self-test` PASS (6 arms) and gate mode OK (`22-1=102 22-2=21 22-3=1 22-4=97 22-5=23 22-6=4 noconfig=10`, Σ == Annex B Table B.1 = 248); `bash scripts/check_doctrines.sh` ALL **41** PASS; `stimuli/run_pipeline_lane.sh all` `files=16336 pass=12202 fail=3857 pp_fail=277 timeout=0 crash=0` (before `12136/3923/277/0`) — 68 movers, **0 of them outside the 113-file §22.14 census**, 67 `fail → pass` / 1 `pass → fail`; `check_sv_corpus_denominator.sh` OK, pipeline tuple `9135/2606/4595/3312/8` (bar `9 → 8`); `run_adjudication_repros.py` `checked=1191 armed=231 listed=598 preprocess_rows=9 failures=0`; the three RAW lanes re-run into `PGEN_CORPUS_OUT_DIR` and diffed — all three IDENTICAL (`sv_2017` 9 847 / 6 489, `sv_2023` 9 872 / 6 464, `verilog_2005` 2 313 / 293); `clippy_on_rust_change` ✅ | ✅ |
 ## Commit log
@@ -2115,6 +2262,7 @@ answer here; a silent routing is not.
 | (tree creation) | `PGEN-SVPP-EXPANSION-0001` | tree + decision record created; registered in `docs/TASK_TREE.md` Proposed Task Trees; sequenced after the locked program |
 | `.1` | `PGEN-SVPP-EXPANSION-0002` | tree ACTIVATED on the director's 2026-09-09 steer; `.1` scoping re-measured (docs only); leaves re-planned `.2`–`.7`; decision record [[project_preprocess_parse_pipeline_is_the_sv_deliverable]] |
 | `.5`(g)(h)(g′) | `PGEN-SVPP-EXPANSION-0008` | a missing / extra actual and a recursive macro refused at the preprocess stage (§22.5.1 `:224-226`, `:342-343`); the apostrophe-as-quote misreading of a formal list fixed — a SILENT mis-expansion the refusal exposed; ENGINE tier, `sv_preprocessor.rs` only |
+| `.5`(j) | `PGEN-SVPP-EXPANSION-0026` | the `` `" `` string region: §22.5.1's three things by ONE renderer in the rescan for both macro paths (an embedded usage expanded, an object macro's region rendered at all, `` `\`" `` a quote) plus §5.9's one-line literal and (j′) `()` as one empty actual; four OpenTitan rows `fail → pass`; the whole corpus diffed; the source-line region and paste kept for the parser (the provenance leak on a source line's second pass closed); ENGINE tier, `sv_preprocessor.rs` only |
 | `.5`(i) | `PGEN-SVPP-EXPANSION-0025` | the ORDER around a paste — a usage that is a paste operand is expanded first, an undefined usage joined by a paste is the WHOLE constructed name, looked up in place with its arguments unexpanded (§22.5.1 *"allowing identifiers to be constructed"*); measured against Verilator 5.050 and Icarus 13.0 (run, not quoted — they split; sv2v's reference and the clause decide); the whole paste-carrying population diffed before/after, exactly one expansion moved; (j) and (k) routed with their probe rows; ENGINE tier, `sv_preprocessor.rs` only |
 | `.8` | `PGEN-SVPP-EXPANSION-0022` | IEEE 1800-2017 §22.14 applied by the expansion stage — a region's non-keywords rendered as ESCAPED identifiers (§5.6.2), the per-version tables DERIVED from three in-repo standards and gate-held by the new doctrine `SV-KEYWORD-VERSIONS` (registry 40 → 41); the plan's *"an unknown specifier is an error"* MEASURED to move 7 Verilog-AMS rows `fail → pp_fail` and withdrawn — the grammar is the refusal authority; ENGINE + INSTRUMENT + DOCTRINE tier, ZERO grammar / codegen / generated bytes |
 | `.6a` | `PGEN-SVPP-EXPANSION-0009` | the re-adjudication instrument + tracked report/table; doctrine arm (3); `.12b`/`.13d` pointed at the numbers; INSTRUMENT + DOCTRINE tier |
@@ -2146,6 +2294,9 @@ answer here; a silent routing is not.
   `fail → pass`; the UVM gate measured (164/168); frontier `.6d.2` (unit membership), `.7`, the (d) ruling.
 - `2026-09-09` — `.6d.2` done (`PGEN-SVPP-EXPANSION-0020`): the unit-membership reading, measured idle behind the UVM gate
   (0 accepted, 1 923 unreached); `.6d.3` (the UVM library) BLOCKED on (d); frontier `.7`.
+- `2026-09-15` — `.5`(j) done (`PGEN-SVPP-EXPANSION-0026`): the `` `" `` string region rendered once, in the rescan, for both
+  paths, one line, its embedded usages expanded; `()` one empty actual; four OpenTitan rows `fail → pass`, the pipeline tuple
+  `9140/2606/4590/3310/5`; frontier `.5`(k) (the plain string, a census first), then `.6d.3` still BLOCKED on the director's (d).
 - `2026-09-15` — `.5`(i) done (`PGEN-SVPP-EXPANSION-0025`): the order around a paste — the sv2v `macro_macro.sv` row
   `fail → pass`, the pipeline tuple `9136/2606/4594/3313/5`; two divergences closed (a usage as a paste operand, a
   defined usage as the left operand), two more found by the three-way probe and owned: `.5`(j) the `` `" `` region,

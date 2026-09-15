@@ -1785,7 +1785,11 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   the ORDER §22.5.1's *"allowing identifiers to be constructed"* implies (`SVPP-EXPANSION.5`(i), 2026-09-15): an
   operand that is a defined macro usage is expanded before the join, an undefined usage joined by a paste is
   looked up as the WHOLE constructed name in place, and a constructed function-like usage collects its
-  arguments unexpanded (Verilator's and sv2v's readings; Icarus differs and is recorded) —, a `$ident` never
+  arguments unexpanded (Verilator's and sv2v's readings; Icarus differs and is recorded) — and the `` `" `` region
+  rendered as ONE string literal in EXPANSION text on both the object- and the function-macro path, with its embedded
+  macro usages expanded and `` `\`" `` rendered `\"` (`SVPP-EXPANSION.5`(j), 2026-09-15 — the clause's three things;
+  a region in a SOURCE line is left as written, the form being defined for macro text), and `()` read as one empty
+  actual when the macro declares formals (`.5`(j′)) —, a `$ident` never
   substituted (A.9.3), a missing or extra actual REFUSED (`E_SVPP_MISSING_MACRO_ARGUMENT`,
   `E_SVPP_EXTRA_MACRO_ARGUMENT`; §22.5.1 *"shall be an error"*), direct or indirect recursion REFUSED
   (`E_SVPP_RECURSIVE_MACRO`, §22.5.1 — by PROVENANCE: a usage the caller wrote starts its own expansion, a

@@ -2612,6 +2612,35 @@ fn expand_macros_in_text(
         }
 
         if i + 1 < bytes.len() && bytes[i + 1] == b'"' {
+            // `SVPP-EXPANSION.5`(j): in EXPANSION text a `` `"…`" `` region is rendered here, ONCE,
+            // for the object-macro path (whose body never passed through a substitution step and
+            // so reached the parser with the markers still on — OpenTitan `otbn_ssctrl_if.sv`'s
+            // `` `define SSCTRL_PATH `"`SSCTRL_HPATH`" `` was refused at the `{` that held it) and
+            // for the function-macro path (whose substitution now emits the region with its markers
+            // and the actuals in place). A region in a SOURCE line stays as written: §22.5.1 defines
+            // the form for macro text, and sv2v `string_macro.sv:9` is pinned must-reject on it.
+            if user_mask.is_some() {
+                if let Some(close) = find_macro_string_close(text, i + 2) {
+                    let (rendered, any_expanded) = render_macro_string_region(
+                        text,
+                        i + 2,
+                        close,
+                        macros,
+                        depth,
+                        events,
+                        file,
+                        line,
+                        expanding,
+                        user_mask,
+                    )?;
+                    out.push_str(&rendered);
+                    if any_expanded {
+                        expanded_any = true;
+                    }
+                    i = close + 2;
+                    continue;
+                }
+            }
             out.push_str("`\"");
             i += 2;
             continue;
@@ -2775,7 +2804,13 @@ fn expand_macros_in_text(
     }
 
     if expanded_any && out != text {
-        // a second pass carries no provenance: text an expansion produced is body text
+        // a second pass over EXPANSION text carries no provenance: what an expansion produced is
+        // body text. A second pass over a SOURCE line stays a source line (`None`): every region
+        // and paste an expansion carried was consumed inside that expansion's own rescan, so the
+        // ones still on the line are the author's, and §22.5.1 defines both forms for macro text —
+        // rendering them here turned sv2v `string_macro.sv:9`, a pinned must-reject, into an accept
+        // the moment a usage shared its line (`SVPP-EXPANSION.5`(j)).
+        let second_mask: Option<&[bool]> = if user_mask.is_none() { None } else { Some(&[]) };
         expand_macros_in_text(
             &out,
             macros,
@@ -2784,11 +2819,172 @@ fn expand_macros_in_text(
             file,
             line,
             expanding,
-            Some(&[]),
+            second_mask,
         )
     } else {
         Ok(out)
     }
+}
+
+/// Expand the macro usage whose backtick is at `at`. Returns the expansion and the index just past
+/// the usage — its argument list included for a function-like macro — or `None` when the name is
+/// undefined (and no builtin), or function-like with no parseable argument list, or not a name at
+/// all; the caller then keeps the bytes as written. The expansion runs through
+/// [`expand_macros_in_text`] on exactly the usage's own bytes and its own slice of `user_mask`, so
+/// provenance, the `.5`(h) recursion check and the depth guard are the ordinary ones. Shared by the
+/// paste-chain walker (`.5`(i)) and the string-region renderer (`.5`(j)).
+#[allow(clippy::too_many_arguments)] // two call sites; the arguments ARE the expansion's context
+fn expand_usage_at(
+    text: &str,
+    at: usize,
+    macros: &HashMap<String, MacroDefinition>,
+    depth: usize,
+    events: &mut Vec<PreprocessorEvent>,
+    file: &Path,
+    line: usize,
+    expanding: &mut Vec<String>,
+    user_mask: Option<&[bool]>,
+) -> Result<Option<(String, usize)>> {
+    let bytes = text.as_bytes();
+    let n_start = at + 1;
+    if at >= bytes.len()
+        || bytes[at] != b'`'
+        || n_start >= bytes.len()
+        || !is_ident_start(bytes[n_start])
+    {
+        return Ok(None);
+    }
+    let mut n_end = n_start + 1;
+    while n_end < bytes.len() && is_ident_continue(bytes[n_end]) {
+        n_end += 1;
+    }
+    let name = &text[n_start..n_end];
+    let end = match macros.get(name) {
+        Some(def) if def.params.is_some() => {
+            // a function-like usage takes its argument list along
+            let mut k = n_end;
+            while k < bytes.len() && bytes[k].is_ascii_whitespace() {
+                k += 1;
+            }
+            match parse_macro_invocation_arg_ranges(text, k) {
+                Some((_, next)) => next,
+                None => return Ok(None),
+            }
+        }
+        Some(_) => n_end,
+        None => {
+            return Ok(expand_builtin_macro(name, file, line).map(|expanded| (expanded, n_end)));
+        }
+    };
+    // the usage's own bytes, with the provenance they carry (a second pass carries none:
+    // `Some(&[])` stays `Some(&[])`)
+    let sub_mask: Option<&[bool]> =
+        user_mask.map(|m| if m.len() >= end { &m[at..end] } else { &[][..] });
+    let expansion = expand_macros_in_text(
+        &text[at..end],
+        macros,
+        depth + 1,
+        events,
+        file,
+        line,
+        expanding,
+        sub_mask,
+    )?;
+    Ok(Some((expansion, end)))
+}
+
+/// `SVPP-EXPANSION.5`(j): the index of the ``` `" ``` that CLOSES a macro-string region whose
+/// content starts at `from`, or `None`. An escaped quote ``` `\`" ``` (four bytes) is stepped over
+/// whole — its last two bytes spell the closer, which is how the previous renderer ended the
+/// standard's own `msg` example at the first escaped quote.
+fn find_macro_string_close(text: &str, from: usize) -> Option<usize> {
+    let bytes = text.as_bytes();
+    let mut j = from;
+    while j + 1 < bytes.len() {
+        if text[j..].starts_with("`\\`\"") {
+            j += 4;
+            continue;
+        }
+        if bytes[j] == b'`' && bytes[j + 1] == b'"' {
+            return Some(j);
+        }
+        j += 1;
+    }
+    None
+}
+
+/// `SVPP-EXPANSION.5`(j): render the macro-string region `text[start..close]` as ONE string
+/// literal — IEEE 1800-2017 §22.5.1: *"An `" overrides the usual lexical meaning of " and indicates
+/// that the expansion shall include the quotation mark, substitution of actual arguments, and
+/// expansions of embedded macros."* The actuals were substituted before this text reached the rescan;
+/// here an embedded usage (`` `SSCTRL_HPATH ``, `` `FOO ``, a builtin) is expanded through
+/// [`expand_usage_at`], an escaped quote ``` `\`" ``` becomes `\"` (the clause's own
+/// `"left side: \"right side\""`), a paste joins its sides, and every other byte — a plain `"`
+/// included — is the string's. An undefined usage, or a function-like one with no argument list, is
+/// kept as written (Surelog's `PreprocString` golden keeps its bare `` `message ``). Returns the
+/// literal and whether any embedded usage was expanded.
+#[allow(clippy::too_many_arguments)]
+fn render_macro_string_region(
+    text: &str,
+    start: usize,
+    close: usize,
+    macros: &HashMap<String, MacroDefinition>,
+    depth: usize,
+    events: &mut Vec<PreprocessorEvent>,
+    file: &Path,
+    line: usize,
+    expanding: &mut Vec<String>,
+    user_mask: Option<&[bool]>,
+) -> Result<(String, bool)> {
+    let bytes = text.as_bytes();
+    let mut out = String::from("\"");
+    let mut any_expanded = false;
+    let mut k = start;
+    while k < close {
+        if text[k..close].starts_with("`\\`\"") {
+            out.push_str("\\\"");
+            k += 4;
+            continue;
+        }
+        if text[k..close].starts_with("``") {
+            k += 2;
+            continue;
+        }
+        if bytes[k] == b'`' && k + 1 < close && is_ident_start(bytes[k + 1]) {
+            match expand_usage_at(
+                text, k, macros, depth, events, file, line, expanding, user_mask,
+            )? {
+                Some((expansion, end)) if end <= close => {
+                    out.push_str(&expansion);
+                    any_expanded = true;
+                    k = end;
+                    continue;
+                }
+                _ => {
+                    out.push('`');
+                    k += 1;
+                    continue;
+                }
+            }
+        }
+        let ch = source_char_at(text, k);
+        out.push(ch);
+        k += ch.len_utf8();
+    }
+    out.push('"');
+    // A string literal is ONE line (§5.9), and a macro body's backslash-newline "shall be replaced in
+    // the expanded macro with a newline character" (§22.5.1) — so an embedded usage whose body spans
+    // lines (OpenTitan's `` `DV_LC_TX_DIST `` inside `` `DV_CHECK_STD_RANDOMIZE_WITH_FATAL ``'s
+    // stringified condition) would put a raw newline INSIDE the literal, which the parser refuses.
+    // Verilator renders the newline as a space (its own `twoline` golden: `"first        second"`);
+    // Icarus leaves it raw. The one-line reading is the only one the parser can read, so every
+    // newline in the rendered literal becomes a space, the indentation it carried kept.
+    let out = if out.contains('\n') {
+        out.replace("\r\n", " ").replace('\n', " ")
+    } else {
+        out
+    };
+    Ok((out, any_expanded))
 }
 
 /// `SVPP-EXPANSION.5`(i): join the ``` `` ``` paste chain that follows the left operand of a
@@ -2829,47 +3025,17 @@ fn join_paste_chain(
                 while n_end < bytes.len() && is_ident_continue(bytes[n_end]) {
                     n_end += 1;
                 }
-                let op_name = &text[n_start..n_end];
-                let op_end = match macros.get(op_name) {
-                    Some(def) if def.params.is_some() => {
-                        // a function-like operand takes its argument list along
-                        let mut k = n_end;
-                        while k < bytes.len() && bytes[k].is_ascii_whitespace() {
-                            k += 1;
-                        }
-                        parse_macro_invocation_arg_ranges(text, k).map(|(_, next)| next)
-                    }
-                    Some(_) => Some(n_end),
-                    None => None,
-                };
-                match op_end {
-                    Some(op_end) => {
-                        // the operand's own bytes, with the provenance they carry (a second pass
-                        // carries none: `Some(&[])` stays `Some(&[])`)
-                        let sub_mask: Option<&[bool]> = user_mask.map(|m| {
-                            if m.len() >= op_end {
-                                &m[after..op_end]
-                            } else {
-                                &[][..]
-                            }
-                        });
-                        let expansion = expand_macros_in_text(
-                            &text[after..op_end],
-                            macros,
-                            depth + 1,
-                            events,
-                            file,
-                            line,
-                            expanding,
-                            sub_mask,
-                        )?;
+                match expand_usage_at(
+                    text, after, macros, depth, events, file, line, expanding, user_mask,
+                )? {
+                    Some((expansion, op_end)) => {
                         suffix.push_str(&expansion);
                         operand_expanded = true;
                         j = op_end;
                     }
                     None => {
                         suffix.push('`');
-                        suffix.push_str(op_name);
+                        suffix.push_str(&text[n_start..n_end]);
                         j = n_end;
                     }
                 }
@@ -3187,6 +3353,23 @@ fn expand_function_macro(
     // — the right verdict at the wrong stage (sv-tests 22.5.1--define-expansion_7 / _8).
     // and the mirror image: MORE actuals than formals — the standard's `` `D(,,) // illegal, more
     // actual than formal arguments `` (sv-tests 22.5.1--define-expansion_8 pins it).
+    // `SVPP-EXPANSION.5`(j′): `` `thru() `` is ONE EMPTY actual when the macro declares formals —
+    // the argument list `()` holds one (blank) argument, exactly as `(,)` holds two — and the empty
+    // list of a formal-less macro (`` `define foo8() `` … `` `foo8() ``). The range parser returns no
+    // range for `()`, so the two were both read as ZERO actuals and `` `thru() `` refused as MISSING
+    // (`.5`(g)) where the clause's own `` `MACRO3 ( ) // all arguments replaced by defaults `` and
+    // both reference tools read an empty actual (`$display(": \"\"")` for `` `msg(`thru(),) ``).
+    // Found by `.5`(j): rendering a `` `" `` region expands the usages inside it, and verilator
+    // `t_pp_display.v:35` carries `` `thru() `` inside one.
+    let empty_actual: Vec<String>;
+    let empty_mask: Vec<Vec<bool>>;
+    let (args, arg_masks): (&[String], &[Vec<bool>]) = if args.is_empty() && !params.is_empty() {
+        empty_actual = vec![String::new()];
+        empty_mask = vec![Vec::new()];
+        (&empty_actual, &empty_mask)
+    } else {
+        (args, arg_masks)
+    };
     if args.len() > params.len() {
         bail!(
             "E_SVPP_EXTRA_MACRO_ARGUMENT at {}:{}: `{} invoked with {} arguments for {} formals — IEEE \
@@ -3357,25 +3540,32 @@ fn substitute_function_macro_body(
             // where the second arg should have been the string
             // "abstractions[+]" but came out as `"abstractions"[+]`"`.
             let region_start = i + 2;
-            let mut j = region_start;
-            let mut found_close = false;
-            while j + 1 < bytes.len() {
-                if bytes[j] == b'`' && bytes[j + 1] == b'"' {
-                    found_close = true;
-                    break;
-                }
-                j += 1;
-            }
-            if found_close {
+            // `SVPP-EXPANSION.5`(j): the region is no longer RENDERED here — the actuals are
+            // substituted into it and it is emitted with its `` `" `` markers on, for the rescan's
+            // renderer (`render_macro_string_region`), which is the one place that can also expand
+            // an EMBEDDED macro usage (the clause's "expansions of embedded macros") and which the
+            // object-macro path reaches too. The closer is found by `find_macro_string_close`, which
+            // steps over an escaped quote ``` `\`" ``` whole: the scan that used to live here
+            // matched the escaped quote's last two bytes and ended the standard's own `msg`
+            // example at its first `\"`.
+            let found = find_macro_string_close(body, region_start);
+            if let Some(j) = found {
                 let content = &body[region_start..j];
-                push_body(&mut out, &mut mask, "\"");
+                push_body(&mut out, &mut mask, "`\"");
                 let content_bytes = content.as_bytes();
                 let mut k = 0usize;
                 while k < content_bytes.len() {
+                    // an escaped quote and a paste are the renderer's to read: copied as written
+                    if content[k..].starts_with("`\\`\"") {
+                        push_body(&mut out, &mut mask, "`\\`\"");
+                        k += 4;
+                        continue;
+                    }
                     if k + 2 <= content_bytes.len()
                         && content_bytes[k] == b'`'
                         && content_bytes[k + 1] == b'`'
                     {
+                        push_body(&mut out, &mut mask, "``");
                         k += 2;
                         continue;
                     }
@@ -3388,7 +3578,7 @@ fn substitute_function_macro_body(
                         let token = &content[tok_start..k];
                         let system_name = tok_start > 0 && content_bytes[tok_start - 1] == b'$';
                         if let Some(arg) = bindings.get(token).filter(|_| !system_name) {
-                            push_actual(&mut out, &mut mask, arg, binding_mask(token), true);
+                            push_actual(&mut out, &mut mask, arg, binding_mask(token), false);
                         } else {
                             push_body(&mut out, &mut mask, token);
                         }
@@ -3398,7 +3588,7 @@ fn substitute_function_macro_body(
                         k += ch.len_utf8();
                     }
                 }
-                push_body(&mut out, &mut mask, "\"");
+                push_body(&mut out, &mut mask, "`\"");
                 i = j + 2;
                 continue;
             }
@@ -5318,6 +5508,155 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         );
         assert!(text.contains("$display(\"fooxbar\");"), "{text}");
         assert!(!text.contains("``"), "{text}");
+    }
+
+    // ── SVPP-EXPANSION.5(j) — the `"…`" string region: "the expansion shall include the quotation
+    //    mark, substitution of actual arguments, and expansions of embedded macros" (§22.5.1) ──────
+
+    #[test]
+    fn a_macro_usage_embedded_in_a_string_region_is_expanded() {
+        // through an ACTUAL: iverilog ivltests/sv_macro3a.v (its tracked gold/sv_macro3.gold reads
+        // my_prefix_my_suffix twice; Verilator 5.050 and Icarus 13.0 read the same); in the BODY:
+        // the Surelog PreprocString shape with its -DMEM_ROOT=test supplied — Surelog's own golden
+        // log holds the StringLiteral "test/rom.mem`message", the bare function-like `message kept
+        let text = expand_text(
+            "svpp_region_embedded_usage",
+            "`define PREFIX my_prefix\n`define SUFFIX my_suffix\n`define name1 `PREFIX``_```SUFFIX\n`define name2(p,s) p``_``s\n`define stringify(text) `\"text`\"\n`define MEM_ROOT test\n`define message(TOTO) TATA\n`define MAKE_MEM_PATH(filename) `\"`MEM_ROOT/filename`message`\"\nA `stringify(`name1)\nB `stringify(`name2(`PREFIX, `SUFFIX))\nC `MAKE_MEM_PATH(rom.mem)\n",
+        );
+        assert!(text.contains("A \"my_prefix_my_suffix\"\n"), "{text}");
+        assert!(text.contains("B \"my_prefix_my_suffix\"\n"), "{text}");
+        assert!(text.contains("C \"test/rom.mem`message\"\n"), "{text}");
+    }
+
+    #[test]
+    fn an_object_macros_string_region_is_rendered() {
+        // verilator t_preproc_strify_join.v, its .out verbatim: "foo-bar-qux" / ""foo-bar-qux"" / "";
+        // OpenTitan otbn_ssctrl_if.sv: `define SSCTRL_PATH `"`SSCTRL_HPATH`" — an object macro whose
+        // region embeds a usage, refused by the parser inside `{`SSCTRL_PATH, ".", signal}` until now
+        let text = expand_text(
+            "svpp_region_object_macro",
+            "`define FOO foo\n`define BAR bar\n`define QUX qux\n`define STRIFY `\"`FOO``-```BAR``-```QUX```\"\n`define NESTED_STRIFY `\"`STRIFY```\"\n`define EMPTY\n`define EMPTY_STRIFY `\"`EMPTY```\"\n`define SSCTRL_HPATH tb.dut.u_otbn_core.u_otbn_start_stop_control\n`define SSCTRL_PATH  `\"`SSCTRL_HPATH`\"\n`STRIFY\n`NESTED_STRIFY\n`EMPTY_STRIFY\nreturn {`SSCTRL_PATH, \".\", signal};\n",
+        );
+        assert!(
+            text.contains("\"foo-bar-qux\"\n\"\"foo-bar-qux\"\"\n\"\"\n"),
+            "{text}"
+        );
+        assert!(
+            text.contains(
+                "return {\"tb.dut.u_otbn_core.u_otbn_start_stop_control\", \".\", signal};"
+            ),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn an_escaped_quote_in_a_string_region_renders_as_a_quote() {
+        // IEEE 1800-2017 §22.5.1's own example (section-22-compiler-directives.md:376-379):
+        // `define msg(x,y) `"x: `\`"y`\`"`" ... expands to $display("left side: \"right side\"");
+        // before this slice the close finder matched the escaped quote's last two bytes and the
+        // engine emitted "left side: `\"right side`\""; an object macro's region the same
+        let text = expand_text(
+            "svpp_region_escaped_quote",
+            "`define msg(x,y) `\"x: `\\`\"y`\\`\"`\"\n`define obj `\"obj `\\`\"q`\\`\" end`\"\n$display(`msg(left side,right side));\n$display(`obj);\n",
+        );
+        assert!(
+            text.contains("$display(\"left side: \\\"right side\\\"\");"),
+            "{text}"
+        );
+        assert!(text.contains("$display(\"obj \\\"q\\\" end\");"), "{text}");
+    }
+
+    #[test]
+    fn a_string_region_in_a_source_line_stays_verbatim() {
+        // §22.5.1 defines `" for MACRO text; sv2v test/lex/string_macro.sv:9 ($display(`"`FOO`");) is
+        // pinned must-reject on exactly that (SVPP-EXPANSION.6c.2). Verilator 5.050 renders a
+        // source-line region ("standalone") and Icarus 13.0 leaves it — recorded, not followed
+        let text = expand_text(
+            "svpp_region_source_line",
+            "`define FOO BAR\nmodule t; initial $display(`\"standalone `FOO`\"); endmodule\n",
+        );
+        assert!(text.contains("$display(`\"standalone BAR`\");"), "{text}");
+    }
+
+    #[test]
+    fn an_undefined_or_argumentless_usage_in_a_region_stays_verbatim() {
+        // Surelog tests/PreprocString/dut.sv as the lane sees it (no MEM_ROOT): the bytes it produced
+        // before this slice, and Surelog's golden shape for the bare `message — an undefined name and
+        // a function-like name with no argument list are the string's, backtick and all
+        let text = expand_text(
+            "svpp_region_undefined_usage",
+            "`define message(TOTO) TATA\n`define MAKE_MEM_PATH(filename) `\"`MEM_ROOT/filename`message`\"\n$display(`MAKE_MEM_PATH(rom.mem));\n",
+        );
+        assert!(
+            text.contains("$display(\"`MEM_ROOT/rom.mem`message\");"),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn pastes_inside_a_string_region_still_join() {
+        // sv2v test/lex/macro_string.sv (all three tools agree today, the bytes must not move) and the
+        // UVM shape the region renderer was first written for: `"ARG[+]`" → "abstractions[+]"
+        let text = expand_text(
+            "svpp_region_pastes",
+            "`define PRINT(str, num) $display(`\"StrIs``str NumIs``num`\");\n`define Q(ARG) push(`\"ARG[+]`\")\n`PRINT(FOO, 0)\n`Q(abstractions)\n",
+        );
+        assert!(text.contains("$display(\"StrIsFOO NumIs0\");"), "{text}");
+        assert!(text.contains("push(\"abstractions[+]\")"), "{text}");
+    }
+
+    #[test]
+    fn a_region_arriving_through_an_actual_is_rendered_where_it_lands() {
+        // verilator t_preproc.v "Stringify in nested macro", its .out: `quux(`bar(`a,`a)) →
+        // string boo = "test x,y x,y"; — the region `"x`" is quux's, its actual reaches qux, and the
+        // usages inside it are expanded where the region is rendered
+        let text = expand_text(
+            "svpp_region_nested_actual",
+            "`define foo test\n`define a x,y\n`define bar(a, b) test a b\n`define qux(x) string boo = x;\n`define quux(x) `qux(`\"x`\")\n`quux(`foo)\n`quux(`bar(`a,`a))\n",
+        );
+        assert!(text.contains("string boo = \"test\";"), "{text}");
+        assert!(text.contains("string boo = \"test x,y x,y\";"), "{text}");
+    }
+
+    #[test]
+    fn an_empty_argument_list_is_one_empty_actual_when_the_macro_has_formals() {
+        // verilator t_pp_display.v:35 `msg(`thru(),) — Verilator 5.050 and Icarus 13.0 both read
+        // `thru() as ONE empty actual (`$display(": \"\"")`); before this the engine read `()` as
+        // ZERO actuals and refused it as MISSING. A formal-less macro's `()` is still its empty list
+        // (`foo8`), and a second formal without a default is still MISSING (`D`, .5(g)).
+        let text = expand_text(
+            "svpp_empty_actual",
+            "`define thru(x) x\n`define msg(x,y) `\"x: `\\`\"y`\\`\"`\"\n`define foo8() eight\nA [`thru()]\nB `msg(`thru(),)\nC `foo8()\n",
+        );
+        assert!(text.contains("A []\n"), "{text}");
+        assert!(text.contains("B \": \\\"\\\"\"\n"), "{text}");
+        assert!(text.contains("C eight\n"), "{text}");
+        let dir = create_repo_scratch_dir("svpp_empty_actual_missing");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define D(x, y) x y\n`D()\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .err()
+            .map(|e| e.to_string())
+            .unwrap_or_default();
+        assert!(err.contains("E_SVPP_MISSING_MACRO_ARGUMENT"), "{err}");
+        assert!(err.contains("formal 'y'"), "{err}");
+    }
+
+    #[test]
+    fn a_multi_line_expansion_inside_a_string_region_is_one_line() {
+        // verilator t_preproc.v: `define twoline first \ / second, then `msg(twoline, `twoline) —
+        // its .out reads $display("twoline: \"first        second\""): the continuation's newline is
+        // a space inside the literal (Icarus 13.0 leaves a raw newline, which the parser refuses —
+        // rust/target-free proof: `$display("a\nb")` is a rejection, `"a \\\n b"` an accept)
+        let text = expand_text(
+            "svpp_region_multiline",
+            "`define msg(x,y) `\"x: `\\`\"y`\\`\"`\"\n`define twoline first \\\n      second\n$display(`msg(twoline, `twoline));\n",
+        );
+        assert!(
+            text.contains("$display(\"twoline: \\\"first        second\\\"\");"),
+            "{text}"
+        );
+        assert!(!text.contains("first \n"), "{text}");
     }
 
     #[test]
