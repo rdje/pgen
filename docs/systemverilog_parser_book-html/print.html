@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2f3b30d1.js";
+            window.path_to_searchindex_js = "searchindex-b492bdfe.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -2959,6 +2959,24 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10231--contract-10231--sv-corpus-grad363-pgen-sv-corpus-grad-0399-2026-09-15-ledger-sv-0108--sv-0109--sv-0110-released-schema-33-unchanged"><a class="header" href="#10231--contract-10231--sv-corpus-grad363-pgen-sv-corpus-grad-0399-2026-09-15-ledger-sv-0108--sv-0109--sv-0110-released-schema-33-unchanged">1.0.231 / Contract 1.0.231 — SV-CORPUS-GRAD.3.63 (<code>PGEN-SV-CORPUS-GRAD-0399</code>, 2026-09-15), ledger <code>SV-0108</code> / <code>SV-0109</code> / <code>SV-0110</code> (<code>Released</code>), <strong>schema 33 unchanged</strong>:</a></h3>
+<p>⭐ <strong>Annex A’s bold brackets are tokens.</strong> Three timing-check productions had been transcribed with IEEE’s literal
+brackets read as EBNF optionality — the PDF-to-text extraction drops the bold that marks them — so every corpus spelling
+of an edge control specifier (<code>edge[01, 0x, x1] clr</code>, the clause’s own example) stopped at the <code>[</code>, a select on a delayed
+terminal (<code>$setuphold(…, D, BL_X[0])</code>) stopped at its <code>[</code>, and a bracket-less <code>edge 01 CL</code> no edition derives was
+accepted. <code>1.0.231</code> gives <code>edge_control_specifier</code> and the two delayed-terminal rules their <code>lbrack</code> / <code>rbrack</code> tokens
+(IEEE 1364-2005 A.7.5.2 / A.7.5.3, IEEE 1800-2017 the same), puts the bracketed <code>delayed_data</code> / <code>delayed_reference</code>
+alternative — the <code>with_expr</code> kind published since <code>1.0.64</code> but unreachable behind the bare identifier — first, and
+moves the two-character descriptors <code>0x</code> / <code>x1</code> / <code>1x</code> onto six boundary-free terminals <code>edge_sym_*</code> (the general
+<code>x\b</code> terminal could never match a half followed by a word character: the UDP-symbol class <code>.3.30</code> measured, the
+same remedy). And one edition contrast: <code>$width</code> needs no threshold under IEEE 1364-2005 A.7.5.1 (§15.4’s own example
+<code>$width(posedge clr, tWidth);</code>) while 1800-2017 / 2023 require it, so a <code>@profiles: ["verilog_2005"]</code> sub-rule admits the
+two-argument form on the 1364-2005 profile only, wrapped as <code>sv_dollar_width_timing_check -&gt; {kind: "no_threshold", body}</code> —
+the three-argument form keeps its shape byte-for-byte, and <code>sv_2017</code> / <code>sv_2023</code> still refuse the short one. Nine pins
+(five <code>fixed</code>, two <code>invalid</code>, two <code>control</code>); <code>1649 → 1656</code> rules. Measured on the final bytes: <code>sv_2017</code> pass 9 844 → 9 846 / fail 6 490, <code>sv_2023</code> 9 869 → 9 871 / 6 465, <code>verilog_2005</code> 2 313 → 2 316 / 290 — exactly the three predicted rows (<code>pr1520314.v</code>, <code>pr1867332.v</code> on every lane; <code>test_15_04_00_1.v</code> on <code>verilog_2005</code>), every one <code>fail → pass</code>, 0 the other way;
+the corpus AST identity sweeps read <code>ast_moved=0</code> on every lane (every file both binaries accept has a byte-identical typed AST) with <code>verdict_moved</code> 2 / 2 / 3, the predicted rows; the pipeline lane exactly 2 rows <code>fail → pass</code> (iverilog <code>pr1520314.v</code>, <code>pr1867332.v</code>), 0 the other way, <code>pass 12 202 → 12 204</code>; the <code>verilog_2005</code> bar 16 → 13 (<code>rejects_valid</code> 3 → 0 — the three rows this leaf was opened on; the thirteen <code>.8c.2</code> accepts-invalid pins are all that remain). ⛔ Consumers on <code>verilog_2005</code>:
+a <code>width</code> timing check’s body may now be the <code>no_threshold</code> wrapper with no <code>threshold</code> field — read <code>body.kind</code> first.
+Detail: the contract’s current-state note; the ledger rows; <code>docs/tasks/SV-CORPUS-GRAD.md</code> <code>.3.63</code>.</p>
 <h3 id="10230--contract-10230--sv-corpus-grad360--361-pgen-sv-corpus-grad-0393-2026-09-14-ledger-sv-0103--sv-0104--sv-0105--sv-0106-released-schema-32--33"><a class="header" href="#10230--contract-10230--sv-corpus-grad360--361-pgen-sv-corpus-grad-0393-2026-09-14-ledger-sv-0103--sv-0104--sv-0105--sv-0106-released-schema-32--33">1.0.230 / Contract 1.0.230 — SV-CORPUS-GRAD.3.60 + .3.61 (<code>PGEN-SV-CORPUS-GRAD-0393</code>, 2026-09-14), ledger <code>SV-0103</code> / <code>SV-0104</code> / <code>SV-0105</code> / <code>SV-0106</code> (<code>Released</code>), <strong>schema 32 → 33</strong>:</a></h3>
 <p>⭐ <strong>The compilation-unit scope and the module are different name spaces — and a lookahead is a child.</strong> IEEE
 1800-2017 3.13 puts a <code>$unit</code> typedef in the compilation-unit scope name space and a same-named net, function, port

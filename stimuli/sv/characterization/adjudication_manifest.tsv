@@ -4382,7 +4382,7 @@ iverilog	ivtest/ivltests/pr1494799.v	pass	out_of_scope_with_cause:no_sv_key	defe
 iverilog	ivtest/ivltests/pr1508882.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1510724.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1515168.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr1520314.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr1520314.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1522570.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1528093.v	pass	out_of_scope_with_cause:no_sv_key	deferred:no_sv_key	ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted)
 iverilog	ivtest/ivltests/pr1530426.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -4548,7 +4548,7 @@ iverilog	ivtest/ivltests/pr1866215.v	pass	out_of_scope_with_cause:v2005_profile_
 iverilog	ivtest/ivltests/pr1866215b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1867161a.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1867161b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/pr1867332.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/pr1867332.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1868792.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1868991a.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/pr1868991b.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run

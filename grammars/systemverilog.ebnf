@@ -2939,11 +2939,17 @@ delay_value := unsigned_number     -> {kind: "unsigned_number", body: $1}
              | ps_identifier       -> {kind: "ps_identifier",   body: $1}
              | delay_value_sv_only
 
-delayed_data := terminal_identifier                                            -> {kind: "simple",    name: $1}
-              | terminal_identifier ( constant_mintypmax_expression )?         -> {kind: "with_expr", name: $1, expr: $2}
+# SV-CORPUS-GRAD.3.63 (release 1.0.231): IEEE 1364-2005 A.7.5.2 / IEEE 1800-2017 A.7.5.2 `delayed_data ::=
+# terminal_identifier | terminal_identifier [ constant_mintypmax_expression ]` — the brackets are LITERAL (a
+# select on the delayed terminal, `$setuphold(..., D, BL_X[0])`), not EBNF optionality. Through 1.0.230 the
+# second alternative carried `( constant_mintypmax_expression )?` with no bracket tokens AND sat behind the
+# bare-identifier alternative, so it could never be reached: `BL_X[0]` stopped the parse at the `[`. The
+# bracketed alternative goes FIRST (ordered choice), the bare identifier second; both kinds keep their names.
+delayed_data := terminal_identifier lbrack constant_mintypmax_expression rbrack -> {kind: "with_expr", name: $1, expr: $3}
+              | terminal_identifier                                            -> {kind: "simple",    name: $1}
 
-delayed_reference := terminal_identifier                                       -> {kind: "simple",    name: $1}
-                   | terminal_identifier ( constant_mintypmax_expression )?    -> {kind: "with_expr", name: $1, expr: $2}
+delayed_reference := terminal_identifier lbrack constant_mintypmax_expression rbrack -> {kind: "with_expr", name: $1, expr: $3}
+                   | terminal_identifier                                            -> {kind: "simple",    name: $1}
 
 @profiles: ["sv_2017", "sv_2023"]
 description_unit_item_sv_only := attribute_instance* package_item -> {kind: "package_item", attributes: $1, body: $2}
@@ -3159,8 +3165,14 @@ dynamic_override_specifiers_sv_2023 := ( initial_or_extends_specifier )? ( final
 dynamic_override_specifiers := dynamic_override_specifiers_sv_2023
                             -> {body: $1}
 
-edge_control_specifier := kw_edge_a0f2c69a ( edge_descriptor ( comma edge_descriptor )* )?
-                       -> {descriptors: $2}
+# SV-CORPUS-GRAD.3.63 (release 1.0.231): IEEE 1364-2005 A.7.5.3 / IEEE 1800-2017 A.7.5.3 `edge_control_specifier
+# ::= edge [ edge_descriptor { , edge_descriptor } ]` — the brackets are LITERAL tokens (§15.4 / §31.5:
+# `edge[01, 0x, x1] clr`), not EBNF optionality: a bare `edge` names nothing, and a descriptor list
+# without brackets is no production. Through 1.0.230 the rule read `edge ( descriptors )?` with no bracket
+# tokens, so every corpus spelling (`edge[01,0x,x1,1x] CL`) stopped at the `[` and the bracket-less
+# `edge 01 CL` was accepted. `descriptors` is the list of edge_descriptor nodes.
+edge_control_specifier := kw_edge_a0f2c69a lbrack edge_descriptor ( comma edge_descriptor )* rbrack
+                       -> {descriptors: [$3, $4::2*]}
 
 edge_descriptor := kw_n_01_ddfe1633        -> {kind: "01"}
                  | kw_n_10_b1d57811        -> {kind: "10"}
@@ -7273,6 +7285,20 @@ sv_dollar_timeskew_timing_check := kw_sv_dollar_timeskew_6d763f0a lparen referen
 
 sv_dollar_width_timing_check := kw_sv_dollar_width_72b04d27 lparen controlled_reference_event comma timing_check_limit comma threshold ( comma ( notifier )? )? rparen semi
                              -> {controlled_reference_event: $3, limit: $5, threshold: $7, tail: $8}
+                              | sv_dollar_width_timing_check_no_threshold_v2005
+                             -> {kind: "no_threshold", body: $1}
+
+# SV-CORPUS-GRAD.3.63 (release 1.0.231): an EDITION CONTRAST in the grammar. IEEE 1364-2005 A.7.5.1 reads
+# `$width ( controlled_reference_event , timing_check_limit [ , threshold [ , notifier ] ] ) ;` — the threshold
+# is OPTIONAL — while IEEE 1800-2017 / 1800-2023 A.7.5.1 read `... , timing_check_limit , threshold [ , [ notifier ] ] ) ;`
+# and require it. Through 1.0.230 the rule followed 1800 for every profile, so ispras
+# `ieee-1364-2005/test_15_04_00_1.v` (`$width(posedge clr, tWidth);`, §15.4's own example) was refused under
+# `verilog_2005`. The two-argument form is admitted on the 1364-2005 profile ONLY (a `sv_2017` /
+# `sv_2023` parse of it still stops at the `)`, as the standard says it must); the three-argument
+# alternative above is tried first and keeps its shape byte-for-byte.
+@profiles: ["verilog_2005"]
+sv_dollar_width_timing_check_no_threshold_v2005 := kw_sv_dollar_width_72b04d27 lparen controlled_reference_event comma timing_check_limit ( comma ( notifier )? )? rparen semi
+                                                -> {controlled_reference_event: $3, limit: $5, tail: $6}
 
 # SV-0029 wave-3 steal guard (SV-DOLLAR-LRM-FIDELITY.4): the generic
 # `system_tf_identifier` regex also matches the LRM anchors `$root` / `$unit` as
@@ -8108,13 +8134,28 @@ weight_specification := weight_specification_sv_2017
 with_covergroup_expression := covergroup_expression
                            -> {body: $1}
 
-z_or_x := kw_x_11f6ad8e -> {kind: "x"}
-       | kw_X_c032adc1  -> {kind: "X"}
-       | kw_z_395df8f7  -> {kind: "z"}
-       | kw_Z_909f99a7  -> {kind: "Z"}
+# SV-CORPUS-GRAD.3.63 (release 1.0.231): an edge_descriptor is ONE token — `0x`, `x1`, `1x`, `z0` (IEEE 1364-2005
+# A.7.5.3 `edge_descriptor ::= 01 | 10 | z_or_x zero_or_one | zero_or_one z_or_x`, §15.4 `edge[01, 0x, x1] clr`) —
+# so the two halves are adjacent word characters and the general keyword terminals' `\b` (`kw_x_11f6ad8e :=
+# trivia /x\b/`, `kw_n_0_b6589fc6 := trivia /0\b/`) can never match the first half: through 1.0.230 every
+# z/x descriptor was refused (`0x` → `No match for regex pattern '0\b'`). The same class `.3.30` measured on
+# the UDP table symbols, and the same remedy: dedicated boundary-free terminals for these two rules alone
+# (`edge_sym_<c>` / `edge_sym_<c>_upper` — never case-only twins, the generator uppercases rule names). The
+# `kind` shapes are unchanged. `01` and `10` stay the two-digit tokens above, tried first.
+z_or_x := edge_sym_x       -> {kind: "x"}
+       | edge_sym_x_upper -> {kind: "X"}
+       | edge_sym_z       -> {kind: "z"}
+       | edge_sym_z_upper -> {kind: "Z"}
 
-zero_or_one := kw_n_0_b6589fc6 -> {kind: "0"}
-            | kw_n_1_356a192b -> {kind: "1"}
+zero_or_one := edge_sym_0 -> {kind: "0"}
+            | edge_sym_1 -> {kind: "1"}
+
+edge_sym_0 := trivia /0/
+edge_sym_1 := trivia /1/
+edge_sym_x := trivia /x/
+edge_sym_x_upper := trivia /X/
+edge_sym_z := trivia /z/
+edge_sym_z_upper := trivia /Z/
 
 # Generated literal tokens
 

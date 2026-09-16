@@ -17,18 +17,18 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `da3933ee9380689ac64ce20908190f35f8017d0f1af3eba532a088abafd78910` |
-| grammar | `grammars/systemverilog.ebnf` | `955af4e5a593de192e87ff7bed6820f3971873ce4d49f664942d7ad2f4fb8a94` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `fe2a293d88a0f00cac5de8bc9a21ccc1719ce182fefa0655a6a727b06727ec32` |
-| generated parser | `generated/systemverilog_parser.rs` | `99a683380af7486f47225766a64d20d8bdf176758ab0988d9dc0e2f4fc7a5ecf` |
+| parse binary | `rust/target/debug/parseability_probe` | `4a313eaf6548526920340ccb3f22eafa6a96c9347e7eba01874a232aeb547048` |
+| grammar | `grammars/systemverilog.ebnf` | `3a29a1d48ae70c9fb023d8efe6fc9ef802efe00eeab401701cbc014f983c90a0` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `0ebcfb7c3ec15616ae59580729d76e2a3f56fbbddf397b03d848bb3b8c54d7ea` |
+| generated parser | `generated/systemverilog_parser.rs` | `48d04be295e8e5acbfe5187039a2cce14eecb205cd9c8513b997091222be98e7` |
 | context | `stimuli/sv/pipeline_context.tsv` | `f1b77668e01ef6bedcd293f3c5967052525fa48a9b40aa17941cc875a3c8d625` |
 | context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `636c8dec8eeab13488b6dd91c0b5547e53c3f6a25c46ccca884d2fb01f459333` |
 | context (per-file unit predecessors) | `stimuli/sv/pipeline_context_units.tsv` | `df065bdc8a87ff15fb441550d42775de494a6cf63eb971b1303e85ab4500bc70` |
-| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `1f267c98d6adb02298761d1cda2822cb9c72b5c5b8c6d857e099636364278caa` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `3c45dee8091da00f3c047e49ea336cd94bf062d375bae3d07644cab424f570bd` |
-| raw results (input) | `stimuli/sv/characterization/results.tsv` | `9b86536adaf192ccb0eeb02af281aee1b6ee7a8475fd82e80787b986eb693355` |
+| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `39e227bf38e1e423aee90d349355d6802581fa23fb3656addd4494ae57c7a36e` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `c875e005b35308f09c053a695672bae501f447254130779b651f66c0cc1b996c` |
+| raw results (input) | `stimuli/sv/characterization/results.tsv` | `c51a0e65af9978a8d717b04e28402a3c7f96dcd4d153309c1812d4d2691a6565` |
 
-Measured at `HEAD` = `ff3f6400a+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `7100aebb3+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -39,7 +39,7 @@ Measured at `HEAD` = `ff3f6400a+dirty`; the parse binary is a **debug** build (t
 | black-parrot | 205 | 36 | 169 | 0 | 33 | 2 | 170 | 0 | 0 | -3 |
 | friscv | 441 | 38 | 403 | 0 | 61 | 348 | 32 | 0 | 0 | +23 |
 | ispras-sv-tests | 1266 | 1125 | 141 | 0 | 1256 | 10 | 0 | 0 | 0 | +131 |
-| iverilog | 3799 | 3214 | 585 | 0 | 3625 | 165 | 9 | 0 | 0 | +411 |
+| iverilog | 3799 | 3216 | 583 | 0 | 3627 | 163 | 9 | 0 | 0 | +411 |
 | opentitan | 3983 | 817 | 3166 | 0 | 1456 | 2518 | 9 | 0 | 0 | +639 |
 | scr1 | 50 | 8 | 42 | 0 | 49 | 1 | 0 | 0 | 0 | +41 |
 | slang | 92 | 72 | 20 | 0 | 74 | 15 | 3 | 0 | 0 | +2 |
@@ -48,7 +48,7 @@ Measured at `HEAD` = `ff3f6400a+dirty`; the parse binary is a **debug** build (t
 | uvm-core | 174 | 33 | 141 | 0 | 28 | 146 | 0 | 0 | 0 | -5 |
 | verible | 152 | 120 | 32 | 0 | 129 | 23 | 0 | 0 | 0 | +9 |
 | verilator | 3263 | 2082 | 1181 | 0 | 2957 | 289 | 17 | 0 | 0 | +875 |
-| **total** | 16336 | 9844 | 6492 | 0 | 12202 | 3857 | 277 | 0 | 0 | +2358 |
+| **total** | 16336 | 9846 | 6490 | 0 | 12204 | 3855 | 277 | 0 | 0 | +2358 |
 
 ## Transitions — raw status → pipeline status
 
@@ -75,9 +75,9 @@ Measured at `HEAD` = `ff3f6400a+dirty`; the parse binary is a **debug** build (t
 | ispras-sv-tests | `fail` → `pass` | 132 |
 | ispras-sv-tests | `fail` → `fail` | 9 |
 | ispras-sv-tests | `pass` → `fail` | 1 |
-| iverilog | `pass` → `pass` | 3213 |
+| iverilog | `pass` → `pass` | 3215 |
 | iverilog | `fail` → `pass` | 412 |
-| iverilog | `fail` → `fail` | 165 |
+| iverilog | `fail` → `fail` | 163 |
 | iverilog | `fail` → `pp_fail` | 8 |
 | iverilog | `pass` → `pp_fail` | 1 |
 | opentitan | `fail` → `fail` | 2449 |
@@ -143,7 +143,7 @@ Measured at `HEAD` = `ff3f6400a+dirty`; the parse binary is a **debug** build (t
 |---|---:|---:|---:|---:|---:|---:|
 | `match` | 6065 | 5693 | 371 | 1 | 0 | 0 |
 | `deferred:chained_only` | 4933 | 1968 | 2740 | 225 | 0 | 0 |
-| `deferred:v2005_profile_lane` | 2606 | 2536 | 65 | 5 | 0 | 0 |
+| `deferred:v2005_profile_lane` | 2606 | 2538 | 63 | 5 | 0 | 0 |
 | `divergence:explained_svpp_macro_use` | 1025 | 1005 | 16 | 4 | 0 | 0 |
 | `deferred:no_sv_key` | 596 | 568 | 27 | 1 | 0 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 350 | 0 | 0 | 0 |
@@ -167,7 +167,7 @@ Measured at `HEAD` = `ff3f6400a+dirty`; the parse binary is a **debug** build (t
 | construct at the origin line | rows | one example (origin — line) |
 |---|---:|---|
 | class header with a base class (`extends`) | 2184 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4:63` — `class dccm_transaction_sequence_item extends uvm_sequence_item;` |
-| other | 1370 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
+| other | 1368 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
 | a parameter port list `#(` | 101 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
 | a `typedef` | 60 | `stimuli/sv/subs/Surelog/tests/NetType/dut.sv:18:24` — `typedef some_other_type myalias;` |
 | a `::`-scoped name | 57 | `stimuli/sv/subs/Surelog/tests/Assignments/dut.sv:5:44` — `function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);` |

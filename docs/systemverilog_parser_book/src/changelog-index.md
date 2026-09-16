@@ -34,6 +34,26 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.231 / Contract 1.0.231 — SV-CORPUS-GRAD.3.63 (`PGEN-SV-CORPUS-GRAD-0399`, 2026-09-15), ledger `SV-0108` / `SV-0109` / `SV-0110` (`Released`), **schema 33 unchanged**:
+
+⭐ **Annex A's bold brackets are tokens.** Three timing-check productions had been transcribed with IEEE's literal
+brackets read as EBNF optionality — the PDF-to-text extraction drops the bold that marks them — so every corpus spelling
+of an edge control specifier (`edge[01, 0x, x1] clr`, the clause's own example) stopped at the `[`, a select on a delayed
+terminal (`$setuphold(…, D, BL_X[0])`) stopped at its `[`, and a bracket-less `edge 01 CL` no edition derives was
+accepted. `1.0.231` gives `edge_control_specifier` and the two delayed-terminal rules their `lbrack` / `rbrack` tokens
+(IEEE 1364-2005 A.7.5.2 / A.7.5.3, IEEE 1800-2017 the same), puts the bracketed `delayed_data` / `delayed_reference`
+alternative — the `with_expr` kind published since `1.0.64` but unreachable behind the bare identifier — first, and
+moves the two-character descriptors `0x` / `x1` / `1x` onto six boundary-free terminals `edge_sym_*` (the general
+`x\b` terminal could never match a half followed by a word character: the UDP-symbol class `.3.30` measured, the
+same remedy). And one edition contrast: `$width` needs no threshold under IEEE 1364-2005 A.7.5.1 (§15.4's own example
+`$width(posedge clr, tWidth);`) while 1800-2017 / 2023 require it, so a `@profiles: ["verilog_2005"]` sub-rule admits the
+two-argument form on the 1364-2005 profile only, wrapped as `sv_dollar_width_timing_check -> {kind: "no_threshold", body}` —
+the three-argument form keeps its shape byte-for-byte, and `sv_2017` / `sv_2023` still refuse the short one. Nine pins
+(five `fixed`, two `invalid`, two `control`); `1649 → 1656` rules. Measured on the final bytes: `sv_2017` pass 9 844 → 9 846 / fail 6 490, `sv_2023` 9 869 → 9 871 / 6 465, `verilog_2005` 2 313 → 2 316 / 290 — exactly the three predicted rows (`pr1520314.v`, `pr1867332.v` on every lane; `test_15_04_00_1.v` on `verilog_2005`), every one `fail → pass`, 0 the other way;
+the corpus AST identity sweeps read `ast_moved=0` on every lane (every file both binaries accept has a byte-identical typed AST) with `verdict_moved` 2 / 2 / 3, the predicted rows; the pipeline lane exactly 2 rows `fail → pass` (iverilog `pr1520314.v`, `pr1867332.v`), 0 the other way, `pass 12 202 → 12 204`; the `verilog_2005` bar 16 → 13 (`rejects_valid` 3 → 0 — the three rows this leaf was opened on; the thirteen `.8c.2` accepts-invalid pins are all that remain). ⛔ Consumers on `verilog_2005`:
+a `width` timing check's body may now be the `no_threshold` wrapper with no `threshold` field — read `body.kind` first.
+Detail: the contract's current-state note; the ledger rows; `docs/tasks/SV-CORPUS-GRAD.md` `.3.63`.
+
 ### 1.0.230 / Contract 1.0.230 — SV-CORPUS-GRAD.3.60 + .3.61 (`PGEN-SV-CORPUS-GRAD-0393`, 2026-09-14), ledger `SV-0103` / `SV-0104` / `SV-0105` / `SV-0106` (`Released`), **schema 32 → 33**:
 
 ⭐ **The compilation-unit scope and the module are different name spaces — and a lookahead is a child.** IEEE

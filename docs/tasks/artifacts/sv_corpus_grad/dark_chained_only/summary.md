@@ -6,9 +6,9 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `0ed0df9a624fc8da760e4a584410d8b6b9106071472bd975fa9ea366c41c8cc0` |
-| positions | `stimuli/sv/characterization/positions.tsv` | `ad776e75fc84b3513c7124965e92a63a0ef55ef57654f778b62c0200897aa7ec` |
-| grammar | `grammars/systemverilog.ebnf` | `955af4e5a593de192e87ff7bed6820f3971873ce4d49f664942d7ad2f4fb8a94` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `c7989e040305312170374875cc42fef832f28c8b7503e9c665a981e0209e4a9c` |
+| positions | `stimuli/sv/characterization/positions.tsv` | `2f9cfeae857052c6e060c2014a129bece75a74ddad754177f366c59d0c94e308` |
+| grammar | `grammars/systemverilog.ebnf` | `3a29a1d48ae70c9fb023d8efe6fc9ef802efe00eeab401701cbc014f983c90a0` |
 
 ## The TEXT channel — can expansion move the byte the parse choked on?
 

@@ -6,14 +6,14 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `0ed0df9a624fc8da760e4a584410d8b6b9106071472bd975fa9ea366c41c8cc0` |
+| answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `c7989e040305312170374875cc42fef832f28c8b7503e9c665a981e0209e4a9c` |
 | explained_svpp audit | `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/after/audit.tsv` | `e30149eb2dc125d24f0a27c537984fc2e11b6ba13062e0e62f162e7d02dfeded` |
 | dark chained_only audit | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv` | `a1107daee5ad2473a6061d15d6bdd6f79857afff44102c7f4651dd6687a615ea` |
-| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `3c45dee8091da00f3c047e49ea336cd94bf062d375bae3d07644cab424f570bd` |
+| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `c875e005b35308f09c053a695672bae501f447254130779b651f66c0cc1b996c` |
 | refuted dispositions (`.6b`) | `stimuli/sv/characterization/refuted_dispositions.tsv` | `df5130629ae75fee021bd4c3d2ba362331b55bb51a1a5bdbd6025ef5a09be3fa` |
-| parse binary | `rust/target/debug/parseability_probe` | `da3933ee9380689ac64ce20908190f35f8017d0f1af3eba532a088abafd78910` |
+| parse binary | `rust/target/debug/parseability_probe` | `4a313eaf6548526920340ccb3f22eafa6a96c9347e7eba01874a232aeb547048` |
 
-Measured at `HEAD` = `ff3f6400a+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
+Measured at `HEAD` = `7100aebb3+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
 
 ## The headline
 
