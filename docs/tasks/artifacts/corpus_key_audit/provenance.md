@@ -22,12 +22,12 @@
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **232** | 9.2% | 161 | 71 |
-| `tool-testimony` | **471** | 18.6% | 460 | 11 |
-| `suite-convention` | **1830** | 72.2% | 1830 | 0 |
+| `clause-cited` | **236** | 9.3% | 161 | 75 |
+| `tool-testimony` | **468** | 18.5% | 457 | 11 |
+| `suite-convention` | **1829** | 72.2% | 1829 | 0 |
 | `UNCLASSIFIED` | **1** | 0.0% | 1 | 0 |
 
-⇒ **trust bound: 2302 of 2534 (90.8%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 2298 of 2534 (90.7%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
 ## ⛔ The BAR's own rows (1, `sv_2017`) — a different population, a different number
 
@@ -49,11 +49,11 @@ key as a whole. Attaching the key-wide share to the bar overstates the claim.
 
 | suite | rows | `clause-cited` | `tool-testimony` | `suite-convention` | `UNCLASSIFIED` |
 |---|---|---|---|---|---|
-| `iverilog` | 3134 | 400 | 520 | 2214 | 0 |
+| `iverilog` | 3134 | 401 | 520 | 2213 | 0 |
 | `verilator` | 3067 | 123 | 718 | 2226 | 0 |
 | `ispras-sv-tests` | 1146 | 38 | 0 | 1106 | ⛔ 2 |
 | `sv-tests` | 933 | 18 | 0 | 915 | 0 |
-| `sv2v` | 921 | 230 | 344 | 347 | 0 |
+| `sv2v` | 921 | 233 | 341 | 347 | 0 |
 | `Surelog` | 627 | 18 | 609 | 0 | 0 |
 | `verible` | 128 | 9 | 0 | 119 | 0 |
 | `slang` | 63 | 2 | 0 | 61 | 0 |

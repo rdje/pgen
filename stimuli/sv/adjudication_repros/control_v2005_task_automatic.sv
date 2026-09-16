@@ -3,5 +3,6 @@
 // WHY: the sibling of v2005_function_automatic; two controls because `lifetime` is referenced from both and a gate could reach one
 module test;
   task automatic t;
+    $display("t");  // SV-CORPUS-GRAD.3.65: A.2.7 requires exactly one statement_or_null (:275-283)
   endtask
 endmodule

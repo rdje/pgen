@@ -5281,6 +5281,161 @@ def _self_test_edition_operator() -> int:
     return 0
 
 
+# ---- SV-CORPUS-GRAD.3.65: the EDITION-EMPTY-CALL pass (verilog_2005 lane) ---------------------------
+# The fourth edition reading, the .19 shape on a different token. A verilog_2005 row keyed must_accept
+# whose parse stops ON the `)` of an EMPTY user tf-call - `t();`, `x = f();` - AND which the sv_2017
+# profile ACCEPTS is SystemVerilog text: IEEE 1364-2005 A.8.2 `function_call ::= hierarchical_function_identifier
+# { attribute_instance } ( expression { , expression } )` and A.6.9 `task_enable ::= hierarchical_task_identifier
+# [ ( expression { , expression } ) ] ;` put at least one expression inside the parentheses, while IEEE
+# 1800-2017 A.8.2 `tf_call ::= ... [ ( list_of_arguments ) ]` admits an empty list. A SYSTEM task enable
+# (`$display()`) is legal in 1364-2005 (A.6.9 system_task_enable admits empty expressions) and a keyword
+# before `(` (`if ()`) is not a call, so neither is a tell. Measured on iverilog pr1682887.v and sv2v
+# logic_cond_tb.v / tf_block.v / top_tf.v (`mytask();`, `dump();`, `t();`, `foo();` - Icarus compiles
+# the empty call under -g2005 as an extension, and sv2v's harness checks its goldens with that iverilog).
+EDITION_EMPTY_CALL_BASIS_TAG = "EDITION-EMPTY-CALL (SV-CORPUS-GRAD.3.65)"
+# The prefix group catches a SYSTEM name (`$time(`) and a MACRO use (`` `M( ``): neither is a user call.
+_EMPTY_CALL_NAME_RE = re.compile(r"([$`]?)([A-Za-z_][A-Za-z0-9_$]*)\s*\(\s*$")
+
+
+def _keywords_1364_and_1800():
+    kw = _kw()
+    k17 = set(kw.table("1800-2017"))
+    return k17 | set(kw.table("1364-2005", reference=k17))
+
+
+def stuck_empty_call(text: str, furthest):
+    """`(name, at)` when the parse stopped ON the `)` of an empty user tf-call - the choking byte, past the
+    layout gap, is `)`; the text before it (comments and strings blanked) ends with `<identifier> (` and
+    the identifier is neither a `$`-system name, nor a `` ` ``-macro use, nor a keyword of either edition - else `(None, at)`;
+    `(None, None)` with no position."""
+    if furthest is None:
+        return None, None
+    stripped = blank_comments_and_strings(text)
+    i = min(furthest, len(stripped))
+    while i < len(stripped) and stripped[i].isspace():
+        i += 1
+    if i >= len(stripped) or stripped[i] != ")":
+        return None, i
+    m = _EMPTY_CALL_NAME_RE.search(stripped[:i])
+    if m is None or m.group(1) or m.group(2) in _keywords_1364_and_1800():
+        return None, i
+    return m.group(2), i
+
+
+def edition_empty_call_pass(lane, manifest, resolve, positions, *, measurer=None):
+    """SV-CORPUS-GRAD.3.65. Every row keyed must_accept and observed `fail` is a candidate; the row is
+    re-keyed must_reject (=> `match`) iff the parse stops ON the `)` of an empty user tf-call AND the
+    sv_2017 profile accepts the bytes (measured here). Every other row is byte-identical on the way out."""
+    if measurer is None:
+        def measurer(raw):
+            sg = _sg()
+            m = sg.machinery()
+            saved = m.PROFILE
+            m.PROFILE = "sv_2017"
+            try:
+                ok, _surface, _furthest, _trace = m.probe_text(raw, trace=False)
+            finally:
+                m.PROFILE = saved
+            return bool(ok)
+    out = []
+    ruled = 0
+    for suite, rel, observed, expected, verdict, basis in manifest:
+        # ⛔ ONE condition, no `continue`: every row reaches `out.append` (the .3.37 lesson).
+        if expected == "must_accept" and observed == "fail":
+            text = read_text(resolve(suite, rel))
+            name, at = stuck_empty_call(text, positions.get((suite, rel)))
+            if name is not None and measurer(text):
+                line = text.count("\n", 0, at) + 1
+                expected, verdict, ruled = "must_reject", "match", ruled + 1
+                basis = (f"{EDITION_EMPTY_CALL_BASIS_TAG}: the {lane} parse stops at byte {at} (line {line}) ON the `)` of the "
+                         f"EMPTY user tf-call `{name}()` - IEEE 1364-2005 A.8.2 function_call ::= hierarchical_function_identifier "
+                         "{ attribute_instance } ( expression { , expression } ) (docs/verilog/2005/txt/"
+                         "section-Annex_A-normative-formal-syntax-definition.txt:852-853) and A.6.9 task_enable ::= "
+                         "hierarchical_task_identifier [ ( expression { , expression } ) ] ; (:625) put at least one expression "
+                         "inside the parentheses, so the text has no 1364-2005 derivation; IEEE 1800-2017 A.8.2 tf_call ::= "
+                         "ps_or_hierarchical_tf_identifier { attribute_instance } [ ( list_of_arguments ) ] with an empty "
+                         "list_of_arguments (docs/systemverilog/2017/md/section-41-data-read-api.md:2913, :2935-2938) derives it "
+                         "and the sv_2017 profile ACCEPTS these bytes (measured here, by parsing) - SystemVerilog text in a "
+                         "Verilog-2005 lane; Icarus 13.0 compiles it under -g2005 too (an extension), which is the reading the "
+                         "suite's key records - a Verilog tool's testimony. Spec outranks tool. Original key: must_accept - " + basis)
+        out.append((suite, rel, observed, expected, verdict, basis))
+    print(f"edition-empty-call pass [{lane}]: {ruled} row(s) re-keyed must_reject (parse stopped ON the `)` of an empty user tf-call; sv_2017 accepts)",
+          file=sys.stderr)
+    return out
+
+
+def _self_test_edition_empty_call() -> int:
+    """SV-CORPUS-GRAD.3.65 arms, the .19 shape: the pass re-keys ONLY a row that stops ON the `)` of an empty
+    user call AND that the fake sv_2017 measurer accepts; a system call, a keyword before `(`, a call with an
+    argument, an empty call inside a comment or a string, a measurer refusal and a non-candidate row all pass
+    through byte-identical."""
+    import tempfile
+    fails = []
+    calls = []
+
+    def check(name, cond):
+        print(f"  {'PASS' if cond else 'FAIL'}  edition-empty-call: {name}")
+        if not cond:
+            fails.append(name)
+
+    with tempfile.TemporaryDirectory(dir=str(Path(__file__).resolve().parent.parent.parent / "rust/target")) as td:
+        d = Path(td)
+        (d / "s").mkdir()
+        bodies = {"a.v": "module a;\ntask t; $display(\"t\"); endtask\ninitial t();\nendmodule\n",
+                  "b.v": "module b;\nfunction f; input x; f = x; endfunction\nreg r;\ninitial r = f( );\nendmodule\n",
+                  "c.v": "module c;\ninitial $display();\nreg x y;\nendmodule\n",
+                  "d.v": "module d; // t() in a comment\ninitial $display(\"t()\");\nreg y;\nendmodule\n",
+                  "e.v": "module e;\nreg q;\ninitial if () q = 1;\nendmodule\n",
+                  "f.v": "module f; endmodule\n",
+                  "g.v": "module g;\ntask t; $display(\"t\"); endtask\ninitial t();\nendmodule\n",
+                  "h.v": "module h;\ntask t; input x; $display(\"t\"); endtask\ninitial t(1);\nendmodule\n"}
+        for name, body in bodies.items():
+            (d / "s" / name).write_text(body)
+        positions = {("s", "a.v"): bodies["a.v"].index("t();") + 2, ("s", "b.v"): bodies["b.v"].index("f( )") + 2,
+                     ("s", "c.v"): bodies["c.v"].index("y;"), ("s", "d.v"): bodies["d.v"].index("reg y"),
+                     ("s", "e.v"): bodies["e.v"].index(")"), ("s", "g.v"): bodies["g.v"].index("t();") + 2,
+                     ("s", "h.v"): bodies["h.v"].index("1)") + 1}
+        manifest = [("s", "a.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key A"),
+                    ("s", "b.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key B"),
+                    ("s", "c.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key C"),
+                    ("s", "d.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key D"),
+                    ("s", "e.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key E"),
+                    ("s", "f.v", "pass", "must_accept", "match", "key F"),
+                    ("s", "g.v", "fail", "must_reject", "match", "key G"),
+                    ("s", "h.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key H")]
+
+        def measurer(raw):
+            calls.append(raw)
+            return "f( )" not in raw            # b.v: the fake sv_2017 refuses
+
+        out = edition_empty_call_pass("verilog_2005", manifest, lambda s_, r_: d / s_ / r_, positions, measurer=measurer)
+        by = {(r[0], r[1]): r for r in out}
+        check("a.v (stops ON the `)` of `t()`, measurer accepts) is re-keyed must_reject and matches",
+              by[("s", "a.v")][3] == "must_reject" and by[("s", "a.v")][4] == "match"
+              and by[("s", "a.v")][5].startswith(EDITION_EMPTY_CALL_BASIS_TAG) and "line 3" in by[("s", "a.v")][5]
+              and "`t()`" in by[("s", "a.v")][5] and by[("s", "a.v")][5].endswith("Original key: must_accept - key A"))
+        check("b.v (stops ON the `)` of `f( )` with a space inside, measurer refuses) is byte-identical", by[("s", "b.v")] == manifest[1])
+        check("c.v (a SYSTEM task enable `$display()` before the stop; the stop is elsewhere) is byte-identical and never measured",
+              by[("s", "c.v")] == manifest[2])
+        check("d.v (the empty call only inside a comment and a string; the stop is on `reg`) is byte-identical", by[("s", "d.v")] == manifest[3])
+        check("e.v (a keyword before the `(`: `if ()`) is byte-identical and never measured", by[("s", "e.v")] == manifest[4])
+        check("f.v (a match) and g.v (a must_reject) are byte-identical and never measured",
+              by[("s", "f.v")] == manifest[5] and by[("s", "g.v")] == manifest[6])
+        check("h.v (a call WITH an argument; the stop is on its `)`) is byte-identical and never measured", by[("s", "h.v")] == manifest[7])
+        check("every row came out exactly once, in order", [r[:2] for r in out] == [r[:2] for r in manifest])
+        check("the measurer ran exactly for the empty-call stops (a, b)",
+              sorted(c.split("module ")[1][0] for c in calls) == ["a", "b"])
+        check("stuck_empty_call: no position => (None, None); `$time()` is not a tell; `t()` in a string is not a stop",
+              stuck_empty_call("x", None) == (None, None)
+              and stuck_empty_call("initial r = $time(); reg z;", 18)[0] is None
+              and stuck_empty_call("initial $display(\"t()\"); reg z;", 21)[0] is None)
+    if fails:
+        print(f"edition-empty-call self-test: FAIL ({len(fails)} failing)")
+        return 1
+    print("edition-empty-call self-test: PASS (0 failing)")
+    return 0
+
+
 # ---- SV-CORPUS-GRAD.20: the EDITION-TYPE pass (verilog_2005 lane) -----------------------------------
 # The third edition reading, alongside .3.37 (a keyword bound as a NAME under sv) and .19 (an operator
 # under verilog_2005). A verilog_2005 row keyed must_accept whose parse stops on a LINE that binds an
@@ -6278,6 +6433,7 @@ def main():
                 | _self_test_keywords_region()
                 | _self_test_edition_operator()
                 | _self_test_edition_type()
+                | _self_test_edition_empty_call()
                 | _self_test_macro_definition_tell())
 
     verify_outcome_identity(args.report, [args.results, args.positions],
@@ -6549,6 +6705,7 @@ def main():
 
     v_manifest = edition_operator_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
     v_manifest = edition_type_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
+    v_manifest = edition_empty_call_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
     v_manifest = store_gate_pass("verilog_2005", v_manifest, resolve_corpus_path(args), args.report_v2005,
                                  store_gate_cache, args.store_gate_jobs)
     _sg().save_cache(args.store_gate_cache, store_gate_cache)

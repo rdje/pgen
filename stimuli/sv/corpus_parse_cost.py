@@ -160,7 +160,10 @@ INSTRUMENT_FILE = "stimuli/sv/corpus_parse_cost.py"
 # same run that measures it makes the comparison pass by construction — the failure mode
 # `COMMIT.md` names for the DONE-BAR register's `claimed_status`. The instrument reports the
 # disagreement; a human adopts it.
-CORPUS_FAMILY_SHARE_PCT = "2.665"
+# SV-CORPUS-GRAD.3.65 (release 1.0.233): adopted 2.665 -> 2.660 from family_share.json - five profile-split
+# dispatchers add non-LR entries at every block, user call and tf body, so the LR family's SHARE of all
+# entries falls while its own entries are unchanged (the ratchet's per-rule invariant re-derives that).
+CORPUS_FAMILY_SHARE_PCT = "2.660"
 FAMILY_SHARE_ARTIFACT = (
     "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json"
 )

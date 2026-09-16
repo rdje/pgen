@@ -3,6 +3,7 @@
 // WHY: pins the static/automatic gates to the DECLARATION-SITE optional: if `lifetime` itself were gated this control goes RED
 module test;
   function automatic integer f;
-    f = 1;
+    input integer a;  // SV-CORPUS-GRAD.3.65: A.2.6 requires a function_item_declaration (:254-262), §10.4.1 an input (:566)
+    f = a;
   endfunction
 endmodule

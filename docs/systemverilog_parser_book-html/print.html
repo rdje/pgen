@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-74989c25.js";
+            window.path_to_searchindex_js = "searchindex-fa4cf833.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -2959,6 +2959,21 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10233--contract-10233--sv-corpus-grad365-pgen-sv-corpus-grad-0401-2026-09-16-ledger-sv-0112--sv-0113--sv-0114-released-schema-33-unchanged"><a class="header" href="#10233--contract-10233--sv-corpus-grad365-pgen-sv-corpus-grad-0401-2026-09-16-ledger-sv-0112--sv-0113--sv-0114-released-schema-33-unchanged">1.0.233 / Contract 1.0.233 — SV-CORPUS-GRAD.3.65 (<code>PGEN-SV-CORPUS-GRAD-0401</code>, 2026-09-16), ledger <code>SV-0112</code> / <code>SV-0113</code> / <code>SV-0114</code> (<code>Released</code>), <strong>schema 33 unchanged</strong>:</a></h3>
+<p>⭐ <strong>The statement tier of the IEEE 1364-2005 bar — three productions stop carrying 1800’s shape on the
+<code>verilog_2005</code> profile.</strong> A user tf-call needs at least one expression inside its parentheses and has no named
+argument (A.8.2 / A.6.9); a task body holds exactly one statement and a function body at least one item declaration
+or a non-empty port list and exactly one statement, neither with an end label (A.2.7 / A.2.6); a block admits
+declarations only behind a label, never a null statement, and has no end label (A.6.3). <code>1.0.233</code> gives each production
+a pass-through dispatcher over the 1800 rule (verbatim, for <code>sv_2017</code> / <code>sv_2023</code>) and a <code>verilog_2005</code> twin carrying
+the 1364-2005 production with the same template fields — every accepted tree byte-identical, by construction and
+measured. Under <code>verilog_2005</code>, <code>f()</code>, <code>t();</code>, <code>t(.x(1))</code>, a two-statement or empty task body, <code>function f();</code>,
+<code>function f; f = 1; endfunction</code>, <code>endtask : t</code>, <code>endfunction : f</code>, <code>begin integer x; … end</code>, <code>fork integer x; … join</code>,
+<code>begin ; end</code> and <code>end : b</code> now REJECT; <code>$display()</code>, <code>t;</code>, <code>f(1)</code>, <code>task t; input x; ; endtask</code>, <code>begin : b integer x; … end</code>
+keep parsing. Measured on the final bytes: three lanes with EXACTLY the ten pre-registered <code>verilog_2005</code> rows moved (<code>pass 2 316 → 2 306</code>, all <code>pass → fail</code>, 0 the other way) and ZERO rows moved on <code>sv_2017</code> / <code>sv_2023</code>; the corpus AST identity sweeps <code>ast_moved=0</code> on every lane; the pins <code>checked=1343 failures=0</code>; the closure gate <code>unreachable_rules: 1</code>; both certificates GREEN on their gates’ own counts; the <code>verilog_2005</code> bar 13 → 7. Answer key: the EDITION-EMPTY-CALL pass rules four rows
+whose key was a tool’s acceptance of <code>t()</code>; eight controls whose <code>verilog_2005</code> claim rested on 1800-only text are
+corrected. ⛔ Consumers on <code>verilog_2005</code>: Verilog text that only a tool’s extension admits is refused from <code>1.0.233</code>;
+the SV profiles are unchanged. Detail: the contract’s current-state note; the ledger rows; <code>docs/tasks/SV-CORPUS-GRAD.md</code> <code>.3.65</code>.</p>
 <h3 id="10232--contract-10232--sv-corpus-grad364-pgen-sv-corpus-grad-0400-2026-09-16-ledger-sv-0111-released-schema-33-unchanged"><a class="header" href="#10232--contract-10232--sv-corpus-grad364-pgen-sv-corpus-grad-0400-2026-09-16-ledger-sv-0111-released-schema-33-unchanged">1.0.232 / Contract 1.0.232 — SV-CORPUS-GRAD.3.64 (<code>PGEN-SV-CORPUS-GRAD-0400</code>, 2026-09-16), ledger <code>SV-0111</code> (<code>Released</code>), <strong>schema 33 unchanged</strong>:</a></h3>
 <p>⭐ <strong>Deletions only — the four general terminals <code>1.0.231</code> orphaned are gone.</strong> <code>1.0.231</code> moved the z/x edge
 descriptors onto dedicated boundary-free <code>edge_sym_*</code> terminals and left the general single-letter keyword terminals

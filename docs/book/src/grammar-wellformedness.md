@@ -2493,11 +2493,11 @@ grammar, parser, generator or generated artifact; the cert numbers are read-only
 
 | Field | Contract key | Value |
 |---|---|---:|
-| canonical `total` | `expected_total` | 1504 |
+| canonical `total` | `expected_total` | 1509 |
 | canonical `proof` | `expected_proof` | 10 |
-| canonical `witness` | `expected_canonical_witness` | 1479 |
+| canonical `witness` | `expected_canonical_witness` | 1484 |
 | canonical `UNKNOWN` | `expected_canonical_unknown` | 15 |
-| union `witness` | `expected_union_witness` | 1494 |
+| union `witness` | `expected_union_witness` | 1499 |
 | union `UNKNOWN` | `expected_union_unknown` | 0 |
 | union residual rule set | `expected_union_residual_rules` | `[]` |
 | recognized `fully_certified` via the union | `fully_certified_via_union` — derived as `expected_union_unknown == 0` | true |
@@ -2756,7 +2756,12 @@ sv2v's harness checks its "Verilog-2005" goldens with that same `iverilog -g2005
 survives in them. A third reading, the **edition-type pass** (`SV-CORPUS-GRAD.20`), re-keys a `verilog_2005` row
 whose stop *line* binds an 1800-only keyword before the stop — `logic [3:0] bus;` in a `.v` file —
 again only when the `sv_2017` profile accepts the same bytes, which it could not do with that word
-as an identifier. In all three passes the second condition — the *other* profile accepts the bytes —
+as an identifier. A fourth, the **edition-empty-call pass** (`SV-CORPUS-GRAD.3.65`), is the operator
+pass on a different token: a `verilog_2005` row whose parse stops ON the `)` of an empty user tf-call
+(`t();`, `x = f();`) is re-keyed `must_reject` when `sv_2017` accepts the bytes — IEEE 1364-2005 A.8.2
+and A.6.9 put at least one expression inside a user call's parentheses, while 1800's `list_of_arguments`
+may be empty; a system task enable (`$display()`) is legal 1364-2005 and is never a tell. In all four
+passes the second condition — the *other* profile accepts the bytes —
 is the guard against a grammar hole hiding behind the token: a row that fails it stays exactly where
 it was. Spec outranks tool, and the original basis is kept verbatim behind every correction. Where a
 suite's key is a *single* tool's acceptance of a shape neither edition derives (a bare `#1` on a

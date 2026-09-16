@@ -34,6 +34,23 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.233 / Contract 1.0.233 — SV-CORPUS-GRAD.3.65 (`PGEN-SV-CORPUS-GRAD-0401`, 2026-09-16), ledger `SV-0112` / `SV-0113` / `SV-0114` (`Released`), **schema 33 unchanged**:
+
+⭐ **The statement tier of the IEEE 1364-2005 bar — three productions stop carrying 1800's shape on the
+`verilog_2005` profile.** A user tf-call needs at least one expression inside its parentheses and has no named
+argument (A.8.2 / A.6.9); a task body holds exactly one statement and a function body at least one item declaration
+or a non-empty port list and exactly one statement, neither with an end label (A.2.7 / A.2.6); a block admits
+declarations only behind a label, never a null statement, and has no end label (A.6.3). `1.0.233` gives each production
+a pass-through dispatcher over the 1800 rule (verbatim, for `sv_2017` / `sv_2023`) and a `verilog_2005` twin carrying
+the 1364-2005 production with the same template fields — every accepted tree byte-identical, by construction and
+measured. Under `verilog_2005`, `f()`, `t();`, `t(.x(1))`, a two-statement or empty task body, `function f();`,
+`function f; f = 1; endfunction`, `endtask : t`, `endfunction : f`, `begin integer x; … end`, `fork integer x; … join`,
+`begin ; end` and `end : b` now REJECT; `$display()`, `t;`, `f(1)`, `task t; input x; ; endtask`, `begin : b integer x; … end`
+keep parsing. Measured on the final bytes: three lanes with EXACTLY the ten pre-registered `verilog_2005` rows moved (`pass 2 316 → 2 306`, all `pass → fail`, 0 the other way) and ZERO rows moved on `sv_2017` / `sv_2023`; the corpus AST identity sweeps `ast_moved=0` on every lane; the pins `checked=1343 failures=0`; the closure gate `unreachable_rules: 1`; both certificates GREEN on their gates' own counts; the `verilog_2005` bar 13 → 7. Answer key: the EDITION-EMPTY-CALL pass rules four rows
+whose key was a tool's acceptance of `t()`; eight controls whose `verilog_2005` claim rested on 1800-only text are
+corrected. ⛔ Consumers on `verilog_2005`: Verilog text that only a tool's extension admits is refused from `1.0.233`;
+the SV profiles are unchanged. Detail: the contract's current-state note; the ledger rows; `docs/tasks/SV-CORPUS-GRAD.md` `.3.65`.
+
 ### 1.0.232 / Contract 1.0.232 — SV-CORPUS-GRAD.3.64 (`PGEN-SV-CORPUS-GRAD-0400`, 2026-09-16), ledger `SV-0111` (`Released`), **schema 33 unchanged**:
 
 ⭐ **Deletions only — the four general terminals `1.0.231` orphaned are gone.** `1.0.231` moved the z/x edge

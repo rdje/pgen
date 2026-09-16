@@ -325,6 +325,7 @@ for_variable_declaration	51	0	4
 formal_port_identifier	866173	13558	0
 forward_type_keyword	621	0	0
 function_body_declaration	110	104	0
+function_body_declaration_sv_only	110	104	0
 function_data_type_or_implicit	440	104	0
 function_declaration	81233	104	0
 function_declaration_sv_2017	81233	104	1313
@@ -860,6 +861,7 @@ package_scope	2157388	7984	1426727
 package_scope_dollar_unit_sv_only	730661	0	0
 packed_dimension	79562	8842	221
 par_block	55539	0	5147
+par_block_sv_only	50392	0	0
 param_assignment	3066	443	0
 param_assignment_sv_2017	3066	443	1379
 param_assignment_with_default	16618	8367	0
@@ -886,6 +888,7 @@ pcontrol_terminal	1	0	0
 percent	472347	395	0
 percent_assign	39116	0	0
 plain_tf_call_with_args	2480527	3905	1878704
+plain_tf_call_with_args_sv_only	601823	3905	0
 plus	1154869	7299	0
 plus_assign	39116	1	0
 plus_plus	760588	3	0
@@ -998,6 +1001,7 @@ semi	338613	39871	65828
 seq_and_expr	5021	768	2509
 seq_and_tail	2481	0	41
 seq_block	55539	2429	4359
+seq_block_sv_only	51180	2429	0
 seq_delay_expr	2523	768	32
 seq_input_list	2	0	0
 seq_intersect_expr	5028	768	2512
@@ -1072,6 +1076,7 @@ systemverilog_file	192	192	0
 tagged_union_expression	411048	0	8579
 tagged_union_expression_sv_2017	402469	0	0
 task_body_declaration	85	81	0
+task_body_declaration_sv_only	85	81	0
 task_declaration	80534	81	0
 task_declaration_sv_2017	80534	81	575
 task_identifier	174	84	0

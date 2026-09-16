@@ -3580,7 +3580,19 @@ out_of_block_tf_scope := interface_identifier dot
 # ported alternatives (2, 4) and `scope` exactly on the out-of-block ones (3, 4), so a consumer discriminates the LRM
 # form by key presence; `items` holds tf_item_declaration nodes (`{kind: "block_item" | "tf_port", body}`) on the
 # non-ported forms and bare block_item_declaration nodes on the ported ones, as the standard's two productions do.
-function_body_declaration := @sample: "integer f; endfunction : f" function_data_type_or_implicit function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
+# SV-CORPUS-GRAD.3.65 (release 1.0.233): IEEE 1364-2005 A.2.6 `function_declaration ::= function [ automatic ]
+# [ function_range_or_type ] function_identifier ; function_item_declaration { function_item_declaration } function_statement
+# endfunction | function [ automatic ] [ function_range_or_type ] function_identifier ( function_port_list ) ;
+# { block_item_declaration } function_statement endfunction` (:254-262; `function_port_list` :266 is non-empty) — at
+# least one item declaration in the unported form, a non-empty port list in the ported one, exactly ONE
+# function_statement (never the null `;`), no end label — against IEEE 1800-2017 A.2.6 `function_body_declaration`
+# (:1091-1100). Same node shapes as the sv twin: `tf_item_declaration+` renders as `*`, the required port list as the
+# matched optional, the single-statement helper as a one-element repetition, `end_label: []` as an unmatched optional.
+function_body_declaration := function_body_declaration_sv_only -> $1
+                           | function_body_declaration_v2005   -> $1
+
+@profiles: ["sv_2017", "sv_2023"]
+function_body_declaration_sv_only := @sample: "integer f; endfunction : f" function_data_type_or_implicit function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                           -> {return_type: $1, name: $2, items: $4, statements: $5, end_label: $7}
                            | @sample: "integer f(); endfunction : f" function_data_type_or_implicit function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                           -> {return_type: $1, name: $2, ports: $4, items: $7, statements: $8, end_label: $10}
@@ -3588,6 +3600,19 @@ function_body_declaration := @sample: "integer f; endfunction : f" function_data
                           -> {return_type: $1, scope: $2, name: $3, items: $5, statements: $6, end_label: $8}
                            | function_data_type_or_implicit out_of_block_tf_scope function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                           -> {return_type: $1, scope: $2, name: $3, ports: $5, items: $8, statements: $9, end_label: $11}
+@profiles: ["verilog_2005"]
+function_body_declaration_v2005 := function_data_type_or_implicit function_identifier semi tf_item_declaration+ function_single_statement_v2005 kw_endfunction_84b8f967
+                                -> {return_type: $1, name: $2, items: $4, statements: $5, end_label: []}
+                                 | function_data_type_or_implicit function_identifier lparen tf_port_list rparen semi block_item_declaration* function_single_statement_v2005 kw_endfunction_84b8f967
+                                -> {return_type: $1, name: $2, ports: $4, items: $7, statements: $8, end_label: []}
+
+@profiles: ["verilog_2005"]
+function_single_statement_v2005 := function_statement_only_v2005 -> [$1]
+
+# 1364-2005 A.2.6 says `function_statement`, not `function_statement_or_null`; the same node as the sv rule's statement alternative.
+@profiles: ["verilog_2005"]
+function_statement_only_v2005 := function_statement -> {kind: "statement", body: $1}
+
 
 function_data_type_or_implicit := data_type_or_void &declaration_identifier -> {kind: "data_type", body: $1}
                                 | implicit_data_type  -> {kind: "implicit",  body: $1}
@@ -5563,8 +5588,18 @@ package_scope := package_identifier scope_resolution             -> {kind: "pack
 packed_dimension := lbrack constant_range rbrack !unsized_dimension   -> {kind: "range",    body: $2}
                   | dpi_open_packed_dimension                         -> {kind: "unsized", body: $1}
 
-par_block := kw_fork_3f673f2a ( colon block_identifier )? block_item_declaration* statement_or_null* join_keyword ( colon block_identifier )?
-          -> {label: $2, declarations: $3, statements: $4, join: $5, end_label: $6}
+par_block := par_block_sv_only -> $1
+           | par_block_v2005   -> $1
+
+@profiles: ["sv_2017", "sv_2023"]
+par_block_sv_only := kw_fork_3f673f2a ( colon block_identifier )? block_item_declaration* statement_or_null* join_keyword ( colon block_identifier )?
+                  -> {label: $2, declarations: $3, statements: $4, join: $5, end_label: $6}
+
+@profiles: ["verilog_2005"]
+par_block_v2005 := kw_fork_3f673f2a &( colon ) ( colon block_identifier )? block_item_declaration* block_statement_v2005* join_keyword
+                -> {label: $3, declarations: $4, statements: $5, join: $6, end_label: []}
+                 | kw_fork_3f673f2a ( colon block_identifier )? block_statement_v2005* join_keyword
+                -> {label: $2, declarations: [], statements: $3, join: $4, end_label: []}
 
 @profiles: ["sv_2017", "verilog_2005"]
 parallel_edge_sensitive_path_description_sv_2017 := lparen ( edge_identifier )? specify_input_terminal_descriptor ( polarity_operator )? sequence_implies lparen specify_output_terminal_descriptor ( polarity_operator )? colon data_source_expression rparen rparen
@@ -6845,8 +6880,32 @@ select_expression := select_condition
                    | cross_set_expression ( kw_matches_9f3e9242 integer_covergroup_expression )?
                             -> {kind: "cross_set",    body: $1, matches: $2}
 
-seq_block := kw_begin_8cbd0a74 ( colon block_identifier )? block_item_declaration* statement_or_null* kw_end_7a92f3d2 ( colon block_identifier )?
-          -> {label: $2, declarations: $3, statements: $4, end_label: $6}
+# SV-CORPUS-GRAD.3.65 (release 1.0.233): IEEE 1364-2005 A.6.3 `seq_block ::= begin [ : block_identifier
+# { block_item_declaration } ] { statement } end` (docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:537-538)
+# — declarations only BEHIND a label, `statement` (never the null `;`), no end label — against IEEE 1800-2017 A.6.3
+# `begin [ : block_identifier ] { block_item_declaration } { statement_or_null } end [ : block_identifier ]`
+# (docs/systemverilog/2017/md/section-41-data-read-api.md:2064-2068). Profile twins behind a pass-through dispatcher: the
+# sv twin is the 1800 rule verbatim; the verilog_2005 twin keeps the SAME template fields (`&( colon )` guards the
+# labelled alternative, a lookahead child the template never binds; the unlabelled alternative carries no declaration
+# slot and spells `declarations: []`, which renders exactly as an empty repetition; `end_label: []` likewise) so every
+# accepted tree is byte-identical (measured under the interpreter before generation). `par_block` mirrors it (A.6.3 :529-530).
+seq_block := seq_block_sv_only -> $1
+           | seq_block_v2005   -> $1
+
+@profiles: ["sv_2017", "sv_2023"]
+seq_block_sv_only := kw_begin_8cbd0a74 ( colon block_identifier )? block_item_declaration* statement_or_null* kw_end_7a92f3d2 ( colon block_identifier )?
+                  -> {label: $2, declarations: $3, statements: $4, end_label: $6}
+
+@profiles: ["verilog_2005"]
+seq_block_v2005 := kw_begin_8cbd0a74 &( colon ) ( colon block_identifier )? block_item_declaration* block_statement_v2005* kw_end_7a92f3d2
+                -> {label: $3, declarations: $4, statements: $5, end_label: []}
+                 | kw_begin_8cbd0a74 ( colon block_identifier )? block_statement_v2005* kw_end_7a92f3d2
+                -> {label: $2, declarations: [], statements: $3, end_label: []}
+
+# IEEE 1364-2005 A.6.3 lists `{ statement }` inside a block; the null statement `;` is `statement_or_null` (A.6.4 :555-556),
+# admitted in `if`/`case`/task bodies and never as a block item. Same node as statement_or_null's statement alternative.
+@profiles: ["verilog_2005"]
+block_statement_v2005 := statement -> {kind: "statement", body: $1}
 
 seq_input_list := level_input_list -> {kind: "level", body: $1}
                 | edge_input_list  -> {kind: "edge",  body: $1}
@@ -7391,7 +7450,17 @@ tagged_union_expression := tagged_union_expression_sv_2017 -> {kind: "sv_2017", 
 # SV-CORPUS-GRAD.3.44 (release 1.0.218, schema 29 -> 30): the task twin of function_body_declaration — IEEE 1800-2017
 # A.2.7's two forms × the optional out-of-block prefix, every alternative typed; `ports` present exactly on the ported
 # alternatives (2, 4), `scope` exactly on the out-of-block ones (3, 4); no return_type — a task is void by definition.
-task_body_declaration := @sample: "t; endtask : t" task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
+# SV-CORPUS-GRAD.3.65 (release 1.0.233): IEEE 1364-2005 A.2.7 `task_declaration ::= task [ automatic ] task_identifier ;
+# { task_item_declaration } statement_or_null endtask | task [ automatic ] task_identifier ( [ task_port_list ] ) ;
+# { block_item_declaration } statement_or_null endtask` (:275-283) — exactly ONE statement_or_null, no end label —
+# against IEEE 1800-2017 A.2.7 `task_body_declaration` (:1124-1131) with `{ statement_or_null }` and `endtask
+# [ : task_identifier ]`. The verilog_2005 twin's single-statement helper returns `[$1]`, which renders exactly as a
+# one-element repetition, and `end_label: []` as an unmatched optional. The out-of-block forms are sv-only already.
+task_body_declaration := task_body_declaration_sv_only -> $1
+                       | task_body_declaration_v2005   -> $1
+
+@profiles: ["sv_2017", "sv_2023"]
+task_body_declaration_sv_only := @sample: "t; endtask : t" task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
                       -> {name: $1, items: $3, statements: $4, end_label: $6}
                        | @sample: "t(); endtask : t" task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
                       -> {name: $1, ports: $3, items: $6, statements: $7, end_label: $9}
@@ -7399,6 +7468,15 @@ task_body_declaration := @sample: "t; endtask : t" task_identifier semi tf_item_
                       -> {scope: $1, name: $2, items: $4, statements: $5, end_label: $7}
                        | out_of_block_tf_scope task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
                       -> {scope: $1, name: $2, ports: $4, items: $7, statements: $8, end_label: $10}
+@profiles: ["verilog_2005"]
+task_body_declaration_v2005 := task_identifier semi tf_item_declaration* tf_single_statement_v2005 kw_endtask_eb64ab0d
+                            -> {name: $1, items: $3, statements: $4, end_label: []}
+                             | task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* tf_single_statement_v2005 kw_endtask_eb64ab0d
+                            -> {name: $1, ports: $3, items: $6, statements: $7, end_label: []}
+
+@profiles: ["verilog_2005"]
+tf_single_statement_v2005 := statement_or_null -> [$1]
+
 
 @profiles: ["sv_2017", "verilog_2005"]
 task_declaration_sv_2017 := kw_task_7fbb727d ( lifetime )? task_body_declaration
@@ -7427,8 +7505,30 @@ task_prototype := task_prototype_sv_2017 -> {kind: "sv_2017", body: $1}
 
 terminal_identifier := non_keyword_identifier
 
-plain_tf_call_with_args := tf_identifier attribute_instance* lparen list_of_arguments rparen
-                        -> {name: $1, attributes: $2, args: $4}
+# SV-CORPUS-GRAD.3.65 (release 1.0.233): IEEE 1364-2005 A.8.2 `function_call ::= hierarchical_function_identifier
+# { attribute_instance } ( expression { , expression } )` (:852-853) and A.6.9 `task_enable ::= hierarchical_task_identifier
+# [ ( expression { , expression } ) ] ;` (:625) — at least ONE expression inside the parentheses, no empty slot, no
+# `.name(expr)` — against IEEE 1800-2017 A.8.2 `tf_call ::= ps_or_hierarchical_tf_identifier { attribute_instance }
+# [ ( list_of_arguments ) ]` (:2913) whose `list_of_arguments` (:2935-2938) admits an empty list and named arguments.
+# The verilog_2005 twin's `{kind: "ordered", body: [$1, $2::2*]}` renders exactly the sv twin's ordered node.
+# System task enables keep the general rule: A.6.9 `system_task_enable` (:624) admits empty and omitted expressions.
+plain_tf_call_with_args := plain_tf_call_with_args_sv_only -> $1
+                         | plain_tf_call_with_args_v2005   -> $1
+
+@profiles: ["sv_2017", "sv_2023"]
+plain_tf_call_with_args_sv_only := tf_identifier attribute_instance* lparen list_of_arguments rparen
+                                -> {name: $1, attributes: $2, args: $4}
+
+@profiles: ["verilog_2005"]
+plain_tf_call_with_args_v2005 := tf_identifier attribute_instance* lparen list_of_arguments_v2005 rparen
+                              -> {name: $1, attributes: $2, args: $4}
+
+@profiles: ["verilog_2005"]
+list_of_arguments_v2005 := list_of_arguments_ordered_v2005 -> {kind: "ordered", body: $1}
+
+@profiles: ["verilog_2005"]
+list_of_arguments_ordered_v2005 := expression ( comma expression )*
+                                -> [$1, $2::2*]
 
 # BRANCH-PREDICATE-LOCALITY.2: @profiles = the linter's derived minimal fix — the
 # sole production references scoped_or_hierarchical_tf_identifier, itself sv-only

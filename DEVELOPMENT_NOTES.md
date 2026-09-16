@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-16 — SV-CORPUS-GRAD.3.65 (`PGEN-SV-CORPUS-GRAD-0401`): a profile twin is byte-identical by construction only if the shape questions are measured first
+
+- **Ask the renderer, not the grammar text.** Whether a lookahead-guarded optional, a required group, an unmatched optional, a literal `[]`, a never-matching repetition and a helper returning `[$1]` render the same is a property of the carrier; a fourteen-rule synthetic grammar under `--interpret-parse` answered it in seconds and every twin was written against those answers. `ast_moved=0` over 1 340 pin arms and three lanes is the consequence, not a hope.
+- **A control pin that stops parsing is a finding about the pin as often as about the change.** Eight controls failed under the candidate on `verilog_2005`; every one carried 1800-only text (`endtask : t`, a declaration in an unnamed `begin`, a function with no item, a task with no statement) that only an over-accepting grammar had ever accepted there. The law is the same as for a corpus row: read the production, then re-spell or narrow the profile, and say why in the manifest.
+- **A whole-lane pre-screen is cheap enough to be the population.** 2 606 files × one profile under the interpreter took 39 minutes and named the four `t()` rows the six known rows did not predict; the tell for them was then written token-exact with both edition cites and a measurer, exactly as `.19` did for `++`.
+- **A dispatcher costs one entry per site and the ratchet says so.** The profile-split idiom's structural cost is recorded under `profile_split_respelling` from the ratchet's own `ROSE b -> n` line, with the introduced names; a rebaseline before that row exists is refused, which is the right order.
+- **Promotion**: declined in the leaf — per-slice history; the durable half (measure the renderer before writing a shape-neutral twin) is the `.3.63` / `.3.46` lesson already promoted as the AST identity sweep discipline.
+
 ## 2026-09-16 — SV-CORPUS-GRAD.3.64 (`PGEN-SV-CORPUS-GRAD-0400`): a deletion of dead rules is a release, and the whole ceremony is what proves it changed nothing
 
 - **A remedy that leaves its predecessor in place leaves dead code.** `.3.30` and `.3.63` each moved a rule family onto dedicated boundary-free terminals; each left the general terminals it had been the only reader of, and each time the closure gate — not the lint, which treats an orphan as a root — was what saw them. The allow-list is a queue: an entry names the leaf that deletes it, the ceiling stays at the measured count, and the deletion ships one release later so a behaviour change and a deletion are never measured together.
