@@ -1118,12 +1118,79 @@ anonymous_program_item := anonymous_program_item_sv_2017 -> {kind: "sv_2017", bo
 
 ansi_port_header := net_port_header | interface_port_header
 
-ansi_port_declaration := ansi_port_header? port_identifier unpacked_dimension* ( assign constant_expression )?
+# SV-CORPUS-GRAD.3.66 (release 1.0.234): IEEE 1364-2005 A.2.1.2 `inout_declaration ::= inout [ net_type ] [ signed ] [ range ]
+# list_of_port_identifiers`, `input_declaration` the same, `output_declaration ::= output [ net_type ] [ signed ] [ range ]
+# list_of_port_identifiers | output reg [ signed ] [ range ] list_of_variable_port_identifiers | output output_variable_type
+# list_of_variable_port_identifiers` (docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:133-141;
+# `list_of_port_identifiers ::= port_identifier { , port_identifier }` :224, `list_of_variable_port_identifiers ::=
+# port_identifier [ = constant_expression ] …` :228, `output_variable_type ::= integer | time` :181) — no variable type and no
+# default on input / inout, no dimension on any port, a default only behind `output reg` / `output integer|time` — against
+# IEEE 1800-2017 A.1.3 `ansi_port_declaration` (docs/systemverilog/2017/md/section-41-data-read-api.md), whose header takes
+# any data type and every port a default. Profile twins behind a pass-through dispatcher; the verilog_2005 twin renders
+# the SAME fields (`header` as `net_port_header` does, `dims: []`, `default: []` where the standard has no slot). The
+# header-less item keeps its default slot: whether it is legal depends on the governing header, state across siblings
+# no lookahead carries (the leaf's stated residual).
+ansi_port_declaration := ansi_port_declaration_sv_only -> $1
+                       | ansi_port_declaration_v2005   -> $1
+
+@profiles: ["sv_2017", "sv_2023"]
+ansi_port_declaration_sv_only := ansi_port_header? port_identifier unpacked_dimension* ( assign constant_expression )?
                                                                                                                        -> {kind: "net_or_interface", header: $1, name: $2, dims: $3, default: $4}
                        | ( variable_port_header )? port_identifier variable_dimension* ( assign constant_expression )?
                                                                                                                        -> {kind: "variable", header: $1, name: $2, dims: $3, default: $4}
                        | ( port_direction )? dot port_identifier lparen ( expression )? rparen
                                                                                                                        -> {kind: "named_dot", direction: $1, name: $3, expr: $5}
+
+@profiles: ["verilog_2005"]
+ansi_port_declaration_v2005 := ansi_net_port_header_in_v2005 port_identifier
+                                     -> {kind: "net_or_interface", header: $1, name: $2, dims: [], default: []}
+                             | ansi_net_port_header_out_net_v2005 port_identifier
+                                     -> {kind: "net_or_interface", header: $1, name: $2, dims: [], default: []}
+                             | ansi_net_port_header_out_variable_v2005 port_identifier ( assign constant_expression )?
+                                     -> {kind: "net_or_interface", header: $1, name: $2, dims: [], default: $3}
+                             | ansi_net_port_header_none_v2005 port_identifier ( assign constant_expression )?
+                                     -> {kind: "net_or_interface", header: $1, name: $2, dims: [], default: $3}
+
+@profiles: ["verilog_2005"]
+ansi_net_port_header_in_v2005 := port_direction_in_v2005 net_port_type_net_v2005 -> {direction: $1, port_type: $2}
+
+@profiles: ["verilog_2005"]
+ansi_net_port_header_out_net_v2005 := port_direction_out_v2005 net_port_type_net_v2005 -> {direction: $1, port_type: $2}
+
+@profiles: ["verilog_2005"]
+ansi_net_port_header_out_variable_v2005 := port_direction_out_v2005 net_port_type_out_variable_v2005 -> {direction: $1, port_type: $2}
+
+# The header-less item (`input a, b`): the sv `ansi_port_header?` MATCHES EMPTY through the nullable implicit type and
+# renders `{direction: [], port_type: {…implicit…}}` (measured, `n1` in the shape grammar), so the twin renders the same.
+@profiles: ["verilog_2005"]
+ansi_net_port_header_none_v2005 := net_port_type_net_v2005 -> {direction: [], port_type: $1}
+
+@profiles: ["verilog_2005"]
+port_direction_in_v2005 := kw_input_140f86aa  -> {kind: "input"}
+                         | kw_inout_c900aaa9  -> {kind: "inout"}
+
+@profiles: ["verilog_2005"]
+port_direction_out_v2005 := kw_output_1029d676 -> {kind: "output"}
+
+# The net port type of A.2.1.2: `[ net_type ] [ signed ] [ range ]` — the implicit reading of data_type_or_implicit_declared,
+# rendered under the same `{kind: "sv_2017", body: {kind: "typed", net_type, data_type}}` envelope as `net_port_type`.
+@profiles: ["verilog_2005"]
+net_port_type_net_v2005 := net_port_type_net_inner_v2005 -> {kind: "sv_2017", body: $1}
+
+@profiles: ["verilog_2005"]
+net_port_type_net_inner_v2005 := ( net_type )? data_type_implicit_only_v2005 -> {kind: "typed", net_type: $1, data_type: $2}
+
+# `output reg [ signed ] [ range ]` / `output integer|time`: the SAME data_type node the sv rule emits, behind a lookahead
+# child the template never binds (a `reg`, `integer` or `time` data type and nothing else).
+@profiles: ["verilog_2005"]
+net_port_type_out_variable_v2005 := net_port_type_out_variable_inner_v2005 -> {kind: "sv_2017", body: $1}
+
+@profiles: ["verilog_2005"]
+net_port_type_out_variable_inner_v2005 := output_variable_data_type_v2005 -> {kind: "typed", net_type: [], data_type: $1}
+
+@profiles: ["verilog_2005"]
+output_variable_data_type_v2005 := &( kw_reg_e06b9586 | kw_integer_1178cafb | kw_time_714eea0f ) data_type -> {kind: "data_type", body: $2}
+
 
 // array_identifier := identifier
 
@@ -2193,7 +2260,13 @@ constant_param_expression := constant_mintypmax_expression -> {kind: "mintypmax"
 constant_part_select_range := constant_range          -> {kind: "range",         body: $1}
                             | constant_indexed_range  -> {kind: "indexed_range", body: $1}
 
-@profiles: ["sv_2017", "verilog_2005"]
+# SV-CORPUS-GRAD.3.66 (release 1.0.234): IEEE 1364-2005 A.8.4 `constant_primary ::= number | parameter_identifier
+# [ [ constant_range_expression ] ] | specparam_identifier [ [ constant_range_expression ] ] | constant_concatenation |
+# constant_multiple_concatenation | constant_function_call | constant_system_function_call | ( constant_mintypmax_expression )
+# | string` (:911-920) — no member chain on a parameter (`dut.WIDTH`), where IEEE 1800-2017 A.8.4's `ps_parameter_identifier
+# constant_select` carries `{ . member_identifier … }`. The verilog_2005 twin is the sv_2017 twin with `constant_select_v2005`,
+# dispatched under the SAME `{kind: "sv_2017"}` tag the verilog_2005 tree has always carried.
+@profiles: ["sv_2017"]
 constant_primary_sv_2017 := primary_literal
                                   -> {kind: "literal",          body: $1}
                           | ps_parameter_identifier constant_select
@@ -2224,6 +2297,60 @@ constant_primary_sv_2017 := primary_literal
                                   -> {kind: "type_reference",   body: $1}
                           | kw_null_2be88ca4
                                   -> {kind: "null"}
+
+@profiles: ["verilog_2005"]
+constant_primary_v2005 := primary_literal
+                                  -> {kind: "literal",          body: $1}
+                          | ps_parameter_identifier constant_select_v2005
+                                  -> {kind: "ps_parameter",     name: $1, select: $2}
+                          | specparam_identifier ( lbrack constant_range_expression rbrack )?
+                                  -> {kind: "specparam",        name: $1, select: $2}
+                          | genvar_identifier
+                                  -> {kind: "genvar",           body: $1}
+                          | formal_port_identifier constant_select_v2005
+                                  -> {kind: "formal_port",      name: $1, select: $2}
+                          | ( enum_id_scope_prefix )? enum_identifier
+                                  -> {kind: "enum",             scope: $1, name: $2}
+                          | constant_multiple_concatenation ( lbrack constant_range_expression rbrack )?
+                                  -> {kind: "multiple_concat",  body: $1, select: $2}
+                          | constant_concatenation ( lbrack constant_range_expression rbrack )?
+                                  -> {kind: "concat",           body: $1, select: $2}
+                          | constant_function_call_v2005
+                                  -> {kind: "function_call",    body: $1}
+                          | constant_let_expression
+                                  -> {kind: "let",              body: $1}
+                          | lparen constant_mintypmax_expression rparen
+                                  -> {kind: "paren",            body: $2}
+                          | constant_cast
+                                  -> {kind: "cast",             body: $1}
+                          | constant_assignment_pattern_expression
+                                  -> {kind: "assign_pattern",   body: $1}
+                          | type_reference
+                                  -> {kind: "type_reference",   body: $1}
+                          | kw_null_2be88ca4
+                                  -> {kind: "null"}
+
+# A rule whose whole body is ONE optional renders that optional as a list (measured, rust/target/s366/shape/g.ebnf `t1`);
+# the sv rule has two children and renders the second as the object, so the twin keeps both — the member chain behind
+# an sv-only rule that never matches under verilog_2005 (an unmatched optional renders `[]` whatever it wraps).
+# IEEE 1364-2005 A.8.2 `constant_function_call ::= function_identifier { attribute_instance } ( constant_expression { ,
+# constant_expression } )` and `constant_system_function_call ::= system_function_identifier ( constant_expression { ,
+# constant_expression } )` (:848-851): a PLAIN or SYSTEM call with parentheses — never IEEE 1800's method chains, which
+# is how `dut.WIDTH` was read (call_primary -> split_direct_callable_method_call, an array-manipulation METHOD without
+# parentheses, measured on the tree). The same `{kind: "call_primary", body: {kind: "plain_tf" | "system_tf", body}}` nodes.
+@profiles: ["verilog_2005"]
+constant_function_call_v2005 := call_primary_constant_v2005 -> {kind: "call_primary",    body: $1}
+
+@profiles: ["verilog_2005"]
+call_primary_constant_v2005 := plain_tf_call_with_args -> {kind: "plain_tf",  body: $1}
+                            | system_tf_call_expr     -> {kind: "system_tf", body: $1}
+
+@profiles: ["verilog_2005"]
+constant_select_v2005 := ( constant_member_chain_sv_only )? ( constant_select_tail )? -> {member_chain: $1, tail: $2}
+
+@profiles: ["sv_2017", "sv_2023"]
+constant_member_chain_sv_only := ( dot member_identifier constant_bit_select )* dot member_identifier
+
 
 @profiles: ["sv_2017", "sv_2023"]
 enum_id_scope_prefix := non_typedef_package_scope -> {kind: "package_scope", body: $1}
@@ -2265,6 +2392,7 @@ constant_primary_sv_2023 := primary_literal
 
 constant_primary := constant_primary_sv_2017 -> {kind: "sv_2017", body: $1}
                   | constant_primary_sv_2023 -> {kind: "sv_2023", body: $1}
+                  | constant_primary_v2005   -> {kind: "sv_2017", body: $1}
 
 constant_range := constant_expression colon constant_expression
                -> {lo: $1, hi: $3}
@@ -3601,13 +3729,52 @@ function_body_declaration_sv_only := @sample: "integer f; endfunction : f" funct
                            | function_data_type_or_implicit out_of_block_tf_scope function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                           -> {return_type: $1, scope: $2, name: $3, ports: $5, items: $8, statements: $9, end_label: $11}
 @profiles: ["verilog_2005"]
-function_body_declaration_v2005 := function_data_type_or_implicit function_identifier semi tf_item_declaration+ function_single_statement_v2005 kw_endfunction_84b8f967
+function_body_declaration_v2005 := function_data_type_or_implicit function_identifier semi function_item_declaration_v2005+ function_single_statement_v2005 kw_endfunction_84b8f967
                                 -> {return_type: $1, name: $2, items: $4, statements: $5, end_label: []}
-                                 | function_data_type_or_implicit function_identifier lparen tf_port_list rparen semi block_item_declaration* function_single_statement_v2005 kw_endfunction_84b8f967
+                                 | function_data_type_or_implicit function_identifier lparen function_tf_port_list_v2005 rparen semi block_item_declaration* function_single_statement_v2005 kw_endfunction_84b8f967
                                 -> {return_type: $1, name: $2, ports: $4, items: $7, statements: $8, end_label: []}
 
 @profiles: ["verilog_2005"]
 function_single_statement_v2005 := function_statement_only_v2005 -> [$1]
+
+# SV-CORPUS-GRAD.3.66 (release 1.0.234): IEEE 1364-2005 A.2.6 `function_item_declaration ::= block_item_declaration |
+# { attribute_instance } tf_input_declaration ;` (:263-265) and `function_port_list ::= { attribute_instance }
+# tf_input_declaration { , { attribute_instance } tf_input_declaration }` (:266) — a function takes INPUTS only, where
+# `tf_item_declaration` / `tf_port_list` admit every direction (a task's, A.2.7 :290-293). The same nodes as the general
+# rules: `{kind: "tf_port", body}` and the `tf_port_item_v2005` fields, the direction rendered through the same three-level
+# envelope `tf_port_direction` emits.
+@profiles: ["verilog_2005"]
+function_item_declaration_v2005 := block_item_declaration            -> {kind: "block_item", body: $1}
+                                 | tf_input_port_declaration_v2005   -> {kind: "tf_port",    body: $1}
+
+@profiles: ["verilog_2005"]
+tf_input_port_declaration_v2005 := attribute_instance* tf_port_direction_input_v2005 ( var_qualifier_sv_only )? data_type_or_implicit_declared list_of_tf_variable_identifiers semi
+                                -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, items: $5}
+
+@profiles: ["verilog_2005"]
+tf_port_direction_input_v2005 := tf_port_direction_input_inner_v2005 -> {kind: "sv_2017", body: $1}
+
+@profiles: ["verilog_2005"]
+tf_port_direction_input_inner_v2005 := port_direction_input_v2005 -> {kind: "port_direction", body: $1}
+
+@profiles: ["verilog_2005"]
+port_direction_input_v2005 := kw_input_140f86aa -> {kind: "input"}
+
+@profiles: ["verilog_2005"]
+function_tf_port_list_v2005 := function_tf_port_item_v2005 ( comma function_tf_port_item_v2005_tail )*
+                            -> [$1, $2::2*]
+
+@profiles: ["verilog_2005"]
+function_tf_port_item_v2005 := attribute_instance* tf_port_direction_input_v2005 ( var_qualifier_sv_only )? data_type_or_implicit ( port_identifier variable_dimension* ( assign expression )? )?
+                            -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, port_spec: $5}
+
+@profiles: ["verilog_2005"]
+function_tf_port_item_v2005_continuation := attribute_instance* ( tf_port_direction_input_v2005 )? ( var_qualifier_sv_only )? data_type_implicit_only_v2005 ( port_identifier variable_dimension* ( assign expression )? )?
+                                         -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, port_spec: $5}
+
+@profiles: ["verilog_2005"]
+function_tf_port_item_v2005_tail := function_tf_port_item_v2005
+                                  | function_tf_port_item_v2005_continuation
 
 # 1364-2005 A.2.6 says `function_statement`, not `function_statement_or_null`; the same node as the sv rule's statement alternative.
 @profiles: ["verilog_2005"]
@@ -3700,9 +3867,24 @@ gate_instantiation := gate_instantiation_sv_2017 -> {kind: "sv_2017", body: $1}
 
 generate_block_identifier := non_keyword_identifier
 
-generate_item := module_or_generate_item    -> {kind: "module_or_generate_item",    body: $1}
+# SV-CORPUS-GRAD.3.66 (release 1.0.234): IEEE 1364-2005 A.4.2 `generate_block ::= module_or_generate_item | begin
+# [ : generate_block_identifier ] { module_or_generate_item } end` (:452-454) and A.1.4 place `parameter_declaration`
+# in `non_port_module_item` ONLY (:88-92; `module_or_generate_item` :65 admits `local_parameter_declaration`) — a
+# `parameter` inside a generate scope has no 1364-2005 derivation, where IEEE 1800-2017 A.4.2's generate items reach
+# `package_or_generate_item_declaration`'s `parameter_declaration`. A lookahead child the template never binds; a
+# module-level `parameter` never passes through generate_item (its path is the module item's own alternative, measured).
+generate_item := generate_item_sv_only -> $1
+               | generate_item_v2005   -> $1
+
+@profiles: ["sv_2017", "sv_2023"]
+generate_item_sv_only := module_or_generate_item    -> {kind: "module_or_generate_item",    body: $1}
                | interface_or_generate_item -> {kind: "interface_or_generate_item", body: $1}
                | checker_or_generate_item   -> {kind: "checker_or_generate_item",   body: $1}
+
+@profiles: ["verilog_2005"]
+generate_item_v2005 := !( attribute_instance* kw_parameter_b75381f0 ) module_or_generate_item
+                    -> {kind: "module_or_generate_item", body: $2}
+
 
 generate_region := kw_generate_9e59d425 generate_item* kw_endgenerate_efb1f00a
                 -> {items: $2}
@@ -4777,7 +4959,36 @@ call_primary := context_member_method_call          -> {kind: "context_member_me
               | rooted_tf_call_sv_only
               | tf_call_with_args                  -> {kind: "tf",                           body: $1}
               | direct_callable_method_call        -> {kind: "direct_callable_method",       body: $1}
-              | system_tf_call                     -> {kind: "system_tf",                    body: $1}
+              | system_tf_call_expr                     -> {kind: "system_tf",                    body: $1}
+# SV-CORPUS-GRAD.3.66 (release 1.0.234): IEEE 1364-2005 A.8.2 `system_function_call ::= system_function_identifier
+# [ ( expression { , expression } ) ]` (:854-855) puts at least one expression inside a system FUNCTION call's parentheses,
+# while A.6.9 `system_task_enable ::= system_task_identifier [ ( [ expression ] { , [ expression ] } ) ] ;` (:624) admits
+# empty ones — `system_tf_call` serves both sites, so the narrowing is a CONTEXT SPLIT: this expression-site reader
+# takes the verilog_2005 twin, the statement-site reader (`subroutine_call`) keeps the general rule.
+system_tf_call_expr := system_tf_call_expr_sv_only -> $1
+                     | system_tf_call_v2005_expr   -> $1
+
+@profiles: ["sv_2017", "sv_2023"]
+system_tf_call_expr_sv_only := system_tf_call -> $1
+
+@profiles: ["verilog_2005"]
+system_tf_call_v2005_expr := !( kw_sv_dollar_root_f65f0e67 dot ) !( kw_sv_dollar_unit_1d99223f scope_resolution ) system_tf_identifier ( lparen list_of_arguments_sysfunc_v2005 rparen )?
+                                  -> {kind: "args",        name: $3, args: $4}
+                           | system_tf_identifier lparen data_type ( comma expression )? rparen
+                                  -> {kind: "data_type",   name: $1, data_type: $3, expr: $4}
+
+# The FIRST expression is required (A.8.2 :854-855 — `$time()` is refused); a LATER slot may be empty: IEEE 1364-2005
+# §17.2.4's own example `code = $fread( mem, fd, , count);` (docs/verilog/2005/md/section-17-system-tasks-and-functions.md:1029),
+# the clause outranking Annex A's transcription exactly as .3.34 read §12.6.1 against A.6.7.1; IEEE 1800-2017 §21.3 spells
+# the box `$fread ( mem , fd [ , [ start ] [ , count ] ] )` (section-21-input-output-system-tasks-and-system-functions.md:942).
+# The node is the sv ordered list's: an empty slot renders `[]` at its position on both sides.
+@profiles: ["verilog_2005"]
+list_of_arguments_sysfunc_v2005 := list_of_arguments_ordered_sysfunc_v2005 -> {kind: "ordered", body: $1}
+
+@profiles: ["verilog_2005"]
+list_of_arguments_ordered_sysfunc_v2005 := expression ( comma ( expression )? )*
+                                        -> [$1, $2::2*]
+
 
 method_identifier := declaration_identifier
 
@@ -5890,7 +6101,13 @@ port := dot port_identifier lparen ( port_expression )? rparen
      | ( port_expression )?
         -> {kind: "expression", expr: $1}
 
-port_declaration := attribute_instance* inout_declaration
+# SV-CORPUS-GRAD.3.66 (release 1.0.234): the non-ANSI face of IEEE 1364-2005 A.2.1.2 (:133-141) — the same twins as the
+# ANSI form above; `ref` is IEEE 1800 only.
+port_declaration := port_declaration_sv_only -> $1
+                  | port_declaration_v2005   -> $1
+
+@profiles: ["sv_2017", "sv_2023"]
+port_declaration_sv_only := attribute_instance* inout_declaration
                             -> {kind: "inout",     attributes: $1, body: $2}
                   | attribute_instance* input_declaration
                             -> {kind: "input",     attributes: $1, body: $2}
@@ -5900,6 +6117,47 @@ port_declaration := attribute_instance* inout_declaration
                             -> {kind: "ref",       attributes: $1, body: $2}
                   | attribute_instance* interface_port_declaration
                             -> {kind: "interface", attributes: $1, body: $2}
+
+@profiles: ["verilog_2005"]
+port_declaration_v2005 := attribute_instance* inout_declaration_v2005
+                                  -> {kind: "inout",     attributes: $1, body: $2}
+                        | attribute_instance* input_declaration_v2005
+                                  -> {kind: "input",     attributes: $1, body: $2}
+                        | attribute_instance* output_declaration_v2005
+                                  -> {kind: "output",    attributes: $1, body: $2}
+
+@profiles: ["verilog_2005"]
+inout_declaration_v2005 := kw_inout_c900aaa9 net_port_type_net_v2005 list_of_port_identifiers_v2005
+                        -> {port_type: $2, items: $3}
+
+@profiles: ["verilog_2005"]
+input_declaration_v2005 := kw_input_140f86aa net_port_type_net_v2005 list_of_port_identifiers_v2005
+                        -> {kind: "net",      port_type: $2, items: $3}
+
+@profiles: ["verilog_2005"]
+output_declaration_v2005 := kw_output_1029d676 net_port_type_out_v2005 list_of_port_identifiers_v2005
+                         -> {kind: "net",      port_type: $2, items: $3}
+                          | kw_output_1029d676 variable_port_type_out_v2005 list_of_variable_port_identifiers
+                         -> {kind: "variable", port_type: $2, items: $3}
+
+@profiles: ["verilog_2005"]
+net_port_type_out_v2005 := net_port_type_net_inner_v2005          -> {kind: "sv_2017", body: $1}
+                         | net_port_type_out_variable_inner_v2005 -> {kind: "sv_2017", body: $1}
+
+# A `-> $N` pass-through behind a leading lookahead wraps the child in an Alternative envelope (measured, `q1` in the
+# shape grammar), so the guard lives in the child rule and this one carries the envelope the untyped sv rule renders.
+# An UNTYPED rule renders `{body: <child>}` (measured: the shipped `variable_port_type := var_data_type` tree), so the
+# twin spells that envelope explicitly.
+@profiles: ["verilog_2005"]
+variable_port_type_out_v2005 := output_variable_data_type_v2005 -> {body: $1}
+
+@profiles: ["verilog_2005"]
+list_of_port_identifiers_v2005 := port_identifier_decl_v2005 ( comma port_identifier_decl_v2005 )*
+                               -> [$1, $2::2*]
+
+@profiles: ["verilog_2005"]
+port_identifier_decl_v2005 := port_identifier -> {name: $1, dims: []}
+
 
 @profiles: ["sv_2017", "sv_2023"]
 port_direction_sv_only := kw_ref_69449f99 -> {kind: "ref"}
@@ -6533,10 +6791,30 @@ known_unscoped_parameter_identifier := parameter_identifier
 @profiles: ["sv_2017", "sv_2023"]
 scoped_package_parameter_identifier := non_typedef_package_scope parameter_identifier -> {scope: $1, name: $2}
 
-ps_parameter_identifier := class_scope parameter_identifier                                                                         -> {kind: "class_scope", scope: $1, name: $2}
+# SV-CORPUS-GRAD.3.66 (release 1.0.234): IEEE 1364-2005 A.9.3 `parameter_identifier ::= identifier` and A.8.4 `constant_primary
+# ::= … | parameter_identifier [ [ constant_range_expression ] ]` (:911-920) know no scoped parameter reference, where IEEE
+# 1800-2017 A.9.3 `ps_parameter_identifier ::= [ package_scope | class_scope ] parameter_identifier | { generate_block_identifier
+# [ [ constant_expression ] ] . } parameter_identifier` derives `dut.WIDTH` as a generate-scoped reference. The verilog_2005
+# twin keeps the sv twin's four alternatives and templates (the class and package forms cannot match without `::`); its
+# generate-scoped chain steps sit behind an sv-only rule, so the `*` matches nothing and renders exactly the sv rule's empty chain.
+ps_parameter_identifier := ps_parameter_identifier_sv_only -> $1
+                         | ps_parameter_identifier_v2005   -> $1
+
+@profiles: ["sv_2017", "sv_2023"]
+ps_parameter_identifier_sv_only := class_scope parameter_identifier                                                                         -> {kind: "class_scope", scope: $1, name: $2}
                         | scoped_package_parameter_identifier                                                                       -> {kind: "package_scope", body: $1}
                         | known_unscoped_parameter_identifier                                                                       -> {kind: "unscoped", body: $1}
                         | ( generate_block_identifier ( lbrack constant_expression rbrack )? dot )* parameter_identifier            -> {kind: "generate_scoped", scope_chain: $1, name: $2}
+
+@profiles: ["verilog_2005"]
+ps_parameter_identifier_v2005 := class_scope parameter_identifier                                                                         -> {kind: "class_scope", scope: $1, name: $2}
+                        | scoped_package_parameter_identifier                                                                       -> {kind: "package_scope", body: $1}
+                        | known_unscoped_parameter_identifier                                                                       -> {kind: "unscoped", body: $1}
+                        | ( generate_scope_step_sv_only )* parameter_identifier            -> {kind: "generate_scoped", scope_chain: $1, name: $2}
+
+@profiles: ["sv_2017", "sv_2023"]
+generate_scope_step_sv_only := generate_block_identifier ( lbrack constant_expression rbrack )? dot
+
 
 # SV-CORPUS-GRAD.3.42 — a scope prefix LIFTED out of an inline `( … | … )?` group. Spelled inline inside
 # a rule that carries return templates, the group's branch N is typed with the ENCLOSING rule's
@@ -8294,7 +8572,8 @@ edge_sym_z_upper := trivia /Z/
 # ENGINE-UNIVERSAL-SERVICES.50. Its 16 reference sites are all assignment patterns and casts
 # (IEEE 1800 A.6.7.1), so it belongs to this class, but gating it orphans 11 rules and the two that
 # matter (`cast`, `constant_cast`) sit on the indirect-LR route the eliminator rewrites. Tagging
-# `constant_cast` makes its list CROSS `constant_primary_sv_2017`'s `["sv_2017", "verilog_2005"]`,
+# `constant_cast` makes its list CROSS `constant_primary_sv_2017`'s `["sv_2017", "verilog_2005"]` (its list at the
+# time; since SV-CORPUS-GRAD.3.66 that twin is ["sv_2017"] alone and `constant_primary_v2005` carries the 1364 reading),
 # the route intersection becomes `["sv_2017"]` — a set no rule on the route declares — and the
 # eliminator REFUSES the whole `casting_type` candidate, dropping 15 cycles onto the runtime guard
 # (`left_recursion_unhandled` 0 -> 15, a WARNING, so nothing would have blocked it). `tick`'s
@@ -9127,7 +9406,7 @@ star_assign := trivia "*="                    -> {kind: "star_assign"}
 # ⛔⛔ IT TOOK THREE ENGINE REPAIRS TO MAKE THIS ONE TAG LANDABLE, and each is recorded because the
 # next dialect gate on an LR route will need them:
 #   ENGINE-UNIVERSAL-SERVICES.50(b) — tagging `constant_cast` makes its list CROSS
-#     `constant_primary_sv_2017`'s ["sv_2017", "verilog_2005"]; the route intersection is
+#     `constant_primary_sv_2017`'s ["sv_2017", "verilog_2005"] (its list at the time — .3.66 split it); the route intersection is
 #     ["sv_2017"], which no rule on the route declares, and the eliminator used to REFUSE the whole
 #     `casting_type` candidate (left_recursion_unhandled 0 -> 15, a WARNING, so --lint-grammar still
 #     exited 0). It now SYNTHESIZES the intersection onto the clone.

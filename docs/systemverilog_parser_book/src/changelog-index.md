@@ -34,6 +34,27 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.234 / Contract 1.0.234 — SV-CORPUS-GRAD.3.66 (`PGEN-SV-CORPUS-GRAD-0402`, 2026-09-16), ledger `SV-0115` … `SV-0119` (`Released`), **schema 33 unchanged**:
+
+⭐ **The declaration tier of the IEEE 1364-2005 bar — eight productions stop carrying 1800's shape on the
+`verilog_2005` profile.** Port declarations, ANSI and non-ANSI, follow A.2.1.2 (no variable type, default or dimension on
+`input` / `inout`; `output reg` / `integer` / `time` alone take a default; no `real` port); a `parameter` cannot sit inside a
+generate scope (A.4.2 / A.1.4); a dotted name in a constant is neither a member chain, a generate-scoped parameter nor a method call (A.8.4 / A.9.3 / A.8.2); a system function call carries at least
+one expression while a system task enable may be empty (A.8.2 / A.6.9, a context split); a function's items and ports are
+inputs only (A.2.6). `1.0.234` gives each production a pass-through dispatcher over the 1800 rule (verbatim, for
+`sv_2017` / `sv_2023`) and a `verilog_2005` twin with the same template fields — every accepted tree byte-identical, by
+construction and measured. Under `verilog_2005`, `input reg a`, `inout integer c`, `inout [31:0] x, y = 1`, `input a = 1`,
+`output a = 1`, `input real r`, `input a [0:3]`, `input reg a;`, a generate-scope `parameter`, `dut.WIDTH`, `a.b`, `$time()`,
+`function f; output o; …` and `function f(output o)` now REJECT; `output reg [3:0] q = 0`, `output integer c = 1`,
+`input a, b`, `input a; reg a;`, `localparam` in generate, `P[3:0]`, `$clog2(8)`, `$time`, `$display()`,
+`function f(input a, b)` and `task t(input a, output b)` keep parsing. Measured on the final bytes: three lanes with EXACTLY the nine pre-registered `verilog_2005` rows moved (`pass 2 306 → 2 297`, all `pass → fail`, 0 the other way) and ZERO rows moved on `sv_2017` / `sv_2023`; the corpus AST identity sweeps `ast_moved=0` on every lane; the pins `checked=1469 failures=0`; the closure gate `unreachable_rules: 1`; both certificates GREEN on their gates' own counts; the `verilog_2005` bar 7 → 3.
+⛔ Consumers on `verilog_2005`: Verilog text that only a tool's extension admits is refused from `1.0.234`; the SV
+profiles are unchanged. One residual is stated rather than hidden and routed: a header-less ANSI item with a default (`inout [31:0] x, y = 1`) stays
+admitted, because whether it is legal depends on the governing header — state across siblings the semantic store cannot yet
+express (`ENGINE-UNIVERSAL-SERVICES.108`); a later empty slot in a system function call (`$fread(mem, fd, , count)`, the
+clause's own example) keeps parsing. Detail: the contract's current-state note; the
+ledger rows; `docs/tasks/SV-CORPUS-GRAD.md` `.3.66`.
+
 ### 1.0.233 / Contract 1.0.233 — SV-CORPUS-GRAD.3.65 (`PGEN-SV-CORPUS-GRAD-0401`, 2026-09-16), ledger `SV-0112` / `SV-0113` / `SV-0114` (`Released`), **schema 33 unchanged**:
 
 ⭐ **The statement tier of the IEEE 1364-2005 bar — three productions stop carrying 1800's shape on the

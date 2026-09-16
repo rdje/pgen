@@ -8,6 +8,7 @@ anonymous_program	7849	1	0
 anonymous_program_item	1	0	0
 anonymous_program_item_sv_2017	1	0	0
 ansi_port_declaration	1565	698	0
+ansi_port_declaration_sv_only	1565	698	0
 ansi_port_header	1565	696	0
 arithmetic_shift_left	472347	0	0
 arithmetic_shift_left_assign	39116	0	0
@@ -340,6 +341,7 @@ gate_instantiation_sv_2017	72767	0	743
 generate_block	149	43	0
 generate_block_identifier	689570	232	0
 generate_item	1153	360	153
+generate_item_sv_only	1000	360	0
 generate_region	72463	6	434
 genvar_declaration	73340	5	1312
 genvar_expression	93	81	0
@@ -894,6 +896,7 @@ plus_assign	39116	1	0
 plus_plus	760588	3	0
 port	372	283	0
 port_declaration	2382	263	0
+port_declaration_sv_only	2382	263	0
 port_direction	5035	1374	3130
 port_direction_sv_only	1905	1	0
 port_expression	373	263	0
@@ -947,6 +950,7 @@ ps_or_hierarchical_net_identifier	24850	2255	0
 ps_or_hierarchical_property_identifier	233	379	0
 ps_or_hierarchical_sequence_identifier	614200	1144	8
 ps_parameter_identifier	2101215	18639	1465058
+ps_parameter_identifier_sv_only	636157	18639	0
 ps_type_identifier	1235200	5464	611833
 ps_type_identifier_scope_sv_2017	623367	0	0
 ps_type_identifier_sv_2017	623367	5464	0
@@ -1070,7 +1074,9 @@ struct_union_sv_2017	162598	724	0
 structure_pattern_key	2804	2750	0
 subroutine_call	55545	3758	1413
 subroutine_call_statement	55539	3759	0
-system_tf_call	2537128	5030	1935491
+system_tf_call	1961121	5030	1359484
+system_tf_call_expr	1177050	1077	576007
+system_tf_call_expr_sv_only	601043	1077	0
 system_tf_identifier	1804911	9258	0
 systemverilog_file	192	192	0
 tagged_union_expression	411048	0	8579

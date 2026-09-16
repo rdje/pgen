@@ -487,6 +487,18 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - ⚠️ The interpreter's byte-identity to the generated parser is 1.6's gate, and it has a measured hole on an
   un-eliminated left-recursive cycle (1.5b); the pre-screen PREDICTS the lanes, the lanes on the final bytes
   decide. Measured peaks under the guard: pins 235 MB, corpus 3 379 MB (336 arms).
+- ⛔ **A SHAPE-NEUTRAL PROFILE TWIN IS WRITTEN AGAINST THE CARRIER, NOT AGAINST THE GRAMMAR TEXT** (`SV-CORPUS-GRAD.3.65` /
+  `.3.66`, measured): before spelling a `_v2005` twin that must render the sv rule's tree byte-for-byte, put the shape
+  question to a ten-rule synthetic grammar under 1.5b (`rust/target/s366/shape/g.ebnf` is the worked set). Measured facts:
+  a matched optional, a required group and a lookahead-guarded optional render identically; an unmatched optional, an empty
+  repetition, a never-matching repetition and a literal `[]` render identically; a one-element repetition and a helper
+  returning `[$1]` render identically; `+` renders as `*`; a pass-through dispatcher (`-> $1`) over a typed twin renders the
+  inline twin; the carrier sorts keys. And the three that bit: an UNTYPED rule renders `{body: <child>}`; a rule whose whole
+  body is ONE optional group renders that optional as a LIST where two children render the second as the object; a
+  `-> $N` pass-through behind a LEADING lookahead wraps the child in an `Alternative` envelope (a `{…: $N}` template embeds it
+  cleanly), and an optional over a NULLABLE rule matches empty and renders the rule's object — which is why a header-less
+  ANSI port item carries a header. Then run a dozen legal shapes through the interpreter A/B (`ast=SAME`) BEFORE the
+  forty-minute lane pre-screen: `.3.66`'s first cut read three DIFFs in forty seconds.
 - ⛔ **AND SELECT ON THE CONSTRUCT'S OWN TOKEN, NEVER ON A COLUMN** (`SV-CORPUS-GRAD.3.39`, measured): a
   `^[[:space:]]*`` selector for compiler directives missed **19** files whose directive sits after a block comment
   on its line, and **4** of them were `fail → pass` movers the lanes reported and the pre-screen never saw
@@ -1512,7 +1524,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `cascade_match_casting_type_lr_suffix` and friends — tick nothing. And a counter counts **events**:
   a rise in the cost PER event is invisible to it on any graph. That limit is a property of the
   metric, so unlike a measured bound it cannot go stale.
-  **Live LR-family share `2.660`** (corpus-entry share %) — the LR-elimination family's share of all
+  **Live LR-family share `2.648`** (corpus-entry share %) — the LR-elimination family's share of all
   corpus rule entries. ⭐ **GATED, not quoted** since `.21` acceptance (f): `PARSE-COST-RATCHET`'s
   every-run tier re-hashes the four inputs it is a function of (grammar, generated parser,
   classifier, corpus) against

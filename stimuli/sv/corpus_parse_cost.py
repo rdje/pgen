@@ -163,7 +163,10 @@ INSTRUMENT_FILE = "stimuli/sv/corpus_parse_cost.py"
 # SV-CORPUS-GRAD.3.65 (release 1.0.233): adopted 2.665 -> 2.660 from family_share.json - five profile-split
 # dispatchers add non-LR entries at every block, user call and tf body, so the LR family's SHARE of all
 # entries falls while its own entries are unchanged (the ratchet's per-rule invariant re-derives that).
-CORPUS_FAMILY_SHARE_PCT = "2.660"
+# SV-CORPUS-GRAD.3.66 (release 1.0.234): adopted 2.660 -> 2.648 from family_share.json - eight more profile-split
+# dispatchers (ports, generate items, constants, system calls, function ports) add non-LR entries; the LR family's own
+# entries are unchanged (the ratchet's per-rule invariant re-derives that).
+CORPUS_FAMILY_SHARE_PCT = "2.648"
 FAMILY_SHARE_ARTIFACT = (
     "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json"
 )
@@ -262,14 +265,18 @@ def format_family_provenance(art: dict) -> str:
 # ⛔ It is a GATED constant, not a carried one (`docs/CLAIM_VERIFICATION.md` §5B): `--verify-families`
 # re-derives it from `generated/` and REFUSES on drift. A number nothing re-derives goes stale
 # silently, which is the defect this whole leaf is a record of.
-SV_DECLARED_LR_RULES = 31
+SV_DECLARED_LR_RULES = 32
 SV_DECLARED_LR_PROVENANCE = (
     "`generated/systemverilog_parser.rs` RULE_NAMES registry, re-derived by "
-    "`--verify-families` at release 1.0.193 (`SV-CORPUS-GRAD.13c.2y`, ledger `SV-0066`); "
+    "`--verify-families` at release 1.0.234 (`SV-CORPUS-GRAD.3.66`, ledger `SV-0115`..`SV-0119`): "
+    "31 -> 32, the eliminator's seed clone `casting_type_lr_seed_constant_primary_v2005` for the "
+    "verilog_2005 constant-primary twin on the indirect casting_type route (base=4 guard=4 seed=13 "
+    "suffix=11, every name classified); "
     "`ENGINE-UNIVERSAL-SERVICES.21` acceptance (g) owns this pin. History: 128 (slice 1), "
-    "127 (releases 1.0.184-1.0.192), 31 today — the drop is 96 `property_expr_lr_*` rules the "
-    "indirect pass no longer synthesises, because `SV-0066` moved the ONLY left-recursive "
-    "alternative of `prop_primary_*` up to its Table 16-3 precedence level and the knot dissolved"
+    "127 (releases 1.0.184-1.0.192), 31 (releases 1.0.193-1.0.233: the drop is 96 `property_expr_lr_*` "
+    "rules the indirect pass no longer synthesises, because `SV-0066` moved the ONLY left-recursive "
+    "alternative of `prop_primary_*` up to its Table 16-3 precedence level and the knot dissolved), "
+    "32 today"
 )
 
 # ── the pinned sample's tier sizes, in ONE home ───────────────────────────────────────────────

@@ -373,7 +373,12 @@ each under the memory guard, sequentially.
 10. **Ceremony documents, in lockstep**: the revision register row (digest → release → ledger id),
     the released-parser bug ledger row, the integration contract (current-state note, version,
     history, digest), this book's changelog, the platform book's anchors, the task leaf with its
-    acceptance checklist, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`.
+    acceptance checklist, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`. ⛔ The digest those rows
+    carry is ONE command's output — `bash scripts/check_baseline_identity.sh --digest ebnf_raw_ast
+    grammars/systemverilog.ebnf` — because the identity carriers, the keyword-faithfulness census and
+    the register's back-fill tripwire all read that digester; a hand-rolled sha256 over an
+    `--emit-raw-ast-json` dump serializes the same envelope differently and does not match it
+    (`.3.66` drafted such a digest and the carriers refused it before it was published).
 11. **Before the commit**: `bash scripts/check_doctrines.sh` (every registered doctrine, incl.
     `BASELINE-IDENTITY`, which refuses a contract whose declared inputs moved beyond its budget) and
     `bash scripts/check_no_background_jobs.sh`.

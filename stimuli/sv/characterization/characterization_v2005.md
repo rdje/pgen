@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `f8ceb3adc767f24812675d9a4d3bce7598e02f0738400677fc2f8be91463c778` |
-| grammar | `grammars/systemverilog.ebnf` | `4fcc4a2a9ccc6ae01bd5bb408cf51e429c86bcf8dfb2d8496feb8a2fd326a5b1` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `28e1a2b7b320c7d7ab4978ca788e64fa8384a062b7993d84b7ab006287ad7a71` |
-| generated parser | `generated/systemverilog_parser.rs` | `ad28ba498b305082674ba05e4adb1c516638b337b378448cfa3820e94616df52` |
-| results (output) | `stimuli/sv/characterization/results_v2005.tsv` | `8e89f9d6f9dbb563d558f1530980f9bf95be720427181cece03e78721bd023c9` |
-| positions (output) | `stimuli/sv/characterization/positions_v2005.tsv` | `1270b64f314931688772a9e580f63eddfde38097ea2a41a153e9e9a05340a8bb` |
+| parse binary | `rust/target/release/parseability_probe` | `fc49ba660738834781ac2749d47cbd99e4db7545acd8071639ec8063ba44a6a0` |
+| grammar | `grammars/systemverilog.ebnf` | `ff98e608564f8f5bc8d234b223e60f20ade30382b9aff181df1d975f3fbf5a98` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `f68c25a813d56b60cf48c0dad25e08a81f3d1679182a7cc3506287ff1ce8deff` |
+| generated parser | `generated/systemverilog_parser.rs` | `50a5650f3935c9968d82e4530285a6f1345a7600d96c2a92e259e065a517ae6d` |
+| results (output) | `stimuli/sv/characterization/results_v2005.tsv` | `078b05439d87c5a24a475610c50ab08cb71b8937bea2448f68d8a271abd4ce80` |
+| positions (output) | `stimuli/sv/characterization/positions_v2005.tsv` | `d045f2689b419ebf136c612643c2e69e60a489f9b1d097ff20886c5c7aa3e409` |
 
-Measured at `HEAD` = `b00d20f46+dirty` (2026-09-16).
+Measured at `HEAD` = `8076505a8+dirty` (2026-09-16).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -65,20 +65,20 @@ Measured at `HEAD` = `b00d20f46+dirty` (2026-09-16).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.44` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
+Slowest completing file: `0.45` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 2606 | 2306 | 300 | 0 | 0 | 88.5% |
+| 2606 | 2297 | 309 | 0 | 0 | 88.1% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
 | ispras-sv-tests | 356 | 322 | 34 | 0 | 0 | 90.4% |
-| iverilog | 1909 | 1705 | 204 | 0 | 0 | 89.3% |
+| iverilog | 1909 | 1696 | 213 | 0 | 0 | 88.8% |
 | sv2v | 341 | 279 | 62 | 0 | 0 | 81.8% |
 
 _Raw per-file results: `stimuli/sv/characterization/results_v2005.tsv` (3 columns: sub-corpus, status,

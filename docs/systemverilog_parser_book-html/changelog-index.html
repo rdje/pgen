@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fa4cf833.js";
+            window.path_to_searchindex_js = "searchindex-1c4839b1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -217,6 +217,25 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10234--contract-10234--sv-corpus-grad366-pgen-sv-corpus-grad-0402-2026-09-16-ledger-sv-0115--sv-0119-released-schema-33-unchanged"><a class="header" href="#10234--contract-10234--sv-corpus-grad366-pgen-sv-corpus-grad-0402-2026-09-16-ledger-sv-0115--sv-0119-released-schema-33-unchanged">1.0.234 / Contract 1.0.234 — SV-CORPUS-GRAD.3.66 (<code>PGEN-SV-CORPUS-GRAD-0402</code>, 2026-09-16), ledger <code>SV-0115</code> … <code>SV-0119</code> (<code>Released</code>), <strong>schema 33 unchanged</strong>:</a></h3>
+<p>⭐ <strong>The declaration tier of the IEEE 1364-2005 bar — eight productions stop carrying 1800’s shape on the
+<code>verilog_2005</code> profile.</strong> Port declarations, ANSI and non-ANSI, follow A.2.1.2 (no variable type, default or dimension on
+<code>input</code> / <code>inout</code>; <code>output reg</code> / <code>integer</code> / <code>time</code> alone take a default; no <code>real</code> port); a <code>parameter</code> cannot sit inside a
+generate scope (A.4.2 / A.1.4); a dotted name in a constant is neither a member chain, a generate-scoped parameter nor a method call (A.8.4 / A.9.3 / A.8.2); a system function call carries at least
+one expression while a system task enable may be empty (A.8.2 / A.6.9, a context split); a function’s items and ports are
+inputs only (A.2.6). <code>1.0.234</code> gives each production a pass-through dispatcher over the 1800 rule (verbatim, for
+<code>sv_2017</code> / <code>sv_2023</code>) and a <code>verilog_2005</code> twin with the same template fields — every accepted tree byte-identical, by
+construction and measured. Under <code>verilog_2005</code>, <code>input reg a</code>, <code>inout integer c</code>, <code>inout [31:0] x, y = 1</code>, <code>input a = 1</code>,
+<code>output a = 1</code>, <code>input real r</code>, <code>input a [0:3]</code>, <code>input reg a;</code>, a generate-scope <code>parameter</code>, <code>dut.WIDTH</code>, <code>a.b</code>, <code>$time()</code>,
+<code>function f; output o; …</code> and <code>function f(output o)</code> now REJECT; <code>output reg [3:0] q = 0</code>, <code>output integer c = 1</code>,
+<code>input a, b</code>, <code>input a; reg a;</code>, <code>localparam</code> in generate, <code>P[3:0]</code>, <code>$clog2(8)</code>, <code>$time</code>, <code>$display()</code>,
+<code>function f(input a, b)</code> and <code>task t(input a, output b)</code> keep parsing. Measured on the final bytes: three lanes with EXACTLY the nine pre-registered <code>verilog_2005</code> rows moved (<code>pass 2 306 → 2 297</code>, all <code>pass → fail</code>, 0 the other way) and ZERO rows moved on <code>sv_2017</code> / <code>sv_2023</code>; the corpus AST identity sweeps <code>ast_moved=0</code> on every lane; the pins <code>checked=1469 failures=0</code>; the closure gate <code>unreachable_rules: 1</code>; both certificates GREEN on their gates’ own counts; the <code>verilog_2005</code> bar 7 → 3.
+⛔ Consumers on <code>verilog_2005</code>: Verilog text that only a tool’s extension admits is refused from <code>1.0.234</code>; the SV
+profiles are unchanged. One residual is stated rather than hidden and routed: a header-less ANSI item with a default (<code>inout [31:0] x, y = 1</code>) stays
+admitted, because whether it is legal depends on the governing header — state across siblings the semantic store cannot yet
+express (<code>ENGINE-UNIVERSAL-SERVICES.108</code>); a later empty slot in a system function call (<code>$fread(mem, fd, , count)</code>, the
+clause’s own example) keeps parsing. Detail: the contract’s current-state note; the
+ledger rows; <code>docs/tasks/SV-CORPUS-GRAD.md</code> <code>.3.66</code>.</p>
 <h3 id="10233--contract-10233--sv-corpus-grad365-pgen-sv-corpus-grad-0401-2026-09-16-ledger-sv-0112--sv-0113--sv-0114-released-schema-33-unchanged"><a class="header" href="#10233--contract-10233--sv-corpus-grad365-pgen-sv-corpus-grad-0401-2026-09-16-ledger-sv-0112--sv-0113--sv-0114-released-schema-33-unchanged">1.0.233 / Contract 1.0.233 — SV-CORPUS-GRAD.3.65 (<code>PGEN-SV-CORPUS-GRAD-0401</code>, 2026-09-16), ledger <code>SV-0112</code> / <code>SV-0113</code> / <code>SV-0114</code> (<code>Released</code>), <strong>schema 33 unchanged</strong>:</a></h3>
 <p>⭐ <strong>The statement tier of the IEEE 1364-2005 bar — three productions stop carrying 1800’s shape on the
 <code>verilog_2005</code> profile.</strong> A user tf-call needs at least one expression inside its parentheses and has no named
