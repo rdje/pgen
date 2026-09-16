@@ -34,6 +34,17 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.232 / Contract 1.0.232 — SV-CORPUS-GRAD.3.64 (`PGEN-SV-CORPUS-GRAD-0400`, 2026-09-16), ledger `SV-0111` (`Released`), **schema 33 unchanged**:
+
+⭐ **Deletions only — the four general terminals `1.0.231` orphaned are gone.** `1.0.231` moved the z/x edge
+descriptors onto dedicated boundary-free `edge_sym_*` terminals and left the general single-letter keyword terminals
+`kw_x_11f6ad8e` / `kw_X_c032adc1` / `kw_z_395df8f7` / `kw_Z_909f99a7` with no reader: definition-only in the grammar,
+unreachable from the entry (the syntax-closure gate listed them at the measured count), PROOF in both certificates,
+and still compiled into the generated parser. `1.0.232` deletes the four definitions (`1656 → 1652` rules); the
+syntax-closure allow-list returns to `casting_type` alone. The accept set and every typed AST are unchanged — by
+construction (no rule referenced them) and measured on the final bytes: three lanes with ZERO rows moved in either direction (totals identical to `1.0.231`'s), the corpus AST identity sweeps `ast_moved=0 verdict_moved=0` on every lane, the pins `checked=1265 failures=0`, the closure gate `unreachable_rules: 1` (was 5), both certificates GREEN at −4 total / −4 proof with witness and unknown unchanged. Consumers of `1.0.231`
+need do nothing. Detail: the contract's current-state note; ledger `SV-0111`; `docs/tasks/SV-CORPUS-GRAD.md` `.3.64`.
+
 ### 1.0.231 / Contract 1.0.231 — SV-CORPUS-GRAD.3.63 (`PGEN-SV-CORPUS-GRAD-0399`, 2026-09-15), ledger `SV-0108` / `SV-0109` / `SV-0110` (`Released`), **schema 33 unchanged**:
 
 ⭐ **Annex A's bold brackets are tokens.** Three timing-check productions had been transcribed with IEEE's literal

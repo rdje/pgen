@@ -1788,8 +1788,9 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `SV-CORPUS-GRAD.3.30`, 2026-09-03).** Two rules whose names differ only by case — `udp_sym_x` and
   `udp_sym_X` — lint clean and parse identically at the interpreter (it keys rules by name), and the
   generator then emits ONE `RULE_UDP_SYM_X` constant twice: `error[E0592]: duplicate definitions`,
-  six of them, at the debug build. The grammar's hash-suffixed keyword pairs (`kw_x_11f6ad8e` /
-  `kw_X_c032adc1`) are the standing workaround; name such twins `<name>_upper` until
+  six of them, at the debug build. The grammar's hash-suffixed keyword pairs (`kw_s_a0f1490a` /
+  `kw_S_02aa629c`; the `x`/`X` pair this note first cited was orphaned by `SV-CORPUS-GRAD.3.63` and
+  deleted by `.3.64`, release `1.0.232`) are the standing workaround; name such twins `<name>_upper` until
   `ENGINE-UNIVERSAL-SERVICES.91` adds the refusing lint arm. ⇒ after a grammar edit that adds rules,
   the debug `ast_pipeline` build is part of the measurement, not a formality.
 

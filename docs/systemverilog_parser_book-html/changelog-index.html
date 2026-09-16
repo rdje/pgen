@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b492bdfe.js";
+            window.path_to_searchindex_js = "searchindex-74989c25.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -217,6 +217,15 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10232--contract-10232--sv-corpus-grad364-pgen-sv-corpus-grad-0400-2026-09-16-ledger-sv-0111-released-schema-33-unchanged"><a class="header" href="#10232--contract-10232--sv-corpus-grad364-pgen-sv-corpus-grad-0400-2026-09-16-ledger-sv-0111-released-schema-33-unchanged">1.0.232 / Contract 1.0.232 — SV-CORPUS-GRAD.3.64 (<code>PGEN-SV-CORPUS-GRAD-0400</code>, 2026-09-16), ledger <code>SV-0111</code> (<code>Released</code>), <strong>schema 33 unchanged</strong>:</a></h3>
+<p>⭐ <strong>Deletions only — the four general terminals <code>1.0.231</code> orphaned are gone.</strong> <code>1.0.231</code> moved the z/x edge
+descriptors onto dedicated boundary-free <code>edge_sym_*</code> terminals and left the general single-letter keyword terminals
+<code>kw_x_11f6ad8e</code> / <code>kw_X_c032adc1</code> / <code>kw_z_395df8f7</code> / <code>kw_Z_909f99a7</code> with no reader: definition-only in the grammar,
+unreachable from the entry (the syntax-closure gate listed them at the measured count), PROOF in both certificates,
+and still compiled into the generated parser. <code>1.0.232</code> deletes the four definitions (<code>1656 → 1652</code> rules); the
+syntax-closure allow-list returns to <code>casting_type</code> alone. The accept set and every typed AST are unchanged — by
+construction (no rule referenced them) and measured on the final bytes: three lanes with ZERO rows moved in either direction (totals identical to <code>1.0.231</code>’s), the corpus AST identity sweeps <code>ast_moved=0 verdict_moved=0</code> on every lane, the pins <code>checked=1265 failures=0</code>, the closure gate <code>unreachable_rules: 1</code> (was 5), both certificates GREEN at −4 total / −4 proof with witness and unknown unchanged. Consumers of <code>1.0.231</code>
+need do nothing. Detail: the contract’s current-state note; ledger <code>SV-0111</code>; <code>docs/tasks/SV-CORPUS-GRAD.md</code> <code>.3.64</code>.</p>
 <h3 id="10231--contract-10231--sv-corpus-grad363-pgen-sv-corpus-grad-0399-2026-09-15-ledger-sv-0108--sv-0109--sv-0110-released-schema-33-unchanged"><a class="header" href="#10231--contract-10231--sv-corpus-grad363-pgen-sv-corpus-grad-0399-2026-09-15-ledger-sv-0108--sv-0109--sv-0110-released-schema-33-unchanged">1.0.231 / Contract 1.0.231 — SV-CORPUS-GRAD.3.63 (<code>PGEN-SV-CORPUS-GRAD-0399</code>, 2026-09-15), ledger <code>SV-0108</code> / <code>SV-0109</code> / <code>SV-0110</code> (<code>Released</code>), <strong>schema 33 unchanged</strong>:</a></h3>
 <p>⭐ <strong>Annex A’s bold brackets are tokens.</strong> Three timing-check productions had been transcribed with IEEE’s literal
 brackets read as EBNF optionality — the PDF-to-text extraction drops the bold that marks them — so every corpus spelling

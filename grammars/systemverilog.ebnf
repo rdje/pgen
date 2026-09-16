@@ -4180,7 +4180,8 @@ level_input_list := level_symbol level_symbol*
 # ⛔ The upper-case twins are named `udp_sym_<c>_upper`, never `udp_sym_<C>`: the generator uppercases rule names
 # into `RULE_…` constants, so two rules differing only by case emit ONE constant twice (`E0592 duplicate
 # definitions with name RULE_UDP_SYM_X`, measured on the first cut) — the reason the general keywords carry hash
-# suffixes (`kw_x_11f6ad8e` / `kw_X_c032adc1`), and a lint gap routed to ENGINE-UNIVERSAL-SERVICES.91 (the lint
+# suffixes (`kw_s_a0f1490a` / `kw_S_02aa629c`; the `x`/`X`/`z`/`Z` pair this note first cited was orphaned by
+# .3.63 and deleted by .3.64, release 1.0.232), and a lint gap routed to ENGINE-UNIVERSAL-SERVICES.91 (the lint
 # passed that grammar; only the compile refused it).
 # Not wider than the LRM: each terminal is exactly one symbol character (`invalid_udp_non_symbol_field.v`
 # pins `2` and `a` as still rejected). `?`, `*` and `-` keep `question`, `star` and `minus`, which never
@@ -8136,8 +8137,8 @@ with_covergroup_expression := covergroup_expression
 
 # SV-CORPUS-GRAD.3.63 (release 1.0.231): an edge_descriptor is ONE token — `0x`, `x1`, `1x`, `z0` (IEEE 1364-2005
 # A.7.5.3 `edge_descriptor ::= 01 | 10 | z_or_x zero_or_one | zero_or_one z_or_x`, §15.4 `edge[01, 0x, x1] clr`) —
-# so the two halves are adjacent word characters and the general keyword terminals' `\b` (`kw_x_11f6ad8e :=
-# trivia /x\b/`, `kw_n_0_b6589fc6 := trivia /0\b/`) can never match the first half: through 1.0.230 every
+# so the two halves are adjacent word characters and the general keyword terminals' `\b` (the since-deleted
+# `kw_x_11f6ad8e := trivia /x\b/` — .3.64, release 1.0.232 — and `kw_n_0_b6589fc6 := trivia /0\b/`) can never match the first half: through 1.0.230 every
 # z/x descriptor was refused (`0x` → `No match for regex pattern '0\b'`). The same class `.3.30` measured on
 # the UDP table symbols, and the same remedy: dedicated boundary-free terminals for these two rules alone
 # (`edge_sym_<c>` / `edge_sym_<c>_upper` — never case-only twins, the generator uppercases rule names). The
@@ -8253,10 +8254,6 @@ implies := trivia "->"                        -> {kind: "implies"}
 kw_PATHPULSE_dollar_e0f78dc5 := trivia /PATHPULSE\$/
 
 kw_PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor_b3eb892a := trivia /PATHPULSE\$[a-zA-Z_][a-zA-Z0-9_$]*\$[a-zA-Z_][a-zA-Z0-9_$]*/
-
-kw_X_c032adc1 := trivia /X\b/
-
-kw_Z_909f99a7 := trivia /Z\b/
 
 kw_accept_on_2aee6cd4 := trivia /accept_on\b/
 
@@ -8936,15 +8933,11 @@ kw_within_f42ef621 := trivia /within\b/
 
 kw_wor_ff9e40da := trivia /wor\b/
 
-kw_x_11f6ad8e := trivia /x\b/
-
 // kw_x_fc9847dc := trivia /\\x\b/
 
 kw_xnor_ab48bc67 := trivia /xnor\b/
 
 kw_xor_f1922a23 := trivia /xor\b/
-
-kw_z_395df8f7 := trivia /z\b/
 
 lbrace := trivia "{"                         -> {kind: "lbrace"}
 lbrack := trivia "["                         -> {kind: "lbrack"}

@@ -2493,8 +2493,8 @@ grammar, parser, generator or generated artifact; the cert numbers are read-only
 
 | Field | Contract key | Value |
 |---|---|---:|
-| canonical `total` | `expected_total` | 1508 |
-| canonical `proof` | `expected_proof` | 14 |
+| canonical `total` | `expected_total` | 1504 |
+| canonical `proof` | `expected_proof` | 10 |
 | canonical `witness` | `expected_canonical_witness` | 1479 |
 | canonical `UNKNOWN` | `expected_canonical_unknown` | 15 |
 | union `witness` | `expected_union_witness` | 1494 |

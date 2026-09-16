@@ -4,7 +4,7 @@ title: A single-character terminal that may touch its neighbour must not carry a
 answers:
   - "UDP state table with adjacent symbols like (01) or ?? or 0x is rejected — why, and how was it fixed"
   - "when is trivia /x\\b/ the wrong terminal — symbols that may be followed by another symbol character"
-  - "why do the SystemVerilog grammar's case-differing keywords carry hash suffixes (kw_x_11f6ad8e vs kw_X_c032adc1)"
+  - "why do the SystemVerilog grammar's case-differing keywords carry hash suffixes (kw_s_a0f1490a vs kw_S_02aa629c)"
   - "my grammar lints green but the generated parser fails to compile with E0592 duplicate definitions RULE_"
   - "how do I prove a grammar terminal change is shape-neutral (adjacent vs spaced twin ASTs with spans stripped)"
 tags: [grammar-authoring, terminals, systemverilog, udp, codegen, lint, sv-corpus]

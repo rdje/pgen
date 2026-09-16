@@ -33,5 +33,5 @@ describes your tree** and the honest act is to re-measure, not to quote.
 | `stimuli/sv/characterization/adjudication_manifest.tsv` | `c7989e040305312170374875cc42fef832f28c8b7503e9c665a981e0209e4a9c` |
 | `stimuli/sv/characterization/positions.tsv` | `2f9cfeae857052c6e060c2014a129bece75a74ddad754177f366c59d0c94e308` |
 | `docs/tasks/artifacts/sv_corpus_grad/answer_key_intended_invalid/census.py` | `67f272648621ca328e0559d3d8087bf7fb8d3e4314036c092e50d44d091ad567` |
-| `rust/target/release/parseability_probe` (parse binary) | `6225a293e0cca2236657aeb68b2c7e21490bc0752b60e8fcb51e0916266fa9e7` |
+| `rust/target/release/parseability_probe` (parse binary) | `ba2b85ad97708b4227e171aef1a31e8b9edf1f3bc5db626114df4724277c1129` |
 
