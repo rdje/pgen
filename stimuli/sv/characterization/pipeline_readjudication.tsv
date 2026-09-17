@@ -6799,9 +6799,9 @@ verilator	test_regress/t/t_tri_select.v	divergence:explained_svpp_macro_use	STUC
 verilator	test_regress/t/t_tri_top_en_out.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_tri_unconn.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_tri_various.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-verilator	test_regress/t/t_type_compare.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_type_compare.v:32:19
+verilator	test_regress/t/t_type_compare.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_type_compare.v:43:21
 verilator	test_regress/t/t_type_compare_bad.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_type_compare_bad.v:11:21
-verilator	test_regress/t/t_type_expression_compare.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_type_expression_compare.v:14:21
+verilator	test_regress/t/t_type_expression_compare.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_type_expression_compare.v:16:23
 verilator	test_regress/t/t_typedef_fwd.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_typedef_iface_typedef.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_typedef_iface_typedef3.v	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		a `typedef`	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_typedef_iface_typedef3.v:42:23

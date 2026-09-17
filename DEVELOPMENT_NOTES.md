@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-17 — SV-CORPUS-GRAD.26 (`PGEN-SV-CORPUS-GRAD-0407`): when the prose sanctions what Annex A never derives, the fix is the prose's own sentence, no wider
+
+- **Both editions say it in one sentence and neither derives it.** §6.23 lets a type reference be compared with another type reference by the four equality operators; Annex A puts `type_reference` in `constant_primary` alone and footnotes it to those four operators. A general `type_reference` primary would have admitted `type(a) + 1`; the arm is the sentence itself — two type references and one of four operators — and the three illegal probes say so.
+- **Last position is the identity argument.** Placed last in an ordered choice whose earlier arms never begin with the `type` keyword, the new arm cannot capture an input that parsed before; the interpreter measured the constant route and the `verilog_2005` call reading SAME, and the lanes' sweeps carry the rest.
+- **A stop that moves later is not a mover.** Two Verilator tests keyed `must_reject` now consume the comparison and stop on `case (type(real))` instead — still refused, still a match; the pre-screen table's `head_furthest` / `new_furthest` columns are where that is seen before a lane runs.
+
 ## 2026-09-17 — SV-CORPUS-GRAD.25 (`PGEN-SV-CORPUS-GRAD-0406`): a distance is a sum a reader can re-derive, and an ETA is a rate the history has to earn
 
 - **A label without a scale answers the wrong question.** `Mostly Done` and `3 of 3 legs not met` say where the family sits, not how far it has to climb; the director asked for a number. The number is a sum of things the tree already publishes one at a time — legs, bar rows, open leaves — so it inherits their producers and their doctrines instead of adding a hand-maintained count.

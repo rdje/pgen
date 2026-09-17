@@ -6249,6 +6249,8 @@ primary_sv_2017 := @probe_sample: "1" primary_literal
                  | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( instance_or_class_scope )?
                         -> {kind: "null_class_assign",  local_n: $5, scope: $6}
                  | scope_randomize_sv_only
+                 | type_comparison_sv_only
+                        -> {kind: "type_comparison",    body: $1}
 
 # SV-0029 wave-3 (SV-DOLLAR-LRM-FIDELITY.4): the bare-`$` primary is IEEE 1800-only
 # (A.8.4 `primary ::= … $ …`; 1364-2005 has no `$` primary) — profile-gated out of
@@ -6337,6 +6339,19 @@ primary_sv_2023 := primary_literal
                  | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( instance_or_class_scope )?
                         -> {kind: "null_class_assign",  local_n: $5, scope: $6}
                  | scope_randomize_sv_only
+                 | type_comparison_sv_only
+                        -> {kind: "type_comparison",    body: $1}
+
+# SV-CORPUS-GRAD.26: IEEE 1800-2017 §6.23 = 1800-2023 §6.23 — a type reference "can also be used in equality/inequality and
+# case equality/inequality comparisons with other type references, and such comparisons are considered to be constant
+# expressions"; Annex A lists type_reference in constant_primary ONLY (footnote 40 / 45: illegal with any other operator) and
+# never in primary, so `if (type(b) == type(a))` had no derivation on either SV profile (slang regression/all.sv, the
+# sv_2023 bar). The comparison is ONE primary — two type references and one of the four operators — placed LAST in both
+# sv primary twins: no input an earlier arm accepted reaches it. `type` is an identifier under verilog_2005 (a call).
+@profiles: ["sv_2017", "sv_2023"]
+type_comparison_sv_only := type_reference type_comparison_operator_sv_only type_reference -> {left: $1, op: $2, right: $3}
+@profiles: ["sv_2017", "sv_2023"]
+type_comparison_operator_sv_only := case_equal -> $1 | case_not_equal -> $1 | equal -> $1 | not_equal -> $1
 
 primary := primary_sv_2017 -> {kind: "sv_2017", body: $1}
          | primary_sv_2023 -> {kind: "sv_2023", body: $1}

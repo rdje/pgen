@@ -12,13 +12,13 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | iverilog | 3799 | 1034 | 0 | 234 | 2531 |
 | opentitan | 3983 | 0 | 0 | 0 | 3983 |
 | scr1 | 50 | 0 | 0 | 0 | 50 |
-| slang | 92 | 54 | 1 | 8 | 29 |
+| slang | 92 | 55 | 0 | 8 | 29 |
 | sv-tests | 1028 | 809 | 0 | 124 | 95 |
 | sv2v | 953 | 500 | 0 | 80 | 373 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 120 | 0 | 8 | 24 |
 | verilator | 3263 | 2157 | 1 | 913 | 192 |
-| **total** | **16336** | **6056** | **2** | **1431** | **8847** |
+| **total** | **16336** | **6057** | **1** | **1431** | **8847** |
 
 ## Verdict-class detail
 
@@ -38,10 +38,10 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | divergence:explained_svpp_keywords_region | 4 |
 | divergence:explained_svpp_macro_use | 1037 |
 | divergence:explained_svpp_protected_envelope | 4 |
-| divergence:unexplained_rejects_valid | 2 |
-| match | 6056 |
+| divergence:unexplained_rejects_valid | 1 |
+| match | 6057 |
 
-**The sv_2023 arm's burn-down baseline = the UNEXPLAINED divergence count (2: rejects-valid 2, accepts-invalid 0, crash 0)** - a separate arm from the sv_2017 baseline over the same files.
+**The sv_2023 arm's burn-down baseline = the UNEXPLAINED divergence count (1: rejects-valid 1, accepts-invalid 0, crash 0)** - a separate arm from the sv_2017 baseline over the same files.
 
 ✅ **Re-read under 1800-2023 (.14b.3):** 49 inherited `must_reject` rulings carry over MECHANICALLY - every 1800-2017 production their 2017 basis cites reads identically in 1800-2023 Annex A (`production_parity.py`, its artifact `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/parity.md`) - and 72 carry over BY HAND with the changed 2023 production cited in the basis.
 

@@ -1114,10 +1114,11 @@ type_assignment	35	16	0
 type_assignment_sv_2017	35	16	0
 type_assignment_with_default	5	4	0
 type_assignment_with_default_sv_2017	5	4	0
+type_comparison_sv_only	483601	0	9414
 type_declaration	88515	570	413
 type_declaration_sv_2017	88102	570	0
 type_identifier	2115531	8070	0
-type_reference	1665022	0	947229
+type_reference	2139209	0	1421416
 type_reference_sv_2017	717793	0	0
 udp_ansi_declaration	640	1	0
 udp_body	2	2	0

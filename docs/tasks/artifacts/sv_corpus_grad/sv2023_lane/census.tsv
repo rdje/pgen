@@ -10,6 +10,7 @@ cell	suite	relpath	sv_2017	sv_2023	furthest_sv_2017	furthest_sv_2023	adjudicatio
 2023_only_pass	iverilog	ivtest/ivltests/sv_type_param_restrict_struct_fail2.v	fail	pass	243	-	match	must_reject
 2023_only_pass	iverilog	ivtest/ivltests/sv_type_param_restrict_union_fail1.v	fail	pass	166	-	match	must_reject
 2023_only_pass	iverilog	ivtest/ivltests/sv_type_param_restrict_union_fail2.v	fail	pass	241	-	match	must_reject
+2023_only_pass	slang	tests/regression/all.sv	fail	pass	5694	-	match	must_reject
 2023_only_pass	verilator	test_regress/t/t_array_event.v	fail	pass	393	-	match	must_reject
 2023_only_pass	verilator	test_regress/t/t_class_extends_default.v	fail	pass	320	-	match	must_reject
 2023_only_pass	verilator	test_regress/t/t_class_new_default.v	fail	pass	249	-	match	must_reject
