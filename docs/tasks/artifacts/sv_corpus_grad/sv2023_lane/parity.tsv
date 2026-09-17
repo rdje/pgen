@@ -67,6 +67,7 @@ verilator	test_regress/t/t_class_super_new_bad_nfirst.v	DIFFERS	class_constructo
 verilator	test_regress/t/t_clk_concat5.v	IDENTICAL	port:IDENTICAL list_of_ports:IDENTICAL module_declaration:IDENTICAL
 verilator	test_regress/t/t_clk_concat6.v	IDENTICAL	port:IDENTICAL list_of_ports:IDENTICAL module_declaration:IDENTICAL
 verilator	test_regress/t/t_comb_do_not_convert_to.v	IDENTICAL	port:IDENTICAL list_of_ports:IDENTICAL module_declaration:IDENTICAL
+verilator	test_regress/t/t_const_dec_mixed_bad.v	IDENTICAL	decimal_number:IDENTICAL
 verilator	test_regress/t/t_constraint_operators.v	DIFFERS	expression:IDENTICAL primary:DIFFERS
 verilator	test_regress/t/t_cover_fsm_sel_assign.v	DIFFERS	module_item:IDENTICAL non_port_module_item:IDENTICAL module_common_item:DIFFERS
 verilator	test_regress/t/t_covergroup_autobins_bad.v	IDENTICAL	bins_or_options:IDENTICAL

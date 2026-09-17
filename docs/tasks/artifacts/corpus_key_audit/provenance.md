@@ -11,12 +11,12 @@
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **606** | 8.1% | 289 | 317 |
-| `tool-testimony` | **1720** | 23.0% | 1671 | 49 |
+| `clause-cited` | **607** | 8.1% | 289 | 318 |
+| `tool-testimony` | **1719** | 23.0% | 1670 | 49 |
 | `suite-convention` | **5158** | 68.9% | 5155 | 3 |
 | `UNCLASSIFIED` | **1** | 0.0% | 0 | 1 |
 
-⇒ **trust bound: 6879 of 7485 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 6878 of 7485 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
 ## `verilog_2005` — 2535 keyed rows
 
@@ -50,7 +50,7 @@ key as a whole. Attaching the key-wide share to the bar overstates the claim.
 | suite | rows | `clause-cited` | `tool-testimony` | `suite-convention` | `UNCLASSIFIED` |
 |---|---|---|---|---|---|
 | `iverilog` | 3135 | 402 | 520 | 2213 | 0 |
-| `verilator` | 3067 | 123 | 718 | 2226 | 0 |
+| `verilator` | 3067 | 124 | 717 | 2226 | 0 |
 | `ispras-sv-tests` | 1146 | 38 | 0 | 1106 | ⛔ 2 |
 | `sv-tests` | 933 | 18 | 0 | 915 | 0 |
 | `sv2v` | 921 | 233 | 341 | 347 | 0 |

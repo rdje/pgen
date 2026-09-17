@@ -511,6 +511,25 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   REFUSES when the derived root holds no `grammars/systemverilog.ebnf`. ⇒ **an instrument is tracked when the
   tracked copy has produced a number, not when a copy of it has.**
 
+- ⭐ **A TERMINAL THAT ONLY SHRINKS PRE-REGISTERS ITS OWN MOVERS — the cheap form of the corpus pre-screen** (`SV-CORPUS-GRAD.3.67`,
+  measured): when a regex terminal's new language is a SUBSET of the old and the text between its tokens is byte-identical,
+  no file outside the set carrying an old-not-new match can change its token stream. Scan the whole corpus with comments and
+  strings blanked (`stimuli/sv/adjudicate_external_corpus.py` `blank_comments_and_strings`, seconds; `rust/target/s367/population.tsv`
+  was 7 files of 18 942), then run `prescreen_corpus.py --files <population>` on every profile (38 s for 7 × 3). The scan
+  over-approximates on purpose (`` `define `` bodies, template lines the raw parser never lexes) and the pre-screen decides; the
+  population bounds the movers from above, so the lanes have nothing left to discover. The whole-lane pre-screen above stays
+  the general tool for a rule-level change, where reach — not a token — moves.
+- ⛔ **A RULE'S PROFILE GATE IS THE `@profiles:` LINE ABOVE ITS DEFINITION — a grep on `name :=` never shows it**
+  (`SV-CORPUS-GRAD.3.67`, measured): `.3.66` read two helpers as "ungated" from their definition lines, published it, and
+  the prescribed fix (add a `verilog_2005` gate) overrode the sv-only gate one line up and re-admitted `a.b` under
+  `verilog_2005`. Read `grep -n -B2 'name :='`; and before publishing a reachability claim about a rule, ask the
+  certificate (4.2) AND the interpreter (1.5c) — the pins pre-screen caught this one in 27 minutes, the record did not.
+- ⭐ **A BODY THAT IS ONE OPTIONAL RENDERS AS A LIST EVEN WHEN ITS RULE IS NULLABLE** (`.3.67`, measured on a DIFF): the
+  `.3.66` twin device `( gated_out_rule )? ( nullable_rule )? -> {a: $1, b: $2}` renders `b` as the nullable rule's empty
+  object because the optional has a sibling; drop the sibling and `( nullable_rule )? -> {a: [], b: $1}` renders `b: []`.
+  The byte-identical twin is the nullable rule REQUIRED: `nullable_rule -> {a: [], b: $1}` (it matches empty and renders
+  its object). Measure with `--interpret-parse-ast-json` + `cmp` before trusting any template re-spelling.
+
 ### 1.5d The inline-alternation census — does a rule's return template reach INTO an inline group?
 - **WHAT:** `python3 docs/tasks/artifacts/sv_corpus_grad/inline_alt_census/inline_alt_census.py <grammar.ebnf>` —
   for every rule carrying at least one return template, every inline alternation `( a | b … )` sitting inside a

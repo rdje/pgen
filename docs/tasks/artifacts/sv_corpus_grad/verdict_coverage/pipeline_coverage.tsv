@@ -1,12 +1,12 @@
 bucket	class	rows	pct
-ADJUDICATED	match	5695	34.86
+ADJUDICATED	match	5694	34.86
 ROUTED	deferred:v2005_profile_lane	2606	15.95
 ADJUDICATED	pipeline:chained:accepted_under_expansion	0	0.00
 NO VERDICT	pipeline:chained:unreached_in_unit	1923	11.77
 ADJUDICATED	pipeline:corroborated	1228	7.52
-NO VERDICT	pipeline:chained:rejects_own_file	706	4.32
+NO VERDICT	pipeline:chained:rejects_own_file	707	4.33
 NO VERDICT	deferred:no_sv_key	596	3.65
-ADJUDICATED	pipeline:must_reject:match_under_expansion	450	2.75
+ADJUDICATED	pipeline:must_reject:match_under_expansion	451	2.76
 NO VERDICT	deferred:not_source_text	350	2.14
 NO VERDICT	pipeline:chained:refused_context	210	1.29
 NO VERDICT	pipeline:svpp_owned:accepted_under_expansion	109	0.67
@@ -28,4 +28,4 @@ NO VERDICT	pipeline:refuted:cross_file_define	1	0.01
 NO VERDICT	pipeline:refuted:preprocessor_item	1	0.01
 NO VERDICT	pipeline:svpp_owned:hollow	1	0.01
 ADJUDICATED	divergence:unexplained_rejects_valid	1	0.01
-TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	9140/2606/4590/3310/1	
+TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	9139/2606/4591/3311/1	

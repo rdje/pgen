@@ -584,7 +584,7 @@ friscv	dep/hardfloat/test/source/test_mulRecFN.v	deferred:chained_only	IN-WINDOW
 friscv	dep/hardfloat/test/source/test_recFNToFN.v	deferred:chained_only	IN-WINDOW	pp_fail	context		-	chained:refused_context	failed to resolve include 'HardFloat_consts.vi' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/friscv/dep/hardfloat/test/source/test_recFNToFN.v:37: include 'HardFloat_consts.vi' was not found 
 friscv	dep/hardfloat/test/source/test_recFNToIN.v	deferred:chained_only	IN-WINDOW	pp_fail	context		-	chained:refused_context	failed to resolve include 'HardFloat_consts.vi' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/friscv/dep/hardfloat/test/source/test_recFNToIN.v:37: include 'HardFloat_consts.vi' was not found 
 friscv	dep/hardfloat/test/source/test_recFNToRecFN.v	deferred:chained_only	IN-WINDOW	pp_fail	context		-	chained:refused_context	failed to resolve include 'HardFloat_consts.vi' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/friscv/dep/hardfloat/test/source/test_recFNToRecFN.v:37: include 'HardFloat_consts.vi' was not fou
-friscv	rtl/friscv_alu.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
+friscv	rtl/friscv_alu.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/friscv/rtl/friscv_alu.sv:195:43
 friscv	rtl/friscv_apb_interconnect.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 friscv	rtl/friscv_axi_or_tracker.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 friscv	rtl/friscv_bit_sync.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
@@ -5831,6 +5831,7 @@ verilator	test_regress/t/t_config_libmap/x4.v	deferred:chained_only	ONE-SIDED (r
 verilator	test_regress/t/t_config_rules_sub.v	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 verilator	test_regress/t/t_config_work__liba.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 verilator	test_regress/t/t_config_work__libb.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
+verilator	test_regress/t/t_const_dec_mixed_bad.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_const_dec_mixed_bad.v:9:35
 verilator	test_regress/t/t_const_handle.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_const_number_bad.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_const_number_bad.v:9:31
 verilator	test_regress/t/t_const_number_unsized.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	

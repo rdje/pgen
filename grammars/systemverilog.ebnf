@@ -906,7 +906,7 @@ number := real_number     -> {kind: "real",     body: $1}
 # (docs/systemverilog/2017/md/section-1024-characters-if-an-identifier-exceeds-the-implementation-specific-length-limit-an-error-shall-be-reported.md:191-210);
 # 5.3 white space is spaces, tabs, newlines and formfeeds, and a comment separates tokens as it does everywhere
 # else. Through 1.0.226 only spaces and tabs were admitted between the tokens (sv2v number_literal_whitespace.sv).
-integral_number := /([0-9][0-9_]*(?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*)?'[sS]?[dDhHoObB](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*[0-9a-fA-FxXzZ?_]+/
+integral_number := /([1-9][0-9_]*(?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*)?'[sS]?(?:[bB](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*[01xXzZ?][01xXzZ?_]*|[oO](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*[0-7xXzZ?][0-7xXzZ?_]*|[dD](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*(?:[0-9][0-9_]*|[xXzZ?]_*)|[hH](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*[0-9a-fA-FxXzZ?][0-9a-fA-FxXzZ?_]*)/
                  | /[0-9][0-9_]*/
 
 real_number := /[0-9][0-9_]*\.[0-9][0-9_]*([eE][+-]?[0-9][0-9_]*)?/
@@ -2346,10 +2346,8 @@ call_primary_constant_v2005 := plain_tf_call_with_args -> {kind: "plain_tf",  bo
                             | system_tf_call_expr     -> {kind: "system_tf", body: $1}
 
 @profiles: ["verilog_2005"]
-constant_select_v2005 := ( constant_member_chain_sv_only )? ( constant_select_tail )? -> {member_chain: $1, tail: $2}
+constant_select_v2005 := constant_select_tail -> {member_chain: [], tail: $1}
 
-@profiles: ["sv_2017", "sv_2023"]
-constant_member_chain_sv_only := ( dot member_identifier constant_bit_select )* dot member_identifier
 
 
 @profiles: ["sv_2017", "sv_2023"]
@@ -6810,10 +6808,8 @@ ps_parameter_identifier_sv_only := class_scope parameter_identifier             
 ps_parameter_identifier_v2005 := class_scope parameter_identifier                                                                         -> {kind: "class_scope", scope: $1, name: $2}
                         | scoped_package_parameter_identifier                                                                       -> {kind: "package_scope", body: $1}
                         | known_unscoped_parameter_identifier                                                                       -> {kind: "unscoped", body: $1}
-                        | ( generate_scope_step_sv_only )* parameter_identifier            -> {kind: "generate_scoped", scope_chain: $1, name: $2}
+                        | parameter_identifier                                          -> {kind: "generate_scoped", scope_chain: [], name: $1}
 
-@profiles: ["sv_2017", "sv_2023"]
-generate_scope_step_sv_only := generate_block_identifier ( lbrack constant_expression rbrack )? dot
 
 
 # SV-CORPUS-GRAD.3.42 — a scope prefix LIFTED out of an inline `( … | … )?` group. Spelled inline inside
