@@ -2458,6 +2458,23 @@ impl FactIndex {
             .flat_map(|(_, positions)| positions.iter().copied())
     }
 
+    /// `ENGINE-UNIVERSAL-SERVICES.108`: the position of the most recently emitted
+    /// fact of `kind` whose scope depth is at most `max_depth` — "latest" is the
+    /// largest position, because `emit_fact` appends and `rollback_to` truncates,
+    /// so positions are emission order over the facts still standing. Closed
+    /// scopes are NOT excluded (the existence family's whole-store semantics; a
+    /// closed scope's facts keep their depth). O(buckets of the kind).
+    fn latest_position_for_kind(&self, kind: &str, max_depth: usize) -> Option<usize> {
+        let kind_normalised = kind.to_ascii_lowercase();
+        self.by_kind
+            .get(&kind_normalised)
+            .into_iter()
+            .flat_map(|kind_index| kind_index.by_scope_and_name.iter())
+            .filter(move |((depth, _), _)| *depth <= max_depth)
+            .filter_map(|(_, positions)| positions.last().copied())
+            .max()
+    }
+
     /// O(1) total fact count for a given kind.
     fn count_for_kind(&self, kind: &str) -> usize {
         let kind_normalised = kind.to_ascii_lowercase();
@@ -4214,6 +4231,35 @@ impl SemanticRuntimeState {
                         }),
                 )
             }
+            // `ENGINE-UNIVERSAL-SERVICES.108`: the LATEST fact of a kind — args
+            // `[kind, attribute, value]` — true iff the most recently emitted,
+            // still-standing fact of `kind` at any depth up to the current one
+            // carries `attribute = value`; false with no such fact. The
+            // data-dependent primitive a header-less ANSI port item needs: every
+            // header re-emits the same kind, and only the NEAREST one governs.
+            "latest_fact_attribute_equals" => {
+                let expected_kind = scalar_text(predicate.args.first()?)?;
+                let expected_key = scalar_text(predicate.args.get(1)?)?;
+                let expected_value = predicate.args.get(2)?;
+                let current_depth = self.scopes.len().saturating_sub(1);
+                let latest = self.fact_index.latest_position_for_kind(expected_kind, current_depth);
+                let result = latest.is_some_and(|position| {
+                    self.facts[position].attributes.iter().any(|property| {
+                        property.key.eq_ignore_ascii_case(expected_key)
+                            && semantic_values_match(&property.value, expected_value)
+                    })
+                });
+                crate::pgen_trace_high!(
+                    "🔍 latest_fact_attribute_equals(kind={}, key={}, value={:?}) → {} latest_position={:?} caller={}",
+                    expected_kind,
+                    expected_key,
+                    expected_value,
+                    result,
+                    latest,
+                    self.rule_context_path(),
+                );
+                Some(result)
+            }
             // `.3.3.4.b.5.1.1`: index-backed; complement of fact_attribute_equals.
             "lacks_fact_attribute_equals" => {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
@@ -5172,6 +5218,9 @@ const ENGINE_BUILTIN_PREDICATE_NAMES: &[&str] = &[
     "has_fact_attribute",
     "fact_attribute_equals",
     "lacks_fact_attribute_equals",
+    // ENGINE-UNIVERSAL-SERVICES.108: the latest fact of a kind (the nearest
+    // governing header in a per-item ANSI port list).
+    "latest_fact_attribute_equals",
     "scope_depth_at_least",
     "fact_count_at_least",
     "resolve_path",
@@ -5802,6 +5851,58 @@ mod tests {
                 value,
             },
         }
+    }
+
+    #[test]
+    fn latest_fact_attribute_equals_reads_the_nearest_standing_fact() {
+        // ENGINE-UNIVERSAL-SERVICES.108. Three headers of one kind; the latest governs;
+        // a header emitted in a rolled-back branch does not stand; no fact is false.
+        fn header(defaults: &str) -> SemanticFactSpec {
+            SemanticFactSpec {
+                kind: "ansi_port_header".to_string(),
+                name: SemanticRuntimeValue::Identifier("header".to_string()),
+                attributes: vec![UnifiedSemanticProperty {
+                    key: "defaults".to_string(),
+                    value: UnifiedSemanticValue::Identifier(defaults.to_string()),
+                }],
+            }
+        }
+        let query = SemanticPredicateSpec {
+            name: "latest_fact_attribute_equals".to_string(),
+            args: vec![
+                UnifiedSemanticValue::Identifier("ansi_port_header".to_string()),
+                UnifiedSemanticValue::Identifier("defaults".to_string()),
+                UnifiedSemanticValue::Identifier("yes".to_string()),
+            ],
+            phase: SemanticPredicatePhase::Post,
+            view: SemanticPredicateContentView::Raw,
+        };
+        let mut state = SemanticRuntimeState::new();
+        assert_eq!(state.evaluate_predicate(&query), Some(false), "no fact of the kind => false");
+        state.emit_fact(header("yes"));
+        assert_eq!(state.evaluate_predicate(&query), Some(true), "the only header admits defaults");
+        state.emit_fact(header("no"));
+        assert_eq!(state.evaluate_predicate(&query), Some(false), "the LATEST header refuses defaults");
+        let before_branch = state.checkpoint();
+        state.emit_fact(header("yes"));
+        assert_eq!(state.evaluate_predicate(&query), Some(true), "inside the branch the newest header admits");
+        state.rollback_to(before_branch);
+        assert_eq!(state.evaluate_predicate(&query), Some(false), "a rolled-back header does not stand: the `no` header is latest again");
+        state.emit_fact(header("yes"));
+        assert_eq!(state.evaluate_predicate(&query), Some(true));
+        // The existence family still sees every header, which is why it cannot answer this question.
+        let any_no = SemanticPredicateSpec {
+            name: "fact_attribute_equals".to_string(),
+            args: vec![
+                UnifiedSemanticValue::Identifier("ansi_port_header".to_string()),
+                UnifiedSemanticValue::Identifier("header".to_string()),
+                UnifiedSemanticValue::Identifier("defaults".to_string()),
+                UnifiedSemanticValue::Identifier("no".to_string()),
+            ],
+            phase: SemanticPredicatePhase::Post,
+            view: SemanticPredicateContentView::Raw,
+        };
+        assert_eq!(state.evaluate_predicate(&any_no), Some(true));
     }
 
     #[test]

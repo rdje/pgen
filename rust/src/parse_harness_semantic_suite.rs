@@ -82,6 +82,9 @@ pub enum SemanticConstruct {
     BranchSelectionViaGate,
     /// `fact_attribute_equals` — the attribute-refined query (hit + attribute-mismatch miss).
     AttributeGate,
+    /// ENGINE-UNIVERSAL-SERVICES.108: a post-gate on the LATEST fact of a kind — the nearest
+    /// governing header, re-emitted by every header, decides.
+    LatestAttributeGate,
     /// `lacks_fact` — the negative query (accept-when-absent, reject-when-present).
     LacksGate,
     /// `fact_count_at_least` — the counting query (the SV wildcard-import pattern).
@@ -256,6 +259,7 @@ impl SemanticConstruct {
         SemanticConstruct::BranchGate,
         SemanticConstruct::BranchSelectionViaGate,
         SemanticConstruct::AttributeGate,
+        SemanticConstruct::LatestAttributeGate,
         SemanticConstruct::LacksGate,
         SemanticConstruct::CountGate,
         SemanticConstruct::ScopeVisibility,
@@ -430,6 +434,30 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         ],
         entry_rule: None,
         note: "fact_attribute_equals: same-name fact with the WRONG family attribute still rejects",
+    },
+    SemanticCase {
+        name: "sem_latest_attr_gate",
+        construct: SemanticConstruct::LatestAttributeGate,
+        grammar_body: "@entry: true\n@fact_kind: { name: hdr, attributes: [defaults], description: \"A port header; defaults says whether a header-less item may carry one.\" }\n\
+                       program := item+\n\
+                       item := reg | wire | bare\n\
+                       @emit_fact: { kind: hdr, name: header, defaults: yes }\n\
+                       reg := \"reg \" word \";\" -> { body: $2.body }\n\
+                       @emit_fact: { kind: hdr, name: header, defaults: no }\n\
+                       wire := \"wire \" word \";\" -> { body: $2.body }\n\
+                       @predicate: { name: latest_fact_attribute_equals, args: [hdr, defaults, yes], phase: post }\n\
+                       bare := word \"=1;\" -> { body: $1.body }\n\
+                       word := /[a-z]+/ -> { body: $1 }\n",
+        inputs: &[
+            ("reg a;b=1;", true),
+            ("wire a;b=1;", false),
+            ("wire a;reg c;b=1;", true),
+            ("reg a;wire c;b=1;", false),
+            ("b=1;", false),
+            ("reg a;b=1;wire c;d=1;", false),
+        ],
+        entry_rule: None,
+        note: "latest_fact_attribute_equals: the NEAREST header of the kind governs; every header re-emits the same kind and name",
     },
     // ── The negative query ──────────────────────────────────────────────────────────────────────────
     SemanticCase {

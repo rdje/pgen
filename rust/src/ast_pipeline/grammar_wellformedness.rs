@@ -1957,10 +1957,11 @@ fn collect_profile_gated_lookaheads(
 /// The fact-query primitives whose FIRST argument is a fact-KIND and which read the store that
 /// `@emit_fact` populates (`semantic_runtime.rs`: each does `self.fact_index...(args[0])`). A kind
 /// consulted via any of these but emitted by nothing can never be established.
-const FACT_QUERY_PRIMITIVES: [&str; 4] = [
+const FACT_QUERY_PRIMITIVES: [&str; 5] = [
     "has_fact",
     "lacks_fact",
     "fact_attribute_equals",
+    "latest_fact_attribute_equals",
     "fact_count_at_least",
 ];
 
@@ -3632,7 +3633,7 @@ fn library_import_rules(annotations: &Annotations) -> HashSet<String> {
 /// negative duals) requires nothing.
 fn positive_call_required_kind(call: &PrimitiveCall) -> Option<String> {
     match call.name.as_str() {
-        "has_fact" | "fact_attribute_equals" => call.args.first().and_then(literal_fact_kind),
+        "has_fact" | "fact_attribute_equals" | "latest_fact_attribute_equals" => call.args.first().and_then(literal_fact_kind),
         "fact_count_at_least" => match call.args.get(1) {
             Some(PredicateValue::IntLit(n)) if *n >= 1 => {
                 call.args.first().and_then(literal_fact_kind)
@@ -3691,7 +3692,7 @@ fn rule_level_required_positive_gate_kinds(
                 _ => None,
             };
             match spec.name.trim() {
-                "has_fact" | "fact_attribute_equals" => {
+                "has_fact" | "fact_attribute_equals" | "latest_fact_attribute_equals" => {
                     kinds.extend(spec.args.first().and_then(scalar_arg));
                 }
                 "fact_count_at_least" => {

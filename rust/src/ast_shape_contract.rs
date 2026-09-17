@@ -1325,9 +1325,20 @@ mod tests {
         let annotations = parser.semantic_runtime_annotations();
         assert_eq!(
             annotations.fact_kinds_len(),
-            4,
-            "expected the 4 @fact_kind: declarations (type_name, variable_binding, \
-             type_binding, wildcard_import_open)",
+            5,
+            "expected the 5 @fact_kind: declarations (type_name, variable_binding, \
+             type_binding, wildcard_import_open, ansi_port_header)",
+        );
+        // SV-CORPUS-GRAD.3.69 / ENGINE-UNIVERSAL-SERVICES.108: the governing header of a
+        // per-item ANSI port list under verilog_2005 (IEEE 1364-2005 A.2.1.2), read by the
+        // latest_fact_attribute_equals gate. A parse-phase marker: NON-exportable, so the
+        // exportable-kind set below stays exactly {type_name}.
+        let ansi_port_header = annotations
+            .fact_kind("ansi_port_header")
+            .expect("ansi_port_header fact-kind must be declared");
+        assert!(
+            !ansi_port_header.exportable,
+            "ansi_port_header is a parse-phase marker and must not be exported",
         );
         let type_name = annotations
             .fact_kind("type_name")

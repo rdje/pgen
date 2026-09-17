@@ -9954,10 +9954,11 @@ impl<'a> StimuliGenerator<'a> {
     /// no statically-extractable kind) — keeping the gate set tight so the pass-1 edge deprioritization
     /// never over-excludes. Parser-agnostic; keyed only on annotations.
     fn compute_reach_gate_kinds(annotations: Option<&Annotations>) -> HashMap<String, Vec<String>> {
-        const REACH_FACT_QUERY_PRIMITIVES: [&str; 5] = [
+        const REACH_FACT_QUERY_PRIMITIVES: [&str; 6] = [
             "has_fact",
             "lacks_fact",
             "fact_attribute_equals",
+            "latest_fact_attribute_equals",
             "lacks_fact_attribute_equals",
             "fact_count_at_least",
         ];
@@ -10055,6 +10056,19 @@ impl<'a> StimuliGenerator<'a> {
                         };
                         // Only a `declaration_family` attribute gate is producer-matchable; a gate on a
                         // different attribute key is left unhandled (no entry ⇒ not in the cohort).
+                        if family.is_some() {
+                            positive = Some((kind, family));
+                        }
+                    }
+                    "latest_fact_attribute_equals" if positive.is_none() => {
+                        // ENGINE-UNIVERSAL-SERVICES.108 — args: [kind, attribute, value]; the
+                        // producer-matchable case is the same `declaration_family` key.
+                        let family = match (spec.args.get(1).and_then(&scalar), spec.args.get(2)) {
+                            (Some(key), Some(value)) if key.eq_ignore_ascii_case("declaration_family") => {
+                                scalar(value)
+                            }
+                            _ => None,
+                        };
                         if family.is_some() {
                             positive = Some((kind, family));
                         }

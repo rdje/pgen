@@ -3,14 +3,14 @@
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1246/397/835/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=369/0_mismatches aliases=2",
-    "verified_at_commit": "3bb309d93d7ab2b2d322b24325157682c2871cc2",
+    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1248/397/836/15 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=369/0_mismatches aliases=2",
+    "verified_at_commit": "572875a4e2570f727d2e5cafede507c0a3ad6db8",
     "inputs": {
-      "generated/systemverilog_parser.rs": "44dc76eba791a9376bcc450e554dda8c23b5470e5336124fbf79e7e029a0bd9b",
-      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "fbc848eb287786f6876d645471403f84b9baaf5e3f534ed06b20f6cc75dd7179" },
-      "rust/src/ast_pipeline/grammar_wellformedness.rs": "3812377f3c77786f26544795e2386aa751141fba945ebf68211253ee55f3cdac",
+      "generated/systemverilog_parser.rs": "697f363e7101fe18d0b825924798b6bf69fb84509988784acbbb2cb8679cee48",
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "042dc337869395586e2f5975db162a2be42e3060e551cccfa0c74baa97e26525" },
+      "rust/src/ast_pipeline/grammar_wellformedness.rs": "044b8e5dece42a4afdbb865bdc2a71380d1a7aa9405f6d7215a356b06a0bb96d",
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "ebfafdd38fda2371dbcd7211b98bb5b13bfa7f9666678cd5e7d82ca7c1bc48b6",
-      "rust/src/ast_pipeline/stimuli_generator.rs": "c8c8a925399ed9c753c1f88f41f01442f00629e57e2bc04e36247c50953f343e"
+      "rust/src/ast_pipeline/stimuli_generator.rs": "3c566c6109a34a5c662fdd2805ecb48cd66d6f5b66de7966550fad3e3a2f51c7"
     }
   },
   "family": "systemverilog",
@@ -55,13 +55,13 @@
       "library_text:verilog_2005",
       "systemverilog_parseable_file:verilog_2005"
     ],
-    "expected_total": 1246,
+    "expected_total": 1248,
     "expected_proof": 397,
-    "expected_witness": 835,
-    "expected_unknown": 14,
+    "expected_witness": 836,
+    "expected_unknown": 15,
     "expected_sample_parse_failures": 0,
     "expected_proof_reverify_failures": 0,
-    "baseline_note": "SV-CORPUS-GRAD.3.67 (2026-09-17, PGEN-SV-CORPUS-GRAD-0403, GRAMMAR + ANSWER-KEY tier, a terminal re-spelled per base + two profile-dead helpers deleted, ledger SV-0120, release 1.0.235, schema 33 unchanged): +3 total (1243 -> 1246), proof 397 -> 397, witness 832 -> 835, unknown 14 -> 14"
+    "baseline_note": "SV-CORPUS-GRAD.3.67 (2026-09-17, PGEN-SV-CORPUS-GRAD-0403, GRAMMAR + ANSWER-KEY tier, a terminal re-spelled per base + two profile-dead helpers deleted, ledger SV-0120, release 1.0.235, schema 33 unchanged): +2 total (1246 -> 1248), proof 397 -> 397, witness 835 -> 836, unknown 14 -> 15 -- the two new verilog_2005 rules enter this population; ansi_port_default_governed_v2005 is UNKNOWN by construction: its latest_fact_attribute_equals gate on the `defaults` attribute is store-entry-blocked for the witness planner (STORE-AWARE-GEN reads a positive gate on declaration_family only; routed ENGINE-UNIVERSAL-SERVICES.109); the rule is exercised on the release binary by control_v2005_ansi_headerless_reg_list / _integer_list / _mixed / _two_modules .sv and refused for the four invalid_v2005_ansi_headerless_* pins"
   },
   "cases": [
     {

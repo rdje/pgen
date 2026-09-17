@@ -568,6 +568,7 @@ pub fn builtin_arity(name: &str) -> Option<usize> {
     match name {
         "has_fact" => Some(2),              // (kind, name)
         "fact_attribute_equals" => Some(4), // (kind, name, attr, value)
+        "latest_fact_attribute_equals" => Some(3), // (kind, attr, value) — ENGINE-UNIVERSAL-SERVICES.108
         "fact_count_at_least" => Some(2),   // (kind, minimum)
         "resolve_path" => Some(1),          // (dotted_path)
         _ => None,

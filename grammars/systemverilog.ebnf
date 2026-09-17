@@ -1142,14 +1142,30 @@ ansi_port_declaration_sv_only := ansi_port_header? port_identifier unpacked_dime
                                                                                                                        -> {kind: "named_dot", direction: $1, name: $3, expr: $5}
 
 @profiles: ["verilog_2005"]
-ansi_port_declaration_v2005 := ansi_net_port_header_in_v2005 port_identifier
+ansi_port_declaration_v2005 := @emit_fact: { kind: ansi_port_header, name: "header", defaults: no }
+                               ansi_net_port_header_in_v2005 port_identifier
                                      -> {kind: "net_or_interface", header: $1, name: $2, dims: [], default: []}
-                             | ansi_net_port_header_out_net_v2005 port_identifier
+                             | @emit_fact: { kind: ansi_port_header, name: "header", defaults: no }
+                               ansi_net_port_header_out_net_v2005 port_identifier
                                      -> {kind: "net_or_interface", header: $1, name: $2, dims: [], default: []}
-                             | ansi_net_port_header_out_variable_v2005 port_identifier ( assign constant_expression )?
+                             | @emit_fact: { kind: ansi_port_header, name: "header", defaults: yes }
+                               ansi_net_port_header_out_variable_v2005 port_identifier ( assign constant_expression )?
                                      -> {kind: "net_or_interface", header: $1, name: $2, dims: [], default: $3}
-                             | ansi_net_port_header_none_v2005 port_identifier ( assign constant_expression )?
+                             | ansi_net_port_header_none_v2005 port_identifier ( ansi_port_default_governed_v2005 )?
                                      -> {kind: "net_or_interface", header: $1, name: $2, dims: [], default: $3}
+
+# SV-CORPUS-GRAD.3.69: the header-less item's default, admitted only when the LATEST ansi_port_header fact says the
+# governing header is `output reg` / `output integer|time` (IEEE 1364-2005 A.2.1.2 list_of_variable_port_identifiers).
+# Renders exactly what the inline `( assign constant_expression )?` rendered (measured under the interpreter).
+@profiles: ["verilog_2005"]
+@predicate: { name: latest_fact_attribute_equals, args: [ansi_port_header, defaults, yes], phase: post }
+ansi_port_default_governed_v2005 := assign constant_expression -> [$1, $2]
+
+# SV-CORPUS-GRAD.3.69: the list opener resets the governing header (zero-width; verilog_2005 only, so the SV
+# profiles' store is untouched) — a previous module's last header cannot govern this list's first item.
+@profiles: ["verilog_2005"]
+@emit_fact: { kind: ansi_port_header, name: "header", defaults: no }
+ansi_port_list_reset_v2005 := &( lparen )
 
 @profiles: ["verilog_2005"]
 ansi_net_port_header_in_v2005 := port_direction_in_v2005 net_port_type_net_v2005 -> {direction: $1, port_type: $2}
@@ -2745,6 +2761,12 @@ data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( static
 @fact_kind: { name: type_name, attributes: [declaration_family], exportable: true, description: "A declared type name; declaration_family records class / interface_class / covergroup / typedef / type_parameter." }
 @fact_kind: { name: variable_binding, attributes: [type_kind, type_ref], description: "A declared variable or data object with its resolved type kind, emitted at data_declaration sites." }
 @fact_kind: { name: type_binding, attributes: [type_kind, type_ref], description: "A declared type (class or typedef) with its resolved type kind, emitted at class and typedef sites." }
+# SV-CORPUS-GRAD.3.69 (ENGINE-UNIVERSAL-SERVICES.108): IEEE 1364-2005 A.2.1.2 admits a default only in
+# list_of_variable_port_identifiers (`output reg` / `output integer|time`), and a header-less ANSI item is one
+# more identifier of the PREVIOUS declaration, so the nearest header to its left governs. Every verilog_2005
+# header arm re-emits this kind (name "header"); the list opener re-emits `defaults: no` so a previous
+# module's headers never govern; the header-less item's default is gated on the LATEST fact.
+@fact_kind: { name: ansi_port_header, attributes: [defaults], description: "The governing header of a per-item ANSI port list under verilog_2005 (IEEE 1364-2005 A.2.1.2): defaults is yes only for output reg / output integer|time; re-emitted by every header and reset by the list opener; the header-less item's default is gated on the latest one (ENGINE-UNIVERSAL-SERVICES.108)." }
 # SV-PARSE-STRICT.2: marker that an (unresolved) wildcard package import
 # `import pkg::*;` is in scope. Emitted on the wildcard `package_import_item`
 # branch (a branch-start `@emit_fact`, INLINE-ACTIONS.2). The `net_declaration`
@@ -4561,8 +4583,8 @@ list_of_port_connections := named_port_connection ( comma named_port_connection 
                           | ordered_port_connection ( comma ordered_port_connection )*
                                   -> {kind: "ordered", items: [$1, $2::2*]}
 
-list_of_port_declarations := lparen ( attribute_instance* ansi_port_declaration ( comma attribute_instance* ansi_port_declaration )* )? rparen
-                          -> $2
+list_of_port_declarations := ( ansi_port_list_reset_v2005 )? lparen ( attribute_instance* ansi_port_declaration ( comma attribute_instance* ansi_port_declaration )* )? rparen
+                          -> $3
 
 port_identifier_decl := port_identifier unpacked_dimension* -> {name: $1, dims: $2}
 list_of_port_identifiers := port_identifier_decl ( comma port_identifier_decl )*

@@ -60,7 +60,7 @@ Only **7 485 rows (45.8 %)** were asked a question they could answer, and **4 03
 
 | Open tree | Status verdict | Where the detail lives |
 |---|---|---|
-| `SV-CORPUS-GRAD` | open | [`docs/tasks/SV-CORPUS-GRAD.md`](../../tasks/SV-CORPUS-GRAD.md) |
+| `SV-CORPUS-GRAD` | ⚠️ the index row carries no status word; counted OPEN | [`docs/tasks/SV-CORPUS-GRAD.md`](../../tasks/SV-CORPUS-GRAD.md) |
 | `SV-EXH-PROOF` | open | [`docs/tasks/SV-EXH-PROOF.md`](../../tasks/SV-EXH-PROOF.md) |
 | `SV-PARSE-STRICT` | open | [`docs/tasks/SV-PARSE-STRICT.md`](../../tasks/SV-PARSE-STRICT.md) |
 | `SV-REPLAY-DEBT` | open | [`docs/tasks/SV-REPLAY-DEBT.md`](../../tasks/SV-REPLAY-DEBT.md) |

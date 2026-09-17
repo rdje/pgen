@@ -78,7 +78,11 @@ The semantic store has three moving parts you'll meet again and again:
    not.** `has_fact`, `lacks_fact`, `fact_attribute_equals`,
    `lacks_fact_attribute_equals`, `has_fact_attribute` and
    `fact_count_at_least` answer over the **whole store — any scope, open or
-   closed**. Measured on 2026-09-03 (`SV-CORPUS-GRAD.3.29`): a fact emitted
+   closed** — and so does `latest_fact_attribute_equals` (`ENGINE-UNIVERSAL-SERVICES.108`,
+   2026-09-17: `[kind, attribute, value]`, true iff the MOST RECENTLY emitted, still-standing
+   fact of the kind at any depth up to the current one carries the attribute — the nearest
+   governing header in a per-item ANSI port list, where every header re-emits the same kind
+   and only the latest one decides; a fact from a rolled-back branch does not stand). Measured on 2026-09-03 (`SV-CORPUS-GRAD.3.29`): a fact emitted
    into a scope that was then closed still satisfied `has_fact` from the
    enclosing scope. That is by construction (`fact_index.any_with_name`, "in
    any scope_depth"), and a grammar depends on it: the regex grammar's
@@ -277,9 +281,9 @@ compose primitives into a named predicate.
 
 ### Built-in primitives
 
-The engine provides fourteen — `has_fact`, `lacks_fact`, `has_fact_attribute`,
-`fact_attribute_equals`, `lacks_fact_attribute_equals`, `fact_count_at_least`,
-`has_fact_in_current_scope`, `current_scope_is`, `scope_depth_at_least`,
+The engine provides fifteen — `has_fact`, `lacks_fact`, `has_fact_attribute`,
+`fact_attribute_equals`, `lacks_fact_attribute_equals`, `latest_fact_attribute_equals`,
+`fact_count_at_least`, `has_fact_in_current_scope`, `current_scope_is`, `scope_depth_at_least`,
 `in_scope_kind`, `not_in_scope_kind`, `resolve_path`, `value_compare` and
 `value_compare_codepoint` (the roster is the `match` in
 `SemanticRuntimeState::evaluate_predicate`, `rust/src/ast_pipeline/semantic_runtime.rs`).
