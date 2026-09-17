@@ -379,6 +379,9 @@ each under the memory guard, sequentially.
     the register's back-fill tripwire all read that digester; a hand-rolled sha256 over an
     `--emit-raw-ast-json` dump serializes the same envelope differently and does not match it
     (`.3.66` drafted such a digest and the carriers refused it before it was published).
+    ⭐ And the release's LAST lockstep step is the distance: `bash scripts/report_sv_release_distance.sh --record <release>`
+    appends the release's row to the history and `--markdown` republishes the block on the status page, so the
+    `SV-RELEASE-DISTANCE-CURRENCY` doctrine reads the tree it describes (`SV-CORPUS-GRAD.25`).
 11. **Before the commit**: `bash scripts/check_doctrines.sh` (every registered doctrine, incl.
     `BASELINE-IDENTITY`, which refuses a contract whose declared inputs moved beyond its budget) and
     `bash scripts/check_no_background_jobs.sh`.

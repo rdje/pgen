@@ -91,3 +91,38 @@ yet asked.
   rest on gate artifacts under `rust/target/`, which is never tracked, so publishing this
   machine's reading of them would make the check fail on a fresh clone. Run
   `bash scripts/audit_done_bar.sh` to see what the gate artifacts in *your* tree say.
+
+## Release distance — one number, re-derived every release
+
+**The question the director asked (2026-09-17): how far is the SV parser from its release, as a number a reader can watch move?**
+
+The three-leg bar above says *whether* the family is `Done`; the **release distance** counts what still stands between this tree and that bar, and its
+history says how fast the count has been falling. `items = legs_unmet + bar_rows + open_leaves`:
+
+- **legs unmet** — the `Distance to `Done`` line of the derived block above (owned by `FAMILY-STATUS-CURRENCY`).
+- **bar rows** — `divergence:unexplained_*` rows in the three adjudication manifests: the rows the parser must clear on `sv_2017`, `sv_2023` and `verilog_2005`
+  (the bar the director's directive names — "the SV parser shall cleanly pass all of them").
+- **open leaves** — `todo` / `active` leaves of `docs/tasks/SV-CORPUS-GRAD.md` plus the `todo` leaves of `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` that SV-CORPUS-GRAD
+  opened (engine work the SV parser owes).
+
+Every figure is derived from the tracked tree by [`scripts/report_sv_release_distance.sh`](../../../scripts/report_sv_release_distance.sh); nothing here runs a gate,
+so a fresh clone re-derives the same block. Each parser release appends one row to the history (`--record`), and the doctrine `SV-RELEASE-DISTANCE-CURRENCY`
+refuses a commit whose published block or whose history's last row disagrees with the tree. ⛔ **What the number is not.** The ETA is a trailing-rate
+ESTIMATE over the last five recorded releases; a structural leg (a corpus conformance gate, the generator proof) is one item that costs more than a bar row;
+the 38 % of corpus rows with no verdict are an answer-key gap outside `items`; and an item can be opened by a release as well as closed — the history shows both.
+
+<!-- BEGIN DERIVED: scripts/report_sv_release_distance.sh --markdown -->
+**SV release distance: 23 items** (`legs_unmet + bar_rows + open_leaves`).
+
+| Component | Count | Derived from |
+|---|---:|---|
+| Done-bar legs unmet | 3 of 3 | the derived block above (`report_family_status.sh`) |
+| Corpus bar rows (unexplained divergences) | 3 (sv_2017 1, sv_2023 2, verilog_2005 0) | `stimuli/sv/characterization/adjudication_manifest*.tsv` |
+| Open leaves owning SV work | 17 (SV-CORPUS-GRAD 5, engine leaves SV opened 12) | `docs/tasks/SV-CORPUS-GRAD.md`, `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` |
+| Corpus passing (sv_2017, `match` rows) | 6065 of 16336 (37.1 %) | the sv_2017 manifest |
+| Known defects (unexplained, sv_2017) | 1 | the sv_2017 manifest |
+
+**Trailing closure rate:** 1.50 items per release over the last 5 recorded release(s); **ETA ≈ 15.3 releases ≈ 3.7 days** — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.
+
+History: [`release_distance/history.tsv`](../../tasks/artifacts/sv_corpus_grad/release_distance/history.tsv) (one row per release, appended by `--record`; the last row must equal this tree, checked by `--check`).
+<!-- END DERIVED: scripts/report_sv_release_distance.sh -->

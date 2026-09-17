@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f69a292e.js";
+            window.path_to_searchindex_js = "searchindex-073f8b87.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -304,6 +304,41 @@ rest on gate artifacts under <code>rust/target/</code>, which is never tracked, 
 machine’s reading of them would make the check fail on a fresh clone. Run
 <code>bash scripts/audit_done_bar.sh</code> to see what the gate artifacts in <em>your</em> tree say.</li>
 </ul>
+<h2 id="release-distance--one-number-re-derived-every-release"><a class="header" href="#release-distance--one-number-re-derived-every-release">Release distance — one number, re-derived every release</a></h2>
+<p><strong>The question the director asked (2026-09-17): how far is the SV parser from its release, as a number a reader can watch move?</strong></p>
+<p>The three-leg bar above says <em>whether</em> the family is <code>Done</code>; the <strong>release distance</strong> counts what still stands between this tree and that bar, and its
+history says how fast the count has been falling. <code>items = legs_unmet + bar_rows + open_leaves</code>:</p>
+<ul>
+<li><strong>legs unmet</strong> — the <code>Distance to </code>Done`` line of the derived block above (owned by <code>FAMILY-STATUS-CURRENCY</code>).</li>
+<li><strong>bar rows</strong> — <code>divergence:unexplained_*</code> rows in the three adjudication manifests: the rows the parser must clear on <code>sv_2017</code>, <code>sv_2023</code> and <code>verilog_2005</code>
+(the bar the director’s directive names — “the SV parser shall cleanly pass all of them”).</li>
+<li><strong>open leaves</strong> — <code>todo</code> / <code>active</code> leaves of <code>docs/tasks/SV-CORPUS-GRAD.md</code> plus the <code>todo</code> leaves of <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code> that SV-CORPUS-GRAD
+opened (engine work the SV parser owes).</li>
+</ul>
+<p>Every figure is derived from the tracked tree by <a href="../../../scripts/report_sv_release_distance.sh"><code>scripts/report_sv_release_distance.sh</code></a>; nothing here runs a gate,
+so a fresh clone re-derives the same block. Each parser release appends one row to the history (<code>--record</code>), and the doctrine <code>SV-RELEASE-DISTANCE-CURRENCY</code>
+refuses a commit whose published block or whose history’s last row disagrees with the tree. ⛔ <strong>What the number is not.</strong> The ETA is a trailing-rate
+ESTIMATE over the last five recorded releases; a structural leg (a corpus conformance gate, the generator proof) is one item that costs more than a bar row;
+the 38 % of corpus rows with no verdict are an answer-key gap outside <code>items</code>; and an item can be opened by a release as well as closed — the history shows both.</p>
+<!-- BEGIN DERIVED: scripts/report_sv_release_distance.sh --markdown -->
+<p><strong>SV release distance: 23 items</strong> (<code>legs_unmet + bar_rows + open_leaves</code>).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Component</th><th style="text-align: right">Count</th><th>Derived from</th></tr>
+</thead>
+<tbody>
+<tr><td>Done-bar legs unmet</td><td style="text-align: right">3 of 3</td><td>the derived block above (<code>report_family_status.sh</code>)</td></tr>
+<tr><td>Corpus bar rows (unexplained divergences)</td><td style="text-align: right">3 (sv_2017 1, sv_2023 2, verilog_2005 0)</td><td><code>stimuli/sv/characterization/adjudication_manifest*.tsv</code></td></tr>
+<tr><td>Open leaves owning SV work</td><td style="text-align: right">17 (SV-CORPUS-GRAD 5, engine leaves SV opened 12)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
+<tr><td>Corpus passing (sv_2017, <code>match</code> rows)</td><td style="text-align: right">6065 of 16336 (37.1 %)</td><td>the sv_2017 manifest</td></tr>
+<tr><td>Known defects (unexplained, sv_2017)</td><td style="text-align: right">1</td><td>the sv_2017 manifest</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Trailing closure rate:</strong> 1.50 items per release over the last 5 recorded release(s); <strong>ETA ≈ 15.3 releases ≈ 3.7 days</strong> — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.</p>
+<p>History: <a href="../../tasks/artifacts/sv_corpus_grad/release_distance/history.tsv"><code>release_distance/history.tsv</code></a> (one row per release, appended by <code>--record</code>; the last row must equal this tree, checked by <code>--check</code>).</p>
+<!-- END DERIVED: scripts/report_sv_release_distance.sh -->
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="quickstart-for-downstream-consumers"><a class="header" href="#quickstart-for-downstream-consumers">Quickstart for Downstream Consumers</a></h1>
 <p>A minimal “compile this, walk that” recipe for embedding the PGEN SystemVerilog parser. Read <a href="#build-recipe">Build Recipe</a> and <a href="#public-api-surface">Public API Surface</a> for the long-form versions of each step.</p>
@@ -2887,7 +2922,10 @@ acceptance checklist, <code>docs/TASK_TREE.md</code>, <code>MEMORY.md</code>, <c
 carry is ONE command’s output — <code>bash scripts/check_baseline_identity.sh --digest ebnf_raw_ast grammars/systemverilog.ebnf</code> — because the identity carriers, the keyword-faithfulness census and
 the register’s back-fill tripwire all read that digester; a hand-rolled sha256 over an
 <code>--emit-raw-ast-json</code> dump serializes the same envelope differently and does not match it
-(<code>.3.66</code> drafted such a digest and the carriers refused it before it was published).</li>
+(<code>.3.66</code> drafted such a digest and the carriers refused it before it was published).
+⭐ And the release’s LAST lockstep step is the distance: <code>bash scripts/report_sv_release_distance.sh --record &lt;release&gt;</code>
+appends the release’s row to the history and <code>--markdown</code> republishes the block on the status page, so the
+<code>SV-RELEASE-DISTANCE-CURRENCY</code> doctrine reads the tree it describes (<code>SV-CORPUS-GRAD.25</code>).</li>
 <li><strong>Before the commit</strong>: <code>bash scripts/check_doctrines.sh</code> (every registered doctrine, incl.
 <code>BASELINE-IDENTITY</code>, which refuses a contract whose declared inputs moved beyond its budget) and
 <code>bash scripts/check_no_background_jobs.sh</code>.</li>

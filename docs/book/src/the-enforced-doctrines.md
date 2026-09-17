@@ -119,9 +119,9 @@ Steps 4 and 5 are enforced, not suggested. That is the whole point.
 
 <!-- BEGIN DERIVED: scripts/report_doctrines.sh --markdown -->
 
-**42 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **8**, oracle + structural **1**, structural **19**, structural + oracle **5**.
+**43 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **8**, oracle + structural **1**, structural **20**, structural + oracle **5**.
 
-**Depth, derived:** median **1983** bytes per description, thinnest **783** (`LESSON-PROMOTION`) — every one of the 42 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
+**Depth, derived:** median **1926** bytes per description, thinnest **501** (`SV-RELEASE-DISTANCE-CURRENCY`) — every one of the 43 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
 
 Rows are in **registration order**, oldest first — so the bottom of this table is what the repository learned most recently.
 
@@ -151,24 +151,25 @@ Rows are in **registration order**, oldest first — so the bottom of this table
 | 22 | [`GENERATED-REPRODUCIBILITY`](#generated-reproducibility) | structural + oracle | `scripts/check_generated_reproducibility.sh` |
 | 23 | [`README-STABILITY`](#readme-stability) | structural | `scripts/check_readme_stability.sh` |
 | 24 | [`SV-CONTRACT-CURRENCY`](#sv-contract-currency) | structural + oracle | `scripts/check_sv_contract_currency.sh` |
-| 25 | [`LOOKAHEAD-SLOT-TEMPLATES`](#lookahead-slot-templates) | structural | `scripts/check_lookahead_slot_templates.sh` |
-| 26 | [`GRAMMAR-CERT-CURRENCY`](#grammar-cert-currency) | structural + oracle | `scripts/check_grammar_certification.sh` |
-| 27 | [`BASELINE-IDENTITY`](#baseline-identity) | structural | `scripts/check_baseline_identity.sh` |
-| 28 | [`CORPUS-KEY-INTEGRITY`](#corpus-key-integrity) | structural | `scripts/check_corpus_key_integrity.sh` |
-| 29 | [`SAMPLE-PROFILE-PARITY`](#sample-profile-parity) | oracle | `scripts/check_sample_profile_parity.sh` |
-| 30 | [`LR-ELIMINATION-RATCHET`](#lr-elimination-ratchet) | oracle | `scripts/check_lr_elimination_ratchet.sh` |
-| 31 | [`GAP-CLAIM-CENSUS`](#gap-claim-census) | evidence | `scripts/check_gap_claims.sh` |
-| 32 | [`TABLE-ARITY-RATCHET`](#table-arity-ratchet) | oracle | `scripts/check_table_arity.sh` |
-| 33 | [`FAMILY-STATUS-CURRENCY`](#family-status-currency) | oracle | `scripts/check_family_status.sh` |
-| 34 | [`CORPUS-CENSUS-CURRENCY`](#corpus-census-currency) | evidence + structural | `scripts/check_corpus_census.sh` |
-| 35 | [`LRM-CLAUSE-CITATION`](#lrm-clause-citation) | oracle + structural | `scripts/check_lrm_clause_citation.sh` |
-| 36 | [`IDENTITY-CARRIER-CURRENCY`](#identity-carrier-currency) | structural | `scripts/check_identity_carriers.sh` |
-| 37 | [`SV-STORE-GATE-BANK`](#sv-store-gate-bank) | oracle | `scripts/check_sv_store_gate_bank.sh` |
-| 38 | [`EBNF-ALTERNATIVE-PARITY`](#ebnf-alternative-parity) | structural + oracle | `scripts/check_ebnf_alternative_parity.sh` |
-| 39 | [`SV-RESERVED-WORDS`](#sv-reserved-words) | oracle | `scripts/check_sv_reserved_words.sh` |
-| 40 | [`SV-KEYWORD-VERSIONS`](#sv-keyword-versions) | oracle | `scripts/check_sv_keyword_versions.sh` |
-| 41 | [`DATA-LOCALITY`](#data-locality) | structural | `scripts/check_data_locality.sh` |
-| 42 | [`PIPELINE-LANE-CURRENCY`](#pipeline-lane-currency) | structural | `scripts/check_pipeline_lane_currency.sh` |
+| 25 | [`SV-RELEASE-DISTANCE-CURRENCY`](#sv-release-distance-currency) | structural | `scripts/check_sv_release_distance.sh` |
+| 26 | [`LOOKAHEAD-SLOT-TEMPLATES`](#lookahead-slot-templates) | structural | `scripts/check_lookahead_slot_templates.sh` |
+| 27 | [`GRAMMAR-CERT-CURRENCY`](#grammar-cert-currency) | structural + oracle | `scripts/check_grammar_certification.sh` |
+| 28 | [`BASELINE-IDENTITY`](#baseline-identity) | structural | `scripts/check_baseline_identity.sh` |
+| 29 | [`CORPUS-KEY-INTEGRITY`](#corpus-key-integrity) | structural | `scripts/check_corpus_key_integrity.sh` |
+| 30 | [`SAMPLE-PROFILE-PARITY`](#sample-profile-parity) | oracle | `scripts/check_sample_profile_parity.sh` |
+| 31 | [`LR-ELIMINATION-RATCHET`](#lr-elimination-ratchet) | oracle | `scripts/check_lr_elimination_ratchet.sh` |
+| 32 | [`GAP-CLAIM-CENSUS`](#gap-claim-census) | evidence | `scripts/check_gap_claims.sh` |
+| 33 | [`TABLE-ARITY-RATCHET`](#table-arity-ratchet) | oracle | `scripts/check_table_arity.sh` |
+| 34 | [`FAMILY-STATUS-CURRENCY`](#family-status-currency) | oracle | `scripts/check_family_status.sh` |
+| 35 | [`CORPUS-CENSUS-CURRENCY`](#corpus-census-currency) | evidence + structural | `scripts/check_corpus_census.sh` |
+| 36 | [`LRM-CLAUSE-CITATION`](#lrm-clause-citation) | oracle + structural | `scripts/check_lrm_clause_citation.sh` |
+| 37 | [`IDENTITY-CARRIER-CURRENCY`](#identity-carrier-currency) | structural | `scripts/check_identity_carriers.sh` |
+| 38 | [`SV-STORE-GATE-BANK`](#sv-store-gate-bank) | oracle | `scripts/check_sv_store_gate_bank.sh` |
+| 39 | [`EBNF-ALTERNATIVE-PARITY`](#ebnf-alternative-parity) | structural + oracle | `scripts/check_ebnf_alternative_parity.sh` |
+| 40 | [`SV-RESERVED-WORDS`](#sv-reserved-words) | oracle | `scripts/check_sv_reserved_words.sh` |
+| 41 | [`SV-KEYWORD-VERSIONS`](#sv-keyword-versions) | oracle | `scripts/check_sv_keyword_versions.sh` |
+| 42 | [`DATA-LOCALITY`](#data-locality) | structural | `scripts/check_data_locality.sh` |
+| 43 | [`PIPELINE-LANE-CURRENCY`](#pipeline-lane-currency) | structural | `scripts/check_pipeline_lane_currency.sh` |
 
 ### `MEMORY-ARCH`
 
@@ -313,6 +314,12 @@ every artifact in the untracked `generated/` tree is **what HEAD's tracked sourc
 *structural + oracle* · enforced by `scripts/check_sv_contract_currency.sh`
 
 the SystemVerilog downstream integration contract describes the grammar that is **actually in the tree**. Four tiers, keyed on the DIGEST rather than the commit sha — sha256 of the EBNF frontend's own `raw_ast` envelope, i.e. what the code generator consumes, derived from the PRODUCER and therefore comment-insensitive by construction, and known BEFORE the commit that carries it is: every grammar revision since the register's declared genesis has a row recording its semantic state (history, plus a back-fill gate on the `(pending)` placeholder that digest-keying makes necessary); a *staged* grammar edit must stage the register too (the tier that sees the commit being made); a `NEUTRAL` row's digest must equal its predecessor's, so a neutrality claim refutes itself when false; and the working tree's digest must equal the newest row's and the contract's declared one (`SV-CORPUS-GRAD.13c.2l`; measured 2026-08-19: the contract said `1.0.183` while **seven** semantically-distinct grammar revisions had shipped, **four** of them REPLACING an AST shape a consumer was already reading, and one of those four moved **zero** verdicts — so an accept-set-only watch would not have caught it either. All eight arms of its adversarial probe fire, including the complement arm proving a comment-only edit stays GREEN — and one of them caught the re-keying itself: the tier-A arm had been deleting a comment-only row, whose digest a sibling row still records, so it went silently green while the doctrine was unchanged) ⛔ The digest is a function of the FRONTEND as well as of the grammar: a frontend change re-keys every earlier row with no grammar byte moving (measured 2026-09-03, EBNF-FRONTEND-SILENT-TRUNCATION.6), so the register declares `# frontend_rekey: <sha>` epochs and tier A does not re-derive commits at or before one, printing how many it skipped — history is kept, never rewritten, and the exemption is a number.
+
+### `SV-RELEASE-DISTANCE-CURRENCY`
+
+*structural* · enforced by `scripts/check_sv_release_distance.sh`
+
+the **SV release distance** the SV parser book publishes (`items = legs_unmet + bar_rows + open_leaves` — the one number per turn the director asked for on 2026-09-17, `SV-CORPUS-GRAD.25`) is a **re-derivation of the tracked tree** (the status page's legs line, the three adjudication manifests, the two task trees) and the history it rests on has a **last row that describes this tree**. A number nothing re-derives goes stale silently; a distance that drifts from the tree is worse than no distance.
 
 ### `LOOKAHEAD-SLOT-TEMPLATES`
 

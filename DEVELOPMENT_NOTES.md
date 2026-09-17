@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-17 — SV-CORPUS-GRAD.25 (`PGEN-SV-CORPUS-GRAD-0406`): a distance is a sum a reader can re-derive, and an ETA is a rate the history has to earn
+
+- **A label without a scale answers the wrong question.** `Mostly Done` and `3 of 3 legs not met` say where the family sits, not how far it has to climb; the director asked for a number. The number is a sum of things the tree already publishes one at a time — legs, bar rows, open leaves — so it inherits their producers and their doctrines instead of adding a hand-maintained count.
+- **The hand undercounted by a factor of two.** My reply to the question said 11 items; the producer says 23, because twelve engine leaves opened by SV-CORPUS-GRAD sit `todo` in the engine tree and the hand read one. The lesson is the repo's oldest: a number is published from a producer or not at all.
+- **An ETA is a trailing rate, not a promise.** Five back-filled rows say 1.5 items per release with the `verilog_2005` bar's seven rows closing and leaves opening beside them; a structural leg costs more than a row; the rate will move, and the block says so every time it prints.
+
 ## 2026-09-17 — SV-CORPUS-GRAD.3.69 + ENGINE-UNIVERSAL-SERVICES.108 (`PGEN-SV-CORPUS-GRAD-0405`): state across siblings is a store question with an ORDER, and the store had no order
 
 - **A PEG reads right; the governing header sits left.** `inout [31:0] x, y = 1` is legal iff the nearest header to the left admits defaults. No lookahead reads left, a scope closes with the rule that opened it, and the semantic store answers existence — `fact_attribute_equals` is true for a `no` header even after a `yes` one. The missing primitive is order: `latest_fact_attribute_equals` reads the most recently emitted, still-standing fact of a kind. Its cost is one lookup over the kind's index buckets; its soundness rests on two facts the runtime already had — `emit_fact` appends and `rollback_to` truncates — so positions ARE emission order over the facts that still stand, and a header emitted in a losing branch never governs (the unit test and the suite's rollback construct both say so).
