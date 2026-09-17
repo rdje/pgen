@@ -5267,7 +5267,7 @@ net_decl_assignment := net_identifier unpacked_dimension* ( assign expression )?
 interconnect_net_declaration_sv_only := @probe_sample: "interconnect logic a;" kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
                                 -> {kind: "interconnect", data_type: $2, delay: $3, name: $4, dims: $5, second: $6}
 
-@profiles: ["sv_2017", "verilog_2005"]
+@profiles: ["sv_2017"]
 # SV-CORPUS-GRAD.3.60 (release 1.0.230): a declared name that a visible typedef already spells, with an IMPLICIT
 # type — `wire T = 1'b1;`, `function U;`, `module m(input T);`, `input T;` (iverilog sv_type_identifier_*.v). The
 # type reading is tried first inside `data_type_or_implicit` and commits; when the declarator then fails, a PEG
@@ -5301,6 +5301,22 @@ net_vector_scalar := kw_vectored_53eb166d -> {kind: "vectored"}
 
 net_declaration := net_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                  | net_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
+                 | net_declaration_v2005   -> {kind: "sv_2017", body: $1}
+
+# SV-CORPUS-GRAD.3.68: IEEE 1364-2005 A.2.1.3 — a net declaration carries no data type: `net_type [ drive_strength ] [ vectored | scalared ]
+# [ signed ] [ range ] [ delay3 ] list_of_net_identifiers | list_of_net_decl_assignments ;` (trireg with a charge_strength the same). The
+# sv twin above (IEEE 1800-2017 A.2.1.3 `data_type_or_implicit`) served the verilog_2005 profile through 1.0.235, so `wire integer x;` and
+# `wire real r;` parsed there. This twin renders the SAME fields: the implicit carrier `{kind: "implicit", body}` over `( signing )? ( range )?`,
+# one packed range rendered as the one-element list the sv rule's `packed_dimension*` renders; no alias or interconnect arm (1364 has neither).
+@profiles: ["verilog_2005"]
+net_declaration_v2005 := net_type ( net_strength )? ( net_vector_scalar )? data_type_implicit_v2005 ( delay )? list_of_net_decl_assignments semi
+                                -> {kind: "wire",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}
+@profiles: ["verilog_2005"]
+data_type_implicit_v2005 := implicit_data_type_v2005 -> {kind: "implicit", body: $1}
+@profiles: ["verilog_2005"]
+implicit_data_type_v2005 := ( signing )? ( packed_dimension_one_v2005 )? -> {signing: $1, dims: $2}
+@profiles: ["verilog_2005"]
+packed_dimension_one_v2005 := packed_dimension -> [$1]
 
 net_identifier := declaration_identifier
 

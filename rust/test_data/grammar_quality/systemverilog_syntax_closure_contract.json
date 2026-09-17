@@ -3,10 +3,10 @@
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "auto re-stamped by a GREEN systemverilog syntax closure gate run: defined_rule_count=1681 reachable_rules=1712 unreachable_rules=1 unreachable_branches=2 unresolved_rule_reference_count=0 entry_rule=sv_multi_entry_root stimuli_seed=24001",
-    "verified_at_commit": "ab7b00fdf962eead6d968cc380cd2baa3a118aaa",
+    "confirmed_by": "auto re-stamped by a GREEN systemverilog syntax closure gate run: defined_rule_count=1685 reachable_rules=1716 unreachable_rules=1 unreachable_branches=2 unresolved_rule_reference_count=0 entry_rule=sv_multi_entry_root stimuli_seed=24001",
+    "verified_at_commit": "3bb309d93d7ab2b2d322b24325157682c2871cc2",
     "inputs": {
-      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "fd10b430966338a1048de5929467741ee75bf593ae9fa782e3c9e95bfbb97a1e" },
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "fbc848eb287786f6876d645471403f84b9baaf5e3f534ed06b20f6cc75dd7179" },
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "ebfafdd38fda2371dbcd7211b98bb5b13bfa7f9666678cd5e7d82ca7c1bc48b6",
       "rust/src/ast_pipeline/stimuli_generator.rs": "c8c8a925399ed9c753c1f88f41f01442f00629e57e2bc04e36247c50953f343e"
     }

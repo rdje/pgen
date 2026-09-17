@@ -5585,6 +5585,167 @@ def _self_test_edition_type() -> int:
     return 0
 
 
+# ---- SV-CORPUS-GRAD.3.68: the EDITION-NET-DECLARATION pass (verilog_2005 lane) --------------------
+# The fifth edition reading, beside .3.37 (a keyword bound as a NAME), .19 (an operator), .20 (an
+# 1800-only keyword bound as a type) and .3.65 (an empty user call). A verilog_2005 row keyed
+# must_accept whose parse stops ON a 1364-2005 data-type keyword (`integer`, `real`, `realtime`,
+# `time`, `reg`) or ON a `[` that opens a SECOND packed range, in a line that OPENS with a 1364-2005
+# net type, AND which the sv_2017 profile ACCEPTS, is SystemVerilog text: IEEE 1364-2005 A.2.1.3 puts
+# no data type and ONE `range` after a net type (docs/verilog/2005/txt/section-Annex_A-normative-
+# formal-syntax-definition.txt:153-176, range :252), IEEE 1800-2017 A.2.1.3 puts `data_type_or_implicit`
+# there (docs/systemverilog/2017/md/section-41-data-read-api.md:805-810) with A.2.2.1
+# `implicit_data_type ::= [ signing ] { packed_dimension }` (:867). Measured on iverilog br_gh156.v /
+# ca_time_real.v / pr1864110a.v (`wire real` - Icarus's real-net extension), module_nonansi_fail12.v
+# (`wire integer x;`, listed CE), br_gh497a.v and sv2v interface_delay_1.v (`wire [0:1][0:2] arr;`).
+# TOKEN-EXACT: the stop must be ON the offending token; an 1800-only keyword at the stop (`logic`,
+# `bit`, ...) is the .20 pass's tell and is left to it.
+EDITION_NET_BASIS_TAG = "EDITION-NET-DECLARATION (SV-CORPUS-GRAD.3.68)"
+_NET_TYPES_1364 = frozenset("wire tri tri0 tri1 wand wor triand trior supply0 supply1 uwire trireg".split())
+_DATA_TYPE_KEYWORDS_1364 = frozenset("integer real realtime time reg".split())
+
+
+def stuck_on_net_data_type(text: str, furthest):
+    """`(token, at)` when the parse stopped ON a 1364-2005 data-type keyword or ON a `[` opening a
+    SECOND packed range, in a line whose FIRST token is a 1364-2005 net type (comments and strings
+    blanked, the layout gap skipped, an escaped identifier ignored); else `(None, at)`; `(None, None)`
+    with no position."""
+    if furthest is None:
+        return None, None
+    stripped = blank_comments_and_strings(text)
+    i = min(furthest, len(stripped))
+    while i < len(stripped) and stripped[i].isspace():
+        i += 1
+    line_start = stripped.rfind("\n", 0, i) + 1
+    j = line_start
+    while j < i and stripped[j] in " \t":
+        j += 1
+    head = _IDENT_RE.match(stripped, j)
+    if head is None or head.group(0) not in _NET_TYPES_1364 or (j > 0 and stripped[j - 1] == "\\"):
+        return None, i
+    m = _IDENT_RE.match(stripped, i)
+    if m is not None:
+        if m.group(0) in _DATA_TYPE_KEYWORDS_1364 and not (i > 0 and stripped[i - 1] == "\\"):
+            return m.group(0), i
+        return None, i
+    if stripped.startswith("[", i) and re.search(r"\]\s*$", stripped[line_start:i]):
+        return "[", i
+    return None, i
+
+
+def edition_net_declaration_pass(lane, manifest, resolve, positions, *, measurer=None):
+    """SV-CORPUS-GRAD.3.68. Every row keyed must_accept and observed `fail` is a candidate; the row is
+    re-keyed must_reject (=> `match`) iff the stop is ON a data-type keyword or a second packed range
+    in a net declaration AND the sv_2017 profile accepts the bytes (measured here). Every other row
+    is byte-identical."""
+    if measurer is None:
+        def measurer(raw):
+            sg = _sg()
+            m = sg.machinery()
+            saved = m.PROFILE
+            m.PROFILE = "sv_2017"
+            try:
+                ok, _surface, _furthest, _trace = m.probe_text(raw, trace=False)
+            finally:
+                m.PROFILE = saved
+            return bool(ok)
+    out = []
+    ruled = 0
+    for suite, rel, observed, expected, verdict, basis in manifest:
+        # ⛔ ONE condition, no `continue`: every row reaches `out.append` (the .3.37 lesson).
+        if expected == "must_accept" and observed == "fail":
+            text = read_text(resolve(suite, rel))
+            token, at = stuck_on_net_data_type(text, positions.get((suite, rel)))
+            if token is not None and measurer(text):
+                line = text.count("\n", 0, at) + 1
+                what = ("a SECOND packed range" if token == "[" else f"the data type '{token}'")
+                expected, verdict, ruled = "must_reject", "match", ruled + 1
+                basis = (f"{EDITION_NET_BASIS_TAG}: the {lane} parse stops at byte {at} (line {line}) ON {what} in a "
+                         "net declaration - IEEE 1364-2005 A.2.1.3 net_declaration puts no data type and ONE range after "
+                         "a net type (docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:153-176; "
+                         "range :252), IEEE 1800-2017 A.2.1.3 puts data_type_or_implicit there "
+                         "(docs/systemverilog/2017/md/section-41-data-read-api.md:805-810; A.2.2.1 implicit_data_type ::= "
+                         "[ signing ] { packed_dimension } :867): the sv_2017 profile ACCEPTS these bytes (measured here, by "
+                         "parsing), so the line is SystemVerilog text with no 1364-2005 derivation. Spec outranks tool. "
+                         "Original key: must_accept - " + basis)
+        out.append((suite, rel, observed, expected, verdict, basis))
+    print(f"edition-net-declaration pass [{lane}]: {ruled} row(s) re-keyed must_reject (the stop is ON a data type or a second range in a net declaration; sv_2017 accepts)",
+          file=sys.stderr)
+    return out
+
+
+def _self_test_edition_net_declaration() -> int:
+    """SV-CORPUS-GRAD.3.68 arms for the edition-net-declaration pass, the same shape as .20's."""
+    import tempfile
+    fails = []
+    calls = []
+
+    def check(name, cond):
+        print(f"  {'PASS' if cond else 'FAIL'}  edition-net-declaration: {name}")
+        if not cond:
+            fails.append(name)
+
+    with tempfile.TemporaryDirectory(dir=str(Path(__file__).resolve().parent.parent.parent / "rust/target")) as td:
+        d = Path(td)
+        (d / "s").mkdir()
+        bodies = {"a.v": "module a;\n  wire real r;\nendmodule\n",
+                  "b.v": "module b;\n  wire integer x;\nendmodule\n",
+                  "c.v": "module c;\n  wire [3:0][3:0] arr;\nendmodule\n",
+                  "d.v": "module d;\n  wire [3:0] a [1:0];\nendmodule\n",
+                  "e.v": "module e;\n  reg real r;\nendmodule\n",
+                  "f.v": "module f;\n  wire \\real r;\nendmodule\n",
+                  "g.v": "module g;\n  wire /* real */ q x;\nendmodule\n",
+                  "h.v": "module h;\n  wire logic l;\nendmodule\n",
+                  "i.v": "module i; endmodule\n",
+                  "j.v": "module j;\n  wire time t;\nendmodule\n"}
+        for name, body in bodies.items():
+            (d / "s" / name).write_text(body)
+        positions = {("s", "a.v"): bodies["a.v"].index("real"), ("s", "b.v"): bodies["b.v"].index("integer"),
+                     ("s", "c.v"): bodies["c.v"].index("[3:0] arr") , ("s", "d.v"): bodies["d.v"].index("[1:0]"),
+                     ("s", "e.v"): bodies["e.v"].index("real"), ("s", "f.v"): bodies["f.v"].index("real"),
+                     ("s", "g.v"): bodies["g.v"].index("x;"), ("s", "h.v"): bodies["h.v"].index("logic"),
+                     ("s", "j.v"): bodies["j.v"].index("time")}
+        manifest = [("s", "a.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key A"),
+                    ("s", "b.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key B"),
+                    ("s", "c.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key C"),
+                    ("s", "d.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key D"),
+                    ("s", "e.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key E"),
+                    ("s", "f.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key F"),
+                    ("s", "g.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key G"),
+                    ("s", "h.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key H"),
+                    ("s", "i.v", "pass", "must_accept", "match", "key I"),
+                    ("s", "j.v", "fail", "must_reject", "match", "key J")]
+
+        def measurer(raw):
+            calls.append(raw)
+            return "wire integer x" not in raw      # b.v: the fake sv_2017 refuses
+
+        out = edition_net_declaration_pass("verilog_2005", manifest, lambda s_, r_: d / s_ / r_, positions, measurer=measurer)
+        by = {(r[0], r[1]): r for r in out}
+        check("a.v (`wire real r;`, stop ON `real`, measurer accepts) is re-keyed must_reject and matches",
+              by[("s", "a.v")][3] == "must_reject" and by[("s", "a.v")][4] == "match"
+              and by[("s", "a.v")][5].startswith(EDITION_NET_BASIS_TAG) and "the data type 'real'" in by[("s", "a.v")][5]
+              and by[("s", "a.v")][5].endswith("Original key: must_accept - key A"))
+        check("b.v (`wire integer x;`, measurer refuses) is byte-identical", by[("s", "b.v")] == manifest[1])
+        check("c.v (`wire [3:0][3:0] arr;`, stop ON the second `[`) is re-keyed and names a SECOND packed range",
+              by[("s", "c.v")][3] == "must_reject" and "a SECOND packed range" in by[("s", "c.v")][5])
+        check("d.v (an unpacked dimension after the name is 1364-legal: `] a [` is no second range) is byte-identical and never measured",
+              by[("s", "d.v")] == manifest[3])
+        check("e.v (the line opens with `reg`, not a net type) is byte-identical and never measured", by[("s", "e.v")] == manifest[4])
+        check("f.v (an ESCAPED \\real is an identifier) is byte-identical and never measured", by[("s", "f.v")] == manifest[5])
+        check("g.v (the word only inside a comment; the stop on an identifier) is byte-identical and never measured", by[("s", "g.v")] == manifest[6])
+        check("h.v (`wire logic l;` - an 1800-only keyword is the .20 pass's tell) is byte-identical and never measured", by[("s", "h.v")] == manifest[7])
+        check("i.v (a match) and j.v (a must_reject) are byte-identical and never measured",
+              by[("s", "i.v")] == manifest[8] and by[("s", "j.v")] == manifest[9])
+        check("every row came out exactly once, in order", [r[:2] for r in out] == [r[:2] for r in manifest])
+        check("the measurer ran exactly for a, b and c", sorted(c.split("module ")[1][0] for c in calls) == ["a", "b", "c"])
+        check("stuck_on_net_data_type: no position => (None, None)", stuck_on_net_data_type("x", None) == (None, None))
+    if fails:
+        print(f"edition-net-declaration self-test: FAIL ({len(fails)} failing)")
+        return 1
+    print("edition-net-declaration self-test: PASS (0 failing)")
+    return 0
+
+
 # ---- SV-CORPUS-GRAD.20: the DEFINE tell - a stop ON a text-macro definition -------------------------
 # `define is consumed by the preprocessor (IEEE 1800-2017 §22.5.1) and the raw lane, which does not
 # preprocess, admits the directive only at the top level (`opaque_directive_line`); inside a design
@@ -6448,6 +6609,7 @@ def main():
                 | _self_test_keywords_region()
                 | _self_test_edition_operator()
                 | _self_test_edition_type()
+                | _self_test_edition_net_declaration()
                 | _self_test_edition_empty_call()
                 | _self_test_macro_definition_tell())
 
@@ -6720,6 +6882,7 @@ def main():
 
     v_manifest = edition_operator_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
     v_manifest = edition_type_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
+    v_manifest = edition_net_declaration_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
     v_manifest = edition_empty_call_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
     v_manifest = store_gate_pass("verilog_2005", v_manifest, resolve_corpus_path(args), args.report_v2005,
                                  store_gate_cache, args.store_gate_jobs)

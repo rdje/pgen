@@ -22,12 +22,12 @@
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **237** | 9.3% | 156 | 81 |
-| `tool-testimony` | **468** | 18.5% | 457 | 11 |
-| `suite-convention` | **1829** | 72.1% | 1829 | 0 |
+| `clause-cited` | **247** | 9.7% | 155 | 92 |
+| `tool-testimony` | **460** | 18.1% | 449 | 11 |
+| `suite-convention` | **1827** | 72.1% | 1827 | 0 |
 | `UNCLASSIFIED` | **1** | 0.0% | 1 | 0 |
 
-⇒ **trust bound: 2298 of 2535 (90.7%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 2288 of 2535 (90.3%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
 ## ⛔ The BAR's own rows (1, `sv_2017`) — a different population, a different number
 
@@ -43,17 +43,17 @@ key as a whole. Attaching the key-wide share to the bar overstates the claim.
 | `suite-convention` | 1 | 100.0% |
 | `UNCLASSIFIED` | 0 | 0.0% |
 
-⇒ **1 of 1 (100.0%)** of the rows *behind the published bar* rest on evidence outside the standard, against **91.6%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
+⇒ **1 of 1 (100.0%)** of the rows *behind the published bar* rest on evidence outside the standard, against **91.5%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
 
 ## By suite — where the non-clause evidence actually lives
 
 | suite | rows | `clause-cited` | `tool-testimony` | `suite-convention` | `UNCLASSIFIED` |
 |---|---|---|---|---|---|
-| `iverilog` | 3135 | 402 | 520 | 2213 | 0 |
+| `iverilog` | 3135 | 409 | 515 | 2211 | 0 |
 | `verilator` | 3067 | 124 | 717 | 2226 | 0 |
 | `ispras-sv-tests` | 1146 | 38 | 0 | 1106 | ⛔ 2 |
 | `sv-tests` | 933 | 18 | 0 | 915 | 0 |
-| `sv2v` | 921 | 233 | 341 | 347 | 0 |
+| `sv2v` | 921 | 236 | 338 | 347 | 0 |
 | `Surelog` | 627 | 18 | 609 | 0 | 0 |
 | `verible` | 128 | 9 | 0 | 119 | 0 |
 | `slang` | 63 | 2 | 0 | 61 | 0 |
