@@ -1246,6 +1246,87 @@ def _guarded_typed_reading(base_tot, new_tot, ctx):
     return holds, detail
 
 
+def _reached_files_and_contained_guards(base_tot, new_tot, ctx):
+    """A widening that ALSO guards a pre-existing site everywhere (`SV-CORPUS-GRAD.27`,
+    `ENGINE-UNIVERSAL-SERVICES.110`): sampled files ADVANCE (accepted no → yes, or furthest strictly
+    forward), the change's new readings FIRE in others (a rule new to the measurement committed —
+    the instrument's per-file `new_rule_commits`), and every file pays the guard's lookups. The
+    REACHED set (advanced ∪ fired ∪ marked — `reach_markers.tsv` names the pre-existing rules whose
+    ENTRY marks a file the change can reach when its guards fire by refusing or its parse rolls back) is DERIVED from this
+    run's per-file numbers; a per-leaf subset
+    artifact (`reached_subsets/<leaf>/{manifest.tsv,base_rule_costs.tsv,new_rule_costs.tsv}`)
+    carries the per-rule costs of exactly those files under both parsers and is bound to the run
+    twice (file list = derived set; per-rule sums = per-file sums on every metric, both parsers) —
+    REFUSED otherwise; subtracting it from the whole sample leaves the files the change did not
+    reach, on which every rule NOT reachable from `introduced` must do no more work (entries and
+    committed byte-identical, memo hits not fallen). The predicate and its refusal arms live in `scripts/parse_cost_containment.py`
+    (`reached_files_and_contained_guards`, `--self-test`); its docstring says why the other
+    fourteen cannot cover this shape, what its first evaluation caught, and its honest bound."""
+    if CONTAINMENT is None:
+        raise RuntimeError(f"scripts/parse_cost_containment.py could not be imported "
+                           f"({CONTAINMENT_IMPORT_ERROR}), so this acceptance cannot be evaluated")
+    graph_path = ctx["graph"]
+    if not os.path.isfile(graph_path):
+        raise RuntimeError(f"the measured grammar's reference graph is missing "
+                           f"({os.path.relpath(graph_path, ROOT)}) — re-measure with an instrument "
+                           f"that emits it")
+    with open(graph_path, encoding="utf-8") as fh:
+        graph = json.load(fh)
+    if ctx["grammar_digest"] and graph.get("grammar_raw_ast_sha256") != ctx["grammar_digest"]:
+        raise RuntimeError(
+            f"the reference graph was derived from grammar raw_ast "
+            f"`{str(graph.get('grammar_raw_ast_sha256'))[:16]}…` but this tree's is "
+            f"`{ctx['grammar_digest'][:16]}…` — a containment verdict computed against the wrong "
+            f"grammar is the `.13c.2k` defect this leaf exists to close")
+    leaf = ctx.get("leaf")
+    if not leaf:
+        raise RuntimeError("the acceptance row carries no leaf id, so the reached-subset artifact "
+                           "cannot be located")
+    sub = os.path.join(ROOT, ART, CONTAINMENT.REACHED_SUBSETS_DIR, leaf)
+    manifest = os.path.join(sub, "manifest.tsv")
+    if not os.path.isfile(manifest):
+        raise RuntimeError(f"no reached-subset artifact for `{leaf}` at "
+                           f"{os.path.relpath(sub, ROOT)}/manifest.tsv — the predicate is per-file AND "
+                           f"per-rule and the whole-sample tables cannot stand in for it")
+    paths = []
+    with open(manifest, encoding="utf-8") as fh:
+        for n, line in enumerate(fh, 1):
+            line = line.rstrip("\n")
+            if not line.strip() or line.startswith("#"):
+                continue
+            c = line.split("\t")
+            if len(c) != 2:
+                raise RuntimeError(f"{os.path.relpath(manifest, ROOT)}:{n}: expected `tier\\tpath`, got "
+                                   f"{len(c)} field(s)")
+            paths.append(c[1])
+    base_files = CONTAINMENT.read_entries(ctx["base_entries"])
+    new_files = CONTAINMENT.read_entries(ctx["new_entries"])
+    base_rules = CONTAINMENT.read_rule_costs(ctx["base_rule_costs"])
+    new_rules = CONTAINMENT.read_rule_costs(ctx["new_rule_costs"])
+    # ⛔ A REACH MARKER MUST PRE-EXIST AND EXIST: a new rule is already `new_rule_commits`, and a name the
+    # measured grammar lacks would mark nothing while reading as a declared reach.
+    markers_path = os.path.join(ROOT, ART, CONTAINMENT.REACH_MARKERS_FILE)
+    if os.path.isfile(markers_path):
+        known = set(graph["edges"]) | {r for refs in graph["edges"].values() for r in refs}
+        with open(markers_path, encoding="utf-8") as fh:
+            for n, line in enumerate(fh, 1):
+                line = line.rstrip("\n")
+                if not line.strip() or line.startswith("#"):
+                    continue
+                c = line.split("\t")
+                if len(c) != 3:
+                    raise RuntimeError(f"{os.path.relpath(markers_path, ROOT)}:{n}: expected rule<TAB>leaf<TAB>why, got {len(c)} field(s)")
+                if c[0] not in known:
+                    raise RuntimeError(f"reach marker `{c[0]}` ({c[1]}) names no rule in the measured grammar's reference graph")
+                if c[0] not in base_rules:
+                    raise RuntimeError(f"reach marker `{c[0]}` ({c[1]}) is not in the BASELINE per-rule table — a marker must be a pre-existing rule; a new rule is already counted by `new_rule_commits`")
+    base_sub = CONTAINMENT.read_rule_costs(os.path.join(sub, "base_rule_costs.tsv"))
+    new_sub = CONTAINMENT.read_rule_costs(os.path.join(sub, "new_rule_costs.tsv"))
+    holds, detail, _facts = CONTAINMENT.reached_files_and_contained_guards(
+        base_files, new_files, base_rules, new_rules, paths, base_sub, new_sub,
+        graph["edges"], ctx["introduced"])
+    return holds, detail
+
 INVARIANTS = {
     "declared_alternatives_net_of_retired_work": _declared_alternatives_net_of_retired_work,
     "pure_memo_lookups": _pure_memo_lookups,
@@ -1261,12 +1342,14 @@ INVARIANTS = {
     "typed_replacement_of_opaque_terminal": _typed_replacement_of_opaque_terminal,
     "lookahead_replay_occurrences": _lookahead_replay_occurrences,
     "guarded_typed_reading": _guarded_typed_reading,
+    "reached_files_and_contained_guards": _reached_files_and_contained_guards,
 }
 
 # ⛔ WHICH INVARIANTS TAKE A SCOPE, AND THE CHECK IS TWO-SIDED. A containment row with no
 # `introduced` set cannot be evaluated; a row naming a set for an invariant that ignores it reads as
 # a scoped acceptance and is not one. Both REFUSE, so the column can never become decoration.
 INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph", "declared_alternatives_net_of_retired_work",
+                                "reached_files_and_contained_guards",
                                 "profile_split_respelling",
                                 "host_memo_eviction", "caller_split_containment",
                                 "advanced_files_only", "introduced_wrapper_frames",
@@ -1345,7 +1428,10 @@ def totals_of(tsv_path):
                 "lr_entries", "lr_committed"]
         # SV-CORPUS-GRAD.3.34: the instrument appends `furthest` (a rejected parse's furthest position);
         # a baseline written before it is still readable — the column is OPTIONAL here, never positional.
-        if header not in (want, want + ["furthest"]):
+        # ENGINE-UNIVERSAL-SERVICES.110: `new_rule_commits` (per-file commits of rules the baseline
+        # table does not know) — OPTIONAL here too, read by name, never positionally.
+        if header not in (want, want + ["furthest"], want + ["furthest", "new_rule_commits"],
+                          want + ["furthest", "new_rule_commits", "reach_marker_entries"]):
             print(f"parse-cost-ratchet: REFUSING — {tsv_path} header is {header}, expected {want}. "
                   f"The instrument's schema moved; fix this reader rather than trusting a "
                   f"positional unpack.", file=sys.stderr)
@@ -1426,7 +1512,7 @@ if REMEASURE or REBASELINE:
                          f"invariant that explains it.")
                     continue
                 invariant, leaf, why, scope = row
-                ctx = {"introduced": scope,
+                ctx = {"introduced": scope, "leaf": leaf,
                        "base_rule_costs": os.path.join(ROOT, ART, "rule_costs.tsv"),
                        "new_rule_costs": os.path.join(scratch, "rule_costs.tsv"),
                        "base_entries": os.path.join(ROOT, ART, "entries.tsv"),

@@ -156,14 +156,19 @@ rows = {(r["lane"], r["suite"], r["relpath"]): r for r in csv.DictReader(
 a = rows.get(("sv_2017", "verible", "verible/verilog/tools/kythe/testdata/reversed_definition.sv"), {})
 b = rows.get(("sv_2017", "Surelog", "tests/HierBitSlice/dut.sv"), {})
 bn = [n for n in b.get("names", "").split(",") if n]
-ok = (a.get("verdict") == "explained" and a.get("names") == "class2,class3,class4,pkg_class1"
+# SV-CORPUS-GRAD.27 (release 1.0.239): the wildcard escapes ADMIT an undeclared base class / type while an
+# `import pkg::*` is open, so the search no longer has to declare a name such an import supplies — revdef's
+# `pkg_class1` (pkg2, imported 65 lines below the refusal) leaves the set (4 -> 3 names, every form still
+# `redeclared_as:`); HierBitSlice has no wildcard import, so its 15-name prelude and `declared_as:` forms
+# stand exactly as .17 measured them.
+ok = (a.get("verdict") == "explained" and a.get("names") == "class2,class3,class4"
       and all(f.startswith(sg.REDECLARED_PREFIX) for f in a.get("forms", "x").split("+"))
       and b.get("verdict") == "explained" and "scalar_t" in bn and len(bn) > sg.machinery().MAX_ROUNDS
       and all(f.startswith(sg.DECLARED_PREFIX) for f in b.get("forms", "x").split("+")))
 print(("OK " if ok else "MISMATCH ") + f"revdef={a.get('verdict')}/{a.get('forms')} "
       + f"hbs={b.get('verdict')}/{len(bn)} names/{b.get('forms')}")
 PY
-); grep -q '^OK ' <<<"$out"; arm "A11 .17: both rows explained - 1b under the positional condition 2, 1c with a prelude past the old bound ($out)" $?
+); grep -q '^OK ' <<<"$out"; arm "A11 .17/.27: both rows explained - 1b under the positional condition 2 with pkg_class1 admitted by the .27 escape, 1c with a prelude past the old bound ($out)" $?
 
 # A12 (SV-CORPUS-GRAD.17) THE ORACLE THIS LEAF DID NOT BUILD. Surelog's own tracked golden log — the very
 # artifact the row's `basis` cites as "upstream testimony that the unit's single source parses" — partitions

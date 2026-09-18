@@ -516,7 +516,7 @@ the **exact** from/to integers, plus an `invariant` that is **code in the gate**
 re-evaluated against the fresh measurement. A row therefore cannot cover a different rise, cannot
 cover a rise of a different shape without a code change, and cannot outlive its own justification.
 
-Three of the twelve coded invariants are exact arithmetic identities over the three binding totals —
+Three of the fifteen coded invariants are exact arithmetic identities over the three binding totals —
 rule entries, memo hits, committed entries. The other ten are per-rule or per-file predicates that read
 the measured grammar's own reference graph: a rise confined to an introduced sub-graph, a profile
 split that only moves work, a host rule's memo eviction, a rule split by caller, a rise on files that
@@ -564,7 +564,21 @@ replay), and the predicate admits exactly that: the rename exact on every metric
 widening's own rows may advance), every riser an introduced rule, inside the guards' sub-graph or a declared host's own frames (a
 guarded arm answered from the memo instead of re-parsed), and the committed rise
 outside the introduced reading at most the guards' own entries — the clause that refuses the twin-ALTERNATIVE spelling
-of the same widening, which the tournament re-derives (`committed +3.41 %`, measured and refused). Each has
+of the same widening, which the tournament re-derives (`committed +3.41 %`, measured and refused); and
+`reached_files_and_contained_guards` (release `1.0.239`, `ENGINE-UNIVERSAL-SERVICES.110`, `SV-CORPUS-GRAD.27`): a
+widening that ALSO guards a pre-existing site everywhere — files ADVANCE (accepted `no → yes`, or `furthest` strictly
+forward: their trees commit) while every file that opens a wildcard import pays the guard's lookups — so neither
+`advanced_files_only` (every other file identical) nor containment (committed flat) can hold. Every cost column is
+additive over files, so the predicate derives the advanced set from the run's own per-file numbers, takes a per-leaf
+subset artifact with the per-rule costs of exactly the files the change REACHED (advanced, or a rule new to the
+measurement committed in it, or a declared reach marker entered in it — the instrument's per-file `new_rule_commits`
+and `reach_marker_entries`, the markers tracked in `reach_markers.tsv`) under both parsers (bound to the run
+twice: file list = derived set, per-rule sums = per-file sums on every metric), subtracts it from the whole sample,
+and requires every rule NOT reachable from the introduced set to do no more work on the files the change did not reach (entries and committed
+byte-identical, memo hits not fallen) (reached: advanced, or a rule new to the measurement committed in it, or a declared reach
+marker committed in it — `reach_markers.tsv`); its evaluations caught the `net_port_header` split running its second
+arm at every directed port and a shape tainting the memo of keyword-typed ports, and its honest bound says confined
+is not unavoidable. Each has
 refusal arms in its self-test, so a row cannot
 borrow an invariant whose shape it does not have. For example, admitting one more keyword alternative into
 an ordered choice costs, at every position the choice is attempted, exactly two entries (the

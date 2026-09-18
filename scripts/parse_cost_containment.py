@@ -528,6 +528,12 @@ def caller_split_containment(base: dict[str, dict[str, int]], new: dict[str, dic
 ENTRIES_HEADER_V9 = ["sub_corpus", "tier", "path", "accepted", "entries", "committed", "memo_hits",
                      "lr_entries", "lr_committed"]
 ENTRIES_HEADER_V10 = ENTRIES_HEADER_V9 + ["furthest"]
+# ENGINE-UNIVERSAL-SERVICES.110: `new_rule_commits` — commits of rules the tracked baseline table
+# does not know, per file (the pending change reached the file).
+ENTRIES_HEADER_V11 = ENTRIES_HEADER_V10 + ["new_rule_commits"]
+# … and `reach_marker_entries`: commits of the pre-existing rules `reach_markers.tsv` names.
+ENTRIES_HEADER_V12 = ENTRIES_HEADER_V11 + ["reach_marker_entries"]
+REACH_MARKERS_FILE = "reach_markers.tsv"
 
 
 def read_entries(path: str) -> dict[str, dict]:
@@ -541,9 +547,9 @@ def read_entries(path: str) -> dict[str, dict]:
     out = {}
     with open(path, encoding="utf-8") as fh:
         header = fh.readline().rstrip("\n").split("\t")
-        if header not in (ENTRIES_HEADER_V9, ENTRIES_HEADER_V10):
+        if header not in (ENTRIES_HEADER_V9, ENTRIES_HEADER_V10, ENTRIES_HEADER_V11, ENTRIES_HEADER_V12):
             raise Refused(f"`{os.path.relpath(path, ROOT)}` header is {header}, expected "
-                          f"{ENTRIES_HEADER_V10} (or the 9-column form before it) — fix this reader "
+                          f"{ENTRIES_HEADER_V12} (or the 9- / 10- / 11-column forms before it) — fix this reader "
                           f"rather than trusting a positional unpack")
         idx = {n: i for i, n in enumerate(header)}
         for line in fh:
@@ -555,7 +561,9 @@ def read_entries(path: str) -> dict[str, dict]:
                 fur = int(c[idx["furthest"]])
             out[c[idx["path"]]] = {"accepted": c[idx["accepted"]], "entries": int(c[idx["entries"]]),
                                    "committed": int(c[idx["committed"]]), "memo_hits": int(c[idx["memo_hits"]]),
-                                   "furthest": fur}
+                                   "furthest": fur,
+                                   "new_rule_commits": (int(c[idx["new_rule_commits"]]) if "new_rule_commits" in idx and c[idx["new_rule_commits"]].lstrip("-").isdigit() else None),
+                                   "reach_marker_entries": (int(c[idx["reach_marker_entries"]]) if "reach_marker_entries" in idx and c[idx["reach_marker_entries"]].lstrip("-").isdigit() else None)}
     return out
 
 
@@ -637,6 +645,300 @@ def advanced_files_only(base: dict[str, dict], new: dict[str, dict],
               (f" — baseline furthest UNKNOWN for {len(legacy)} (9-column baseline; verified from the next baseline on)" if legacy else "") +
               f"; {len(base) - len(scope)} other sampled file(s) never rose ({len([k for k in moved if k not in scope])} got cheaper, the rest byte-identical)")
     return (True, detail, facts)
+
+
+REACHED_SUBSETS_DIR = "reached_subsets"
+METRICS = ("entries", "committed", "memo_hits")
+
+
+def advanced_files_of(base: dict[str, dict], new: dict[str, dict]) -> tuple[list[str], list[str]]:
+    """`(advanced, legacy)`: the sampled files whose parse ADVANCED between the two measurements —
+    accepted `no → yes`, or still rejected with `furthest` strictly forward — and, separately, the
+    still-rejected movers whose baseline has no `furthest` column (unknown, never zero: a reader
+    that counted them as advanced would invent a widening the baseline never measured)."""
+    advanced, legacy = [], []
+    for k in sorted(base):
+        if k not in new:
+            continue
+        b, n = base[k], new[k]
+        if b["accepted"] == "no" and n["accepted"] == "yes":
+            advanced.append(k)
+            continue
+        if n["accepted"] == "no" and n["furthest"] is not None:
+            if b["furthest"] is None:
+                legacy.append(k)
+                continue
+            if n["furthest"] > b["furthest"]:
+                advanced.append(k)
+    return advanced, legacy
+
+
+def reached_files_of(base: dict[str, dict], new: dict[str, dict]) -> tuple[list[str], list[str], list[str]]:
+    """`(reached, advanced, legacy)`: `advanced` as `advanced_files_of`; `reached` = advanced ∪ the
+    files in which a rule NEW to the measurement COMMITTED (`new_rule_commits > 0`) ∪ the files in
+    which a REACH MARKER was ENTERED (`reach_marker_entries > 0`: a pre-existing rule `reach_markers.tsv`
+    names — the import item whose fact gates every `.27` escape — because a guard that fires by
+    refusing commits nothing, a new reading that wins inside a losing branch is rolled back, and a
+    rejected parse rolls even its import item back while the parser did enter it);
+    both columns are the instrument's, counted from its own dump. `legacy` as before. REFUSES a new
+    table without either column: the partition cannot be derived from totals."""
+    advanced, legacy = advanced_files_of(base, new)
+    for col in ("new_rule_commits", "reach_marker_entries"):
+        missing = [k for k in new if new[k].get(col) is None]
+        if missing:
+            raise Refused(f"the new per-file table has no `{col}` column for {len(missing)} "
+                          f"file(s) (e.g. {missing[:2]}) — re-measure with the 12-column instrument; the "
+                          f"reached set cannot be derived from totals")
+    reached = sorted(set(advanced) | {k for k in new if k in base
+                                       and (new[k]["new_rule_commits"] > 0 or new[k]["reach_marker_entries"] > 0)})
+    return reached, advanced, legacy
+
+
+def reached_files_and_contained_guards(base_files: dict[str, dict], new_files: dict[str, dict],
+                                        base_rules: dict[str, dict[str, int]],
+                                        new_rules: dict[str, dict[str, int]],
+                                        subset_paths: list[str],
+                                        base_subset_rules: dict[str, dict[str, int]],
+                                        new_subset_rules: dict[str, dict[str, int]],
+                                        edges: dict[str, list[str]], introduced: list[str]
+                                        ) -> tuple[bool, str, dict]:
+    """`(holds, one-line detail, facts)` for the REACHED-FILES-AND-CONTAINED-GUARDS predicate
+    (`SV-CORPUS-GRAD.27`, `ENGINE-UNIVERSAL-SERVICES.110`).
+
+    THE SHAPE. A widening lets sampled files PARSE FURTHER (three of the pinned sample flip to
+    accepted, five more stop strictly further) AND the change guards every implicit-capable type
+    site with a lookahead, so every sampled file that opens a wildcard import pays the guard's
+    identifier lookups whether or not it advanced. Measured on `.27` (the third candidate, before
+    the zero-width fact gate): all 192 sampled files moved; `advanced_files_only` needs every
+    non-advanced file byte-identical and `contained_in_introduced_subgraph` refuses any committed
+    rise — and the 170 newly accepted corpus files commit their whole trees.
+
+    ⭐ WHAT THIS ONE ASSERTS — a per-file conservation law joined to a per-rule containment, made
+    exact by the fact that every cost column is ADDITIVE over files (the per-rule sums equal the
+    per-file sums, re-checked here). (1) The REACHED set is DERIVED from the run's own per-file
+    numbers, never declared: a file whose parse advanced (accepted `no → yes`, or still rejected
+    with `furthest` strictly forward) or in which a rule NEW to the measurement COMMITTED
+    (`new_rule_commits`, counted by the instrument from its own dump against the tracked baseline
+    rule table) — the files where the change's new readings actually fired, so where a losing
+    branch that now succeeds is counted on its callers (C3-B) and a still-rejected parse may take
+    another path to the same stop. (2) A subset artifact carries the per-rule costs of EXACTLY
+    those files under the baseline parser and under the new one; it is bound to this run two ways
+    — its file list must equal the derived set, and its per-rule totals must reconcile with the
+    per-file totals on every metric for both parsers — so a table measured on other files, or
+    with another parser, is REFUSED, not weighed. (3) Subtracting the subset from the whole sample
+    gives the per-rule costs over the files the change did NOT reach, for both parsers; on those
+    files EVERY rule not reachable from the introduced set in the grammar's reference graph must
+    do NO MORE WORK: byte-identical `entries` and `committed`, and `memo_hits` that did not FALL —
+    an entry is one ask, a memo hit an ask answered without parsing, so identical asks with more
+    hits is strictly fewer real parses (a rule whose body the change re-spelled can lose an epoch
+    stamp and hit its memo once more: `known_unscoped_block_type_identifier` +1 hit on `.27`), and
+    identical asks with fewer hits is MORE real parses, refused. Rules the introduced set reaches
+    may move there (a guard's own entry, the lookups it makes, the identifier nodes a lookahead
+    commits); the reached files may cost anything. Measured on `.27`: the first evaluation FAILED
+    on 60 escaped rules and was right twice — the `net_port_header` split ran its second arm at
+    every directed port under `longest_match` (`data_type_or_implicit_declared` +1,266 entries,
+    `implicit_data_type` +694 committed, in files with no import at all — a real regression, made
+    `ordered`), and `data_declaration` committed +200 in import files whose tree did not move — a
+    losing success counted on its callers, which is why the partition is REACHED and not advanced.
+
+    ⛔ WHY THE OTHER FOURTEEN CANNOT COVER IT. `advanced_files_only` confines every move to the
+    advanced files and refuses the guards' lookups elsewhere; `contained_in_introduced_subgraph`
+    refuses `Δcommitted > 0` and cannot tell the advanced files' trees from a dearer derivation;
+    `introduced_wrapper_frames` needs the committed rise to sit purely on introduced frames; the
+    respelling and identity predicates need shapes this is not.
+
+    ⚠️ HONEST BOUND. Confined is not unavoidable: this says that outside the files the change
+    reached, nothing beyond the introduced sub-graph changed; INSIDE them it bounds nothing, and
+    the detail line prints how many of the sampled files were reached so a reader sees how much of
+    the sample the law covers. It does not say the guards have no cheaper spelling — only another
+    arm can (`.13c.2k`). And the introduced sub-graph is whatever the introduced rules REACH,
+    which for a guard over `data_type` is wide; the row's `introduced` names are the scope and are
+    checked against the graph, so the scope is data, not a label.
+    """
+    if not introduced:
+        raise Refused("the reached-files-and-contained-guards predicate needs the rule set the change "
+                      "INTRODUCED; the acceptance row declares none, so the scope of the guards is "
+                      "undeclared")
+    known = set(edges) | {r for refs in edges.values() for r in refs}
+    unknown = [r for r in introduced if r not in known]
+    if unknown:
+        raise Refused(f"{unknown} name no rule in the grammar's reference graph — a row cannot "
+                      f"declare a scope the measured grammar does not have")
+    reached, advanced, legacy = reached_files_of(base_files, new_files)
+    if legacy:
+        raise Refused(f"{len(legacy)} still-rejected file(s) moved but the baseline has no `furthest` "
+                      f"for them (unknown, never zero): {legacy[:3]} — re-baseline with the 10-column "
+                      f"per-file table before this predicate can tell advanced from not")
+    if not advanced:
+        raise Refused("no sampled file advanced (accepted no → yes, or furthest strictly forward) — "
+                      "this predicate is for a widening; a rise with no advanced file is "
+                      "`contained_in_introduced_subgraph`'s question")
+    if sorted(subset_paths) != reached:
+        extra = sorted(set(subset_paths) - set(reached)); missing = sorted(set(reached) - set(subset_paths))
+        raise Refused(f"the reached-subset artifact does not name this run's own reached set: "
+                      f"extra {extra[:3]}, missing {missing[:3]} — the artifact must be re-measured on "
+                      f"exactly the files the per-file numbers call reached")
+    for label, files, subset in (("baseline", base_files, base_subset_rules), ("new", new_files, new_subset_rules)):
+        for m in METRICS:
+            per_file = sum(files[f][m] for f in reached)
+            per_rule = sum(v[m] for v in subset.values())
+            if per_file != per_rule:
+                raise Refused(f"the {label} reached-subset table does not reconcile with the {label} "
+                              f"per-file measurement on `{m}`: per-rule sum {per_rule:,} ≠ per-file "
+                              f"sum {per_file:,} over the {len(reached)} reached file(s) — it was not "
+                              f"measured on these files with this parser")
+    names = set(base_rules) | set(new_rules) | set(base_subset_rules) | set(new_subset_rules)
+    origins = {r: origin_rule(r, known) for r in names}
+    unplaced = sorted(r for r, o in origins.items() if o is None)
+    if unplaced:
+        raise Refused(f"{len(unplaced)} measured rule(s) cannot be located in the grammar's "
+                      f"reference graph, so their moves can be neither contained nor escaped: "
+                      f"{unplaced[:5]}{' …' if len(unplaced) > 5 else ''}")
+    scope = reachable(edges, introduced)
+
+    def cost(t, r, m):
+        return t.get(r, {}).get(m, 0)
+    escaped: dict[str, dict[str, int]] = {}
+    in_scope_moved = 0
+    for r in sorted(names):
+        for m in METRICS:
+            d = ((cost(new_rules, r, m) - cost(new_subset_rules, r, m))
+                 - (cost(base_rules, r, m) - cost(base_subset_rules, r, m)))
+            if d == 0:
+                continue
+            if origins[r] in scope:
+                in_scope_moved += 1
+            elif m == "memo_hits" and d > 0:
+                # the same asks, more of them answered from the memo: fewer real parses, never more work
+                in_scope_moved += 0
+            else:
+                escaped.setdefault(r, {})[m] = d
+    outside = sum(1 for r in names if origins[r] not in scope)
+    facts = {"reached": reached, "advanced": advanced, "scope": len(scope), "escaped": escaped,
+             "in_scope_moved_cells": in_scope_moved, "rules_outside_scope": outside}
+    if escaped:
+        worst = sorted(escaped.items(), key=lambda kv: -max(abs(v) for v in kv[1].values()))[:5]
+        return False, (f"{len(escaped)} rule(s) outside the introduced sub-graph moved in files the "
+                       f"change did NOT reach: " + "; ".join(f"{r} {v}" for r, v in worst)), facts
+    return True, (f"{len(reached)} of {len(new_files)} sampled files reached ({len(advanced)} advanced) "
+                  f"carry every move outside the introduced sub-graph; on the other "
+                  f"{len(new_files) - len(reached)} the {outside} rule(s) not reachable from the "
+                  f"{len(introduced)} introduced name(s) do no more work — entries and committed "
+                  f"byte-identical, memo hits not fallen ({in_scope_moved} in-scope cells moved)"), facts
+
+
+def self_test_reached_files_and_contained_guards() -> int:
+    """Refusal and failure arms for `reached_files_and_contained_guards` — synthetic tables, every
+    arm ground truth: the predicate must hold on the shape it was written for, REFUSE every
+    artifact that is not bound to the run, and FAIL the one thing it exists to catch (a pre-existing
+    rule outside the guards' sub-graph moving in a file that did not advance)."""
+    import copy
+    edges = {"guard": ["ident"], "ident": ["trivia"], "other": ["trivia"], "expr": ["other"], "trivia": []}
+    fb = {"a": {"accepted": "no", "entries": 10, "committed": 1, "memo_hits": 2, "furthest": 5, "new_rule_commits": None, "reach_marker_entries": None},
+          "b": {"accepted": "yes", "entries": 100, "committed": 10, "memo_hits": 20, "furthest": None, "new_rule_commits": None, "reach_marker_entries": None},
+          "c": {"accepted": "no", "entries": 7, "committed": 0, "memo_hits": 1, "furthest": 3, "new_rule_commits": None, "reach_marker_entries": None}}
+    fn = {"a": {"accepted": "yes", "entries": 60, "committed": 9, "memo_hits": 12, "furthest": None, "new_rule_commits": 3, "reach_marker_entries": 1},
+          "b": {"accepted": "yes", "entries": 104, "committed": 11, "memo_hits": 21, "furthest": None, "new_rule_commits": 0, "reach_marker_entries": 0},
+          "c": {"accepted": "no", "entries": 7, "committed": 0, "memo_hits": 1, "furthest": 3, "new_rule_commits": 0, "reach_marker_entries": 0}}
+    # whole-sample per-rule tables: the guard costs 4 entries / 1 committed / 1 memo on b, and file a's
+    # advance spends 50 entries / 8 committed / 10 memo on `other` + `expr` + `ident`.
+    rb = {"ident": {"entries": 40, "committed": 4, "memo_hits": 10}, "other": {"entries": 50, "committed": 6, "memo_hits": 10},
+          "expr": {"entries": 20, "committed": 1, "memo_hits": 2}, "trivia": {"entries": 7, "committed": 0, "memo_hits": 1}}
+    rn = {"guard": {"entries": 4, "committed": 1, "memo_hits": 1}, "ident": {"entries": 60, "committed": 7, "memo_hits": 14},
+          "other": {"entries": 70, "committed": 11, "memo_hits": 15}, "expr": {"entries": 30, "committed": 1, "memo_hits": 3},
+          "trivia": {"entries": 7, "committed": 0, "memo_hits": 1}}
+    sb = {"ident": {"entries": 5, "committed": 1, "memo_hits": 1}, "other": {"entries": 4, "committed": 0, "memo_hits": 1},
+          "expr": {"entries": 1, "committed": 0, "memo_hits": 0}}
+    sn = {"ident": {"entries": 25, "committed": 4, "memo_hits": 5}, "other": {"entries": 24, "committed": 5, "memo_hits": 6},
+          "expr": {"entries": 11, "committed": 0, "memo_hits": 1}}
+    arms, failed = [], []
+
+    def run(name, expect, want, mutate=None):
+        fb2, fn2, rb2, rn2, sb2, sn2 = (copy.deepcopy(x) for x in (fb, fn, rb, rn, sb, sn))
+        paths = ["a"]; intro = ["guard"]
+        if mutate:
+            r = mutate(fb2, fn2, rb2, rn2, sb2, sn2)
+            if isinstance(r, tuple):
+                paths, intro = r
+        try:
+            holds, detail, _ = reached_files_and_contained_guards(fb2, fn2, rb2, rn2, paths, sb2, sn2, edges, intro)
+            got = "holds" if holds else "fails"
+        except Refused as exc:
+            got, detail = "refuses", str(exc)
+        ok = got == expect and want in detail
+        arms.append(name)
+        if not ok:
+            failed.append(f"{name}: expected {expect} with '{want}', got {got}: {detail[:160]}")
+    run("holds on the shape", "holds", "carry every move outside the introduced sub-graph")
+    run("refuses an empty introduced set", "refuses", "declares none", lambda *t: (["a"], []))
+    run("refuses an unknown introduced name", "refuses", "name no rule", lambda *t: (["a"], ["nope"]))
+    run("refuses a subset naming an unreached file", "refuses", "does not name this run's own reached set", lambda *t: (["a", "b"], ["guard"]))
+    run("refuses a subset missing a reached file", "refuses", "does not name this run's own reached set", lambda *t: ([], ["guard"]))
+    def no_column(fb2, fn2, rb2, rn2, sb2, sn2):
+        fn2["b"]["new_rule_commits"] = None
+    run("refuses a new per-file table without the reached column", "refuses", "no `new_rule_commits` column", no_column)
+    def no_marker_column(fb2, fn2, rb2, rn2, sb2, sn2):
+        fn2["b"]["reach_marker_entries"] = None
+    run("refuses a new per-file table without the marker column", "refuses", "no `reach_marker_entries` column", no_marker_column)
+    def unreconciled(fb2, fn2, rb2, rn2, sb2, sn2):
+        sn2["ident"]["entries"] += 1
+    run("refuses a subset table that does not reconcile", "refuses", "does not reconcile", unreconciled)
+    def no_advance(fb2, fn2, rb2, rn2, sb2, sn2):
+        fn2["a"]["accepted"] = "no"; fn2["a"]["furthest"] = 5
+    run("refuses when no file advanced", "refuses", "no sampled file advanced", no_advance)
+    def legacy(fb2, fn2, rb2, rn2, sb2, sn2):
+        fb2["c"]["furthest"] = None; fn2["c"]["furthest"] = 4
+    run("refuses a still-rejected mover with no baseline furthest", "refuses", "no `furthest`", legacy)
+    def escape(fb2, fn2, rb2, rn2, sb2, sn2):
+        # `expr` (not reachable from the guard) rises by 1 on file b: whole-sample +1, subset unchanged
+        rn2["expr"]["entries"] += 1; fn2["b"]["entries"] += 1
+    run("fails when an out-of-scope rule moves in an unreached file", "fails", "outside the introduced sub-graph moved", escape)
+    def reached_by_marker(fb2, fn2, rb2, rn2, sb2, sn2):
+        # file b is REACHED through a MARKER entry (no new rule committed): `expr` may move there
+        fn2["b"]["reach_marker_entries"] = 1; rn2["expr"]["entries"] += 5; fn2["b"]["entries"] += 5
+        sb2.clear(); sb2.update({"ident": {"entries": 45, "committed": 5, "memo_hits": 11}, "other": {"entries": 44, "committed": 5, "memo_hits": 9},
+                                 "expr": {"entries": 21, "committed": 1, "memo_hits": 2}})
+        sn2.clear(); sn2.update({"guard": {"entries": 4, "committed": 1, "memo_hits": 1}, "ident": {"entries": 65, "committed": 8, "memo_hits": 15},
+                                 "other": {"entries": 64, "committed": 10, "memo_hits": 14}, "expr": {"entries": 36, "committed": 1, "memo_hits": 3}})
+        return (["a", "b"], ["guard"])
+    run("holds when an out-of-scope rule moves only in a file a reach marker was entered in", "holds", "carry every move outside the introduced sub-graph", reached_by_marker)
+    def reached_not_advanced(fb2, fn2, rb2, rn2, sb2, sn2):
+        # file b is REACHED (a new rule committed in it) though not advanced: `expr` may move there —
+        # the subset then covers a and b, so the tables and the manifest grow accordingly
+        fn2["b"]["new_rule_commits"] = 2; rn2["expr"]["entries"] += 5; fn2["b"]["entries"] += 5
+        for r, v in rb2.items():
+            sb2.setdefault(r, {"entries": 0, "committed": 0, "memo_hits": 0})
+        # subset = a + b under both parsers: base b costs = whole base minus (c + nothing else) … keep it exact:
+        # base: a(10,1,2)+b(100,10,20)=110,11,22 ; new: a(60,9,12)+b(109,11,21)=169,20,33
+        sb2.clear(); sb2.update({"ident": {"entries": 45, "committed": 5, "memo_hits": 11}, "other": {"entries": 44, "committed": 5, "memo_hits": 9},
+                                 "expr": {"entries": 21, "committed": 1, "memo_hits": 2}})
+        sn2.clear(); sn2.update({"guard": {"entries": 4, "committed": 1, "memo_hits": 1}, "ident": {"entries": 65, "committed": 8, "memo_hits": 15},
+                                 "other": {"entries": 64, "committed": 10, "memo_hits": 14}, "expr": {"entries": 36, "committed": 1, "memo_hits": 3}})
+        return (["a", "b"], ["guard"])
+    run("holds when an out-of-scope rule moves only in a reached, non-advanced file", "holds", "carry every move outside the introduced sub-graph", reached_not_advanced)
+    def escape_committed(fb2, fn2, rb2, rn2, sb2, sn2):
+        rn2["other"]["committed"] += 1; fn2["b"]["committed"] += 1
+    run("fails on an out-of-scope committed rise in a non-advanced file", "fails", "outside the introduced sub-graph moved", escape_committed)
+    def inside_advanced(fb2, fn2, rb2, rn2, sb2, sn2):
+        # `expr` rises by 3 but only inside the advanced file a: whole-sample +3, subset +3
+        rn2["expr"]["entries"] += 3; sn2["expr"]["entries"] += 3; fn2["a"]["entries"] += 3
+    run("holds when an out-of-scope rule moves only inside an advanced file", "holds", "carry every move outside the introduced sub-graph", inside_advanced)
+    def memo_only_rise(fb2, fn2, rb2, rn2, sb2, sn2):
+        # `expr` (out of scope) is asked the same number of times in file b but one more ask hits the memo
+        rn2["expr"]["memo_hits"] += 1; fn2["b"]["memo_hits"] += 1
+    run("holds when an out-of-scope rule only gains a memo hit in an unreached file", "holds", "carry every move outside the introduced sub-graph", memo_only_rise)
+    def memo_fall(fb2, fn2, rb2, rn2, sb2, sn2):
+        # `expr` loses a memo hit with the same asks: one more real parse — refused
+        rn2["expr"]["memo_hits"] -= 1; fn2["b"]["memo_hits"] -= 1
+    run("fails when an out-of-scope rule loses a memo hit in an unreached file", "fails", "outside the introduced sub-graph moved", memo_fall)
+    def in_scope_fall(fb2, fn2, rb2, rn2, sb2, sn2):
+        # `ident` (reachable from the guard) falls by 1 on file b — in scope, tolerated
+        rn2["ident"]["memo_hits"] -= 1; fn2["b"]["memo_hits"] -= 1
+    run("holds when an in-scope rule falls in an unreached file", "holds", "carry every move outside the introduced sub-graph", in_scope_fall)
+    for f in failed:
+        print("  FAILED ARM", f)
+    print(f"REACHED-FILES-AND-CONTAINED-GUARDS-SELFTEST: arms={len(arms)} failed={len(failed)}")
+    return 1 if failed else 0
 
 
 def self_test_advanced_files_only() -> int:
@@ -2025,7 +2327,8 @@ def main() -> int:
             return (self_test_host_memo_eviction() | self_test_caller_split_containment()
                     | self_test_advanced_files_only() | self_test_introduced_wrapper_frames()
                     | self_test_scope_gated_arm() | self_test_typed_replacement_of_opaque_terminal()
-                    | self_test_lookahead_replay_occurrences() | self_test_guarded_typed_reading())
+                    | self_test_lookahead_replay_occurrences() | self_test_guarded_typed_reading()
+                    | self_test_reached_files_and_contained_guards())
 
         if a.graph:
             g = derive_graph(a.graph)

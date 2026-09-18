@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-52f71b3d.js";
+            window.path_to_searchindex_js = "searchindex-717523f4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -1071,8 +1071,13 @@ another name for an existing nettype: <code>nettype wTsum nettypeid2;</code>. On
 <code>net_type_declaration_sv_2017</code> succeed — a declared nettype is a <code>type_name</code> fact, so the data-type form reads <code>wTsum</code> as a
 <code>known_unscoped_data_type</code> — and the longest-match tie went to declaration order: the alias alternative NEVER won, on
 either SV profile (the fully typed <code>sv_2023</code> twin included), and the AST called the base nettype a data type. Since
-<code>1.0.219</code> the data-type alternative REFUSES an alias head by negative lookahead — <code>!( nettype_scope_prefix? checked_nettype_identifier declaration_identifier semi )</code>, i.e. <code>[ scope ] &lt;declared nettype&gt; &lt;identifier&gt; ;</code> — so the alias alternative
-wins those declarations while the order stays as shipped; and the alias base <code>net_type_identifier</code>, a bare
+<code>1.0.219</code> the data-type alternative REFUSES an alias head by negative lookahead — since <code>1.0.239</code> (<code>SV-CORPUS-GRAD.27</code>) <code>!( nettype_alias_shape_ahead )</code>:
+<code>[ scope ] &lt;declared nettype&gt; &lt;identifier&gt;</code> (the trailing <code>;</code> left the lookahead in <code>.3.46</code>, so a declared nettype base is
+refused with or without a <code>with</code> clause — pinned <code>invalid_nettype_alias_with_resolution_function.sv</code>), OR the exact alias form
+<code>&lt;unresolved bare name&gt; &lt;identifier&gt; ;</code> under an open wildcard import (<code>!( checked_type_identifier ) wildcard_escape_nettype_identifier declaration_identifier semi</code>), which the <code>.27</code> type escape in <code>data_type</code> would otherwise
+read as a data type and win the longest-match tie — the first <code>1.0.239</code> candidate did, and the pins pre-screen read
+<code>ast_moved=2</code> before any lane ran; a declared type is not the shape, so <code>nettype T wT;</code> over a typedef keeps the data-type
+reading — so the alias alternative wins those declarations while the order stays as shipped; and the alias base <code>net_type_identifier</code>, a bare
 <code>declaration_identifier</code> through <code>1.0.218</code> (one ungated twin per edition), is <code>checked_nettype_identifier | wildcard_escape_nettype_identifier</code> — a declared nettype, or an undeclared name under a wildcard import, exactly how
 <code>net_declaration</code> reads a net of a user-defined nettype (SV-PARSE-STRICT.2; SV-0037 routed the same ungated names in
 <code>net_port_type</code>) — the three ungated twins deleted. Two spellings were refuted first: reordering the ungated alternative

@@ -7,20 +7,21 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `0a0e06545377f5f463fae26c966dd0f3ad90ba1fc2d576fc697b7d88d91222ea` |
-| grammar | `grammars/systemverilog.ebnf` | `66710a4933dc24d3e62efd028103339069ca96a6c06db0b775e5bfeaeee91fdb` |
-| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `9e7539869ae54319ac572e274491eb47c4e20230c8d04781252c6f0926172072` |
+| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `7ff8808ae5e03a02acead6a97bc695a7dab422e82ae14f93bdee2a194d9fec8a` |
+| grammar | `grammars/systemverilog.ebnf` | `4900edad613c742ff5c9f175ac86f136b0d8663839f279bf1d74cbafa1003b01` |
+| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `d2f2d02d99db7557ca2b079050dd7761a13d7d1415a420d9b4fe9726a46225d7` |
 
 ## Verdicts
 
 | verdict | rows | what it means |
 |---|---:|---|
 | `MACRO-BLOCKED` | 30 | the RESIDUAL failure sits on an undefined macro invocation ⇒ expansion owns what is left (`.13d`), NOT a parser defect |
-| `INVALID-SV` | 12 | the text is NOT legal SV; the rejection is CORRECT and accepting it would be an over-acceptance defect (pinned as a negative reproducer) |
-| `CROSS-FILE-FACTS` | 9 | declaring the cross-file names the parser demanded makes the file PARSE ⇒ blocked by cross-file FACT continuity (`.4`), NOT a parser defect |
+| `INVALID-SV` | 14 | the text is NOT legal SV; the rejection is CORRECT and accepting it would be an over-acceptance defect (pinned as a negative reproducer) |
+| `CROSS-FILE-FACTS` | 12 | declaring the cross-file names the parser demanded makes the file PARSE ⇒ blocked by cross-file FACT continuity (`.4`), NOT a parser defect |
 | `FRAGMENT-MODULE` | 2 | parses only inside a `module` ⇒ an include payload, not a legal standalone compilation unit |
 | `FRAGMENT-ENUM-BODY` | 1 | an enum-member list included INSIDE an `enum { … }` — no compilation-unit wrapper can shape it |
-| **TOTAL** | **54** | |
+| `PARSER-DEFECT` | 1 |  |
+| **TOTAL** | **60** | |
 
 ## Per row
 
@@ -31,11 +32,14 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | verdict | suite | file | line | wrapper | what unblocks it / repro |
 |---|---|---|---:|---|---|
 | `CROSS-FILE-FACTS` | Surelog | `tests/ModPortTest/top.v` | 14 | none | `DD,id_t1` |
+| `CROSS-FILE-FACTS` | Surelog | `tests/SplitFile/svaunit_pkg.sv` | 37 | none | `uvm_component_registry,uvm_config_db,uvm_object_registry` |
 | `CROSS-FILE-FACTS` | Surelog | `tests/UnitClass/top.v` | 24 | none | `DD` |
 | `CROSS-FILE-FACTS` | opentitan | `hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv` | 11 | none | `mubi_cov` |
-| `CROSS-FILE-FACTS` | opentitan | `hw/ip/i3c/rtl/i3c_dat.sv` | 27 | none | `i3c_dat_mem_t,ram_1p_cfg_rsp_t,ram_1p_cfg_t` |
-| `CROSS-FILE-FACTS` | opentitan | `hw/ip/i3c/rtl/i3c_dct.sv` | 28 | none | `i3c_dct_mem_t,ram_1p_cfg_rsp_t,ram_1p_cfg_t` |
-| `CROSS-FILE-FACTS` | opentitan | `hw/ip/i3c/rtl/i3c_dxt.sv` | 53 | none | `ram_1p_cfg_rsp_t,ram_1p_cfg_t` |
+| `CROSS-FILE-FACTS` | opentitan | `hw/ip/aes/dv/err_injection_if/fi_cipher_fsm_wrapper.sv` | 23 | none | `uvm_config_db` |
+| `CROSS-FILE-FACTS` | opentitan | `hw/ip/aes/dv/err_injection_if/fi_control_fsm_wrapper.sv` | 23 | none | `uvm_config_db` |
+| `CROSS-FILE-FACTS` | opentitan | `hw/ip/aes/dv/err_injection_if/fi_core_wrapper.sv` | 23 | none | `uvm_config_db` |
+| `CROSS-FILE-FACTS` | opentitan | `hw/ip/aes/dv/err_injection_if/fi_ctr_fsm_wrapper.sv` | 23 | none | `uvm_config_db` |
+| `CROSS-FILE-FACTS` | opentitan | `hw/ip/aes/dv/err_injection_if/fi_ghash_wrapper.sv` | 23 | none | `uvm_config_db` |
 | `CROSS-FILE-FACTS` | opentitan | `hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv` | 24 | none | `t_Counteren,t_MainMode,t_MainResult,t_Mcause,t_Minterrupts,t_Mseccfg_ent,t_Mstatus,t_Mtvec,t_Pmpcfg_ent,t_Privilege` |
 | `CROSS-FILE-FACTS` | uvm-core | `uvm-core-2020.3.1/src/base/uvm_port_base.svh` | 75 | none | `uvm_component,uvm_coreservice_t,uvm_object,uvm_phase,uvm_port_type_e,uvm_root,uvm_void` |
 | `CROSS-FILE-FACTS` | uvm-core | `uvm-core-2020.3.1/src/comps/uvm_policies.svh` | 147 | none | `uvm_object` |
@@ -47,6 +51,8 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `INVALID-SV` | black-parrot | `bp_top/test/common/bp_nonsynth_core_profiler.sv` | 3 | — | the file's first token is the bare marker `ERROR_CURRENTLY_UNSUPPORTED`, followed by a typedef — a deliberate upstream "do not compile" sentinel, not SV |
 | `INVALID-SV` | opentitan | `hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv` | 53 | — | `invalid_param_trailing_comma.sv` |
 | `INVALID-SV` | opentitan | `hw/ip/otbn/dv/verilator/otbn_top_sim.sv` | 168 | — | `invalid_implicit_named_param.sv` |
+| `INVALID-SV` | opentitan | `hw/ip/otbn/pre_sca/rtl/otbn_mask_accelerator_sca_wrapper.sv` | 51 | — | `invalid_if_two_statements_then_else.sv` |
+| `INVALID-SV` | opentitan | `hw/ip/spi_device/pre_dv/program/prog_passthrough_host.sv` | 117 | — | `invalid_lifetime_before_task.sv` |
 | `INVALID-SV` | opentitan | `hw/ip/spi_device/pre_dv/program/spiflash.sv` | 192 | — | `invalid_lifetime_before_task.sv` |
 | `INVALID-SV` | opentitan | `hw/ip/spi_device/pre_dv/tb/spid_jedec_tb.sv` | 97 | — | `invalid_lifetime_before_task.sv` |
 | `INVALID-SV` | opentitan | `hw/ip/spi_device/pre_dv/tb/spid_upload_tb.sv` | 186 | — | `invalid_lifetime_before_task.sv` |
@@ -84,3 +90,4 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `MACRO-BLOCKED` | uvm-core | `uvm-core-2020.3.1/src/seq/uvm_sequencer_base.svh` | 41 | none | stuck on `` `ifdef `` (undefined here) |
 | `MACRO-BLOCKED` | uvm-core | `uvm-core-2020.3.1/src/tlm1/uvm_sqr_connections.svh` | 57 | none | stuck on `` `UVM_SEQ_PORT `` (undefined here) |
 | `MACRO-BLOCKED` | uvm-core | `uvm-core-2020.3.1/src/tlm1/uvm_tlm_req_rsp.svh` | 59 | none | stuck on `` `uvm_component_param_utils `` (undefined here) |
+| `PARSER-DEFECT` | Surelog | `tests/SplitFile/amiq_eth_ve_top.v` | 907 | — | `defect_wildcard_escape_parameterized_class_type.sv` |

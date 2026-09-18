@@ -9,17 +9,17 @@ describes your tree** and the honest act is to re-measure, not to quote.
 
 | input | sha256 |
 | --- | --- |
-| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `b5bbef7688f98df961d65a8dc86993bc02b148e19fafe4869ad7e7a69490c787` |
+| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `840852c5e8d1a7fe064a3e981afd0c0c9021479e0dca2b6053a09847a80f39cb` |
 | `docs/verilog/2005/md/section-Annex_B-normative-list-of-keywords.md` | `08ba9745b0f0791ad48b786284b733414ab26ce7b2b9373d95174d094218025d` |
 | `docs/tasks/artifacts/sv_corpus_grad/v2005_keyword_faithfulness/witnesses/MANIFEST.tsv` | `381f524f1da50e9dd07781403c48c1e58996336f43bf0efaf28e0cc5b7b9cdbb` |
 
 ## Population
 
-- rules in the source grammar: **1689**
-- of those, SATISFIABLE under `verilog_2005`: **1233** (the bottom-up half — *can this rule derive a string here*)
+- rules in the source grammar: **1696**
+- of those, SATISFIABLE under `verilog_2005`: **1235** (the bottom-up half — *can this rule derive a string here*)
 - of those, REACHABLE under `verilog_2005` from the 4 declared entry roots: **879** (the top-down half — *can a parse get here*)
-- **satisfiable but UNREACHABLE: 354** — rules the profile admits that no `verilog_2005` input can arrive at. `kw_void_e9cede9b` is the worked example: the terminal is ungated and trivially satisfiable, while both rules that reference it are `_sv_only`. ⭐ **This is NOT a gap in the certificate accounting, and an earlier version of this report said it was.** The engine already crosses the two directions: `gather_verified_profile_proof_covered_rules` (`VERILOG-2005-PROFILE.6.7`) classifies the WHOLE active rule set, and every profile-entry-unreachable rule gets an explicitly RE-VERIFIED `ProfileEntryUnreachable` certificate — a re-verify failure is reported as a linter bug, never silently covered. Measured: all of these rules appear in the cert pass's `proof` category, exactly. The number below is useful for understanding the profile's live surface; it is not a defect.
-- not adjudicated here: **15** `_lr_*` rules the indirect-left-recursion eliminator synthesises, which exist in no `.ebnf` file and so have no source-graph edges. The certificate denominator counts them too, which is why it reads 1248 where this row reads 1233.
+- **satisfiable but UNREACHABLE: 356** — rules the profile admits that no `verilog_2005` input can arrive at. `kw_void_e9cede9b` is the worked example: the terminal is ungated and trivially satisfiable, while both rules that reference it are `_sv_only`. ⭐ **This is NOT a gap in the certificate accounting, and an earlier version of this report said it was.** The engine already crosses the two directions: `gather_verified_profile_proof_covered_rules` (`VERILOG-2005-PROFILE.6.7`) classifies the WHOLE active rule set, and every profile-entry-unreachable rule gets an explicitly RE-VERIFIED `ProfileEntryUnreachable` certificate — a re-verify failure is reported as a linter bug, never silently covered. Measured: all of these rules appear in the cert pass's `proof` category, exactly. The number below is useful for understanding the profile's live surface; it is not a defect.
+- not adjudicated here: **15** `_lr_*` rules the indirect-left-recursion eliminator synthesises, which exist in no `.ebnf` file and so have no source-graph edges. The certificate denominator counts them too, which is why it reads 1250 where this row reads 1235.
 - keyword literals reachable under `verilog_2005`: **140**
 - of those, reserved by IEEE 1364-2005 Annex B: **124**
 - of those, NOT reserved by Annex B: **16** (**14** word-shaped, **2** single-letter / symbol terminals used by the UDP tables, edge descriptors and `PATHPULSE$`, which are 1364-2005 terminals rather than keywords)

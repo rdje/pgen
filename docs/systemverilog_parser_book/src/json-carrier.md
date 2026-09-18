@@ -951,9 +951,14 @@ another name for an existing nettype: `nettype wTsum nettypeid2;`. On the LRM's 
 `net_type_declaration_sv_2017` succeed — a declared nettype is a `type_name` fact, so the data-type form reads `wTsum` as a
 `known_unscoped_data_type` — and the longest-match tie went to declaration order: the alias alternative NEVER won, on
 either SV profile (the fully typed `sv_2023` twin included), and the AST called the base nettype a data type. Since
-`1.0.219` the data-type alternative REFUSES an alias head by negative lookahead — `!( nettype_scope_prefix?
-checked_nettype_identifier declaration_identifier semi )`, i.e. `[ scope ] <declared nettype> <identifier> ;` — so the alias alternative
-wins those declarations while the order stays as shipped; and the alias base `net_type_identifier`, a bare
+`1.0.219` the data-type alternative REFUSES an alias head by negative lookahead — since `1.0.239` (`SV-CORPUS-GRAD.27`) `!( nettype_alias_shape_ahead )`:
+`[ scope ] <declared nettype> <identifier>` (the trailing `;` left the lookahead in `.3.46`, so a declared nettype base is
+refused with or without a `with` clause — pinned `invalid_nettype_alias_with_resolution_function.sv`), OR the exact alias form
+`<unresolved bare name> <identifier> ;` under an open wildcard import (`!( checked_type_identifier )
+wildcard_escape_nettype_identifier declaration_identifier semi`), which the `.27` type escape in `data_type` would otherwise
+read as a data type and win the longest-match tie — the first `1.0.239` candidate did, and the pins pre-screen read
+`ast_moved=2` before any lane ran; a declared type is not the shape, so `nettype T wT;` over a typedef keeps the data-type
+reading — so the alias alternative wins those declarations while the order stays as shipped; and the alias base `net_type_identifier`, a bare
 `declaration_identifier` through `1.0.218` (one ungated twin per edition), is `checked_nettype_identifier |
 wildcard_escape_nettype_identifier` — a declared nettype, or an undeclared name under a wildcard import, exactly how
 `net_declaration` reads a net of a user-defined nettype (SV-PARSE-STRICT.2; SV-0037 routed the same ungated names in

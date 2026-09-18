@@ -1978,7 +1978,20 @@ scoped_base_class_type_identifier := non_typedef_package_scope class_identifier 
 # `<invalid_sequence_access>` when the self-annotated scoped branch won). Mirrors the
 # already-correct sibling `class_type_head` (:1102) + the `.1` `ansi_port_header` /
 # `.2.1` `forward_type_keyword` named-lift precedent.
-base_class_type_head := scoped_base_class_type_identifier | known_unscoped_base_class_type_identifier | known_unscoped_base_class_type_parameter_identifier
+base_class_type_head := scoped_base_class_type_identifier | known_unscoped_base_class_type_identifier | known_unscoped_base_class_type_parameter_identifier | wildcard_escape_base_class_identifier
+
+# SV-CORPUS-GRAD.27: the SV-PARSE-STRICT.2 wildcard escape, extended from nettype identifiers to the base class and to the
+# unscoped type use-sites — `class test extends uvm_test;` / `uvm_component parent` under an open `import uvm_pkg::*` (verilator
+# t_uvm_hello.v, the last row of the SV axis-2 bar and of the sv_2023 bar). Sound, not complete: an undeclared identifier in a
+# type position is admitted ONLY while an unresolved wildcard import is in scope (`wildcard_import_open` emitted by the
+# `pkg::*` branch of package_import_item), because the parser cannot prove the name undeclared; resolution is elaboration's.
+# Each escape renders what the known rule renders, and sits LAST, so a declared name keeps its tree. sv-only: 1364 has no packages.
+@profiles: ["sv_2017", "sv_2023"]
+@predicate: { name: fact_count_at_least, args: [wildcard_import_open, 1], phase: post }
+wildcard_escape_base_class_identifier := class_identifier
+@profiles: ["sv_2017", "sv_2023"]
+@predicate: { name: fact_count_at_least, args: [wildcard_import_open, 1], phase: post }
+wildcard_escape_type_identifier := type_identifier -> { body: $1.body }
 
 base_class_type := base_class_type_head ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
                 -> {head: $1, params: $2, scope_chain: $3}
@@ -2792,6 +2805,8 @@ known_unscoped_block_type_identifier := checked_type_identifier packed_dimension
                                      -> {type: $1, dims: $2}
                                       | cross_predefined_type_identifier packed_dimension*
                                      -> {type: $1, dims: $2}
+                                         | wildcard_escape_type_identifier packed_dimension*
+                                        -> {type: $1, dims: $2}
 
 # SV-AST-SHAPE-FIDELITY.2.3 — named-lift of the shared scoped-type-identifier scope prefix
 # so the bare `scope: $1` in `scoped_block_type_identifier` / `scoped_data_type_identifier`
@@ -2815,6 +2830,8 @@ known_unscoped_data_type_identifier := checked_type_identifier packed_dimension*
                                     -> {type: $1, dims: $2}
                                      | cross_predefined_type_identifier packed_dimension*
                                     -> {type: $1, dims: $2}
+                                        | wildcard_escape_type_identifier packed_dimension*
+                                       -> {type: $1, dims: $2}
 
 @profiles: ["sv_2017", "sv_2023"]
 scoped_data_type_identifier := scoped_type_scope_prefix type_identifier packed_dimension*
@@ -2936,8 +2953,46 @@ data_type := @probe_sample: "int" integer_vector_type ( signing )? packed_dimens
            | type_reference
                   -> {kind: "type_reference",        body: $1}
 
-data_type_or_implicit := data_type          -> {kind: "data_type",     body: $1}
-                       | implicit_data_type -> {kind: "implicit",       body: $1}
+# SV-CORPUS-GRAD.27 (release 1.0.239): the ESCAPED reading of an unresolved bare identifier counts as the type here only
+# when a name (or `#`) follows it — the guard `data_type_or_implicit_declared` and `var_data_type` carry for every type
+# (`&( declaration_identifier | hash )`), restricted to the escape so a declared or keyword type without a name (an unnamed
+# tf port, `import "DPI-C" function void f(int, string)`) keeps its reading. Without it the .27 escape read a LONE unresolved
+# name as the type wherever the name slot is optional or shares an optional with the type, and the engine does not re-open a
+# matched optional: `function f(input a)` kept its verdict with a moved tree (the name gone, `a` a type), `read_pat :
+# coverpoint …` and `property p(a, b)` lost acceptance (flash_ctrl_phy_cov_if.sv × 3, the population pre-screen's only
+# losses). The template binds the type child (`$2`), never the lookahead.
+data_type_or_implicit := !( wildcard_escape_lone_name_shape ) data_type -> {kind: "data_type",     body: $2}
+                       | implicit_data_type                             -> {kind: "implicit",       body: $1}
+
+# The shape the escape must not read as a type at an implicit-capable site: an UNRESOLVED bare identifier (a declared type is
+# `checked_type_identifier`; a keyword type is not an identifier at all), optional packed dimensions, and then NOT a name, a `#`
+# or a `::` — a package or class scope's first identifier is never the lone name (the second final candidate refused
+# `localparam pinmux_pkg::target_cfg_t X = …` at 19 population arms by reading `pinmux_pkg` as that shape).
+# SV-CORPUS-GRAD.27 (release 1.0.239): the randsequence production's OPTIONAL return type (IEEE 1800-2017 A.6.12
+# `production ::= [ data_type_or_void ] production_identifier [ ( tf_port_list ) ] : …`) is the same theft site as a coverpoint
+# label — `main : first second;` under an open import read `main` as an escaped type inside the committed optional and refused
+# the production (slang all.sv under sv_2023, the `.26` row, lost on the third candidate). A passthrough helper (`-> $2`, the
+# type child, never the lookahead) keeps the optional's rendering byte-identical.
+production_return_type_guarded := !( wildcard_escape_lone_name_shape ) data_type_or_void -> $2
+
+# A zero-width gate on the fact every escape needs, in the three shapes below: the shapes run at every
+# `data_type_or_implicit` entry and every direction-less ANSI port, so their precondition (an open wildcard import) is asked
+# once. MEASURED under the parse-cost ratchet against the same shapes without it (the third `.27` candidate): `committed`
+# identical, `entries` +2,923, `memo_hits` −7,279 — the gate does not reduce cost; it is kept as the honest spelling of the
+# precondition, not as an optimisation. ⛔ IT MUST NOT BE THE FIRST ELEMENT: a rule whose body touches the store is memoized
+# epoch-stamped (the generator's `memo_store_tainted`), so a shape that reads the fact before looking for an identifier
+# taints the memo of every `data_type_or_implicit` ask — measured on the fourth `.27` candidate as a keyword-typed task port
+# (`task static mytask(int test)`) whose `tf_port_list` was re-parsed instead of answered from the memo (three entries in the
+# pinned sample, caught by `reached_files_and_contained_guards`). Each shape therefore opens with `&( declaration_identifier )`
+# — the shape needs an identifier anyway (`type_identifier := declaration_identifier`), so the choice is provably unchanged
+# and a keyword-typed site fails the shape without touching the store, exactly as the released grammar did. The rise the
+# ratchet reads on 1.0.239 is the 170 newly accepted files' own trees plus the guards' lookups in import files, accepted
+# under `reached_files_and_contained_guards` (ENGINE-UNIVERSAL-SERVICES.110).
+@predicate: { name: fact_count_at_least, args: [wildcard_import_open, 1], phase: post }
+wildcard_import_open_gate := &( trivia )
+
+@profiles: ["sv_2017", "sv_2023"]
+wildcard_escape_lone_name_shape := &( declaration_identifier ) wildcard_import_open_gate !( checked_type_identifier ) wildcard_escape_type_identifier packed_dimension* !( declaration_identifier | hash | scope_resolution )
 
 # SV-CORPUS-GRAD.3.35 (ledger SV-0083), IEEE 1800-2017 Annex A footnote 6
 # (section-41-data-read-api.md:3504-3505): "In a data_declaration, it shall be illegal to omit the
@@ -5349,8 +5404,24 @@ net_lvalue := ps_or_hierarchical_net_identifier constant_select
             | ( assignment_pattern_expression_type )? assignment_pattern_net_lvalue
                     -> {kind: "pattern",       type: $1, body: $2}
 
-net_port_header := ( port_direction )? net_port_type
+# SV-CORPUS-GRAD.27 (release 1.0.239): a direction-less header whose type would be an UNRESOLVED bare identifier under
+# an open wildcard import, followed by an identifier, is the interface-port shape (`ansi_port_header`'s second arm) —
+# the reading every release through 1.0.238 gave `foo_t a` in a port list. The type route, now able to read that name
+# through the .27 escape, yields to it so the accepted tree does not move; with a direction there is no interface
+# reading and the escape applies (`input foo_t a`, refused through 1.0.238, is a type port). A declared type is not
+# the shape (`!( checked_type_identifier )`): `known_t a` keeps the type reading it always had. The absent direction
+# is spelled `[]`, the carrier's rendering of an unmatched optional. ORDERED, not the default longest_match: with a direction
+# the second arm can only match EMPTY (the implicit reading at the direction keyword), so it never beats a successful first arm —
+# the two policies choose identically — and longest_match would still RUN it at every directed port (measured under the ratchet:
+# `data_type_or_implicit_declared` +1,266 entries, `implicit_data_type` +694 committed in files that did not advance).
+@branch_policy: ordered
+net_port_header := port_direction net_port_type
                 -> {direction: $1, port_type: $2}
+                 | !( wildcard_escape_interface_port_shape ) net_port_type
+                -> {direction: [], port_type: $2}
+
+@profiles: ["sv_2017", "sv_2023"]
+wildcard_escape_interface_port_shape := &( declaration_identifier ) wildcard_import_open_gate !( checked_type_identifier ) wildcard_escape_type_identifier declaration_identifier
 
 @profiles: ["sv_2017", "sv_2023"]
 net_port_type_interconnect_sv_only := kw_interconnect_c8ec83f5 implicit_data_type -> {kind: "interconnect", data_type: $2}
@@ -5450,7 +5521,7 @@ nettype_scope_prefix := non_typedef_package_scope | class_scope
 # `with` where it needs `;` and rejects. Nothing legal starts that way on this alternative: a data_type is never a
 # declared nettype (one namespace, IEEE 1800-2017 §6.6.7). 0 corpus rows on any lane (14 `with` declarations in the
 # corpus, every base a typedef); pinned invalid_nettype_alias_with_resolution_function.sv (+ the scoped-base twin).
-net_type_declaration_sv_2017 := kw_nettype_27d30cf3 !( nettype_scope_prefix? checked_nettype_identifier declaration_identifier ) data_type declared_nettype_identifier ( kw_with_8fcd25a3 nettype_scope_prefix? tf_identifier )? semi
+net_type_declaration_sv_2017 := kw_nettype_27d30cf3 !( nettype_alias_shape_ahead ) data_type declared_nettype_identifier ( kw_with_8fcd25a3 nettype_scope_prefix? tf_identifier )? semi
                              -> {data_type: $3, name: $4, with_clause: $5}
                               | kw_nettype_27d30cf3 nettype_scope_prefix? net_type_identifier declared_nettype_identifier semi
                              -> {kind: "nettype", scope: $2, base: $3, name: $4}
@@ -5508,13 +5579,24 @@ declared_nettype_identifier := declaration_identifier -> { body: $1.body }
 @predicate: { name: fact_count_at_least, args: [wildcard_import_open, 1], phase: post }
 wildcard_escape_nettype_identifier := declaration_identifier -> { body: $1.body }
 
+# SV-CORPUS-GRAD.27 (release 1.0.239): the alias shape the §6.6.7 FIRST production yields to — a declared nettype base
+# (the lookahead the type arm carried since .3.45), or an UNRESOLVED bare base under an open wildcard import in the
+# exact alias form `nettype base name ;`, which `net_type_identifier`'s SV-PARSE-STRICT.2 escape has read as a nettype
+# alias since then. The .27 type escape in `data_type` would otherwise win that tie and move an accepted tree (measured
+# under the interpreter: control_nettype_alias_wildcard_import_sv2017/sv2023). A declared type is NOT this shape
+# (`!( checked_type_identifier )`), so `nettype my_typedef x;` keeps the type reading; `with` is not the alias form, so
+# `nettype unresolved x with f;` reaches the type arm and the escape.
+@profiles: ["sv_2017", "sv_2023"]
+nettype_alias_shape_ahead := nettype_scope_prefix? checked_nettype_identifier declaration_identifier
+                           | &( declaration_identifier ) wildcard_import_open_gate !( checked_type_identifier ) wildcard_escape_nettype_identifier declaration_identifier semi
+
 @profiles: ["sv_2023"]
 # SV-CORPUS-GRAD.3.45 (release 1.0.219): the same tie-break as net_type_declaration_sv_2017 above — the alias form was
 # shadowed on the LRM's own §6.6.7 example under sv_2023 too (`selected branch 1/2`): the data-type alternative refuses
 # an alias head by negative lookahead (its slots shift by one, the shape is byte-identical), the alias alternative's base
 # is the shared store-gated `net_type_identifier` (the ungated `nettype_identifier_sv_2023` it referenced through
 # 1.0.218 is deleted with it), and the order stays as shipped. Only the winner on an alias declaration moves.
-nettype_declaration_sv_2023 := kw_nettype_27d30cf3 !( nettype_scope_prefix? checked_nettype_identifier declaration_identifier ) data_type declared_nettype_identifier ( kw_with_8fcd25a3 nettype_scope_prefix? tf_identifier )? semi
+nettype_declaration_sv_2023 := kw_nettype_27d30cf3 !( nettype_alias_shape_ahead ) data_type declared_nettype_identifier ( kw_with_8fcd25a3 nettype_scope_prefix? tf_identifier )? semi
                                       -> {kind: "data_type",  data_type: $3, name: $4, with_clause: $5}
                               | kw_nettype_27d30cf3 nettype_scope_prefix? net_type_identifier declared_nettype_identifier semi
                                       -> {kind: "nettype",    scope: $2, base: $3, name: $4}
@@ -6390,7 +6472,7 @@ procedural_timing_control_statement := procedural_timing_control statement_or_nu
                                     -> {control: $1, body: $2}
 
 @profiles: ["sv_2017"]
-production_sv_2017 := ( data_type_or_void )? production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
+production_sv_2017 := ( production_return_type_guarded )? production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
                    -> {return_type: $1, name: $2, ports: $3, rules: [$5, $6::2*]}
 
 @profiles: ["sv_2017"]
@@ -7065,7 +7147,7 @@ rs_prod := rs_prod_sv_2017 -> {kind: "sv_2017", body: $1}
          | rs_prod_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2023"]
-rs_production_sv_2023 := ( data_type_or_void )? rs_production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
+rs_production_sv_2023 := ( production_return_type_guarded )? rs_production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
                       -> {return_type: $1, name: $2, ports: $3, rules: [$5, $6::2*]}
 
 @profiles: ["sv_2023"]

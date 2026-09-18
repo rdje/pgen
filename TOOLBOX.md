@@ -529,6 +529,34 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   object because the optional has a sibling; drop the sibling and `( nullable_rule )? -> {a: [], b: $1}` renders `b: []`.
   The byte-identical twin is the nullable rule REQUIRED: `nullable_rule -> {a: [], b: $1}` (it matches empty and renders
   its object). Measure with `--interpret-parse-ast-json` + `cmp` before trusting any template re-spelling.
+- ⛔ **AN ESCAPE THAT WIDENS `data_type` RE-READS EVERY SITE WHERE THE SAME BYTES ALREADY HAD A RESOLUTION-FREE READING**
+  (`SV-CORPUS-GRAD.27`, measured): the wildcard type escape made `nettype unknown_t x;` (a nettype alias since
+  SV-PARSE-STRICT.2) and a direction-less ANSI port `foo_t a` (an interface port) readable a second way, and under the
+  default `longest_match` policy the tie went to declaration order — two accepted trees moved. The pins pre-screen's
+  `ast_moved` column caught the first (a pin existed); the second had no pin and was found by asking HEAD a different
+  question — *which `ident ident` shapes do you accept under an open import?* — with ten tiny probes through the
+  interpreter A/B (tracked: `docs/tasks/artifacts/sv_corpus_grad/wildcard_escape_yield/`), and 419 population files carried it. Rule: an escape YIELDS wherever a
+  resolution-free reading of the same bytes already stands (`!( <unresolved name> <identifier> … )` in front of the
+  type route — `nettype_alias_shape_ahead`, `wildcard_escape_interface_port_shape`), and the pre-screen's identity
+  column is read BEFORE the build, never after the sweeps.
+- ⛔ **AND A VERDICT COUNT CANNOT SEE A STOLEN NAME** (`SV-CORPUS-GRAD.27`, measured): the same escape read a LONE
+  unresolved identifier as the type at `data_type_or_implicit` sites where the implicit reading served it as the NAME —
+  the engine does not re-open a matched optional or a committed choice, so `read_pat : coverpoint …` and
+  `property p(a, b)` LOST acceptance (the population pre-screen: 3 files) while `function f(input a)` KEPT its verdict
+  with a moved tree (the name gone). Sites with a required name after the type held (`_declared`'s
+  `&( declaration_identifier | hash )`, a `priority_first` untyped arm, a sibling arm). Rule: when a change widens what
+  an identifier can be, list every site where the OLD reading made that identifier something else and probe each for
+  the TREE, not the verdict (`docs/tasks/artifacts/sv_corpus_grad/wildcard_escape_yield/probes/r_*.sv`); the guard is
+  the grammar's own following-name lookahead, restricted to the escape (`wildcard_escape_lone_name_shape`) — and the
+  follower set is read off the grammar, not guessed: its first cut (a name or `#`) left out `::`, and the SECOND
+  population pre-screen read 7 losses and 12 lost gains, every one a scoped type `pkg::t x` at such a site.
+- ⛔ **THE POPULATION PRE-SCREEN TAKES A FILE LIST — `.3.39`'S SELECTOR RULE APPLIES TO IT** (`SV-CORPUS-GRAD.27`,
+  measured): a line-anchored `import pkg::*` selector chose 1 454 files and missed every HEADER-form import
+  `module x import pkg::*;` (178 files); three clean pre-screen rounds later the lanes' two-sided reading returned
+  `moved_but_not_predicted=46` (all header-form, all gains) and ONE loss in a hidden file (slang `all.sv`, a
+  randsequence production `main : first second;` — the coverpoint label's theft site under another name). Select on
+  the construct's token over blanked text (`\bimport\s+ident\s*::\s*\*`), and read `moved_but_not_predicted` as
+  the selector's own error count, never as noise.
 
 ### 1.5d The inline-alternation census — does a rule's return template reach INTO an inline group?
 - **WHAT:** `python3 docs/tasks/artifacts/sv_corpus_grad/inline_alt_census/inline_alt_census.py <grammar.ebnf>` —
@@ -1494,6 +1522,26 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   EVERY alternative (a longest-match tournament, first on a tie), so an implicit twin re-derives each typed declaration it also
   matches — measured `committed +3.41 %`, `br_gh330.v` `+127,080` on `+245` entries, both function bodies parsed twice. ⚠️ HONEST
   BOUND: a cheaper guard is an ARM's question (3.7b), and `committed` still prices a replay as work (`.101`).
+- ⭐ **`reached_files_and_contained_guards` (`ENGINE-UNIVERSAL-SERVICES.110`, `SV-CORPUS-GRAD.27`, release `1.0.239`) — the arm
+  for a WIDENING THAT ALSO GUARDS A SITE EVERYWHERE.** The wildcard type escape let 170 corpus files parse (three sampled
+  files flipped, five stopped further — their trees commit) and put a lookahead in front of every `data_type_or_implicit`
+  entry, so every sampled import file paid the guard's identifier lookups: `advanced_files_only` needs every other file
+  byte-identical, containment refuses a committed rise, and the third candidate read `committed +2.87 %` with all 192
+  sampled files moved. Costs are ADDITIVE over files (Σ per-rule = Σ per-file, exactly, on the tracked baseline), so the
+  predicate DERIVES the REACHED set from the per-file table (advanced, or `new_rule_commits` > 0 — commits of
+  rules the baseline table does not know — or `reach_marker_entries` > 0 — commits of the pre-existing rules
+  `reach_markers.tsv` names, because a guard that fires by refusing commits nothing), takes a per-leaf subset artifact
+  (`parse_cost_ratchet/reached_subsets/<leaf>/`: `manifest.tsv`, `base_rule_costs.tsv`, `new_rule_costs.tsv` — the
+  instrument run with `--manifest <subset> --probe <parser>` under the baseline probe and the new one), REFUSES it unless
+  its file list is the derived set and its sums reconcile with the per-file sums on every metric for both parsers,
+  subtracts it from the whole sample, and requires every rule not reachable from `introduced` to do no more work on
+  the files the change did not reach (entries and committed byte-identical, memo hits not fallen). Its FIRST evaluation failed on 60 escaped rules and was right: the
+  `net_port_header` split's second arm ran at every directed port under `longest_match` (+1,266 entries on
+  `data_type_or_implicit_declared` in files with no import) — made `ordered`; its second caught a shape that read the
+  store before looking for an identifier, tainting the memo of keyword-typed ports (`memo_store_tainted`) — the
+  shapes now open with `&( declaration_identifier )`. Eighteen arms in `--self-test`. Keep the baseline probe: the
+  `1.0.238` bytes were still at `rust/target/s371/probe_head` when `.27` needed them; the `reproducibility` gate is what
+  makes that binary re-derivable from its commit.
 - ⭐⭐ **TIER 1 IS FIVE ARMS, NOT ONE.** (1) baseline identity; (2) `--verify-families` — every
   generated parser's declared `_lr` names are classified (0.1 s); (3) `--verify-family-share` — the
   published corpus share is re-hashed against its tracked derivation (~1 s); (4) co-publication —
@@ -1543,7 +1591,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `cascade_match_casting_type_lr_suffix` and friends — tick nothing. And a counter counts **events**:
   a rise in the cost PER event is invisible to it on any graph. That limit is a property of the
   metric, so unlike a measured bound it cannot go stale.
-  **Live LR-family share `2.643`** (corpus-entry share %) — the LR-elimination family's share of all
+  **Live LR-family share `2.693`** (corpus-entry share %) — the LR-elimination family's share of all
   corpus rule entries. ⭐ **GATED, not quoted** since `.21` acceptance (f): `PARSE-COST-RATCHET`'s
   every-run tier re-hashes the four inputs it is a function of (grammar, generated parser,
   classifier, corpus) against

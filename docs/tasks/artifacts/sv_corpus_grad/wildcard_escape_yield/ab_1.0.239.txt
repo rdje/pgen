@@ -1,0 +1,93 @@
+file                                                       prof     head         cand         fix          relation
+accepts_invalid_v2005_punct_wildcard_equal.sv              sv_2017  0:f91da834   0:f91da834   0:f91da834   fix=head fix=cand
+accepts_invalid_v2005_punct_wildcard_equal.sv              sv_2023  0:f46a156a   0:f46a156a   0:f46a156a   fix=head fix=cand
+accepts_invalid_v2005_punct_wildcard_not_equal.sv          sv_2017  0:58b53708   0:58b53708   0:58b53708   fix=head fix=cand
+accepts_invalid_v2005_punct_wildcard_not_equal.sv          sv_2023  0:ffc80da1   0:ffc80da1   0:ffc80da1   fix=head fix=cand
+control_default_nettype_outside_module.sv                  sv_2017  0:bacaa335   0:bacaa335   0:bacaa335   fix=head fix=cand
+control_default_nettype_outside_module.sv                  sv_2023  0:5520fd66   0:5520fd66   0:5520fd66   fix=head fix=cand
+control_event_control_wildcard_glued.sv                    sv_2017  0:d2a5ec21   0:d2a5ec21   0:d2a5ec21   fix=head fix=cand
+control_event_control_wildcard_glued.sv                    sv_2023  0:1bac9328   0:1bac9328   0:1bac9328   fix=head fix=cand
+control_nettype_alias_sv2017.sv                            sv_2017  0:d0bf4cc0   0:d0bf4cc0   0:d0bf4cc0   fix=head fix=cand
+control_nettype_alias_sv2017.sv                            sv_2023  0:a7cccf54   0:a7cccf54   0:a7cccf54   fix=head fix=cand
+control_nettype_alias_sv2023.sv                            sv_2023  0:a7cccf54   0:a7cccf54   0:a7cccf54   fix=head fix=cand
+control_nettype_alias_wildcard_import_sv2017.sv            sv_2017  0:84f922d4   0:1fdfe55b   0:84f922d4   fix=head
+control_nettype_alias_wildcard_import_sv2017.sv            sv_2023  0:d2d6d082   0:a74f8342   0:d2d6d082   fix=head
+control_nettype_alias_wildcard_import_sv2023.sv            sv_2023  0:d2d6d082   0:a74f8342   0:d2d6d082   fix=head
+control_nettype_data_type_scoped_with_sv2023.sv            sv_2023  0:c68a32bd   0:c68a32bd   0:c68a32bd   fix=head fix=cand
+control_nettype_data_type_scoped_with.sv                   sv_2017  0:b5a92e6e   0:b5a92e6e   0:b5a92e6e   fix=head fix=cand
+control_nettype_data_type_scoped_with.sv                   sv_2023  0:22ae8315   0:22ae8315   0:22ae8315   fix=head fix=cand
+control_nettype_data_type_sv2017.sv                        sv_2017  0:a656b427   0:a656b427   0:a656b427   fix=head fix=cand
+control_nettype_data_type_sv2017.sv                        sv_2023  0:978605b7   0:978605b7   0:978605b7   fix=head fix=cand
+control_nettype_data_type_sv2023.sv                        sv_2023  0:978605b7   0:978605b7   0:978605b7   fix=head fix=cand
+control_tf_body_task_out_of_block_interface_ported.sv      sv_2017  0:4d2da322   0:4d2da322   0:4d2da322   fix=head fix=cand
+control_tf_body_task_out_of_block_interface_ported.sv      sv_2023  0:347a94ea   0:347a94ea   0:347a94ea   fix=head fix=cand
+control_wildcard_escape_class_member.sv                    sv_2017  1:none       0:f7b5a72b   0:f7b5a72b    fix=cand
+control_wildcard_escape_class_member.sv                    sv_2023  1:none       0:1365af67   0:1365af67    fix=cand
+control_wildcard_escape_extends.sv                         sv_2017  1:none       0:b5a38660   0:b5a38660    fix=cand
+control_wildcard_escape_extends.sv                         sv_2023  1:none       0:c65e875a   0:c65e875a    fix=cand
+control_wildcard_escape_known_base_identity.sv             sv_2017  0:6417f796   0:6417f796   0:6417f796   fix=head fix=cand
+control_wildcard_escape_known_base_identity.sv             sv_2023  0:cce64a99   0:cce64a99   0:cce64a99   fix=head fix=cand
+control_wildcard_escape_module_level_alias.sv              sv_2017  0:df836fc2   0:df836fc2   0:df836fc2   fix=head fix=cand
+control_wildcard_escape_module_level_alias.sv              sv_2023  0:f8b00a36   0:f8b00a36   0:f8b00a36   fix=head fix=cand
+control_wildcard_escape_tf_port.sv                         sv_2017  1:none       0:60570f17   0:60570f17    fix=cand
+control_wildcard_escape_tf_port.sv                         sv_2023  1:none       0:bdeaf9b7   0:bdeaf9b7    fix=cand
+control_wildcard_escape_typedef_identity.sv                sv_2017  0:ba279c6a   0:ba279c6a   0:ba279c6a   fix=head fix=cand
+control_wildcard_escape_typedef_identity.sv                sv_2023  0:c811d89f   0:c811d89f   0:c811d89f   fix=head fix=cand
+fixed_event_control_wildcard_spaced_parens.sv              sv_2017  0:8c571a3e   0:8c571a3e   0:8c571a3e   fix=head fix=cand
+fixed_event_control_wildcard_spaced_parens.sv              sv_2023  0:2af022a8   0:2af022a8   0:2af022a8   fix=head fix=cand
+invalid_default_nettype_inside_module.sv                   sv_2017  1:none       1:none       1:none       fix=head fix=cand
+invalid_default_nettype_inside_module.sv                   sv_2023  1:none       1:none       1:none       fix=head fix=cand
+invalid_directive_default_nettype_missing.sv               sv_2017  1:none       1:none       1:none       fix=head fix=cand
+invalid_directive_default_nettype_missing.sv               sv_2023  1:none       1:none       1:none       fix=head fix=cand
+invalid_directive_default_nettype_supply0.sv               sv_2017  1:none       1:none       1:none       fix=head fix=cand
+invalid_directive_default_nettype_supply0.sv               sv_2023  1:none       1:none       1:none       fix=head fix=cand
+invalid_directive_default_nettype_unknown.sv               sv_2017  1:none       1:none       1:none       fix=head fix=cand
+invalid_directive_default_nettype_unknown.sv               sv_2023  1:none       1:none       1:none       fix=head fix=cand
+invalid_nettype_alias_undeclared_base.sv                   sv_2017  1:none       1:none       1:none       fix=head fix=cand
+invalid_nettype_alias_undeclared_base.sv                   sv_2023  1:none       1:none       1:none       fix=head fix=cand
+invalid_nettype_alias_with_resolution_function.sv          sv_2017  1:none       1:none       1:none       fix=head fix=cand
+invalid_nettype_alias_with_resolution_function.sv          sv_2023  1:none       1:none       1:none       fix=head fix=cand
+invalid_nettype_alias_with_scoped_base_resolution_function.sv sv_2017  1:none       1:none       1:none       fix=head fix=cand
+invalid_nettype_alias_with_scoped_base_resolution_function.sv sv_2023  1:none       1:none       1:none       fix=head fix=cand
+invalid_type_comparison_wildcard.sv                        sv_2017  1:none       1:none       1:none       fix=head fix=cand
+invalid_type_comparison_wildcard.sv                        sv_2023  1:none       1:none       1:none       fix=head fix=cand
+invalid_wildcard_escape_explicit_import_type.sv            sv_2017  1:none       1:none       1:none       fix=head fix=cand
+invalid_wildcard_escape_explicit_import_type.sv            sv_2023  1:none       1:none       1:none       fix=head fix=cand
+invalid_wildcard_escape_no_import_extends.sv               sv_2017  1:none       1:none       1:none       fix=head fix=cand
+invalid_wildcard_escape_no_import_extends.sv               sv_2023  1:none       1:none       1:none       fix=head fix=cand
+invalid_wildcard_escape_no_import_type.sv                  sv_2017  1:none       1:none       1:none       fix=head fix=cand
+invalid_wildcard_escape_no_import_type.sv                  sv_2023  1:none       1:none       1:none       fix=head fix=cand
+p_ansi_dims.sv                                             sv_2017  1:none       0:d5e4c47b   0:d5e4c47b    fix=cand
+p_ansi_dims.sv                                             sv_2023  1:none       0:8ac50cc6   0:8ac50cc6    fix=cand
+p_ansi_hdr.sv                                              sv_2017  1:none       0:f0b4a57e   0:f0b4a57e    fix=cand
+p_ansi_hdr.sv                                              sv_2023  1:none       0:2316f4d2   0:2316f4d2    fix=cand
+p_ansi_nodir.sv                                            sv_2017  0:f043b81a   0:d89ff162   0:f043b81a   fix=head
+p_ansi_nodir.sv                                            sv_2023  0:34884abe   0:40c2c8df   0:34884abe   fix=head
+p_ansi_pkg_scoped.sv                                       sv_2017  0:b8f4c392   0:b8f4c392   0:b8f4c392   fix=head fix=cand
+p_ansi_pkg_scoped.sv                                       sv_2023  0:5f8b151a   0:5f8b151a   0:5f8b151a   fix=head fix=cand
+p_ansi_pre.sv                                              sv_2017  1:none       0:37cb63d7   0:37cb63d7    fix=cand
+p_ansi_pre.sv                                              sv_2023  1:none       0:e199fbf6   0:e199fbf6    fix=cand
+p_ansi_var.sv                                              sv_2017  1:none       0:358881ed   0:358881ed    fix=cand
+p_ansi_var.sv                                              sv_2023  1:none       0:7bd69f11   0:7bd69f11    fix=cand
+p_modlevel.sv                                              sv_2017  1:none       0:0d2bc10a   0:0d2bc10a    fix=cand
+p_modlevel.sv                                              sv_2023  1:none       0:f5b7dc31   0:f5b7dc31    fix=cand
+p_nettype_with.sv                                          sv_2017  1:none       0:28c78352   0:28c78352    fix=cand
+p_nettype_with.sv                                          sv_2023  1:none       0:1b7d700a   0:1b7d700a    fix=cand
+p_nonansi_body.sv                                          sv_2017  1:none       0:df0c4dfe   0:df0c4dfe    fix=cand
+p_nonansi_body.sv                                          sv_2023  1:none       0:0bad7be5   0:0bad7be5    fix=cand
+p_param.sv                                                 sv_2017  1:none       0:d4a352b6   0:d4a352b6    fix=cand
+p_param.sv                                                 sv_2023  1:none       0:bc007a23   0:bc007a23    fix=cand
+q_declared_nodir.sv                                        sv_2017  0:55551148   0:55551148   0:55551148   fix=head fix=cand
+q_declared_nodir.sv                                        sv_2023  0:a07f7dc6   0:a07f7dc6   0:a07f7dc6   fix=head fix=cand
+q_interface_hdr.sv                                         sv_2017  1:none       0:8113812c   0:92585882   FIX-DIFFERS-FROM-BOTH
+q_interface_hdr.sv                                         sv_2023  1:none       0:605dd421   0:1981c16a   FIX-DIFFERS-FROM-BOTH
+q_mixed_ports.sv                                           sv_2017  1:none       0:a5a92d8a   0:890c3104   FIX-DIFFERS-FROM-BOTH
+q_mixed_ports.sv                                           sv_2023  1:none       0:9dde65d4   0:1bb767ca   FIX-DIFFERS-FROM-BOTH
+q_nettype_declared_alias.sv                                sv_2017  0:bc85c53b   0:bc85c53b   0:bc85c53b   fix=head fix=cand
+q_nettype_declared_alias.sv                                sv_2023  0:986f032d   0:986f032d   0:986f032d   fix=head fix=cand
+q_nettype_declared_with.sv                                 sv_2017  1:none       1:none       1:none       fix=head fix=cand
+q_nettype_declared_with.sv                                 sv_2023  1:none       1:none       1:none       fix=head fix=cand
+q_nettype_typedef.sv                                       sv_2017  0:c63b934c   0:c63b934c   0:c63b934c   fix=head fix=cand
+q_nettype_typedef.sv                                       sv_2023  0:57a6a5cc   0:57a6a5cc   0:57a6a5cc   fix=head fix=cand
+q_nodir_default_dims.sv                                    sv_2017  1:none       0:c92957e7   0:1b42cc20   FIX-DIFFERS-FROM-BOTH
+q_nodir_default_dims.sv                                    sv_2023  1:none       0:c0316343   0:0e1b1fed   FIX-DIFFERS-FROM-BOTH

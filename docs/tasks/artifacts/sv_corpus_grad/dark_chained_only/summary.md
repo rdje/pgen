@@ -6,45 +6,45 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `f2a9d6b6e91f4d79ff914e00e2093a1db2e5800179251974a982fae0b9dbb576` |
-| positions | `stimuli/sv/characterization/positions.tsv` | `08b4d3071491195cdd631e7d5cbea2950e83eb14221db7e6acb3b1d0bff32950` |
-| grammar | `grammars/systemverilog.ebnf` | `66710a4933dc24d3e62efd028103339069ca96a6c06db0b775e5bfeaeee91fdb` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `b6b407606a4c403bd8e8045ebddb8c53a9a675832a2bd9fa843a7bc8eb177657` |
+| positions | `stimuli/sv/characterization/positions.tsv` | `63357d53c13c265de53a9172c3afb5d5a773b967a1a45dd899d22445de27ab9b` |
+| grammar | `grammars/systemverilog.ebnf` | `4900edad613c742ff5c9f175ac86f136b0d8663839f279bf1d74cbafa1003b01` |
 
 ## The TEXT channel — can expansion move the byte the parse choked on?
 
 | verdict | rows | % | reading |
 |---|---:|---:|---|
-| `PRE-TICK` | 2,069 | 55.2 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
-| `IN-WINDOW` | 1,420 | 37.9 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
-| `NO-ALTERABLE-TICK` | 210 | 5.6 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
-| `PAST-LAST-TICK` | 46 | 1.2 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
-| **TOTAL** | **3,745** | **100.0 %** | |
+| `PRE-TICK` | 2,006 | 56.0 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
+| `IN-WINDOW` | 1,482 | 41.4 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
+| `NO-ALTERABLE-TICK` | 81 | 2.3 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
+| `PAST-LAST-TICK` | 10 | 0.3 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
+| **TOTAL** | **3,579** | **100.0 %** | |
 
-⇒ **2,279 of 3,745 rows (60.9 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
+⇒ **2,087 of 3,579 rows (58.3 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
 
 ## Then the FACT channel — is a cross-file *name* the live explanation?
 
 | channel | rows | reading |
 |---|---:|---|
-| `FACT-GATED-CROSS-FILE` | 2,057 |  |
-| `CROSS-LIBRARY` | 168 |  |
-| `UNDECLARED-ANYWHERE` | 27 |  |
-| `NO-FACT-GATE-AT-FAILURE` | 19 |  |
+| `FACT-GATED-CROSS-FILE` | 1,861 |  |
+| `CROSS-LIBRARY` | 166 |  |
+| `NO-FACT-GATE-AT-FAILURE` | 26 |  |
+| `UNDECLARED-ANYWHERE` | 26 |  |
 | `FACT-GATED-LOCAL-TYPE` | 8 |  |
 
-⇒ **the worklist is 54 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
+⇒ **the worklist is 60 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
 
 ## Worklist by suite
 
 | suite | channel | rows |
 |---|---|---:|
-| opentitan | `UNDECLARED-ANYWHERE` | 22 |
-| opentitan | `NO-FACT-GATE-AT-FAILURE` | 12 |
+| opentitan | `UNDECLARED-ANYWHERE` | 21 |
+| opentitan | `NO-FACT-GATE-AT-FAILURE` | 17 |
 | uvm-core | `FACT-GATED-LOCAL-TYPE` | 8 |
+| Surelog | `NO-FACT-GATE-AT-FAILURE` | 3 |
 | Surelog | `UNDECLARED-ANYWHERE` | 3 |
 | Cores-VeeR-EL2 | `NO-FACT-GATE-AT-FAILURE` | 2 |
 | uvm-core | `NO-FACT-GATE-AT-FAILURE` | 2 |
-| Surelog | `NO-FACT-GATE-AT-FAILURE` | 1 |
 | verilator | `NO-FACT-GATE-AT-FAILURE` | 1 |
 | scr1 | `NO-FACT-GATE-AT-FAILURE` | 1 |
 | black-parrot | `UNDECLARED-ANYWHERE` | 1 |
@@ -59,7 +59,14 @@
 | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_m.svh` | 87 | `NO-FACT-GATE-AT-FAILURE` | `nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6` |
 | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_mu.svh` | 104 | `NO-FACT-GATE-AT-FAILURE` | `nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6` |
 | Surelog | `tests/ElabSysCall/dut.sv` | 3 | `NO-FACT-GATE-AT-FAILURE` | `must be at most 4kB"); end endmodule module top_error(); if (1) begin $error(` |
+| Surelog | `tests/SplitFile/amiq_eth_ve_top.v` | 907 | `NO-FACT-GATE-AT-FAILURE` | `eth_packet_length") type_id; static function type_id get_type(); retur` |
+| Surelog | `tests/SplitFile/svaunit_pkg.sv` | 37 | `NO-FACT-GATE-AT-FAILURE` | `"svaunit_reporter") type_id; static function type_id get_type(); retur` |
 | opentitan | `hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv` | 11 | `NO-FACT-GATE-AT-FAILURE` | `(lc_ctrl_pkg::Off)) lc_tx_cov; lc_tx_cov cov; initial begin cov = lc_tx_` |
+| opentitan | `hw/ip/aes/dv/err_injection_if/fi_cipher_fsm_wrapper.sv` | 23 | `NO-FACT-GATE-AT-FAILURE` | `l fi_cipher_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_` |
+| opentitan | `hw/ip/aes/dv/err_injection_if/fi_control_fsm_wrapper.sv` | 23 | `NO-FACT-GATE-AT-FAILURE` | `fi_control_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_` |
+| opentitan | `hw/ip/aes/dv/err_injection_if/fi_core_wrapper.sv` | 23 | `NO-FACT-GATE-AT-FAILURE` | `ual fi_core_if)::set(null, "*", "aes_core_fi_vif", fi_if); end endmodule` |
+| opentitan | `hw/ip/aes/dv/err_injection_if/fi_ctr_fsm_wrapper.sv` | 23 | `NO-FACT-GATE-AT-FAILURE` | `fi_ctr_fsm_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_` |
+| opentitan | `hw/ip/aes/dv/err_injection_if/fi_ghash_wrapper.sv` | 23 | `NO-FACT-GATE-AT-FAILURE` | `al fi_ghash_if)::set(null, "*", "aes_ghash_fi_vif", fi_if); end endmodule` |
 | opentitan | `hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv` | 53 | `NO-FACT-GATE-AT-FAILURE` | `th(EntropyWidth), ) u_kmac_reduced ( .clk_i, .rst_ni, // Inputs e` |
 | opentitan | `hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv` | 7 | `NO-FACT-GATE-AT-FAILURE` | `#( .SecureIbex, .ICache, .PMPEnable, .PMPGranularity,` |
 | opentitan | `hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v` | 6 | `NO-FACT-GATE-AT-FAILURE` | `pecific cell module $_DLATCH_P_ (input E, input D, output Q); DLH_X1 _TECHMAP_RE` |
@@ -67,10 +74,9 @@
 | Surelog | `tests/ModPortTest/top.v` | 14 | `UNDECLARED-ANYWHERE` | `id_t1 aw_id; modport Master ( output aw_id ); id_t` |
 | Surelog | `tests/UnitClass/top.v` | 24 | `UNDECLARED-ANYWHERE` | `ass B b; DD d; covergroup memory @ (posedge ce); address : co` |
 | Surelog | `tests/UnitTest/top.v` | 34 | `UNDECLARED-ANYWHERE` | `shifter = shifter ~& result; shifter = shifter ~\| result; end endmodu` |
-| opentitan | `hw/ip/i3c/rtl/i3c_dat.sv` | 27 | `UNDECLARED-ANYWHERE` | `ut i3c_dat_mem_t dat_rdata_o, // HCI Device Address Table interface. inp` |
-| opentitan | `hw/ip/i3c/rtl/i3c_dct.sv` | 28 | `UNDECLARED-ANYWHERE` | `t i3c_dct_mem_t dct_wdata_i, // HCI Device Characteristics Table interfac` |
-| opentitan | `hw/ip/i3c/rtl/i3c_dxt.sv` | 53 | `UNDECLARED-ANYWHERE` | `t ram_1p_cfg_t cfg_i, output ram_1p_cfg_rsp_t cfg_rsp_o ); localparam` |
 | opentitan | `hw/ip/otbn/dv/verilator/otbn_top_sim.sv` | 168 | `UNDECLARED-ANYWHERE` | `_if #(.ImemAddrWidth, .DmemAddrWidth) i_otbn_trace_if (.*); bind otbn_core otb` |
+| opentitan | `hw/ip/otbn/pre_sca/rtl/otbn_mask_accelerator_sca_wrapper.sv` | 51 | `UNDECLARED-ANYWHERE` | `ne_q <= 1'b1; else ctr_q <= ctr_q + 1'b1; end end // Hold` |
+| opentitan | `hw/ip/spi_device/pre_dv/program/prog_passthrough_host.sv` | 117 | `UNDECLARED-ANYWHERE` | `); end static task automatic wait_trans(); repeat(10) @(negedge clk);` |
 | opentitan | `hw/ip/spi_device/pre_dv/program/spiflash.sv` | 192 | `UNDECLARED-ANYWHERE` | `_capacity static task main(); // Main function forever begin au` |
 | opentitan | `hw/ip/spi_device/pre_dv/tb/spid_jedec_tb.sv` | 97 | `UNDECLARED-ANYWHERE` | `(); end static task host(); automatic int unsigned num_cc; logic [2` |
 | opentitan | `hw/ip/spi_device/pre_dv/tb/spid_upload_tb.sv` | 186 | `UNDECLARED-ANYWHERE` | `(); end static task host(); // Prep data automatic logic [7:0] pay` |
@@ -88,10 +94,4 @@
 | opentitan | `hw/ip/aes/dv/err_injection_if/signal_force.sv` | 24 | `NO-FACT-GATE-AT-FAILURE` | `)::set(null, "*", pick_if_name(), fi_if); end // Pick a name` |
 | opentitan | `hw/top_darjeeling/dv/autogen/tb__alert_handler_connect.sv` | 7 | `NO-FACT-GATE-AT-FAILURE` | ``y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[`` |
 | opentitan | `hw/top_earlgrey/dv/autogen/tb__alert_handler_connect.sv` | 7 | `NO-FACT-GATE-AT-FAILURE` | ``y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[`` |
-| opentitan | `hw/vendor/lowrisc_ibex/dv/formal/check/peek/abs.sv` | 16 | `NO-FACT-GATE-AT-FAILURE` | `te /////////////// assign pre_regs[0] = 32'h0; for (genvar i = 1; i < 32; i++)` |
-| opentitan | `hw/vendor/lowrisc_ibex/dv/formal/check/peek/mem.sv` | 13 | `NO-FACT-GATE-AT-FAILURE` | ``logic has_snd_req; assign has_snd_req = mem_gnt_snd_d \| (mem_gnt_fst_q & `CR.da`` |
-| scr1 | `src/tb/scr1_top_tb_runtests.sv` | 10 | `NO-FACT-GATE-AT-FAILURE` | `------------------ initial begin $value$plusargs("imem_pattern=%h", imem_re` |
-| uvm-core | `uvm-core-2020.3.1/src/reg/uvm_reg_sequence.svh` | 73 | `NO-FACT-GATE-AT-FAILURE` | ``ence #(uvm_reg_item)) extends BASE; `uvm_object_param_utils(uvm_reg_sequence`` |
-| uvm-core | `uvm-core-2020.3.1/src/seq/uvm_sequencer_base.svh` | 41 | `NO-FACT-GATE-AT-FAILURE` | `(uvm_sequence_base) uvm_config_seq; typedef class uvm_sequence_request; // Util` |
-| black-parrot | `bp_top/test/common/bp_nonsynth_core_profiler.sv` | 3 | `UNDECLARED-ANYWHERE` | `NTLY_UNSUPPORTED typedef struct packed { logic icache_miss; logic b` |
 

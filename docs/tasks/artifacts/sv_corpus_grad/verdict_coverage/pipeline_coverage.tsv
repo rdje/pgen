@@ -1,24 +1,25 @@
 bucket	class	rows	pct
-ADJUDICATED	match	5694	34.86
+ADJUDICATED	match	5698	34.88
 ROUTED	deferred:v2005_profile_lane	2606	15.95
-ADJUDICATED	pipeline:chained:accepted_under_expansion	0	0.00
-NO VERDICT	pipeline:chained:unreached_in_unit	1923	11.77
-ADJUDICATED	pipeline:corroborated	1228	7.52
-NO VERDICT	pipeline:chained:rejects_own_file	707	4.33
+ADJUDICATED	pipeline:chained:accepted_under_expansion	8	0.05
+NO VERDICT	pipeline:chained:unreached_in_unit	1888	11.56
+ADJUDICATED	pipeline:corroborated	1295	7.93
+NO VERDICT	pipeline:chained:rejects_own_file	655	4.01
 NO VERDICT	deferred:no_sv_key	596	3.65
 ADJUDICATED	pipeline:must_reject:match_under_expansion	451	2.76
 NO VERDICT	deferred:not_source_text	350	2.14
 NO VERDICT	pipeline:chained:refused_context	210	1.29
+NO VERDICT	pipeline:chained:hollow	130	0.80
 NO VERDICT	pipeline:svpp_owned:accepted_under_expansion	109	0.67
-NO VERDICT	pipeline:chained:hollow	104	0.64
-NO VERDICT	pipeline:refuted:cross_file_base_class	103	0.63
 NO VERDICT	deferred:impl_varying	90	0.55
-ADJUDICATED	divergence:explained_store_gate	58	0.36
+ADJUDICATED	divergence:explained_store_gate	54	0.33
+NO VERDICT	pipeline:refuted:cross_file_base_class	36	0.22
 NO VERDICT	pipeline:svpp_owned:rejects_own_file	30	0.18
 NO VERDICT	pipeline:svpp_owned:refused_engine	30	0.18
 NO VERDICT	deferred:verilog_ams_lane	25	0.15
 NO VERDICT	pipeline:chained:refused_engine	15	0.09
 NO VERDICT	pipeline:refuted:vendor_identity_branch	9	0.06
+ADJUDICATED	pipeline:chained:accepted_in_unit	8	0.05
 NO VERDICT	pipeline:refused_engine	7	0.04
 NO VERDICT	pipeline:refuted:driver_define	7	0.04
 NO VERDICT	deferred:ni_unimplemented	6	0.04
@@ -27,5 +28,5 @@ NO VERDICT	pipeline:svpp_owned:refused_context	2	0.01
 NO VERDICT	pipeline:refuted:cross_file_define	1	0.01
 NO VERDICT	pipeline:refuted:preprocessor_item	1	0.01
 NO VERDICT	pipeline:svpp_owned:hollow	1	0.01
-ADJUDICATED	divergence:unexplained_rejects_valid	1	0.01
-TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	9139/2606/4591/3311/1	
+NO VERDICT	pipeline:refuted	1	0.01
+TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	9265/2606/4465/3184/0	

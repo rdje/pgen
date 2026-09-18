@@ -1,0 +1,13 @@
+{
+ "produced": "2026-09-18T10:57:20",
+ "instrument": "stimuli/sv/corpus_parse_cost.py --manifest <this manifest> --probe <probe> --outdir <scratch>",
+ "base_probe": {
+  "path": "rust/target/s371/probe_head (the 1.0.238 release probe, re-derivable from commit 6c1a02913 \u2014 the reproducibility gate)",
+  "fingerprint": "ec951acc129d9947fe5d78db4dbc49c4b20f58932ba73e88da02d9ea1afa1291"
+ },
+ "new_probe": {
+  "path": "rust/target/release/parseability_probe (1.0.239)",
+  "fingerprint": "58f846a5fe81bc4ae72a7b54a7d9edc9f945d4af1f4baa9ea4274dc466a4a78d"
+ },
+ "binding": "the gate refuses this artifact unless manifest.tsv equals the REACHED set derived from the per-file tables (advanced, or new_rule_commits > 0) AND each rule-costs table's per-metric sums equal the per-file sums over those files (base against the tracked entries.tsv, new against the run's scratch entries.tsv)"
+}

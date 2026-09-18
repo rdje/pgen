@@ -1,0 +1,14 @@
+# docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/reach_markers.tsv — the REACH MARKERS
+#
+# ENGINE-UNIVERSAL-SERVICES.110 (SV-CORPUS-GRAD.27). A PRE-EXISTING rule whose ENTRY, in a sampled file, marks that
+# file as one a pending change can REACH even when none of the change's own rules commits there — a guard that works
+# by REFUSING (a negative lookahead) commits nothing when it fires, a new reading that succeeds inside a branch that
+# then loses is rolled back, and a REJECTED parse rolls back even the import item the parser did enter, so
+# `new_rule_commits` alone under-counts the reach and a marker's COMMITS would too (measured: 19 of 68 import files).
+# The instrument sums, per file, the ENTRIES of every rule listed here into `entries.tsv`'s `reach_marker_entries`
+# column (0 when this file is absent or empty); `reached_files_and_contained_guards` then takes reached = advanced ∪
+# (new_rule_commits > 0) ∪ (reach_marker_entries > 0). ⛔ The gate REFUSES a marker the measured grammar does not have or that the BASELINE per-rule
+# table does not know (a marker must be pre-existing: a new rule is already counted by `new_rule_commits`), and the
+# predicate's detail line prints how many sampled files the union reached, so a marker that reaches everything is visible
+# as a law that covers nothing. Rows: rule<TAB>leaf<TAB>why. Retire a row when its change's acceptance rows are gone.
+package_import_item	SV-CORPUS-GRAD.27	every `.27` escape and guard is gated on the `wildcard_import_open` fact this rule's wildcard arm emits (`import pkg::*`), and the rule is entered only after the `import` keyword, so a file the parser never entered it in is one the change cannot reach; its explicit arm over-approximates (an explicit-only import file counts as reached), which only weakens the law, never the other way

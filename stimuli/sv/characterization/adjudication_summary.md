@@ -5,7 +5,7 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | suite | rows | match | UNEXPLAINED div | explained div | deferred |
 |---|---|---|---|---|---|
 | Cores-VeeR-EL2 | 102 | 0 | 0 | 0 | 102 |
-| Surelog | 828 | 580 | 0 | 47 | 201 |
+| Surelog | 828 | 584 | 0 | 43 | 201 |
 | black-parrot | 205 | 0 | 0 | 0 | 205 |
 | friscv | 441 | 0 | 0 | 0 | 441 |
 | ispras-sv-tests | 1266 | 802 | 0 | 17 | 447 |
@@ -17,8 +17,8 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | sv2v | 953 | 500 | 0 | 80 | 373 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 120 | 0 | 8 | 24 |
-| verilator | 3263 | 2156 | 1 | 910 | 196 |
-| **total** | **16336** | **6065** | **1** | **1419** | **8851** |
+| verilator | 3263 | 2156 | 0 | 911 | 196 |
+| **total** | **16336** | **6069** | **0** | **1416** | **8851** |
 
 ## Verdict-class detail
 
@@ -32,14 +32,13 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | deferred:svpp_owned | 245 |
 | deferred:v2005_profile_lane | 2606 |
 | deferred:verilog_ams_lane | 25 |
-| divergence:explained_store_gate | 58 |
+| divergence:explained_store_gate | 54 |
 | divergence:explained_svpp_conditional | 195 |
 | divergence:explained_svpp_include | 133 |
 | divergence:explained_svpp_keywords_region | 4 |
-| divergence:explained_svpp_macro_use | 1025 |
+| divergence:explained_svpp_macro_use | 1026 |
 | divergence:explained_svpp_protected_envelope | 4 |
-| divergence:unexplained_rejects_valid | 1 |
-| match | 6065 |
+| match | 6069 |
 
-**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**1**: rejects-valid 1, accepts-invalid 0). Explained divergences are svpp/chaining/timeout-owned or store-gate-owned (`.13w`: the row parses once its undeclared type is declared) with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
+**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**0**: rejects-valid 0, accepts-invalid 0). Explained divergences are svpp/chaining/timeout-owned or store-gate-owned (`.13w`: the row parses once its undeclared type is declared) with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
 

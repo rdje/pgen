@@ -5,7 +5,7 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | suite | rows | match | UNEXPLAINED div | explained div | deferred |
 |---|---|---|---|---|---|
 | Cores-VeeR-EL2 | 102 | 0 | 0 | 0 | 102 |
-| Surelog | 828 | 580 | 0 | 47 | 201 |
+| Surelog | 828 | 584 | 0 | 43 | 201 |
 | black-parrot | 205 | 0 | 0 | 0 | 205 |
 | friscv | 441 | 0 | 0 | 0 | 441 |
 | ispras-sv-tests | 1266 | 802 | 0 | 17 | 447 |
@@ -17,8 +17,8 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | sv2v | 953 | 500 | 0 | 80 | 373 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 120 | 0 | 8 | 24 |
-| verilator | 3263 | 2157 | 1 | 913 | 192 |
-| **total** | **16336** | **6057** | **1** | **1431** | **8847** |
+| verilator | 3263 | 2157 | 0 | 914 | 192 |
+| **total** | **16336** | **6061** | **0** | **1428** | **8847** |
 
 ## Verdict-class detail
 
@@ -32,16 +32,15 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | deferred:svpp_owned | 241 |
 | deferred:v2005_profile_lane | 2606 |
 | deferred:verilog_ams_lane | 25 |
-| divergence:explained_store_gate | 58 |
+| divergence:explained_store_gate | 54 |
 | divergence:explained_svpp_conditional | 195 |
 | divergence:explained_svpp_include | 133 |
 | divergence:explained_svpp_keywords_region | 4 |
-| divergence:explained_svpp_macro_use | 1037 |
+| divergence:explained_svpp_macro_use | 1038 |
 | divergence:explained_svpp_protected_envelope | 4 |
-| divergence:unexplained_rejects_valid | 1 |
-| match | 6057 |
+| match | 6061 |
 
-**The sv_2023 arm's burn-down baseline = the UNEXPLAINED divergence count (1: rejects-valid 1, accepts-invalid 0, crash 0)** - a separate arm from the sv_2017 baseline over the same files.
+**The sv_2023 arm's burn-down baseline = the UNEXPLAINED divergence count (0: rejects-valid 0, accepts-invalid 0, crash 0)** - a separate arm from the sv_2017 baseline over the same files.
 
 ✅ **Re-read under 1800-2023 (.14b.3):** 49 inherited `must_reject` rulings carry over MECHANICALLY - every 1800-2017 production their 2017 basis cites reads identically in 1800-2023 Annex A (`production_parity.py`, its artifact `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/parity.md`) - and 72 carry over BY HAND with the changed 2023 production cited in the basis.
 

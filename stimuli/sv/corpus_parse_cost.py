@@ -168,7 +168,11 @@ INSTRUMENT_FILE = "stimuli/sv/corpus_parse_cost.py"
 # entries are unchanged (the ratchet's per-rule invariant re-derives that).
 # SV-CORPUS-GRAD.3.67 (release 1.0.235): adopted 2.648 -> 2.643 from family_share.json - the based literal's strict terminal
 # refuses three corpus files earlier (fewer total entries), the LR family's own entries unchanged.
-CORPUS_FAMILY_SHARE_PCT = "2.643"
+# SV-CORPUS-GRAD.3.67 (release 1.0.235): adopted 2.643 -> 2.682 from family_share.json - the based literal's strict terminal
+# refuses three corpus files earlier (fewer total entries), the LR family's own entries unchanged.
+# SV-CORPUS-GRAD.3.67 (release 1.0.235): adopted 2.682 -> 2.693 from family_share.json - the based literal's strict terminal
+# refuses three corpus files earlier (fewer total entries), the LR family's own entries unchanged.
+CORPUS_FAMILY_SHARE_PCT = "2.693"
 FAMILY_SHARE_ARTIFACT = (
     "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json"
 )
@@ -176,6 +180,55 @@ FAMILY_SHARE_ARTIFACT = (
 # `wall_clock_regression_pct`. The schema is BUMPED rather than silently shrunk so a v1 artifact
 # meets the reader's explicit refusal instead of being read for keys it happens not to have.
 FAMILY_SHARE_SCHEMA = "pgen.parse_cost.family_share/v2"
+# ENGINE-UNIVERSAL-SERVICES.110 (SV-CORPUS-GRAD.27): the tracked BASELINE per-rule table. A rule the
+# new measurement has and this table lacks is a rule the pending change INTRODUCED, so a file in
+# which such a rule COMMITTED is a file the change REACHED — the per-file column `new_rule_commits`
+# below is that count, derived here from the run's own dump with no scope declared anywhere. The
+# gate's `reached_files_and_contained_guards` partitions the sample on it.
+BASELINE_RULE_COSTS = (
+    "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/rule_costs.tsv"
+)
+
+
+REACH_MARKERS = (
+    "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/reach_markers.tsv"
+)
+
+
+def reach_marker_names() -> set[str]:
+    """The PRE-EXISTING rules whose per-file ENTRIES mark a file as reached by a pending change
+    (`reach_markers.tsv`, rule<TAB>leaf<TAB>why; comments and blanks skipped); empty when absent."""
+    path = os.path.join(ROOT, REACH_MARKERS)
+    names: set[str] = set()
+    if not os.path.isfile(path):
+        return names
+    with open(path, encoding="utf-8") as fh:
+        for n, line in enumerate(fh, 1):
+            line = line.rstrip("\n")
+            if not line.strip() or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) != 3:
+                die(f"{REACH_MARKERS}:{n}: expected rule<TAB>leaf<TAB>why, got {len(parts)} field(s)")
+            names.add(parts[0])
+    return names
+
+
+def baseline_rule_names() -> set[str] | None:
+    """The rule names of the tracked baseline per-rule table, or None when the tree has none yet
+    (a first baseline): then no rule is 'new' and the column reads 0 everywhere."""
+    path = os.path.join(ROOT, BASELINE_RULE_COSTS)
+    if not os.path.isfile(path):
+        return None
+    names: set[str] = set()
+    with open(path, encoding="utf-8") as fh:
+        header = fh.readline().rstrip("\n").split("\t")
+        if header[:1] != ["rule"]:
+            die(f"{BASELINE_RULE_COSTS} header is {header}, expected a `rule` first column")
+        for line in fh:
+            if line.strip():
+                names.add(line.split("\t", 1)[0])
+    return names
 
 # ── the RETIRED blind-spot factor, and why no number replaces it (`.26`, 2026-08-16) ──────────
 #
@@ -910,6 +963,8 @@ def measure_entries(probe: str, files: list[str],
     # the SAMPLE, not of a file, and 192 x ~1 000 rule maps held to the end is memory spent to
     # re-derive a total this loop already has.
     rule_totals: dict[str, dict[str, int]] = {}
+    baseline_rules = baseline_rule_names()
+    markers = reach_marker_names()
     with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as ex:
         for res in ex.map(measure_one_entries, [(probe, f) for f in files]):
             if isinstance(res, NoDump):
@@ -921,7 +976,15 @@ def measure_entries(probe: str, files: list[str],
                     slot = rule_totals.setdefault(
                         rule, {"entries": 0, "committed": 0, "memo_hits": 0})
                     slot[column] += int(value)
-            rows.append(row)
+            # ENGINE-UNIVERSAL-SERVICES.110: commits of rules the baseline table does not know —
+            # the pending change's own rules — counted per FILE before the per-rule fold discards
+            # the file dimension. 0 when there is no baseline yet.
+            new_rule_commits = 0 if baseline_rules is None else sum(
+                int(v) for rule, v in per_rule["committed"].items() if rule not in baseline_rules)
+            # A marker counts ENTRIES, not commits: a rejected parse rolls its import item back, but the
+            # parser still ENTERED it, and the change's readings could only fire after that.
+            reach_marker_entries = sum(int(per_rule["entries"].get(rule, 0)) for rule in markers)
+            rows.append(row + (new_rule_commits, reach_marker_entries))
     rows.sort(key=lambda r: (sub_corpus_of(r[0]), r[0]))
     return rows, sorted(nodump, key=lambda n: n.path), rule_totals
 
@@ -1148,11 +1211,15 @@ def write_entries_tsv(path: str, rows: list[tuple], tiers: dict[str, str]) -> No
     reader can derive exactly is looked up, never stored (docs/DERIVED_STATE_CONTAINMENT.md
     R1/R3) — a stored copy is one more thing to drift out of agreement with its own inputs."""
     with open(path, "w", encoding="utf-8") as fh:
+        # ENGINE-UNIVERSAL-SERVICES.110: `new_rule_commits` — commits, in this file, of rules the
+        # tracked baseline per-rule table does not know (the pending change's own); the gate's
+        # `reached_files_and_contained_guards` partitions the sample on it.
+        # `reach_marker_entries` — entries, in this file, of the pre-existing rules `reach_markers.tsv` names.
         fh.write("sub_corpus\ttier\tpath\taccepted\tentries\tcommitted\tmemo_hits"
-                 "\tlr_entries\tlr_committed\tfurthest\n")
-        for rel, accepted, ent, com, memo, lr_e, lr_c, furthest in rows:
+                 "\tlr_entries\tlr_committed\tfurthest\tnew_rule_commits\treach_marker_entries\n")
+        for rel, accepted, ent, com, memo, lr_e, lr_c, furthest, nrc, rmc in rows:
             fh.write(f"{sub_corpus_of(rel)}\t{tiers.get(rel, '?')}\t{rel}\t{accepted}"
-                     f"\t{ent}\t{com}\t{memo}\t{lr_e}\t{lr_c}\t{furthest}\n")
+                     f"\t{ent}\t{com}\t{memo}\t{lr_e}\t{lr_c}\t{furthest}\t{nrc}\t{rmc}\n")
 
 
 def write_rule_costs_tsv(path: str, rule_totals: dict[str, dict[str, int]]) -> None:
@@ -1466,9 +1533,12 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
         for n in nodump:
             A(f"| `{n.path}` | `{n.reason}` | {n.detail} |")
         A("")
-    A("_Per-file rows: `entries.tsv` — 10 columns (sub-corpus, tier, path, accepted, entries,")
+    A("_Per-file rows: `entries.tsv` — 12 columns (sub-corpus, tier, path, accepted, entries,")
     A("committed, memo_hits, lr_entries, lr_committed, furthest — the rejected parse's furthest position,")
-    A("`-` when accepted; SV-CORPUS-GRAD.3.34), sorted by (sub-corpus, path) so two runs")
+    A("`-` when accepted; SV-CORPUS-GRAD.3.34 — and new_rule_commits — commits, in the file, of rules the")
+    A("tracked baseline per-rule table does not know, i.e. the pending change's own — and reach_marker_entries — entries")
+    A("of the pre-existing rules `reach_markers.tsv` names; ENGINE-UNIVERSAL-SERVICES.110),")
+    A("sorted by (sub-corpus, path) so two runs")
     A("diff directly. Failed speculation is deliberately NOT a column: it is exactly")
     A("`entries − committed` and is derived, never stored._")
     A("")
@@ -1961,7 +2031,7 @@ def run_census(probe: str, outdir: str, jobs: int) -> int:
     os.makedirs(outdir, exist_ok=True)
     out = os.path.join(outdir, "census.tsv")
     with open(out, "w", encoding="utf-8") as fh:
-        for rel, accepted, ent, _com, _memo, lr_e, _lr_c, _furthest in rows:
+        for rel, accepted, ent, _com, _memo, lr_e, _lr_c, _furthest, _nrc, _rmc in rows:
             fh.write(f"{sub_corpus_of(rel)}\t{rel}\t{'True' if accepted == 'yes' else 'False'}"
                      f"\t{ent}\t{lr_e}\n")
     print(f"parse-cost: census -> {out} ({len(rows)} rows, {len(nodump)} no-dump, all declared)",

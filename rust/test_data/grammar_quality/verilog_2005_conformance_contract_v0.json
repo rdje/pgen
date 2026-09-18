@@ -3,11 +3,11 @@
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1248/397/836/15 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=369/0_mismatches aliases=2",
-    "verified_at_commit": "0f8567b93e8f466b1efea176b28843c2d8ef0383",
+    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1250/399/836/15 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=369/0_mismatches aliases=2",
+    "verified_at_commit": "6c1a02913b1f327f34c357d51c164c7f5aeb527e",
     "inputs": {
-      "generated/systemverilog_parser.rs": "ec951acc129d9947fe5d78db4dbc49c4b20f58932ba73e88da02d9ea1afa1291",
-      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "b5bbef7688f98df961d65a8dc86993bc02b148e19fafe4869ad7e7a69490c787" },
+      "generated/systemverilog_parser.rs": "58f846a5fe81bc4ae72a7b54a7d9edc9f945d4af1f4baa9ea4274dc466a4a78d",
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "840852c5e8d1a7fe064a3e981afd0c0c9021479e0dca2b6053a09847a80f39cb" },
       "rust/src/ast_pipeline/grammar_wellformedness.rs": "044b8e5dece42a4afdbb865bdc2a71380d1a7aa9405f6d7215a356b06a0bb96d",
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "ebfafdd38fda2371dbcd7211b98bb5b13bfa7f9666678cd5e7d82ca7c1bc48b6",
       "rust/src/ast_pipeline/stimuli_generator.rs": "3c566c6109a34a5c662fdd2805ecb48cd66d6f5b66de7966550fad3e3a2f51c7"
@@ -55,13 +55,13 @@
       "library_text:verilog_2005",
       "systemverilog_parseable_file:verilog_2005"
     ],
-    "expected_total": 1248,
-    "expected_proof": 397,
+    "expected_total": 1250,
+    "expected_proof": 399,
     "expected_witness": 836,
     "expected_unknown": 15,
     "expected_sample_parse_failures": 0,
     "expected_proof_reverify_failures": 0,
-    "baseline_note": "SV-CORPUS-GRAD.3.67 (2026-09-17, PGEN-SV-CORPUS-GRAD-0403, GRAMMAR + ANSWER-KEY tier, a terminal re-spelled per base + two profile-dead helpers deleted, ledger SV-0120, release 1.0.235, schema 33 unchanged): +2 total (1246 -> 1248), proof 397 -> 397, witness 835 -> 836, unknown 14 -> 15 -- the two new verilog_2005 rules enter this population; ansi_port_default_governed_v2005 is UNKNOWN by construction: its latest_fact_attribute_equals gate on the `defaults` attribute is store-entry-blocked for the witness planner (STORE-AWARE-GEN reads a positive gate on declaration_family only; routed ENGINE-UNIVERSAL-SERVICES.109); the rule is exercised on the release binary by control_v2005_ansi_headerless_reg_list / _integer_list / _mixed / _two_modules .sv and refused for the four invalid_v2005_ansi_headerless_* pins"
+    "baseline_note": "SV-CORPUS-GRAD.3.67 (2026-09-17, PGEN-SV-CORPUS-GRAD-0403, GRAMMAR + ANSWER-KEY tier, a terminal re-spelled per base + two profile-dead helpers deleted, ledger SV-0120, release 1.0.235, schema 33 unchanged): +2 total (1248 -> 1250), proof 397 -> 399, witness 836 -> 836, unknown 15 -> 15 -- the two new verilog_2005 rules enter this population; ansi_port_default_governed_v2005 is UNKNOWN by construction: its latest_fact_attribute_equals gate on the `defaults` attribute is store-entry-blocked for the witness planner (STORE-AWARE-GEN reads a positive gate on declaration_family only; routed ENGINE-UNIVERSAL-SERVICES.109); the rule is exercised on the release binary by control_v2005_ansi_headerless_reg_list / _integer_list / _mixed / _two_modules .sv and refused for the four invalid_v2005_ansi_headerless_* pins"
   },
   "cases": [
     {
