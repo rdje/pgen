@@ -8,12 +8,12 @@
 |---|---|---|
 | answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `cf789dd9aa83e0f5a3ad77bb2a778b5ee1beb3d3eaedfebe1f1d57483231708e` |
 | explained_svpp audit | `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/after/audit.tsv` | `e30149eb2dc125d24f0a27c537984fc2e11b6ba13062e0e62f162e7d02dfeded` |
-| dark chained_only audit | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv` | `e9132873bc128a4ded20074dbc58c2221b8eb818102166cf50db8d342d9e165b` |
-| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `9243ea14dfc8d93b1bec9664a80689ef461d62ae9e0313c3b8ebd083e38836c5` |
+| dark chained_only audit | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv` | `042d3cdaaf9e477a4e2b96fb2df9c8c69ab5c4f3925f69b1d85c8b7937edf769` |
+| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `98ad8d70aa73e4b50f15f020e09f9ca1694237c3114fef1d5ae817f4586e6fd5` |
 | refuted dispositions (`.6b`) | `stimuli/sv/characterization/refuted_dispositions.tsv` | `e5fd87adc709c4c14eef28da2871427ff93abee4c483e2acda3cfeb2bfe8309d` |
-| parse binary | `rust/target/debug/parseability_probe` | `d83865217a22bebd4b265985e019697a7c549c85dbf53e333be496dff0e477d9` |
+| parse binary | `rust/target/debug/parseability_probe` | `7cf14ff34583ad89ca45ef7fe044ec45b8d3a9f3348c1e477372892a607f65dd` |
 
-Measured at `HEAD` = `0fcd8f5fa+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
+Measured at `HEAD` = `7b1ba9796+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
 
 ## The headline
 
@@ -110,13 +110,13 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 
 | construct at the origin line | rows | one example (origin) |
 |---|---:|---|
-| other | 310 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` |
+| other | 309 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` |
 | class header with a base class (`extends`) | 221 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_driver.sv:4:37` |
 | a `::`-scoped name | 28 | `stimuli/sv/subs/Surelog/tests/SplitFile/svaunit_pkg.sv:1138:31` |
 | a `uvm_*` name (typed, not a macro) | 12 | `stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_reg/dv_base_reg_pkg.sv:123:715` |
 | a function / task header | 11 | `stimuli/sv/subs/Surelog/tests/ClassFuncProto/top.v:30:13` |
 | - | 7 | `stimuli/sv/subs/opentitan/hw/ip/kmac/fpv/tb/sha3pad_fpv.sv:133:1` |
-| a parameter port list `#(` | 4 | `stimuli/sv/subs/opentitan/hw/ip/aon_timer/dv/tb.sv:48:33` |
+| a parameter port list `#(` | 5 | `stimuli/sv/subs/Surelog/tests/SplitFile/amiq_eth_ve_top.v:10592:58` |
 | a `new(…)` initializer / construction | 4 | `stimuli/sv/subs/verilator/test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh:13725:38` |
 | a `typedef` | 3 | `stimuli/sv/subs/opentitan/hw/ip/entropy_src/dv/env/entropy_src_env_pkg.sv:157:16` |
 

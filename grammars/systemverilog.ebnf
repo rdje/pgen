@@ -6445,9 +6445,28 @@ primary_hier_scope_prefix := kw_class_qualifier_fa08937d -> {kind: "class_qualif
                            # Annex B made it REJECT; this is the positive production it always needed.
                            | @probe_sample: "local::" kw_local_939bb46a scope_resolution ( instance_or_class_scope )?
                                                          -> {kind: "local_qualifier", scope: $3}
+                           # SV-CORPUS-GRAD.29 — the `implicit_class_handle .` half of A.8.4's class_qualifier
+                           # (`class_qualifier ::= [ local :: ] [ implicit_class_handle . | class_scope ]`,
+                           # docs/systemverilog/2017/md/section-41-data-read-api.md:3140 = IEEE 1800-2023
+                           # docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3097). `id = this.arr[0];`
+                           # is ONE primary — `[ class_qualifier ] hierarchical_identifier select` — and had no derivation
+                           # under sv_2017: a `this.`-rooted expression was read only by `call_primary` (`this.arr` as a
+                           # paren-less method call), and the sv_2017 primary twin carries no trailing select after it —
+                           # 1800-2017 A.8.4 spells `function_subroutine_call` bare where 1800-2023 spells
+                           # `function_subroutine_call [ [ range_expression ] ]` (:3130 vs :3087), which is why the
+                           # sv_2023 twin accepted the same bytes. LAST and sv-only; under longest_match it LOSES every
+                           # tie to the earlier `call` arm (declaration order), so every previously accepted `this.` tree
+                           # is byte-identical, and it wins only where the call arm reads SHORTER — a trailing select.
+                           | implicit_class_handle_prefix_sv_only
 
 instance_or_class_scope := implicit_class_handle dot -> {kind: "instance",    handle: $1}
                          | class_scope               -> {kind: "class_scope", body: $1}
+
+# SV-CORPUS-GRAD.29: the `implicit_class_handle .` class_qualifier as a primary's scope prefix, rendering the node
+# `instance_or_class_scope` and `variable_lvalue_scope` (A.8.5's `variable_lvalue`, the same shape) already render for
+# the same bytes. sv-only: `this` / `super` are not IEEE 1364-2005 words, so verilog_2005 keeps its reading by construction.
+@profiles: ["sv_2017", "sv_2023"]
+implicit_class_handle_prefix_sv_only := implicit_class_handle dot -> {kind: "instance", handle: $1}
 
 @profiles: ["sv_2023"]
 primary_sv_2023 := primary_literal

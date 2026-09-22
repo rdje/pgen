@@ -7,8 +7,8 @@
 | input | repo-root-relative path | sha256 |
 |---|---|---|
 | manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `cf789dd9aa83e0f5a3ad77bb2a778b5ee1beb3d3eaedfebe1f1d57483231708e` |
-| positions | `stimuli/sv/characterization/positions.tsv` | `2a538c8290957ff04b332957d314d47db1aedbf1fa9ecec96c51b0dc66b1119a` |
-| grammar | `grammars/systemverilog.ebnf` | `2bf0a5f8de77fadda656169ad4e64881553622daca8038a177ff5527b37ef0e5` |
+| positions | `stimuli/sv/characterization/positions.tsv` | `fbb875acc9d61f9988086d97a72b1b90c624cf334c365127fcbe7e22d652f2e9` |
+| grammar | `grammars/systemverilog.ebnf` | `922bf4ba575872bb8a6f5d99041e25c019c8406c6025a8c8e432952ede6c6b7d` |
 
 ## The TEXT channel — can expansion move the byte the parse choked on?
 
@@ -59,7 +59,7 @@
 | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_m.svh` | 87 | `NO-FACT-GATE-AT-FAILURE` | `nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6` |
 | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_mu.svh` | 104 | `NO-FACT-GATE-AT-FAILURE` | `nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6` |
 | Surelog | `tests/ElabSysCall/dut.sv` | 3 | `NO-FACT-GATE-AT-FAILURE` | `must be at most 4kB"); end endmodule module top_error(); if (1) begin $error(` |
-| Surelog | `tests/SplitFile/amiq_eth_ve_top.v` | 8925 | `NO-FACT-GATE-AT-FAILURE` | `t_names[m_port_name]; if (m_x_id == 0 && !SV2C_resolve_binding(m_port_name,` |
+| Surelog | `tests/SplitFile/amiq_eth_ve_top.v` | 10592 | `NO-FACT-GATE-AT-FAILURE` | `et_socket_base #(T) bt; uvm_tlm_b_initiator_socket_base #(T) bi; uvm_tlm` |
 | Surelog | `tests/SplitFile/svaunit_pkg.sv` | 1138 | `NO-FACT-GATE-AT-FAILURE` | `if (!uvm_config_db#(virtual svaunit_vpi_interface)::get(uvm_root::get(), "*",` |
 | opentitan | `hw/ip/aes/dv/err_injection_if/fi_cipher_fsm_wrapper.sv` | 23 | `NO-FACT-GATE-AT-FAILURE` | `l fi_cipher_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_` |
 | opentitan | `hw/ip/aes/dv/err_injection_if/fi_control_fsm_wrapper.sv` | 23 | `NO-FACT-GATE-AT-FAILURE` | `fi_control_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_` |

@@ -7,9 +7,9 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `f8ef41d6d8a962d13319bb6b19601d52caf581aedacefa29ac1849efbf4b6924` |
-| grammar | `grammars/systemverilog.ebnf` | `2bf0a5f8de77fadda656169ad4e64881553622daca8038a177ff5527b37ef0e5` |
-| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `7e6c3a6fe9899beffc32eb907ebfe9017c9189f90cfdeaadc944d3936d6a149e` |
+| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `93c6c40ee3727ac58edb5fc5542475a17734ee1d1c7bdccfa499dc52738896d9` |
+| grammar | `grammars/systemverilog.ebnf` | `922bf4ba575872bb8a6f5d99041e25c019c8406c6025a8c8e432952ede6c6b7d` |
+| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `cfd60a73cb8fd76d52505278d4a55791dcaf28540c91760a344516600d9b0751` |
 
 ## Verdicts
 
@@ -88,4 +88,4 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `MACRO-BLOCKED` | uvm-core | `uvm-core-2020.3.1/src/seq/uvm_sequencer_base.svh` | 41 | none | stuck on `` `ifdef `` (undefined here) |
 | `MACRO-BLOCKED` | uvm-core | `uvm-core-2020.3.1/src/tlm1/uvm_sqr_connections.svh` | 57 | none | stuck on `` `UVM_SEQ_PORT `` (undefined here) |
 | `MACRO-BLOCKED` | uvm-core | `uvm-core-2020.3.1/src/tlm1/uvm_tlm_req_rsp.svh` | 59 | none | stuck on `` `uvm_component_param_utils `` (undefined here) |
-| `PARSER-DEFECT` | Surelog | `tests/SplitFile/amiq_eth_ve_top.v` | 8925 | — | `defect_this_member_select_rvalue.sv` |
+| `PARSER-DEFECT` | Surelog | `tests/SplitFile/amiq_eth_ve_top.v` | 10592 | — | `defect_wildcard_escape_parameterized_tf_local.sv` |

@@ -267,7 +267,7 @@ dist_item	3	0	0
 dist_item_sv_2017	3	0	0
 dist_list	1	0	0
 dist_weight	2	0	0
-dot	4431879	89495	3602886
+dot	4431883	89495	3602890
 dot_star	127726	2	936
 dpi_function_import_property	32	1	0
 dpi_function_proto	32	4	0
@@ -380,7 +380,8 @@ if_generate_else_clause	38	0	1
 iff_arrow	474057	0	0
 iff_keyword_sv_only	4800	0	1026
 immediate_assertion_statement	50439	3	0
-implicit_class_handle	3106051	3	2480937
+implicit_class_handle	3581453	3	2956339
+implicit_class_handle_prefix_sv_only	475402	0	0
 implicit_class_rooted_method_chain	1317256	0	714438
 implicit_data_type	12126	10037	1566
 implies	524502	0	0

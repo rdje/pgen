@@ -277,7 +277,7 @@ Surelog	tests/SimpleTask/top_2.v	deferred:chained_only	IN-WINDOW	pass	-		-	chain
 Surelog	tests/SimpleTask/top_3.v	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/SimpleTask/top_4.v	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/SimpleTask/top_5.v	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
-Surelog	tests/SplitFile/amiq_eth_ve_top.v	deferred:chained_only	NO-ALTERABLE-TICK/NO-FACT-GATE-AT-FAILURE	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/SplitFile/amiq_eth_ve_top.v:8925:42
+Surelog	tests/SplitFile/amiq_eth_ve_top.v	deferred:chained_only	NO-ALTERABLE-TICK/NO-FACT-GATE-AT-FAILURE	fail	own file		a parameter port list `#(`	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/SplitFile/amiq_eth_ve_top.v:10592:58
 Surelog	tests/SplitFile/svaunit_pkg.sv	deferred:chained_only	NO-ALTERABLE-TICK/NO-FACT-GATE-AT-FAILURE	fail	own file		a `::`-scoped name	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/SplitFile/svaunit_pkg.sv:1138:31
 Surelog	tests/SplitFile/top.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/SplitFile/top1.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	

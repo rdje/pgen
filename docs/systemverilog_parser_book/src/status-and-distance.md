@@ -122,7 +122,7 @@ the 38 % of corpus rows with no verdict are an answer-key gap outside `items`; a
 | Corpus passing (sv_2017, `match` rows) | 6069 of 16336 (37.2 %) | the sv_2017 manifest |
 | Known defects (unexplained, sv_2017) | 0 | the sv_2017 manifest |
 
-**Trailing closure rate:** 0.25 items per release over the last 5 recorded release(s); **ETA ≈ 88.0 releases ≈ 104.9 days** — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.
+**Trailing closure rate:** 0.25 items per release over the last 5 recorded release(s); **ETA ≈ 88.0 releases ≈ 115.0 days** — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.
 
 History: [`release_distance/history.tsv`](../../tasks/artifacts/sv_corpus_grad/release_distance/history.tsv) (one row per release, appended by `--record`; the last row must equal this tree, checked by `--check`).
 <!-- END DERIVED: scripts/report_sv_release_distance.sh -->

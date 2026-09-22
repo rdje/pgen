@@ -17,18 +17,18 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `ed56779b3b3aae5c192f3fb53cd29f4743c6dca9808719d002ba70ca199d8c65` |
-| grammar | `grammars/systemverilog.ebnf` | `2bf0a5f8de77fadda656169ad4e64881553622daca8038a177ff5527b37ef0e5` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `24cde45f9cd617a86672390bee8e4d8496a8740936b459a935c2763e10f385ac` |
-| generated parser | `generated/systemverilog_parser.rs` | `66a4c602f5bcc21243170aa04c4455d3589c850979be90e878ede5dc8f65d8f8` |
+| parse binary | `rust/target/debug/parseability_probe` | `7cf14ff34583ad89ca45ef7fe044ec45b8d3a9f3348c1e477372892a607f65dd` |
+| grammar | `grammars/systemverilog.ebnf` | `922bf4ba575872bb8a6f5d99041e25c019c8406c6025a8c8e432952ede6c6b7d` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `c0f410f38c0b2850d01c108011e94c96c593036bd9a19d2291ee5bd7c05f51a1` |
+| generated parser | `generated/systemverilog_parser.rs` | `841e7027d70f33083faa8c79d14c12375e72976da6982bf8eff893e0c5c56840` |
 | context | `stimuli/sv/pipeline_context.tsv` | `f1b77668e01ef6bedcd293f3c5967052525fa48a9b40aa17941cc875a3c8d625` |
 | context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `636c8dec8eeab13488b6dd91c0b5547e53c3f6a25c46ccca884d2fb01f459333` |
 | context (per-file unit predecessors) | `stimuli/sv/pipeline_context_units.tsv` | `df065bdc8a87ff15fb441550d42775de494a6cf63eb971b1303e85ab4500bc70` |
-| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `9334b1847397c97859cf4dcdb86d1fc826d0bd25419f6dce8ebdea127e98c950` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `9243ea14dfc8d93b1bec9664a80689ef461d62ae9e0313c3b8ebd083e38836c5` |
+| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `819c5437d374de8a4b3caf8daa96f69892f2461792e839c1fbb057d628d2cfab` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `98ad8d70aa73e4b50f15f020e09f9ca1694237c3114fef1d5ae817f4586e6fd5` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `0e6562b6e31356c1b6b2c0c67c3e06b4d3f837abb7da6919cbb4c8e7db9a7232` |
 
-Measured at `HEAD` = `0fcd8f5fa+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `7b1ba9796+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -166,8 +166,8 @@ Measured at `HEAD` = `0fcd8f5fa+dirty`; the parse binary is a **debug** build (t
 | construct at the origin line | rows | one example (origin — line) |
 |---|---:|---|
 | class header with a base class (`extends`) | 2003 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4:63` — `class dccm_transaction_sequence_item extends uvm_sequence_item;` |
-| other | 1286 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
-| a parameter port list `#(` | 109 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
+| other | 1285 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
+| a parameter port list `#(` | 110 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
 | a `uvm_*` name (typed, not a macro) | 91 | `stimuli/sv/subs/Surelog/tests/ForeachClassParent/dut.sv:4:22` — `protected uvm_phase m_type_overrides[$];` |
 | a `::`-scoped name | 85 | `stimuli/sv/subs/Surelog/tests/Assignments/dut.sv:5:44` — `function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);` |
 | a `typedef` | 54 | `stimuli/sv/subs/Surelog/tests/NetType/dut.sv:18:24` — `typedef some_other_type myalias;` |
