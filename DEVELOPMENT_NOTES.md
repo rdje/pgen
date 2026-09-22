@@ -1,6 +1,6 @@
 # DEVELOPMENT_NOTES.md
 
-## 2026-09-18 — SV-CORPUS-GRAD.28 (`PGEN-SV-CORPUS-GRAD-0409`): the last gated type position, and a follower that keeps a door narrow
+## 2026-09-22 — SV-CORPUS-GRAD.28 (`PGEN-SV-CORPUS-GRAD-0409`): the last gated type position, and a follower that keeps a door narrow
 
 - **A door opened at the bare positions was not yet opened at the parameterized one.** `.27` gave every bare type identifier the wildcard escape and left `class_type_head` — the head of `C#(…)` — on its declared-only arms; the `uvm_object_utils` expansion, the most common line in every UVM class, is exactly that shape. The row that found it was a dark row `.27` had just made RESIDUAL by stopping the parser from demanding the base class: one escape's success moved the next gate into view.
 - **A follower requirement is what keeps an escape from re-reading anything.** The arm fires only before a `#`, so a bare name — which `.27` already reads, and whose tree consumers already see — never reaches it; identity holds by construction and the sweeps confirm it rather than discover it.
