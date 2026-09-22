@@ -6,21 +6,21 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `b6b407606a4c403bd8e8045ebddb8c53a9a675832a2bd9fa843a7bc8eb177657` |
-| positions | `stimuli/sv/characterization/positions.tsv` | `63357d53c13c265de53a9172c3afb5d5a773b967a1a45dd899d22445de27ab9b` |
-| grammar | `grammars/systemverilog.ebnf` | `4900edad613c742ff5c9f175ac86f136b0d8663839f279bf1d74cbafa1003b01` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `cf789dd9aa83e0f5a3ad77bb2a778b5ee1beb3d3eaedfebe1f1d57483231708e` |
+| positions | `stimuli/sv/characterization/positions.tsv` | `2a538c8290957ff04b332957d314d47db1aedbf1fa9ecec96c51b0dc66b1119a` |
+| grammar | `grammars/systemverilog.ebnf` | `2bf0a5f8de77fadda656169ad4e64881553622daca8038a177ff5527b37ef0e5` |
 
 ## The TEXT channel — can expansion move the byte the parse choked on?
 
 | verdict | rows | % | reading |
 |---|---:|---:|---|
-| `PRE-TICK` | 2,006 | 56.0 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
-| `IN-WINDOW` | 1,482 | 41.4 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
-| `NO-ALTERABLE-TICK` | 81 | 2.3 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
-| `PAST-LAST-TICK` | 10 | 0.3 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
-| **TOTAL** | **3,579** | **100.0 %** | |
+| `PRE-TICK` | 2,005 | 56.1 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
+| `IN-WINDOW` | 1,483 | 41.5 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
+| `NO-ALTERABLE-TICK` | 80 | 2.2 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
+| `PAST-LAST-TICK` | 9 | 0.3 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
+| **TOTAL** | **3,577** | **100.0 %** | |
 
-⇒ **2,087 of 3,579 rows (58.3 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
+⇒ **2,085 of 3,577 rows (58.3 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
 
 ## Then the FACT channel — is a cross-file *name* the live explanation?
 
@@ -28,18 +28,18 @@
 |---|---:|---|
 | `FACT-GATED-CROSS-FILE` | 1,861 |  |
 | `CROSS-LIBRARY` | 166 |  |
-| `NO-FACT-GATE-AT-FAILURE` | 26 |  |
 | `UNDECLARED-ANYWHERE` | 26 |  |
+| `NO-FACT-GATE-AT-FAILURE` | 24 |  |
 | `FACT-GATED-LOCAL-TYPE` | 8 |  |
 
-⇒ **the worklist is 60 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
+⇒ **the worklist is 58 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
 
 ## Worklist by suite
 
 | suite | channel | rows |
 |---|---|---:|
 | opentitan | `UNDECLARED-ANYWHERE` | 21 |
-| opentitan | `NO-FACT-GATE-AT-FAILURE` | 17 |
+| opentitan | `NO-FACT-GATE-AT-FAILURE` | 15 |
 | uvm-core | `FACT-GATED-LOCAL-TYPE` | 8 |
 | Surelog | `NO-FACT-GATE-AT-FAILURE` | 3 |
 | Surelog | `UNDECLARED-ANYWHERE` | 3 |
@@ -59,9 +59,8 @@
 | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_m.svh` | 87 | `NO-FACT-GATE-AT-FAILURE` | `nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6` |
 | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_mu.svh` | 104 | `NO-FACT-GATE-AT-FAILURE` | `nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6` |
 | Surelog | `tests/ElabSysCall/dut.sv` | 3 | `NO-FACT-GATE-AT-FAILURE` | `must be at most 4kB"); end endmodule module top_error(); if (1) begin $error(` |
-| Surelog | `tests/SplitFile/amiq_eth_ve_top.v` | 907 | `NO-FACT-GATE-AT-FAILURE` | `eth_packet_length") type_id; static function type_id get_type(); retur` |
-| Surelog | `tests/SplitFile/svaunit_pkg.sv` | 37 | `NO-FACT-GATE-AT-FAILURE` | `"svaunit_reporter") type_id; static function type_id get_type(); retur` |
-| opentitan | `hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv` | 11 | `NO-FACT-GATE-AT-FAILURE` | `(lc_ctrl_pkg::Off)) lc_tx_cov; lc_tx_cov cov; initial begin cov = lc_tx_` |
+| Surelog | `tests/SplitFile/amiq_eth_ve_top.v` | 8925 | `NO-FACT-GATE-AT-FAILURE` | `t_names[m_port_name]; if (m_x_id == 0 && !SV2C_resolve_binding(m_port_name,` |
+| Surelog | `tests/SplitFile/svaunit_pkg.sv` | 1138 | `NO-FACT-GATE-AT-FAILURE` | `if (!uvm_config_db#(virtual svaunit_vpi_interface)::get(uvm_root::get(), "*",` |
 | opentitan | `hw/ip/aes/dv/err_injection_if/fi_cipher_fsm_wrapper.sv` | 23 | `NO-FACT-GATE-AT-FAILURE` | `l fi_cipher_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_` |
 | opentitan | `hw/ip/aes/dv/err_injection_if/fi_control_fsm_wrapper.sv` | 23 | `NO-FACT-GATE-AT-FAILURE` | `fi_control_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_` |
 | opentitan | `hw/ip/aes/dv/err_injection_if/fi_core_wrapper.sv` | 23 | `NO-FACT-GATE-AT-FAILURE` | `ual fi_core_if)::set(null, "*", "aes_core_fi_vif", fi_if); end endmodule` |
@@ -90,8 +89,9 @@
 | uvm-core | `uvm-core-2020.3.1/src/tlm1/uvm_tlm_req_rsp.svh` | 59 | `FACT-GATED-LOCAL-TYPE` | `xtends uvm_component; typedef uvm_tlm_req_rsp_channel #(REQ, RSP) this_type;` |
 | opentitan | `hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh` | 5 | `NO-FACT-GATE-AT-FAILURE` | `Apache-2.0 virtual task run_sec_cm_fi_vseq(int num_times = 1); pre_run_sec_cm` |
 | opentitan | `hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__shadow_reg_errors.svh` | 5 | `NO-FACT-GATE-AT-FAILURE` | `Apache-2.0 virtual task run_shadow_reg_errors(int num_times, bit en_csr_rw_seq` |
-| opentitan | `hw/dv/sv/tl_agent/dv/env/tl_agent_env_pkg.sv` | 17 | `NO-FACT-GATE-AT-FAILURE` | ``(tl_agent_env_cfg)) tl_agent_env_cov; `include "tl_agent_env_cfg.sv" `inclu`` |
 | opentitan | `hw/ip/aes/dv/err_injection_if/signal_force.sv` | 24 | `NO-FACT-GATE-AT-FAILURE` | `)::set(null, "*", pick_if_name(), fi_if); end // Pick a name` |
 | opentitan | `hw/top_darjeeling/dv/autogen/tb__alert_handler_connect.sv` | 7 | `NO-FACT-GATE-AT-FAILURE` | ``y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[`` |
 | opentitan | `hw/top_earlgrey/dv/autogen/tb__alert_handler_connect.sv` | 7 | `NO-FACT-GATE-AT-FAILURE` | ``y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[`` |
+| opentitan | `hw/vendor/lowrisc_ibex/dv/formal/check/peek/abs.sv` | 16 | `NO-FACT-GATE-AT-FAILURE` | `te /////////////// assign pre_regs[0] = 32'h0; for (genvar i = 1; i < 32; i++)` |
+| opentitan | `hw/vendor/lowrisc_ibex/dv/formal/check/peek/mem.sv` | 13 | `NO-FACT-GATE-AT-FAILURE` | ``logic has_snd_req; assign has_snd_req = mem_gnt_snd_d \| (mem_gnt_fst_q & `CR.da`` |
 

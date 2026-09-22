@@ -30,3 +30,5 @@ lanes on slang `all.sv` after the population selector (line-anchored) had missed
 
 The rule, in `TOOLBOX.md` §1.5c: an escape yields wherever a resolution-free reading of the same
 bytes already stands, and the pre-screen's identity column is read before the build.
+
+`ab_1.0.240.txt` (SV-CORPUS-GRAD.28): the same A/B with HEAD = 1.0.239 and the shipped `.28` candidate (the parameterized-class-type escape confined to class bodies and typedefs), 158 rows over 81 files — 148 identity, 8 movers (the class-member and typedef shapes as pins and probes × two profiles), 2 rows refused on both sides (the module-scope member probe × two profiles; its pin among the identity rows), no tree accepted by HEAD changed (the class-body scope markers included).

@@ -746,7 +746,7 @@ Surelog	tests/SimpleClass1/Packet.sv	fail	chained_only	deferred:chained_only	Sur
 Surelog	tests/SimpleClass1/Sequencer.sv	fail	chained_only	deferred:chained_only	Surelog: multi-file test unit (9 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/SimpleClass1/header.v	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (9 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/SimpleClass1/mod.v	fail	chained_only	deferred:chained_only	Surelog: multi-file test unit (9 sources) - dir-level chained adjudication (leaf .4)
-Surelog	tests/SimpleClass1/top.v	fail	chained_only	deferred:chained_only	Surelog: multi-file test unit (9 sources) - dir-level chained adjudication (leaf .4)
+Surelog	tests/SimpleClass1/top.v	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (9 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/SimpleClass1/top_1.v	fail	chained_only	deferred:chained_only	Surelog: multi-file test unit (9 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/SimpleClass2/top.v	fail	chained_only	deferred:chained_only	Surelog: driver references out-of-unit sources/libraries/file-lists (-y/-v/-f/-map/-cfg/-batch or ../ paths) - chain-level only
 Surelog	tests/SimpleCmdLineTest/cell.v	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (2 sources) - dir-level chained adjudication (leaf .4)
@@ -6679,7 +6679,7 @@ opentitan	hw/dv/sv/cip_lib/cip_base_pkg.sv	fail	chained_only	deferred:chained_on
 opentitan	hw/dv/sv/cip_lib/cip_base_scoreboard.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/dv/sv/cip_lib/cip_base_test.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/dv/sv/cip_lib/cip_base_virtual_sequencer.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-opentitan	hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
+opentitan	hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/dv/sv/cip_lib/cip_macros.svh	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/dv/sv/cip_lib/cip_mubi_cov_if.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 opentitan	hw/dv/sv/cip_lib/cip_mubi_cov_wrapper.sv	pass	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)

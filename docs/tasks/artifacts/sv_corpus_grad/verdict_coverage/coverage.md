@@ -6,7 +6,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `b6b407606a4c403bd8e8045ebddb8c53a9a675832a2bd9fa843a7bc8eb177657` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `cf789dd9aa83e0f5a3ad77bb2a778b5ee1beb3d3eaedfebe1f1d57483231708e` |
 | v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `1074540b605668c62b286d4a436148cda1842269b3ae37ba4c44b2b153200a6c` |
 
 ## The headline
@@ -77,21 +77,21 @@
 
 ## Inside `NO VERDICT` — what the parser ALREADY did on the row's own bytes (SV-CORPUS-GRAD.13a)
 
-- **ONE-SIDED POSITIVE — 2,022 rows (12.4 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
-  - 1,871 are compilation-unit-shaped; ⚠️ **151 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
-- ⛔ **DARK — 3,873 rows (23.7 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
+- **ONE-SIDED POSITIVE — 2,024 rows (12.4 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
+  - 1,873 are compilation-unit-shaped; ⚠️ **151 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
+- ⛔ **DARK — 3,871 rows (23.7 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
 - **NOT SOURCE TEXT — 350 rows (2.1 % of the corpus)** (SV-CORPUS-GRAD.13c.1): the file is a `$readmemh` memory image, a bare string literal or a tool command line, decided from its BYTES by the adjudicator. It never was a parse input, so it is neither testimony nor DARK — it stays in the denominator as a stated fact about the corpus's composition, and the class is PERMANENT and bounded below. ⛔ Before `.13c.1` these rows were counted as DARK `chained_only`, a defect worklist no chaining could ever burn down.
 
 | class | rows | one-sided (unit) | ⚠️ one-sided (fragment) | DARK | not source |
 |---|---:|---:|---:|---:|---:|
-| `deferred:chained_only` | 4,933 | 1,203 | 151 | 3,579 | 0 |
+| `deferred:chained_only` | 4,933 | 1,205 | 151 | 3,577 | 0 |
 | `deferred:no_sv_key` | 596 | 544 | 0 | 52 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 0 | 0 | 350 |
 | `deferred:svpp_owned` | 245 | 107 | 0 | 138 | 0 |
 | `deferred:impl_varying` | 90 | 6 | 0 | 84 | 0 |
 | `deferred:verilog_ams_lane` | 25 | 5 | 0 | 20 | 0 |
 | `deferred:ni_unimplemented` | 6 | 6 | 0 | 0 | 0 |
-| **TOTAL** | **6,245** | **1,871** | **151** | **3,873** | **350** |
+| **TOTAL** | **6,245** | **1,873** | **151** | **3,871** | **350** |
 
 ## Permanent deferrals — by construction, and BOUNDED (SV-CORPUS-GRAD.13f)
 
@@ -110,11 +110,11 @@ A permanent deferral is a CLAIM: no future work on the parser, the answer key or
 
 ## The DARK half — can the row's own deferral reason even REACH the failure?
 
-A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 3,873 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).
+A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 3,871 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).
 
 | class | DARK rows | of which NO `` ` `` anywhere | what that means |
 |---|---:|---:|---|
-| `deferred:chained_only` | 3,579 | 60 | ⭐ **REFUTES the TEXTUAL half of the deferral** — no chaining can alter one byte of these files, so the parse fails identically expanded. What remains is the cross-file FACT channel (a `type_name` a sibling file declares), which is narrower, is not expansion, and is separately testable → `.13c` |
+| `deferred:chained_only` | 3,577 | 59 | ⭐ **REFUTES the TEXTUAL half of the deferral** — no chaining can alter one byte of these files, so the parse fails identically expanded. What remains is the cross-file FACT channel (a `type_name` a sibling file declares), which is narrower, is not expansion, and is separately testable → `.13c` |
 | `deferred:no_sv_key` | 52 | 18 | information only — the label is the absence of an upstream ANSWER KEY, which no directive could supply |
 | `deferred:not_source_text` | 0 | 0 | ⛔ **NOT MEASURED, and saying so is the point** — the census asks whether expansion could alter a failing PARSE of source text; these rows are not source text, so there is no parse for a directive to reach. They are excluded from DARK by construction (`.13c.1`) and appear here only so the class table is total |
 | `deferred:svpp_owned` | 138 | 10 | ⛔ refutes NOTHING — read them: verible excerpt-mode fragments and verilator `t_preproc_*_bad` EOF/string cases. Preprocessor relevance is the test's PURPOSE, not a directive in its text |
@@ -255,30 +255,30 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 ## Under the PIPELINE — the same rows re-read through preprocess→parse (SVPP-EXPANSION.6c.1)
 
-> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`2a337db5cc5a42997517d56cef5f9a1ceac0d1d17d1002e6fa45aa7d35a94d3d`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
+> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`516bf879762c7026b5dc6ba6dc492d3d2ba453a5dccc555e161e465b8066f7c8`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
 
-**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `9265/2606/4465/3184/0`** (raw: `7485/2606/6245/3873/0`).
+**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `9402/2606/4328/3046/0`** (raw: `7485/2606/6245/3871/0`).
 
-- **ADJUDICATED: 9,265 rows (56.7 %)** (raw 7,485, +1,780)
+- **ADJUDICATED: 9,402 rows (57.6 %)** (raw 7,485, +1,917)
 - **ROUTED: 2,606 rows (16.0 %)** (raw 2,606, +0)
-- **NO VERDICT: 4,465 rows (27.3 %)** (raw 6,245, -1,780)
+- **NO VERDICT: 4,328 rows (26.5 %)** (raw 6,245, -1,917)
 
 | bucket | class under the pipeline | rows | % | why |
 |---|---|---:|---:|---|
 | ADJUDICATED | `match` | 5,698 | 34.9 % | expected and observed agree - the row testifies FOR the parser |
-| ADJUDICATED | `pipeline:corroborated` | 1,295 | 7.9 % | a must-accept row the raw lane explained away by preprocessing PASSES once preprocessed — the explanation held; the row testifies FOR the parser |
+| ADJUDICATED | `pipeline:corroborated` | 1,296 | 7.9 % | a must-accept row the raw lane explained away by preprocessing PASSES once preprocessed — the explanation held; the row testifies FOR the parser |
 | ADJUDICATED | `pipeline:must_reject:match_under_expansion` | 451 | 2.8 % | a row the key expects rejected IS rejected in its own text under the pipeline — the raw lane could not reach the construct |
 | ADJUDICATED | `divergence:explained_store_gate` | 54 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
 | ROUTED | `deferred:v2005_profile_lane` | 2,606 | 16.0 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
-| NO VERDICT | `pipeline:chained:unreached_in_unit` | 1,888 | 11.6 % | DARK UNDER THE PIPELINE: a member whose every including unit rejects elsewhere (.6d.2) — the unit's own origin row carries the verdict |
-| NO VERDICT | `pipeline:chained:rejects_own_file` | 655 | 4.0 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |
+| NO VERDICT | `pipeline:chained:unreached_in_unit` | 1,832 | 11.2 % | DARK UNDER THE PIPELINE: a member whose every including unit rejects elsewhere (.6d.2) — the unit's own origin row carries the verdict |
+| NO VERDICT | `pipeline:chained:rejects_own_file` | 600 | 3.7 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |
 | NO VERDICT | `deferred:no_sv_key` | 596 | 3.6 % | no upstream answer key exists - expectation underivable |
 | NO VERDICT | `deferred:not_source_text` | 350 | 2.1 % | the file is not SystemVerilog source text at all (a $readmemh memory image, a bare string literal, a tool command line) - it testifies to nothing about the parser; a CORPUS-COMPOSITION fact, stated per row (SV-CORPUS-GRAD.13c.1) |
 | NO VERDICT | `pipeline:chained:refused_context` | 210 | 1.3 % | an include the derived context cannot supply |
-| NO VERDICT | `pipeline:chained:hollow` | 130 | 0.8 % | the rejection lands in an included file |
 | NO VERDICT | `pipeline:svpp_owned:accepted_under_expansion` | 109 | 0.7 % | conformance owned by the preprocessor lane; accepted |
+| NO VERDICT | `pipeline:chained:hollow` | 104 | 0.6 % | the rejection lands in an included file |
 | NO VERDICT | `deferred:impl_varying` | 90 | 0.6 % | LRM leaves the behaviour implementation-defined |
-| NO VERDICT | `pipeline:refuted:cross_file_base_class` | 36 | 0.2 % | the class header's base is declared in another file of the unit (the library design, SVPP-EXPANSION.6d) |
+| NO VERDICT | `pipeline:refuted:cross_file_base_class` | 35 | 0.2 % | the class header's base is declared in another file of the unit (the library design, SVPP-EXPANSION.6d) |
 | NO VERDICT | `pipeline:svpp_owned:rejects_own_file` | 30 | 0.2 % | conformance owned by the preprocessor lane; rejected |
 | NO VERDICT | `pipeline:svpp_owned:refused_engine` | 30 | 0.2 % | conformance owned by the preprocessor lane |
 | NO VERDICT | `deferred:verilog_ams_lane` | 25 | 0.2 % | Verilog-AMS, a different language family |
@@ -293,8 +293,8 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | NO VERDICT | `pipeline:refuted:preprocessor_item` | 1 | 0.0 % | an expansion-stage rule not yet implemented (named per row) |
 | NO VERDICT | `pipeline:svpp_owned:hollow` | 1 | 0.0 % | conformance owned by the preprocessor lane |
 | NO VERDICT | `pipeline:refuted` | 1 | 0.0 % | refuted and not yet dispositioned |
-| ADJUDICATED | `pipeline:chained:accepted_under_expansion` (design corpora) | 1,759 | 10.8 % | a design-corpus file ACCEPTED under its derived context — must-accept by the suite convention (a shipping design's file is valid as part of its unit); outside DESIGN_SUITES the row keeps NO VERDICT (no per-file expectation) |
-| NO VERDICT | `pipeline:chained:accepted_under_expansion` (other suites) | 261 | 1.6 % | accepted under its context, but the suite gives no per-file expectation |
-| ADJUDICATED | `pipeline:chained:accepted_in_unit` (design corpora) | 8 | 0.0 % | a design-corpus file ACCEPTED as a MEMBER of its package unit under the library (.6d.2) — must-accept by the suite convention; outside DESIGN_SUITES the row keeps NO VERDICT |
+| ADJUDICATED | `pipeline:chained:accepted_under_expansion` (design corpora) | 1,813 | 11.1 % | a design-corpus file ACCEPTED under its derived context — must-accept by the suite convention (a shipping design's file is valid as part of its unit); outside DESIGN_SUITES the row keeps NO VERDICT (no per-file expectation) |
+| NO VERDICT | `pipeline:chained:accepted_under_expansion` (other suites) | 262 | 1.6 % | accepted under its context, but the suite gives no per-file expectation |
+| ADJUDICATED | `pipeline:chained:accepted_in_unit` (design corpora) | 90 | 0.6 % | a design-corpus file ACCEPTED as a MEMBER of its package unit under the library (.6d.2) — must-accept by the suite convention; outside DESIGN_SUITES the row keeps NO VERDICT |
 | | **TOTAL** | **16,336** | **100.0 %** | |
 

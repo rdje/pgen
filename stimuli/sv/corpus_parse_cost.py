@@ -172,7 +172,11 @@ INSTRUMENT_FILE = "stimuli/sv/corpus_parse_cost.py"
 # refuses three corpus files earlier (fewer total entries), the LR family's own entries unchanged.
 # SV-CORPUS-GRAD.3.67 (release 1.0.235): adopted 2.682 -> 2.693 from family_share.json - the based literal's strict terminal
 # refuses three corpus files earlier (fewer total entries), the LR family's own entries unchanged.
-CORPUS_FAMILY_SHARE_PCT = "2.693"
+# SV-CORPUS-GRAD.3.67 (release 1.0.235): adopted 2.693 -> 2.683 from family_share.json - the based literal's strict terminal
+# refuses three corpus files earlier (fewer total entries), the LR family's own entries unchanged.
+# SV-CORPUS-GRAD.3.67 (release 1.0.235): adopted 2.683 -> 2.684 from family_share.json - the based literal's strict terminal
+# refuses three corpus files earlier (fewer total entries), the LR family's own entries unchanged.
+CORPUS_FAMILY_SHARE_PCT = "2.684"
 FAMILY_SHARE_ARTIFACT = (
     "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json"
 )

@@ -118,6 +118,8 @@ checker_instantiation_beside_module	72176	0	2
 checker_or_generate_item	1004	192	297
 checker_or_generate_item_declaration	707	28	4
 checker_rand_qualifier_sv_only	703	0	8
+class_body_close	14	10	1
+class_body_open	26	10	1
 class_constraint	46	3	2
 class_constructor_declaration	80695	3	615
 class_constructor_declaration_sv_2017	80080	3	0
@@ -125,7 +127,7 @@ class_constructor_prototype	3	0	0
 class_constructor_prototype_sv_2017	3	0	0
 class_declaration	80695	10	614
 class_declaration_sv_2017	80081	10	0
-class_identifier	2855210	1569	0
+class_identifier	3010689	1569	0
 class_item	47	25	1
 class_item_qualifier	207	1	150
 class_item_sv_2017	46	25	0
@@ -225,7 +227,7 @@ data_type_or_implicit_declared	2453	1770	0
 data_type_or_implicit_explicit	80161	1808	0
 data_type_or_void	3538	2414	319
 data_type_or_void_sv_only	3251	48	18
-declaration_identifier	9496297	145813	0
+declaration_identifier	9651776	145813	0
 declaration_lifetime_sv_only	9118	3	728
 declared_class_alias_identifier	1	0	0
 declared_class_identifier	26	10	1
@@ -506,7 +508,7 @@ kw_edge_sv_only	2679	2	13
 kw_else_ae050f5b	1445	331	0
 kw_end_7a92f3d2	8721	2480	0
 kw_endcase_a27a6786	305	204	0
-kw_endclass_b43ac277	21	17	0
+kw_endclass_b43ac277	20	17	0
 kw_endclocking_c1e6d71f	2	0	0
 kw_endfunction_84b8f967	111	107	0
 kw_endgenerate_efb1f00a	7	6	0
@@ -825,7 +827,7 @@ non_consecutive_repetition	2444	0	0
 non_consecutive_repetition_sv_2017	2444	0	0
 non_integer_type	769678	5	0
 non_integer_type_sv_only	769710	0	71727
-non_keyword_identifier	18407264	428828	17336841
+non_keyword_identifier	18562743	428828	17492320
 non_overlapped_implication	211	0	53
 non_port_interface_item	4	2	0
 non_port_module_item	71988	7090	80
@@ -881,7 +883,7 @@ parameter_override	72911	1	0
 parameter_port_declaration	1503	696	0
 parameter_port_declaration_sv_2017	1503	696	0
 parameter_port_list	441	23	173
-parameter_value_assignment	124385	502	78380
+parameter_value_assignment	147232	502	101227
 parameter_value_assignment_sv_2017	46005	502	0
 paren_operator_assignment_operand	922757	0	502703
 part_select_range	85687	12921	10351
@@ -984,7 +986,7 @@ rooted_tf_call_sv_only	1242491	0	639673
 rparen	409231	99541	179300
 scope_free_identifier	12262	2	0
 scope_randomize_sv_only	488308	0	12906
-scope_resolution	377937	8080	69264
+scope_resolution	389356	8080	80683
 scoped_base_class_type_identifier	15	0	1
 scoped_block_class_type	8516	0	327
 scoped_block_covergroup_identifier	8516	0	327
@@ -1004,7 +1006,7 @@ scoped_sequence_identifier	618749	4	15569
 scoped_type_scope_prefix	164503	1484	2
 select	543878	140169	281567
 select_tail	262311	140169	0
-semi	339607	40549	66291
+semi	339606	40549	66290
 seq_and_expr	5027	768	2512
 seq_and_tail	2482	0	41
 seq_block	55586	2436	4359
@@ -1112,7 +1114,7 @@ timescale_directive	65	3	0
 timeunit_separator_slash	5	5	0
 timeunit_separator_trivia	5	5	0
 timeunits_declaration	80694	5	1352
-trivia	88859462	1225182	86561035
+trivia	88859461	1225182	86561034
 type_assignment	35	16	0
 type_assignment_sv_2017	35	16	0
 type_assignment_with_default	5	4	0
@@ -1123,6 +1125,7 @@ type_declaration_sv_2017	88274	627	0
 type_identifier	2286569	11506	0
 type_reference	2153472	0	1433235
 type_reference_sv_2017	720237	0	0
+typedef_class_type	634	0	0
 udp_ansi_declaration	646	1	0
 udp_body	2	2	0
 udp_declaration	643	3	0
@@ -1185,6 +1188,9 @@ wait_statement	55586	0	5147
 wait_statement_sv_only	50439	0	0
 wildcard_equal	474057	0	0
 wildcard_escape_base_class_identifier	15	0	1
+wildcard_escape_class_type	206802	0	48576
+wildcard_escape_class_type_head	158226	0	0
+wildcard_escape_class_type_identifier	158226	0	2747
 wildcard_escape_interface_port_shape	291	0	0
 wildcard_escape_lone_name_shape	9229	0	376
 wildcard_escape_nettype_identifier	80158	221	123

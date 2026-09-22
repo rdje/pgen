@@ -385,6 +385,7 @@ IN-WINDOW		opentitan	hw/dv/sv/str_utils/str_utils_pkg.sv	193	196	196	6	8900		ge 
 IN-WINDOW		opentitan	hw/dv/sv/sw_logger_if/sw_logger_if.sv	500	502	502	16	19498		Incoming data. ); `ifdef UVM import uvm_pkg::*; `endif import str_utils_pk
 IN-WINDOW		opentitan	hw/dv/sv/sw_test_status/sw_test_status_if.sv	570	573	573	17	3353		st_status_pkg::*; `include "dv_macros.svh" // Address to which the test sta
 IN-WINDOW		opentitan	hw/dv/sv/test_vectors/test_vectors_pkg.sv	514	516	516	16	17329		// macro includes `include "uvm_macros.svh" // declare string and vectors
+IN-WINDOW		opentitan	hw/dv/sv/tl_agent/dv/env/tl_agent_env_pkg.sv	552	556	556	19	742		l_agent_env_cov; `include "tl_agent_env_cfg.sv" `include "tl_agent_virtual_
 IN-WINDOW		opentitan	hw/dv/sv/tl_agent/dv/env/tl_agent_scoreboard.sv	747	751	751	15	1199		_prefix_len = 7; `uvm_component_utils(tl_agent_scoreboard) `uvm_component_n
 IN-WINDOW		opentitan	hw/dv/sv/tl_agent/dv/tb/tb.sv	357	359	359	14	1050		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" wire
 IN-WINDOW		opentitan	hw/dv/sv/tl_agent/dv/tests/tl_agent_test_pkg.sv	312	314	314	12	435		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
@@ -1339,7 +1340,7 @@ IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/common/ibex_mem_int
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/common/ibex_mem_intf_agent/ibex_mem_intf_pkg.sv	336	340	340	15	444		D, WRITE } rw_e; `include "uvm_macros.svh" `include "dv_macros.svh" `incl
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/common/irq_agent/irq_agent_pkg.sv	262	266	266	12	521		ADDR_WIDTH = 32; `include "uvm_macros.svh" `include "dv_macros.svh" `incl
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/env/core_ibex_dut_probe_if.sv	3185	3189	151	100	4103		bexMuBiOn; end `DV_CREATE_SIGNAL_PROBE_FUNCTION(signal_probe_rf_ren_a, rf_r
-IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/env/core_ibex_env_pkg.sv	630	631	288	22	939		RAMBLE_KEY_W) ) scrambling_key_agent; typedef push_pull_agent_cfg#( .D
+IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/env/core_ibex_env_pkg.sv	792	796	288	27	939		g_key_agent_cfg; `include "core_ibex_vseqr.sv" `include "core_ibex_env_cfg.
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/fcov/core_ibex_fcov_if.sv	671	674	151	33	35991		data_rvalid_i ); `include "dv_fcov_macros.svh" import uvm_pkg::*; typede
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/fcov/core_ibex_pmp_fcov_if.sv	1049	1053	151	34	43118		PMPNumChan = 3; `include "dv_fcov_macros.svh" import uvm_pkg::*; // Enu
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/tb/core_ibex_tb_top.sv	1228	1230	151	43	20634		ameters directly. `ifndef IBEX_CFG_RV32M `define IBEX_CFG_RV32M ibex_pkg::
@@ -1539,9 +1540,8 @@ NO-ALTERABLE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Cores-VeeR-EL2	design/include/el2_dec_csr_equ_m.svh	1622	1623		87	19862		nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Cores-VeeR-EL2	design/include/el2_dec_csr_equ_mu.svh	1939	1940		104	24138		nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/ElabSysCall/dut.sv	42	78		3	385		must be at most 4kB"); end endmodule module top_error(); if (1) begin $error(
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/SplitFile/amiq_eth_ve_top.v	24943	24944		907	360140		eth_packet_length") type_id; static function type_id get_type(); retur
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/SplitFile/svaunit_pkg.sv	1162	1163		37	130192		"svaunit_reporter") type_id; static function type_id get_type(); retur
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv	414	415		11	624		(lc_ctrl_pkg::Off)) lc_tx_cov; lc_tx_cov cov; initial begin cov = lc_tx_
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/SplitFile/amiq_eth_ve_top.v	246989	246989		8925	360140		t_names[m_port_name]; if (m_x_id == 0 && !SV2C_resolve_binding(m_port_name,
+NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/SplitFile/svaunit_pkg.sv	32712	32712		1138	130192		if (!uvm_config_db#(virtual svaunit_vpi_interface)::get(uvm_root::get(), "*",
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/aes/dv/err_injection_if/fi_cipher_fsm_wrapper.sv	625	625		23	707		l fi_cipher_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/aes/dv/err_injection_if/fi_control_fsm_wrapper.sv	600	600		23	681		fi_control_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/aes/dv/err_injection_if/fi_core_wrapper.sv	587	587		23	642		ual fi_core_if)::set(null, "*", "aes_core_fi_vif", fi_if); end endmodule
@@ -1562,7 +1562,6 @@ NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/spi_device/pre_dv/tb/spid_
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/spi_device/pre_dv/tb/spid_upload_tb.sv	4692	4693		186	19916	host	(); end static task host(); // Prep data automatic logic [7:0] pay
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv	682	683		24	9472	t_MainMode	input t_MainMode main_mode, input [31:0] regs_i [1:31], output logi
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv	50	50		2	52	CUSTOM_1	n name enum CUSTOM_1,
-PAST-LAST-TICK		Surelog	tests/SimpleClass1/top.v	424	425	21	32	2068		(Packet,Scoreboard) Rcvr2Sb_port; uvm_analysis_imp_sent_pkt #(Packet,Scorebo
 PAST-LAST-TICK		Surelog	tests/SimpleInterface/simple_if.sv	260	263	21	16	3198		) begin : mod_gen modport tb (clocking cb, input clk); end endgenerate endin
 PAST-LAST-TICK		opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/stub.sv	1033	1034	250	32	4837		automatic sail_bits sail_shift_bits_left(sail_bits x, sail_bits y); return {
 PAST-LAST-TICK		slang	tests/unittests/data/verilog.v	100	101	29	9	116		module t(); wire do; endmodule
@@ -3554,7 +3553,6 @@ PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_sqr_conne
 PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_tlm_req_rsp.svh	2340	2340	2403	59	13793	REQ	xtends uvm_component; typedef uvm_tlm_req_rsp_channel #(REQ, RSP) this_type;
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh	178	179	312	5	3443		Apache-2.0 virtual task run_sec_cm_fi_vseq(int num_times = 1); pre_run_sec_cm
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__shadow_reg_errors.svh	178	179	457	5	18055		Apache-2.0 virtual task run_shadow_reg_errors(int num_times, bit en_csr_rw_seq
-PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/tl_agent/dv/env/tl_agent_env_pkg.sv	534	535	556	17	742		(tl_agent_env_cfg)) tl_agent_env_cov; `include "tl_agent_env_cfg.sv" `inclu
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/aes/dv/err_injection_if/signal_force.sv	719	719	2019	24	2350		)::set(null, "*", pick_if_name(), fi_if); end // Pick a name
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_darjeeling/dv/autogen/tb__alert_handler_connect.sv	243	244	274	7	5467		y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_earlgrey/dv/autogen/tb__alert_handler_connect.sv	243	244	274	7	4562		y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[

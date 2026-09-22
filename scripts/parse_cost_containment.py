@@ -728,7 +728,9 @@ def reached_files_and_contained_guards(base_files: dict[str, dict], new_files: d
     with another parser, is REFUSED, not weighed. (3) Subtracting the subset from the whole sample
     gives the per-rule costs over the files the change did NOT reach, for both parsers; on those
     files EVERY rule not reachable from the introduced set in the grammar's reference graph must
-    do NO MORE WORK: byte-identical `entries` and `committed`, and `memo_hits` that did not FALL —
+    do NO MORE WORK (a widening whose movers all fall OUTSIDE the pinned sample still reaches files
+    through its new rules' commits or its markers' entries — `SV-CORPUS-GRAD.28`, 81 of 192 reached,
+    0 advanced — so only an EMPTY reach is refused, and routed to containment): byte-identical `entries` and `committed`, and `memo_hits` that did not FALL —
     an entry is one ask, a memo hit an ask answered without parsing, so identical asks with more
     hits is strictly fewer real parses (a rule whose body the change re-spelled can lose an epoch
     stamp and hit its memo once more: `known_unscoped_block_type_identifier` +1 hit on `.27`), and
@@ -769,10 +771,9 @@ def reached_files_and_contained_guards(base_files: dict[str, dict], new_files: d
         raise Refused(f"{len(legacy)} still-rejected file(s) moved but the baseline has no `furthest` "
                       f"for them (unknown, never zero): {legacy[:3]} — re-baseline with the 10-column "
                       f"per-file table before this predicate can tell advanced from not")
-    if not advanced:
-        raise Refused("no sampled file advanced (accepted no → yes, or furthest strictly forward) — "
-                      "this predicate is for a widening; a rise with no advanced file is "
-                      "`contained_in_introduced_subgraph`'s question")
+    if not reached:
+        raise Refused("no sampled file was reached (none advanced, no new rule committed, no reach marker "
+                      "entered) — a rise with an EMPTY reach is `contained_in_introduced_subgraph`'s question")
     if sorted(subset_paths) != reached:
         extra = sorted(set(subset_paths) - set(reached)); missing = sorted(set(reached) - set(subset_paths))
         raise Refused(f"the reached-subset artifact does not name this run's own reached set: "
@@ -885,7 +886,11 @@ def self_test_reached_files_and_contained_guards() -> int:
     run("refuses a subset table that does not reconcile", "refuses", "does not reconcile", unreconciled)
     def no_advance(fb2, fn2, rb2, rn2, sb2, sn2):
         fn2["a"]["accepted"] = "no"; fn2["a"]["furthest"] = 5
-    run("refuses when no file advanced", "refuses", "no sampled file advanced", no_advance)
+    run("holds when no file advanced but a new rule committed in one (a widening whose movers fall outside the sample)", "holds", "carry every move outside the introduced sub-graph", no_advance)
+    def empty_reach(fb2, fn2, rb2, rn2, sb2, sn2):
+        fn2["a"]["accepted"] = "no"; fn2["a"]["furthest"] = 5; fn2["a"]["new_rule_commits"] = 0; fn2["a"]["reach_marker_entries"] = 0
+        return ([], ["guard"])
+    run("refuses when no file was reached at all", "refuses", "EMPTY reach", empty_reach)
     def legacy(fb2, fn2, rb2, rn2, sb2, sn2):
         fb2["c"]["furthest"] = None; fn2["c"]["furthest"] = 4
     run("refuses a still-rejected mover with no baseline furthest", "refuses", "no `furthest`", legacy)
