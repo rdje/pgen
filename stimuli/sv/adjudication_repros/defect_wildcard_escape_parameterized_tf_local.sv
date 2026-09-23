@@ -1,4 +1,4 @@
-// SV-CORPUS-GRAD.29 - a DEFECT pin (REJECT today, both SV profiles) - routed to SV-CORPUS-GRAD.30.
+// SV-CORPUS-GRAD.29 - a DEFECT pin (REJECT through 1.0.241, both SV profiles) - FIXED by SV-CORPUS-GRAD.30 (release 1.0.242: wildcard_escape_block_class_type, the LAST arm of block_data_type; class fixed / ACCEPT).
 // A PARAMETERIZED class type whose class is unresolved under an open wildcard import, declaring a LOCAL of a function body
 // inside a class: the .28 escape (wildcard_escape_class_type, on class_type's second arm, gated on the class_body scope) is
 // reached by data_type - a class MEMBER parses (control_wildcard_escape_parameterized_class_member.sv) - but a block item's

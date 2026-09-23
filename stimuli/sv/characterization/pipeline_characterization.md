@@ -17,25 +17,25 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `7cf14ff34583ad89ca45ef7fe044ec45b8d3a9f3348c1e477372892a607f65dd` |
-| grammar | `grammars/systemverilog.ebnf` | `922bf4ba575872bb8a6f5d99041e25c019c8406c6025a8c8e432952ede6c6b7d` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `c0f410f38c0b2850d01c108011e94c96c593036bd9a19d2291ee5bd7c05f51a1` |
-| generated parser | `generated/systemverilog_parser.rs` | `841e7027d70f33083faa8c79d14c12375e72976da6982bf8eff893e0c5c56840` |
+| parse binary | `rust/target/debug/parseability_probe` | `33fb3966d0724c1907bf14a532573a2db7124deee71896e2e3c764b49f0c8e79` |
+| grammar | `grammars/systemverilog.ebnf` | `8c1ee352eaea76f86102cbd06c041c0b26134a2916dcf159c39b7130bee19457` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `3a94c6de9e3229ec26ca0a0302d126c28e4329b7bbc418848bf5851fecc1b295` |
+| generated parser | `generated/systemverilog_parser.rs` | `1b82ffc2ae4381984402deb3e28b79d5b7a3f0ecce46a2379478da4621350efc` |
 | context | `stimuli/sv/pipeline_context.tsv` | `f1b77668e01ef6bedcd293f3c5967052525fa48a9b40aa17941cc875a3c8d625` |
 | context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `636c8dec8eeab13488b6dd91c0b5547e53c3f6a25c46ccca884d2fb01f459333` |
 | context (per-file unit predecessors) | `stimuli/sv/pipeline_context_units.tsv` | `df065bdc8a87ff15fb441550d42775de494a6cf63eb971b1303e85ab4500bc70` |
-| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `819c5437d374de8a4b3caf8daa96f69892f2461792e839c1fbb057d628d2cfab` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `98ad8d70aa73e4b50f15f020e09f9ca1694237c3114fef1d5ae817f4586e6fd5` |
-| raw results (input) | `stimuli/sv/characterization/results.tsv` | `0e6562b6e31356c1b6b2c0c67c3e06b4d3f837abb7da6919cbb4c8e7db9a7232` |
+| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `f14778415b627bd83ef2be35a7dde21e0c5aa6a66a883824c4fd7607f1e120b9` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `ee15192a9bc90cc685289f110ed5d70f46abcae54cd22316d1d10acd94353fae` |
+| raw results (input) | `stimuli/sv/characterization/results.tsv` | `8be16e42d10ef007200e8369a3ed3890d2f34eba2b63fea3d06e1e93a5fc121d` |
 
-Measured at `HEAD` = `7b1ba9796+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `95245c774+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
 | suite | rows | raw pass | raw fail | raw timeout | pipeline pass | pipeline fail | pp_fail | timeout | crash | Δ pass |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | Cores-VeeR-EL2 | 102 | 19 | 83 | 0 | 81 | 21 | 0 | 0 | 0 | +62 |
-| Surelog | 828 | 716 | 112 | 0 | 751 | 65 | 12 | 0 | 0 | +35 |
+| Surelog | 828 | 717 | 111 | 0 | 752 | 64 | 12 | 0 | 0 | +35 |
 | black-parrot | 205 | 37 | 168 | 0 | 33 | 2 | 170 | 0 | 0 | -4 |
 | friscv | 441 | 38 | 403 | 0 | 60 | 349 | 32 | 0 | 0 | +22 |
 | ispras-sv-tests | 1266 | 1125 | 141 | 0 | 1256 | 10 | 0 | 0 | 0 | +131 |
@@ -48,7 +48,7 @@ Measured at `HEAD` = `7b1ba9796+dirty`; the parse binary is a **debug** build (t
 | uvm-core | 174 | 33 | 141 | 0 | 29 | 145 | 0 | 0 | 0 | -4 |
 | verible | 152 | 121 | 31 | 0 | 130 | 22 | 0 | 0 | 0 | +9 |
 | verilator | 3263 | 2081 | 1182 | 0 | 2956 | 290 | 17 | 0 | 0 | +875 |
-| **total** | 16336 | 10015 | 6321 | 0 | 12380 | 3679 | 277 | 0 | 0 | +2365 |
+| **total** | 16336 | 10016 | 6320 | 0 | 12381 | 3678 | 277 | 0 | 0 | +2365 |
 
 ## Transitions — raw status → pipeline status
 
@@ -58,8 +58,8 @@ Measured at `HEAD` = `7b1ba9796+dirty`; the parse binary is a **debug** build (t
 | Cores-VeeR-EL2 | `fail` → `fail` | 20 |
 | Cores-VeeR-EL2 | `pass` → `pass` | 18 |
 | Cores-VeeR-EL2 | `pass` → `fail` | 1 |
-| Surelog | `pass` → `pass` | 716 |
-| Surelog | `fail` → `fail` | 65 |
+| Surelog | `pass` → `pass` | 717 |
+| Surelog | `fail` → `fail` | 64 |
 | Surelog | `fail` → `pass` | 35 |
 | Surelog | `fail` → `pp_fail` | 12 |
 | black-parrot | `fail` → `pp_fail` | 164 |
@@ -142,7 +142,7 @@ Measured at `HEAD` = `7b1ba9796+dirty`; the parse binary is a **debug** build (t
 | adjudication class | rows | pipeline pass | pipeline fail | pp_fail | timeout | crash |
 |---|---:|---:|---:|---:|---:|---:|
 | `match` | 6069 | 5696 | 372 | 1 | 0 | 0 |
-| `deferred:chained_only` | 4933 | 2075 | 2633 | 225 | 0 | 0 |
+| `deferred:chained_only` | 4933 | 2076 | 2632 | 225 | 0 | 0 |
 | `deferred:v2005_profile_lane` | 2606 | 2536 | 65 | 5 | 0 | 0 |
 | `divergence:explained_svpp_macro_use` | 1026 | 1005 | 17 | 4 | 0 | 0 |
 | `deferred:no_sv_key` | 596 | 568 | 27 | 1 | 0 | 0 |
@@ -166,15 +166,15 @@ Measured at `HEAD` = `7b1ba9796+dirty`; the parse binary is a **debug** build (t
 | construct at the origin line | rows | one example (origin — line) |
 |---|---:|---|
 | class header with a base class (`extends`) | 2003 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4:63` — `class dccm_transaction_sequence_item extends uvm_sequence_item;` |
-| other | 1285 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
-| a parameter port list `#(` | 110 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
-| a `uvm_*` name (typed, not a macro) | 91 | `stimuli/sv/subs/Surelog/tests/ForeachClassParent/dut.sv:4:22` — `protected uvm_phase m_type_overrides[$];` |
-| a `::`-scoped name | 85 | `stimuli/sv/subs/Surelog/tests/Assignments/dut.sv:5:44` — `function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);` |
+| other | 1288 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
+| a `::`-scoped name | 131 | `stimuli/sv/subs/Surelog/tests/Assignments/dut.sv:5:44` — `function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);` |
+| a parameter port list `#(` | 102 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
 | a `typedef` | 54 | `stimuli/sv/subs/Surelog/tests/NetType/dut.sv:18:24` — `typedef some_other_type myalias;` |
-| a function / task header | 34 | `stimuli/sv/subs/Surelog/tests/BitSelectHier/dut.sv:37:32` — `extern function uvm_mem_mam_cfg reconfigure(uvm_mem_mam_cfg cfg = null);` |
+| a `uvm_*` name (typed, not a macro) | 47 | `stimuli/sv/subs/Surelog/tests/ForeachClassParent/dut.sv:4:22` — `protected uvm_phase m_type_overrides[$];` |
+| a function / task header | 35 | `stimuli/sv/subs/Surelog/tests/BitSelectHier/dut.sv:37:32` — `extern function uvm_mem_mam_cfg reconfigure(uvm_mem_mam_cfg cfg = null);` |
 | a `new(…)` initializer / construction | 10 | `stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh:443:38` — `const local uvm_event_pool events = new("events");` |
 | `import` of a package | 5 | `stimuli/sv/subs/sv2v/test/nosim/dpi.sv:35:28` — `import "DPI-C" function bit [15:0] getStimulus(input integer x);` |
-| a `constraint` / `rand` | 2 | `stimuli/sv/subs/opentitan/hw/dv/sv/tl_agent/dv/env/tl_agent_env_cfg.sv:11:39` — `rand tl_agent_cfg  device_agent_cfg;` |
+| a `constraint` / `rand` | 3 | `stimuli/sv/subs/opentitan/hw/dv/sv/tl_agent/dv/env/tl_agent_env_cfg.sv:11:39` — `rand tl_agent_cfg  device_agent_cfg;` |
 
 ## Where the pipeline's rejections land — top 25 ORIGIN FILES
 
@@ -191,22 +191,22 @@ Measured at `HEAD` = `7b1ba9796+dirty`; the parse binary is a **debug** build (t
 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env_cfg.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_tl_seq_item.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csr_utils/csr_seq_lib.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/csrng_item.sv` | 2 |
+| `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/seq_lib/csrng_device_seq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/seq_lib/csrng_base_seq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_agent/dv_base_agent_cfg.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/dv_lib/dv_base_env_cfg.sv` | 2 |
+| `stimuli/sv/subs/opentitan/hw/dv/sv/dv_lib/dv_base_env.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/entropy_src_xht_agent/entropy_src_xht_item.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/entropy_src_xht_agent/seq_lib/entropy_src_xht_base_device_seq.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/flash_phy_prim_agent/flash_phy_prim_item.sv` | 2 |
+| `stimuli/sv/subs/opentitan/hw/dv/sv/flash_phy_prim_agent/flash_phy_prim_agent.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/flash_phy_prim_agent/seq_lib/flash_phy_prim_base_seq.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/i2c_agent/i2c_fdata_item.sv` | 2 |
+| `stimuli/sv/subs/opentitan/hw/dv/sv/i2c_agent/i2c_acqdata_item.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/i2c_agent/seq_lib/i2c_base_seq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/jtag_agent/jtag_item.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/jtag_dmi_agent/jtag_dmi_item.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/jtag_dmi_agent/sba_access_item.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/jtag_riscv_agent/jtag_riscv_item.sv` | 2 |
+| `stimuli/sv/subs/opentitan/hw/dv/sv/jtag_riscv_agent/jtag_riscv_agent.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/jtag_riscv_agent/seq_lib/jtag_riscv_base_seq.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/key_sideload_agent/key_sideload_item.sv` | 2 |
+| `stimuli/sv/subs/opentitan/hw/dv/sv/key_sideload_agent/key_sideload_agent.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/key_sideload_agent/seq_lib/key_sideload_base_seq.sv` | 2 |
 
 ## Top 25 ORIGIN LINES

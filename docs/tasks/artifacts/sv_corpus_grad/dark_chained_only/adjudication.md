@@ -7,9 +7,9 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `93c6c40ee3727ac58edb5fc5542475a17734ee1d1c7bdccfa499dc52738896d9` |
-| grammar | `grammars/systemverilog.ebnf` | `922bf4ba575872bb8a6f5d99041e25c019c8406c6025a8c8e432952ede6c6b7d` |
-| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `cfd60a73cb8fd76d52505278d4a55791dcaf28540c91760a344516600d9b0751` |
+| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `93f8d0c73b440d69912db2bc9e3ad13833dca96d4e98acde8fd14286d68b73ee` |
+| grammar | `grammars/systemverilog.ebnf` | `8c1ee352eaea76f86102cbd06c041c0b26134a2916dcf159c39b7130bee19457` |
+| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `44144778149f8d21ac014513248eb28fb7b64bc35fa506dcaf1128fa330eecb9` |
 
 ## Verdicts
 
@@ -20,8 +20,7 @@
 | `CROSS-FILE-FACTS` | 11 | declaring the cross-file names the parser demanded makes the file PARSE ⇒ blocked by cross-file FACT continuity (`.4`), NOT a parser defect |
 | `FRAGMENT-MODULE` | 2 | parses only inside a `module` ⇒ an include payload, not a legal standalone compilation unit |
 | `FRAGMENT-ENUM-BODY` | 1 | an enum-member list included INSIDE an `enum { … }` — no compilation-unit wrapper can shape it |
-| `PARSER-DEFECT` | 1 |  |
-| **TOTAL** | **58** | |
+| **TOTAL** | **57** | |
 
 ## Per row
 
@@ -88,4 +87,3 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `MACRO-BLOCKED` | uvm-core | `uvm-core-2020.3.1/src/seq/uvm_sequencer_base.svh` | 41 | none | stuck on `` `ifdef `` (undefined here) |
 | `MACRO-BLOCKED` | uvm-core | `uvm-core-2020.3.1/src/tlm1/uvm_sqr_connections.svh` | 57 | none | stuck on `` `UVM_SEQ_PORT `` (undefined here) |
 | `MACRO-BLOCKED` | uvm-core | `uvm-core-2020.3.1/src/tlm1/uvm_tlm_req_rsp.svh` | 59 | none | stuck on `` `uvm_component_param_utils `` (undefined here) |
-| `PARSER-DEFECT` | Surelog | `tests/SplitFile/amiq_eth_ve_top.v` | 10592 | — | `defect_wildcard_escape_parameterized_tf_local.sv` |

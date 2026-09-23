@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-830a064a.js";
+            window.path_to_searchindex_js = "searchindex-17bdb0ab.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -240,7 +240,7 @@ inapplicable one.</li>
 </tbody>
 </table>
 </div>
-<p>Only <strong>7 485 rows (45.8 %)</strong> were asked a question they could answer, and <strong>3 871</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6069/7485 would quietly drop the 38.2 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
+<p>Only <strong>7 485 rows (45.8 %)</strong> were asked a question they could answer, and <strong>3 870</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6069/7485 would quietly drop the 38.2 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -248,7 +248,7 @@ inapplicable one.</li>
 <tr><th>Open tree</th><th>Status verdict</th><th>Where the detail lives</th></tr>
 </thead>
 <tbody>
-<tr><td><code>SV-CORPUS-GRAD</code></td><td>⚠️ the index row carries no status word; counted OPEN</td><td><a href="../../tasks/SV-CORPUS-GRAD.html"><code>docs/tasks/SV-CORPUS-GRAD.md</code></a></td></tr>
+<tr><td><code>SV-CORPUS-GRAD</code></td><td>open</td><td><a href="../../tasks/SV-CORPUS-GRAD.html"><code>docs/tasks/SV-CORPUS-GRAD.md</code></a></td></tr>
 <tr><td><code>SV-EXH-PROOF</code></td><td>open</td><td><a href="../../tasks/SV-EXH-PROOF.html"><code>docs/tasks/SV-EXH-PROOF.md</code></a></td></tr>
 <tr><td><code>SV-PARSE-STRICT</code></td><td>open</td><td><a href="../../tasks/SV-PARSE-STRICT.html"><code>docs/tasks/SV-PARSE-STRICT.md</code></a></td></tr>
 <tr><td><code>SV-REPLAY-DEBT</code></td><td>open</td><td><a href="../../tasks/SV-REPLAY-DEBT.html"><code>docs/tasks/SV-REPLAY-DEBT.md</code></a></td></tr>
@@ -294,7 +294,7 @@ refuses a commit whose published block or whose history’s last row disagrees w
 ESTIMATE over the last five recorded releases; a structural leg (a corpus conformance gate, the generator proof) is one item that costs more than a bar row;
 the 38 % of corpus rows with no verdict are an answer-key gap outside <code>items</code>; and an item can be opened by a release as well as closed — the history shows both.</p>
 <!-- BEGIN DERIVED: scripts/report_sv_release_distance.sh --markdown -->
-<p><strong>SV release distance: 22 items</strong> (<code>legs_unmet + bar_rows + open_leaves</code>).</p>
+<p><strong>SV release distance: 23 items</strong> (<code>legs_unmet + bar_rows + open_leaves</code>).</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -303,13 +303,13 @@ the 38 % of corpus rows with no verdict are an answer-key gap outside <code>item
 <tbody>
 <tr><td>Done-bar legs unmet</td><td style="text-align: right">3 of 3</td><td>the derived block above (<code>report_family_status.sh</code>)</td></tr>
 <tr><td>Corpus bar rows (unexplained divergences)</td><td style="text-align: right">0 (sv_2017 0, sv_2023 0, verilog_2005 0)</td><td><code>stimuli/sv/characterization/adjudication_manifest*.tsv</code></td></tr>
-<tr><td>Open leaves owning SV work</td><td style="text-align: right">19 (SV-CORPUS-GRAD 6, engine leaves SV opened 13)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
+<tr><td>Open leaves owning SV work</td><td style="text-align: right">20 (SV-CORPUS-GRAD 7, engine leaves SV opened 13)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
 <tr><td>Corpus passing (sv_2017, <code>match</code> rows)</td><td style="text-align: right">6069 of 16336 (37.2 %)</td><td>the sv_2017 manifest</td></tr>
 <tr><td>Known defects (unexplained, sv_2017)</td><td style="text-align: right">0</td><td>the sv_2017 manifest</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>Trailing closure rate:</strong> 0.25 items per release over the last 5 recorded release(s); <strong>ETA ≈ 88.0 releases ≈ 115.0 days</strong> — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.</p>
+<p><strong>Trailing closure rate:</strong> -0.25 items per release over the last 5 recorded release(s); <strong>ETA ≈ n/a (no net closure over the window) releases ≈ n/a days</strong> — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.</p>
 <p>History: <a href="../../tasks/artifacts/sv_corpus_grad/release_distance/history.tsv"><code>release_distance/history.tsv</code></a> (one row per release, appended by <code>--record</code>; the last row must equal this tree, checked by <code>--check</code>).</p>
 <!-- END DERIVED: scripts/report_sv_release_distance.sh -->
 

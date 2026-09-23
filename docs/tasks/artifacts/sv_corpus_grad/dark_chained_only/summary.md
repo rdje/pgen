@@ -6,9 +6,9 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `cf789dd9aa83e0f5a3ad77bb2a778b5ee1beb3d3eaedfebe1f1d57483231708e` |
-| positions | `stimuli/sv/characterization/positions.tsv` | `fbb875acc9d61f9988086d97a72b1b90c624cf334c365127fcbe7e22d652f2e9` |
-| grammar | `grammars/systemverilog.ebnf` | `922bf4ba575872bb8a6f5d99041e25c019c8406c6025a8c8e432952ede6c6b7d` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `ca8adc45f01c0f67ee13fedfd950d08628c570aa89f8a934227422b2a72a1f21` |
+| positions | `stimuli/sv/characterization/positions.tsv` | `db9353a4b82ecb3764622ba3c8364c56e0d9a67811044e949d9aa112c895f9a1` |
+| grammar | `grammars/systemverilog.ebnf` | `8c1ee352eaea76f86102cbd06c041c0b26134a2916dcf159c39b7130bee19457` |
 
 ## The TEXT channel — can expansion move the byte the parse choked on?
 
@@ -16,11 +16,11 @@
 |---|---:|---:|---|
 | `PRE-TICK` | 2,005 | 56.1 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
 | `IN-WINDOW` | 1,483 | 41.5 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
-| `NO-ALTERABLE-TICK` | 80 | 2.2 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
+| `NO-ALTERABLE-TICK` | 79 | 2.2 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
 | `PAST-LAST-TICK` | 9 | 0.3 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
-| **TOTAL** | **3,577** | **100.0 %** | |
+| **TOTAL** | **3,576** | **100.0 %** | |
 
-⇒ **2,085 of 3,577 rows (58.3 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
+⇒ **2,084 of 3,576 rows (58.3 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
 
 ## Then the FACT channel — is a cross-file *name* the live explanation?
 
@@ -29,10 +29,10 @@
 | `FACT-GATED-CROSS-FILE` | 1,861 |  |
 | `CROSS-LIBRARY` | 166 |  |
 | `UNDECLARED-ANYWHERE` | 26 |  |
-| `NO-FACT-GATE-AT-FAILURE` | 24 |  |
+| `NO-FACT-GATE-AT-FAILURE` | 23 |  |
 | `FACT-GATED-LOCAL-TYPE` | 8 |  |
 
-⇒ **the worklist is 58 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
+⇒ **the worklist is 57 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
 
 ## Worklist by suite
 
@@ -41,9 +41,9 @@
 | opentitan | `UNDECLARED-ANYWHERE` | 21 |
 | opentitan | `NO-FACT-GATE-AT-FAILURE` | 15 |
 | uvm-core | `FACT-GATED-LOCAL-TYPE` | 8 |
-| Surelog | `NO-FACT-GATE-AT-FAILURE` | 3 |
 | Surelog | `UNDECLARED-ANYWHERE` | 3 |
 | Cores-VeeR-EL2 | `NO-FACT-GATE-AT-FAILURE` | 2 |
+| Surelog | `NO-FACT-GATE-AT-FAILURE` | 2 |
 | uvm-core | `NO-FACT-GATE-AT-FAILURE` | 2 |
 | verilator | `NO-FACT-GATE-AT-FAILURE` | 1 |
 | scr1 | `NO-FACT-GATE-AT-FAILURE` | 1 |
@@ -59,7 +59,6 @@
 | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_m.svh` | 87 | `NO-FACT-GATE-AT-FAILURE` | `nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6` |
 | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_mu.svh` | 104 | `NO-FACT-GATE-AT-FAILURE` | `nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6` |
 | Surelog | `tests/ElabSysCall/dut.sv` | 3 | `NO-FACT-GATE-AT-FAILURE` | `must be at most 4kB"); end endmodule module top_error(); if (1) begin $error(` |
-| Surelog | `tests/SplitFile/amiq_eth_ve_top.v` | 10592 | `NO-FACT-GATE-AT-FAILURE` | `et_socket_base #(T) bt; uvm_tlm_b_initiator_socket_base #(T) bi; uvm_tlm` |
 | Surelog | `tests/SplitFile/svaunit_pkg.sv` | 1138 | `NO-FACT-GATE-AT-FAILURE` | `if (!uvm_config_db#(virtual svaunit_vpi_interface)::get(uvm_root::get(), "*",` |
 | opentitan | `hw/ip/aes/dv/err_injection_if/fi_cipher_fsm_wrapper.sv` | 23 | `NO-FACT-GATE-AT-FAILURE` | `l fi_cipher_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_` |
 | opentitan | `hw/ip/aes/dv/err_injection_if/fi_control_fsm_wrapper.sv` | 23 | `NO-FACT-GATE-AT-FAILURE` | `fi_control_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_` |
@@ -94,4 +93,5 @@
 | opentitan | `hw/top_earlgrey/dv/autogen/tb__alert_handler_connect.sv` | 7 | `NO-FACT-GATE-AT-FAILURE` | ``y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[`` |
 | opentitan | `hw/vendor/lowrisc_ibex/dv/formal/check/peek/abs.sv` | 16 | `NO-FACT-GATE-AT-FAILURE` | `te /////////////// assign pre_regs[0] = 32'h0; for (genvar i = 1; i < 32; i++)` |
 | opentitan | `hw/vendor/lowrisc_ibex/dv/formal/check/peek/mem.sv` | 13 | `NO-FACT-GATE-AT-FAILURE` | ``logic has_snd_req; assign has_snd_req = mem_gnt_snd_d \| (mem_gnt_fst_q & `CR.da`` |
+| scr1 | `src/tb/scr1_top_tb_runtests.sv` | 10 | `NO-FACT-GATE-AT-FAILURE` | `------------------ initial begin $value$plusargs("imem_pattern=%h", imem_re` |
 

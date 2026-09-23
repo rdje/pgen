@@ -127,7 +127,7 @@ class_constructor_prototype	3	0	0
 class_constructor_prototype_sv_2017	3	0	0
 class_declaration	80695	10	614
 class_declaration_sv_2017	80081	10	0
-class_identifier	3010689	1569	0
+class_identifier	3018876	1569	0
 class_item	47	25	1
 class_item_qualifier	207	1	150
 class_item_sv_2017	46	25	0
@@ -227,7 +227,7 @@ data_type_or_implicit_declared	2453	1770	0
 data_type_or_implicit_explicit	80161	1808	0
 data_type_or_void	3538	2414	319
 data_type_or_void_sv_only	3251	48	18
-declaration_identifier	9651776	145813	0
+declaration_identifier	9659963	145813	0
 declaration_lifetime_sv_only	9118	3	728
 declared_class_alias_identifier	1	0	0
 declared_class_identifier	26	10	1
@@ -828,7 +828,7 @@ non_consecutive_repetition	2444	0	0
 non_consecutive_repetition_sv_2017	2444	0	0
 non_integer_type	769678	5	0
 non_integer_type_sv_only	769710	0	71727
-non_keyword_identifier	18562743	428828	17492320
+non_keyword_identifier	18570930	428828	17500507
 non_overlapped_implication	211	0	53
 non_port_interface_item	4	2	0
 non_port_module_item	71988	7090	80
@@ -884,7 +884,7 @@ parameter_override	72911	1	0
 parameter_port_declaration	1503	696	0
 parameter_port_declaration_sv_2017	1503	696	0
 parameter_port_list	441	23	173
-parameter_value_assignment	147232	502	101227
+parameter_value_assignment	153234	502	107229
 parameter_value_assignment_sv_2017	46005	502	0
 paren_operator_assignment_operand	922757	0	502703
 part_select_range	85687	12921	10351
@@ -1189,9 +1189,10 @@ wait_statement	55586	0	5147
 wait_statement_sv_only	50439	0	0
 wildcard_equal	474057	0	0
 wildcard_escape_base_class_identifier	15	0	1
+wildcard_escape_block_class_type	8516	0	1
 wildcard_escape_class_type	206802	0	48576
 wildcard_escape_class_type_head	158226	0	0
-wildcard_escape_class_type_identifier	158226	0	2747
+wildcard_escape_class_type_identifier	166741	0	3075
 wildcard_escape_interface_port_shape	291	0	0
 wildcard_escape_lone_name_shape	9229	0	376
 wildcard_escape_nettype_identifier	80158	221	123

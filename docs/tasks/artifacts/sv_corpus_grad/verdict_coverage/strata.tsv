@@ -1,5 +1,5 @@
 class	rows	one_sided_unit	one_sided_fragment	dark	not_source	dark_no_backtick
-deferred:chained_only	4933	1205	151	3577	0	59
+deferred:chained_only	4933	1206	151	3576	0	59
 deferred:no_sv_key	596	544	0	52	0	18
 deferred:not_source_text	350	0	0	0	350	0
 deferred:svpp_owned	245	107	0	138	0	10

@@ -2029,8 +2029,13 @@ class_type := class_type_head ( parameter_value_assignment )? ( scope_resolution
 wildcard_escape_class_type_head := wildcard_escape_class_type_identifier -> {kind: "class", body: $1}
 
 # UNTYPED, exactly as `known_unscoped_class_scope_class_identifier := class_identifier` is, so the head renders the same node.
+# SV-CORPUS-GRAD.30 (release 1.0.242): a name the unit DECLARES as a typedef is provably not a class (§26.3: a local
+# declaration takes precedence over a wildcard import), so `typedef int T; … T #(int) x;` is illegal with or without
+# the import — the escape carries the exclusion `known_unscoped_block_class_type` carries; a type PARAMETER is not
+# excluded (it may be a class, and the known type-parameter arm admits it on both sides).
 @profiles: ["sv_2017", "sv_2023"]
 @predicate: { name: fact_count_at_least, args: [wildcard_import_open, 1], phase: post }
+@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $body, declaration_family, typedef], phase: post }
 wildcard_escape_class_type_identifier := class_identifier
 
 # The typedef site: `typedef C#(…) alias;` anywhere (an interface's `typedef mubi_cov #(.Width(4), …) t;` — opentitan
@@ -2956,6 +2961,21 @@ block_data_type := integer_vector_type ( signing )? packed_dimension*
                  | scoped_block_covergroup_identifier
                  | known_unscoped_block_covergroup_identifier
                  | type_reference
+                 # SV-CORPUS-GRAD.30 (release 1.0.242): the .28 parameterized-class wildcard escape at the BLOCK ITEM's type
+                 # position — `block_data_type` is reached only through `block_item_declaration` (seq_block, par_block, tf and
+                 # class-constructor bodies; A.6.3 admits no module_instantiation in a seq_block), so `ident #(` here is never
+                 # an instantiation head and the arm needs no scope gate. LAST, so a declared parameterized class keeps the
+                 # known arm by tie order; the parameter list is CONSUMED, so a bare unresolved name keeps branch 10's tree.
+                 | wildcard_escape_block_class_type
+
+# SV-CORPUS-GRAD.30 (release 1.0.242): the block-site twin of `wildcard_escape_class_type` — the same head (import-gated,
+# typedef-excluded), the same consumed parameter list and scope chain, rendering `known_unscoped_block_class_type`'s
+# exact `{head, params, scope_chain}` (the head the bare `class_identifier` node), so an escaped block local and a
+# declared one measure structurally identical nodes. Surelog amiq_eth_ve_top.v line 10592
+# `uvm_tlm_b_target_socket_base #(T) bt;` (a static function's local), the RESIDUAL dark row after .29.
+@profiles: ["sv_2017", "sv_2023"]
+wildcard_escape_block_class_type := wildcard_escape_class_type_identifier parameter_value_assignment ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+                                  -> {head: $1, params: $2, scope_chain: $3}
 
 # SV-CORPUS-GRAD.3.35: the two halves for block_data_declaration (footnote 6, see data_type_or_implicit_*).
 # SV-CORPUS-GRAD.3.36: the `block_data_type_or_implicit` wrapper they replaced was referenced by no

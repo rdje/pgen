@@ -6,20 +6,20 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `cf789dd9aa83e0f5a3ad77bb2a778b5ee1beb3d3eaedfebe1f1d57483231708e` |
+| answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `ca8adc45f01c0f67ee13fedfd950d08628c570aa89f8a934227422b2a72a1f21` |
 | explained_svpp audit | `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/after/audit.tsv` | `e30149eb2dc125d24f0a27c537984fc2e11b6ba13062e0e62f162e7d02dfeded` |
-| dark chained_only audit | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv` | `042d3cdaaf9e477a4e2b96fb2df9c8c69ab5c4f3925f69b1d85c8b7937edf769` |
-| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `98ad8d70aa73e4b50f15f020e09f9ca1694237c3114fef1d5ae817f4586e6fd5` |
+| dark chained_only audit | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv` | `fabf6b75c35c0a0d7fe4d8ab1f58237d81c68bcf609a2e726afd875dfd5167f9` |
+| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `ee15192a9bc90cc685289f110ed5d70f46abcae54cd22316d1d10acd94353fae` |
 | refuted dispositions (`.6b`) | `stimuli/sv/characterization/refuted_dispositions.tsv` | `e5fd87adc709c4c14eef28da2871427ff93abee4c483e2acda3cfeb2bfe8309d` |
-| parse binary | `rust/target/debug/parseability_probe` | `7cf14ff34583ad89ca45ef7fe044ec45b8d3a9f3348c1e477372892a607f65dd` |
+| parse binary | `rust/target/debug/parseability_probe` | `94e9026579bac3959e26f2eb7bdef4bd2bd9e41447c0a580d326e4e052d9da70` |
 
-Measured at `HEAD` = `7b1ba9796+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
+Measured at `HEAD` = `95245c774+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
 
 ## The headline
 
 - rows re-read: **6,911** (manifest rows in the three populations that the lane ran; 0 such rows have no lane row)
 - **explained_svpp** — must-accept rows the raw lane explained away by preprocessing (`divergence:explained_svpp_*`; `.12a`'s position test, `.12b`'s 263): 1,362 rows → `corroborated` 1,296, `refuted:cross_file_base_class` 35, `refuted:vendor_identity_branch` 9, `refused_engine` 7, `refuted:driver_define` 7, `refused_context` 5, `refuted:cross_file_define` 1, `refuted:preprocessor_item` 1, `refuted` 1
-- **chained_only** — multi-file design rows the raw lane could not judge (`deferred:chained_only`; `.13c`'s strata, `.13d`'s expansion-owned rows): 4,926 rows → `chained:accepted_under_expansion` 2,075, `chained:unreached_in_unit` 1,832, `chained:rejects_own_file` 600, `chained:refused_context` 210, `chained:hollow` 104, `chained:accepted_in_unit` 90, `chained:refused_engine` 15
+- **chained_only** — multi-file design rows the raw lane could not judge (`deferred:chained_only`; `.13c`'s strata, `.13d`'s expansion-owned rows): 4,926 rows → `chained:accepted_under_expansion` 2,076, `chained:unreached_in_unit` 1,832, `chained:rejects_own_file` 599, `chained:refused_context` 210, `chained:hollow` 104, `chained:accepted_in_unit` 90, `chained:refused_engine` 15
 - **svpp_owned** — rows whose conformance the raw lane routed to the preprocessor lane (`deferred:svpp_owned`): 172 rows → `svpp_owned:accepted_under_expansion` 109, `svpp_owned:rejects_own_file` 30, `svpp_owned:refused_engine` 30, `svpp_owned:refused_context` 2, `svpp_owned:hollow` 1
 - **must_reject** — rows the answer key expects REJECTED — the manifest's `expected`, or a pin the raw lane demoted (`.6b.1`); a pipeline pass here is an over-acceptance candidate: 451 rows → `must_reject:match_under_expansion` 451
 
@@ -94,12 +94,12 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 | `NO-ALTERABLE-TICK/CROSS-LIBRARY` | 3 | 0 | 0 | 2 | 0 | 1 | 0 | 0 |
 | `NO-ALTERABLE-TICK/FACT-GATED-CROSS-FILE` | 50 | 9 | 1 | 21 | 0 | 19 | 0 | 0 |
 | `NO-ALTERABLE-TICK/FACT-GATED-LOCAL-TYPE` | 2 | 0 | 0 | 0 | 0 | 2 | 0 | 0 |
-| `NO-ALTERABLE-TICK/NO-FACT-GATE-AT-FAILURE` | 14 | 0 | 0 | 14 | 0 | 0 | 0 | 0 |
+| `NO-ALTERABLE-TICK/NO-FACT-GATE-AT-FAILURE` | 13 | 0 | 0 | 13 | 0 | 0 | 0 | 0 |
 | `NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE` | 11 | 0 | 0 | 11 | 0 | 0 | 0 | 0 |
-| `ONE-SIDED (raw pass)` | 1356 | 1265 | 1 | 1 | 6 | 71 | 11 | 1 |
+| `ONE-SIDED (raw pass)` | 1357 | 1266 | 1 | 1 | 6 | 71 | 11 | 1 |
 | `PAST-LAST-TICK` | 8 | 4 | 0 | 1 | 0 | 2 | 1 | 0 |
-| `PRE-TICK/CROSS-LIBRARY` | 163 | 0 | 4 | 64 | 0 | 95 | 0 | 0 |
-| `PRE-TICK/FACT-GATED-CROSS-FILE` | 1811 | 0 | 83 | 162 | 0 | 1566 | 0 | 0 |
+| `PRE-TICK/CROSS-LIBRARY` | 163 | 0 | 4 | 53 | 0 | 106 | 0 | 0 |
+| `PRE-TICK/FACT-GATED-CROSS-FILE` | 1811 | 0 | 83 | 173 | 0 | 1555 | 0 | 0 |
 | `PRE-TICK/FACT-GATED-LOCAL-TYPE` | 6 | 0 | 0 | 0 | 0 | 6 | 0 | 0 |
 | `PRE-TICK/NO-FACT-GATE-AT-FAILURE` | 10 | 0 | 0 | 6 | 0 | 4 | 0 | 0 |
 | `PRE-TICK/UNDECLARED-ANYWHERE` | 14 | 0 | 0 | 11 | 0 | 2 | 1 | 0 |
@@ -110,13 +110,13 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 
 | construct at the origin line | rows | one example (origin) |
 |---|---:|---|
-| other | 309 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` |
-| class header with a base class (`extends`) | 221 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_driver.sv:4:37` |
+| other | 310 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` |
+| class header with a base class (`extends`) | 220 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_driver.sv:4:37` |
 | a `::`-scoped name | 28 | `stimuli/sv/subs/Surelog/tests/SplitFile/svaunit_pkg.sv:1138:31` |
-| a `uvm_*` name (typed, not a macro) | 12 | `stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_reg/dv_base_reg_pkg.sv:123:715` |
 | a function / task header | 11 | `stimuli/sv/subs/Surelog/tests/ClassFuncProto/top.v:30:13` |
+| a `uvm_*` name (typed, not a macro) | 10 | `stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_reg/dv_base_reg_pkg.sv:123:715` |
 | - | 7 | `stimuli/sv/subs/opentitan/hw/ip/kmac/fpv/tb/sha3pad_fpv.sv:133:1` |
-| a parameter port list `#(` | 5 | `stimuli/sv/subs/Surelog/tests/SplitFile/amiq_eth_ve_top.v:10592:58` |
+| a parameter port list `#(` | 6 | `stimuli/sv/subs/opentitan/hw/dv/sv/dv_lib/dv_base_env.sv:5:63` |
 | a `new(…)` initializer / construction | 4 | `stimuli/sv/subs/verilator/test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh:13725:38` |
 | a `typedef` | 3 | `stimuli/sv/subs/opentitan/hw/ip/entropy_src/dv/env/entropy_src_env_pkg.sv:157:16` |
 
