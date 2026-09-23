@@ -7,20 +7,20 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `93f8d0c73b440d69912db2bc9e3ad13833dca96d4e98acde8fd14286d68b73ee` |
-| grammar | `grammars/systemverilog.ebnf` | `8c1ee352eaea76f86102cbd06c041c0b26134a2916dcf159c39b7130bee19457` |
+| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `8779f0d13f30cb74418893f28db8bffdca5e40c2b66e224e992ad79f75766751` |
+| grammar | `grammars/systemverilog.ebnf` | `22fc153f7144668a9998eb389b025cc2022760128615034b1d7cccd89626856f` |
 | residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `44144778149f8d21ac014513248eb28fb7b64bc35fa506dcaf1128fa330eecb9` |
 
 ## Verdicts
 
 | verdict | rows | what it means |
 |---|---:|---|
-| `MACRO-BLOCKED` | 29 | the RESIDUAL failure sits on an undefined macro invocation ⇒ expansion owns what is left (`.13d`), NOT a parser defect |
+| `MACRO-BLOCKED` | 28 | the RESIDUAL failure sits on an undefined macro invocation ⇒ expansion owns what is left (`.13d`), NOT a parser defect |
 | `INVALID-SV` | 14 | the text is NOT legal SV; the rejection is CORRECT and accepting it would be an over-acceptance defect (pinned as a negative reproducer) |
-| `CROSS-FILE-FACTS` | 11 | declaring the cross-file names the parser demanded makes the file PARSE ⇒ blocked by cross-file FACT continuity (`.4`), NOT a parser defect |
+| `CROSS-FILE-FACTS` | 5 | declaring the cross-file names the parser demanded makes the file PARSE ⇒ blocked by cross-file FACT continuity (`.4`), NOT a parser defect |
 | `FRAGMENT-MODULE` | 2 | parses only inside a `module` ⇒ an include payload, not a legal standalone compilation unit |
 | `FRAGMENT-ENUM-BODY` | 1 | an enum-member list included INSIDE an `enum { … }` — no compilation-unit wrapper can shape it |
-| **TOTAL** | **57** | |
+| **TOTAL** | **50** | |
 
 ## Per row
 
@@ -31,13 +31,7 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | verdict | suite | file | line | wrapper | what unblocks it / repro |
 |---|---|---|---:|---|---|
 | `CROSS-FILE-FACTS` | Surelog | `tests/ModPortTest/top.v` | 14 | none | `DD,id_t1` |
-| `CROSS-FILE-FACTS` | Surelog | `tests/SplitFile/svaunit_pkg.sv` | 1138 | none | `uvm_config_db` |
 | `CROSS-FILE-FACTS` | Surelog | `tests/UnitClass/top.v` | 24 | none | `DD` |
-| `CROSS-FILE-FACTS` | opentitan | `hw/ip/aes/dv/err_injection_if/fi_cipher_fsm_wrapper.sv` | 23 | none | `uvm_config_db` |
-| `CROSS-FILE-FACTS` | opentitan | `hw/ip/aes/dv/err_injection_if/fi_control_fsm_wrapper.sv` | 23 | none | `uvm_config_db` |
-| `CROSS-FILE-FACTS` | opentitan | `hw/ip/aes/dv/err_injection_if/fi_core_wrapper.sv` | 23 | none | `uvm_config_db` |
-| `CROSS-FILE-FACTS` | opentitan | `hw/ip/aes/dv/err_injection_if/fi_ctr_fsm_wrapper.sv` | 23 | none | `uvm_config_db` |
-| `CROSS-FILE-FACTS` | opentitan | `hw/ip/aes/dv/err_injection_if/fi_ghash_wrapper.sv` | 23 | none | `uvm_config_db` |
 | `CROSS-FILE-FACTS` | opentitan | `hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv` | 24 | none | `t_Counteren,t_MainMode,t_MainResult,t_Mcause,t_Minterrupts,t_Mseccfg_ent,t_Mstatus,t_Mtvec,t_Pmpcfg_ent,t_Privilege` |
 | `CROSS-FILE-FACTS` | uvm-core | `uvm-core-2020.3.1/src/base/uvm_port_base.svh` | 75 | none | `uvm_component,uvm_coreservice_t,uvm_object,uvm_phase,uvm_port_type_e,uvm_root,uvm_void` |
 | `CROSS-FILE-FACTS` | uvm-core | `uvm-core-2020.3.1/src/comps/uvm_policies.svh` | 147 | none | `uvm_object` |
@@ -61,7 +55,6 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `MACRO-BLOCKED` | opentitan | `hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh` | 5 | class | stuck on `` `uvm_info `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__shadow_reg_errors.svh` | 5 | class | stuck on `` `uvm_fatal `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/ip/aes/dv/env/aes_ral_extension.svh` | 6 | none | stuck on `` `uvm_object_utils `` (undefined here) |
-| `MACRO-BLOCKED` | opentitan | `hw/ip/aes/dv/err_injection_if/signal_force.sv` | 24 | none | stuck on `` `uvm_fatal `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/top_darjeeling/dv/autogen/tb__alert_handler_connect.sv` | 7 | module | stuck on `` `CHIP_HIER `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/top_darjeeling/ip/xbar_dbg/dv/autogen/tb__xbar_connect.sv` | 7 | module | stuck on `` `DRIVE_CLK `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/top_darjeeling/ip/xbar_main/dv/autogen/tb__xbar_connect.sv` | 7 | module | stuck on `` `DRIVE_CLK `` (undefined here) |

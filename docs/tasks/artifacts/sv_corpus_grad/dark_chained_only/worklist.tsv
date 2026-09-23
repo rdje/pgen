@@ -4,12 +4,6 @@ NO-ALTERABLE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Cores-VeeR-EL2	design/include/el2_dec_csr_equ_m.svh	1622	1623		87	19862		nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Cores-VeeR-EL2	design/include/el2_dec_csr_equ_mu.svh	1939	1940		104	24138		nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/ElabSysCall/dut.sv	42	78		3	385		must be at most 4kB"); end endmodule module top_error(); if (1) begin $error(
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/SplitFile/svaunit_pkg.sv	32712	32712		1138	130192		if (!uvm_config_db#(virtual svaunit_vpi_interface)::get(uvm_root::get(), "*",
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/aes/dv/err_injection_if/fi_cipher_fsm_wrapper.sv	625	625		23	707		l fi_cipher_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/aes/dv/err_injection_if/fi_control_fsm_wrapper.sv	600	600		23	681		fi_control_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/aes/dv/err_injection_if/fi_core_wrapper.sv	587	587		23	642		ual fi_core_if)::set(null, "*", "aes_core_fi_vif", fi_if); end endmodule
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/aes/dv/err_injection_if/fi_ctr_fsm_wrapper.sv	592	592		23	674		fi_ctr_fsm_if)::set(null, "*", pick_if_name(IfName, $sformatf("%m")), fi_
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/aes/dv/err_injection_if/fi_ghash_wrapper.sv	594	594		23	650		al fi_ghash_if)::set(null, "*", "aes_ghash_fi_vif", fi_if); end endmodule
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv	1430	1433		53	13926		th(EntropyWidth), ) u_kmac_reduced ( .clk_i, .rst_ni, // Inputs e
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv	275	275		7	906		#( .SecureIbex, .ICache, .PMPEnable, .PMPGranularity,
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v	200	201		6	303		pecific cell module $_DLATCH_P_ (input E, input D, output Q); DLH_X1 _TECHMAP_RE
@@ -33,7 +27,6 @@ PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_sqr_conne
 PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_tlm_req_rsp.svh	2340	2340	2403	59	13793	REQ	xtends uvm_component; typedef uvm_tlm_req_rsp_channel #(REQ, RSP) this_type;
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh	178	179	312	5	3443		Apache-2.0 virtual task run_sec_cm_fi_vseq(int num_times = 1); pre_run_sec_cm
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__shadow_reg_errors.svh	178	179	457	5	18055		Apache-2.0 virtual task run_shadow_reg_errors(int num_times, bit en_csr_rw_seq
-PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/aes/dv/err_injection_if/signal_force.sv	719	719	2019	24	2350		)::set(null, "*", pick_if_name(), fi_if); end // Pick a name
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_darjeeling/dv/autogen/tb__alert_handler_connect.sv	243	244	274	7	5467		y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_earlgrey/dv/autogen/tb__alert_handler_connect.sv	243	244	274	7	4562		y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/peek/abs.sv	738	739	869	16	4259		te /////////////// assign pre_regs[0] = 32'h0; for (genvar i = 1; i < 32; i++)

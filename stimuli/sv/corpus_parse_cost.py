@@ -180,7 +180,10 @@ INSTRUMENT_FILE = "stimuli/sv/corpus_parse_cost.py"
 # adds one memoized keyword ask per primary-prefix attempt (more total entries), the LR family's own entries unchanged.
 # SV-CORPUS-GRAD.30 (release 1.0.242): adopted 2.679 -> 2.678 from family_share.json - the block-site parameterized-class escape
 # adds one memoized identifier ask + an import-fact lookup per block_data_type attempt (more total entries), the LR family's own entries unchanged.
-CORPUS_FAMILY_SHARE_PCT = "2.678"
+# SV-CORPUS-GRAD.31 (release 1.0.243): adopted 2.678 -> 2.648 from family_share.json - the class-scope escape (class_scope's
+# ordered last alternative, the call prefix's last arm) is tried at every class scope the known arm refuses: one memoized identifier
+# ask + an import-fact lookup per attempt, and a memo-served parameter list where one follows (more total entries); the LR family's own entries unchanged.
+CORPUS_FAMILY_SHARE_PCT = "2.648"
 FAMILY_SHARE_ARTIFACT = (
     "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json"
 )

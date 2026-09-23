@@ -1946,9 +1946,35 @@ class_scope_type_head := scoped_class_scope_identifier | known_unscoped_class_sc
 class_scope_type := class_scope_type_head ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? &scope_resolution )*
                  -> {head: $1, params: $2, scope_chain: $3}
 
+# SV-CORPUS-GRAD.31 (release 1.0.243): the wildcard escape at the CLASS SCOPE of a static call, a static member, a
+# parameter, an enum id, an array, a `new`, an out-of-block method or constructor, an extern constraint — the UVM
+# `uvm_config_db#(T)::set(...)` idiom (IEEE 1800-2017 A.1.9 `class_scope ::= class_type ::`; §26.3 / §26.4). The `.28` /
+# `.30` head (import-gated, typedef-excluded) with the parameter list CONSUMED — a bare `ident ::` never takes it, so a
+# bare unresolved scope keeps whatever reading it had — then `class_scope_type`'s chain and the `::`, rendering the same
+# `{body: {head, params, scope_chain}}` object. ORDERED: the escape is tried only where the known arm FAILS — a declared
+# class reads the same span on both arms, so the choice is provably the tie longest_match would have given the first
+# arm — which is what makes it affordable: the first spelling, a passthrough twin `class_scope_escapable` at nineteen
+# sites under longest_match, cost entries +1.43 % on the pinned sample (the dispatcher entered 3.6 M times, the escape's
+# asks at every class_scope evaluation). The four TYPE-position prefixes (scoped_type_scope_prefix, nettype_scope_prefix,
+# the two ps_type_identifier_scope twins) take `class_scope_plain` instead: at a module item's start `ident #( … )` is
+# also an instantiation head, and the consumed list would be re-parsed after the rollback (ENGINE-UNIVERSAL-SERVICES.111;
+# the `.28` first candidate, entries +5.18 %).
+@branch_policy: ordered
 @profiles: ["sv_2017", "sv_2023"]
 class_scope := @probe_sample: "C::" class_scope_type scope_resolution
             -> {body: $1}
+             | wildcard_escape_class_scope_type scope_resolution
+            -> {body: $1}
+
+@profiles: ["sv_2017", "sv_2023"]
+wildcard_escape_class_scope_type := wildcard_escape_class_type_identifier parameter_value_assignment ( scope_resolution class_identifier ( parameter_value_assignment )? &scope_resolution )*
+                                 -> {head: $1, params: $2, scope_chain: $3}
+
+# The plain twin for the four type-position prefixes — `class_scope`'s first alternative alone, the same node.
+@profiles: ["sv_2017", "sv_2023"]
+class_scope_plain := class_scope_type scope_resolution
+                  -> {body: $1}
+
 
 @predicate: { name: fact_attribute_equals, args: [type_name, $body, declaration_family, class], phase: post }
 known_unscoped_base_class_type_identifier := class_identifier
@@ -2879,7 +2905,7 @@ known_unscoped_block_type_identifier := checked_type_identifier packed_dimension
 # ONE shared rule fixes both — the `.1` `ansi_port_header` / `.2.1` `forward_type_keyword`
 # named-lift precedent.
 @profiles: ["sv_2017", "sv_2023"]
-scoped_type_scope_prefix := class_scope | non_typedef_package_scope
+scoped_type_scope_prefix := class_scope_plain | non_typedef_package_scope
 
 @profiles: ["sv_2017", "sv_2023"]
 scoped_block_type_identifier := scoped_type_scope_prefix type_identifier packed_dimension*
@@ -5565,7 +5591,7 @@ net_type := kw_supply0 -> {kind: "supply0"}
 # NOT the reversed `scoped_type_scope_prefix`); shared by all 4 nettype occurrences (both profiles,
 # both branches). The `.2.3` `scoped_type_scope_prefix` named-lift precedent.
 @profiles: ["sv_2017", "sv_2023"]
-nettype_scope_prefix := non_typedef_package_scope | class_scope
+nettype_scope_prefix := non_typedef_package_scope | class_scope_plain
 
 @profiles: ["sv_2017"]
 @sample: "nettype int nt;"
@@ -7058,12 +7084,12 @@ ps_parameter_identifier_v2005 := class_scope parameter_identifier               
 @profiles: ["sv_2017"]
 ps_type_identifier_scope_sv_2017 := kw_local_939bb46a scope_resolution kw_n_43_0286dd55
                                   | non_typedef_package_scope
-                                  | class_scope
+                                  | class_scope_plain
 
 @profiles: ["sv_2023"]
 ps_type_identifier_scope_sv_2023 := kw_local_939bb46a scope_resolution kw_n_48_64e095fe
                                   | non_typedef_package_scope
-                                  | class_scope
+                                  | class_scope_plain
 
 @profiles: ["sv_2017"]
 ps_type_identifier_sv_2017 := ps_type_identifier_scope_sv_2017? type_identifier
@@ -9726,8 +9752,14 @@ scoped_class_scoped_call_prefix_identifier := non_typedef_package_scope class_id
 # alt but did not lift it; this completes that rule. Positions $1..$4 unchanged.
 class_scoped_call_prefix_head := scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier | known_unscoped_class_scoped_call_interface_class_identifier | known_unscoped_class_scoped_call_type_parameter_identifier
 
+@branch_policy: ordered
 @profiles: ["sv_2017", "sv_2023"]
 class_scoped_call_prefix := class_scoped_call_prefix_head ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
+                        -> {head: $1, params: $2, scope_chain: $4}
+                        # SV-CORPUS-GRAD.31 (release 1.0.243): the escape at the class-scoped CALL prefix — the UVM
+                        # `uvm_config_db#(T)::set(...)` idiom; the `.28` / `.30` head, the parameter list consumed, the
+                        # known arm's exact node; reached only from class_scoped_tf_call (statements and expressions).
+                        | wildcard_escape_class_type_identifier parameter_value_assignment scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
                         -> {head: $1, params: $2, scope_chain: $4}
 @profiles: ["sv_2017", "sv_2023"]
 class_scoped_tf_call_with_args := class_scoped_call_prefix tf_identifier attribute_instance* lparen list_of_arguments rparen

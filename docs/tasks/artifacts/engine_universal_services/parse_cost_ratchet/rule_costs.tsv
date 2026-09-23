@@ -54,7 +54,7 @@ bit_select_expression	75256	50135	0
 bitwise_and	1006624	2508	0
 bitwise_or	1006624	1523	0
 bitwise_xor	1006624	3851	0
-block_comment	2358897	305	0
+block_comment	2358901	305	0
 block_data_declaration	8516	148	0
 block_data_declaration_sv_2017	8516	148	0
 block_data_type	8516	148	0
@@ -127,7 +127,7 @@ class_constructor_prototype	3	0	0
 class_constructor_prototype_sv_2017	3	0	0
 class_declaration	80695	10	614
 class_declaration_sv_2017	80081	10	0
-class_identifier	3018876	1569	0
+class_identifier	3575648	1569	0
 class_item	47	25	1
 class_item_qualifier	207	1	150
 class_item_sv_2017	46	25	0
@@ -135,8 +135,9 @@ class_method	46	8	0
 class_new	30496	5	2166
 class_or_package_scope	53682	0	0
 class_property	46	11	2
-class_scope	4401955	9	3665275
-class_scope_type	736680	9	0
+class_scope	3612542	7	2971429
+class_scope_plain	789741	2	68578
+class_scope_type	1362276	9	625596
 class_scope_type_head	736680	9	0
 class_scoped_call_prefix	747331	0	128944
 class_scoped_call_prefix_head	618387	0	0
@@ -227,7 +228,7 @@ data_type_or_implicit_declared	2453	1770	0
 data_type_or_implicit_explicit	80161	1808	0
 data_type_or_void	3538	2414	319
 data_type_or_void_sv_only	3251	48	18
-declaration_identifier	9659963	145813	0
+declaration_identifier	10216735	145813	0
 declaration_lifetime_sv_only	9118	3	728
 declared_class_alias_identifier	1	0	0
 declared_class_identifier	26	10	1
@@ -356,7 +357,7 @@ genvar_iteration	74	41	26
 goto_repetition	2444	0	0
 greater_equal	474057	460	0
 greater_than	474057	1049	0
-hash	373661	1363	0
+hash	573627	1363	0
 hierarchical_array_identifier	3	1	0
 hierarchical_bit_select	939237	39025	607297
 hierarchical_block_identifier	2	0	0
@@ -380,7 +381,7 @@ if_generate_else_clause	38	0	1
 iff_arrow	474057	0	0
 iff_keyword_sv_only	4800	0	1026
 immediate_assertion_statement	50439	3	0
-implicit_class_handle	3581453	3	2956339
+implicit_class_handle	3581781	3	2956667
 implicit_class_handle_prefix_sv_only	475402	0	0
 implicit_class_rooted_method_chain	1317256	0	714438
 implicit_data_type	12126	10037	1566
@@ -714,7 +715,7 @@ let_named_arg	176	0	0
 level_input_list	9	5	0
 level_symbol	34	13	12
 lifetime	8660	94	0
-line_comment	2358897	7706	0
+line_comment	2358901	7706	0
 line_directive	65	0	0
 line_number	1	0	0
 list_of_arguments	4789	8357	10
@@ -754,7 +755,7 @@ loop_generate_construct	73668	41	1461
 loop_statement	55586	10	5141
 loop_statement_sv_only	50445	1	6
 loop_variables	3	1	0
-lparen	4135636	99541	2986867
+lparen	4135640	99541	2986867
 lrm_compiler_directive	14	13	0
 lrm_directive_name	223	0	0
 lrm_directive_name_shared	223	0	0
@@ -828,11 +829,11 @@ non_consecutive_repetition	2444	0	0
 non_consecutive_repetition_sv_2017	2444	0	0
 non_integer_type	769678	5	0
 non_integer_type_sv_only	769710	0	71727
-non_keyword_identifier	18570930	428828	17500507
+non_keyword_identifier	19127702	428828	18057279
 non_overlapped_implication	211	0	53
 non_port_interface_item	4	2	0
 non_port_module_item	71988	7090	80
-non_typedef_package_scope	7256129	7357	6522348
+non_typedef_package_scope	7256457	7357	6522676
 nonblocking_assignment	55586	474	0
 nonblocking_implies	50439	0	0
 nonrange_lvalue_scope	53682	0	3243
@@ -884,8 +885,8 @@ parameter_override	72911	1	0
 parameter_port_declaration	1503	696	0
 parameter_port_declaration_sv_2017	1503	696	0
 parameter_port_list	441	23	173
-parameter_value_assignment	153234	502	107229
-parameter_value_assignment_sv_2017	46005	502	0
+parameter_value_assignment	570800	502	324829
+parameter_value_assignment_sv_2017	245971	502	0
 paren_operator_assignment_operand	922757	0	502703
 part_select_range	85687	12921	10351
 pass_en_switchtype	72168	0	0
@@ -987,7 +988,7 @@ rooted_tf_call_sv_only	1242491	0	639673
 rparen	409231	99541	179300
 scope_free_identifier	12262	2	0
 scope_randomize_sv_only	488308	0	12906
-scope_resolution	389356	8080	80683
+scope_resolution	398085	8080	89412
 scoped_base_class_type_identifier	15	0	1
 scoped_block_class_type	8516	0	327
 scoped_block_covergroup_identifier	8516	0	327
@@ -1115,7 +1116,7 @@ timescale_directive	65	3	0
 timeunit_separator_slash	5	5	0
 timeunit_separator_trivia	5	5	0
 timeunits_declaration	80694	5	1352
-trivia	88859461	1225182	86561034
+trivia	89059431	1225182	86761000
 type_assignment	35	16	0
 type_assignment_sv_2017	35	16	0
 type_assignment_with_default	5	4	0
@@ -1179,7 +1180,7 @@ variable_identifier	162032	9032	0
 variable_identifier_decl	2	2	0
 variable_identifier_list	1	0	0
 variable_lvalue	738392	10724	181522
-variable_lvalue_scope	556870	3	2226
+variable_lvalue_scope	556870	3	1898
 variable_port_header	1663	533	0
 variable_port_identifier_decl	3	3	0
 variable_port_type	1927	538	0
@@ -1190,9 +1191,10 @@ wait_statement_sv_only	50439	0	0
 wildcard_equal	474057	0	0
 wildcard_escape_base_class_identifier	15	0	1
 wildcard_escape_block_class_type	8516	0	1
+wildcard_escape_class_scope_type	641109	0	0
 wildcard_escape_class_type	206802	0	48576
 wildcard_escape_class_type_head	158226	0	0
-wildcard_escape_class_type_identifier	166741	0	3075
+wildcard_escape_class_type_identifier	1426236	0	705798
 wildcard_escape_interface_port_shape	291	0	0
 wildcard_escape_lone_name_shape	9229	0	376
 wildcard_escape_nettype_identifier	80158	221	123

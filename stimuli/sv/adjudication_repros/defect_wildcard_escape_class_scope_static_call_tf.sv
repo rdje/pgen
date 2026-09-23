@@ -1,4 +1,4 @@
-// SV-CORPUS-GRAD.30 - a DEFECT pin (REJECT today, both SV profiles) - routed to SV-CORPUS-GRAD.31.
+// SV-CORPUS-GRAD.30 - a DEFECT pin (REJECT through 1.0.242, both SV profiles) - FIXED by SV-CORPUS-GRAD.31 (release 1.0.243: class_scope's ordered escape alternative + the class_scoped_call_prefix escape arm; class fixed / ACCEPT).
 // The CLASS SCOPE of a static method call is an unresolved parameterized class under an open wildcard import - the UVM
 // `uvm_config_db#(T)::set(...)` idiom: .27 reached type positions and .28 parameterized class TYPES, but the class-scoped
 // call heads (known_unscoped_class_scoped_call_class_identifier, known_unscoped_class_scope_class_identifier) still demand a

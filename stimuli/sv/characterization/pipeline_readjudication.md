@@ -6,20 +6,20 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `ca8adc45f01c0f67ee13fedfd950d08628c570aa89f8a934227422b2a72a1f21` |
+| answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e0034b25fb9e7de646f1f4933d348839a052249e8588632541195d4a04efea08` |
 | explained_svpp audit | `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/after/audit.tsv` | `e30149eb2dc125d24f0a27c537984fc2e11b6ba13062e0e62f162e7d02dfeded` |
-| dark chained_only audit | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv` | `fabf6b75c35c0a0d7fe4d8ab1f58237d81c68bcf609a2e726afd875dfd5167f9` |
-| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `ee15192a9bc90cc685289f110ed5d70f46abcae54cd22316d1d10acd94353fae` |
-| refuted dispositions (`.6b`) | `stimuli/sv/characterization/refuted_dispositions.tsv` | `e5fd87adc709c4c14eef28da2871427ff93abee4c483e2acda3cfeb2bfe8309d` |
-| parse binary | `rust/target/debug/parseability_probe` | `94e9026579bac3959e26f2eb7bdef4bd2bd9e41447c0a580d326e4e052d9da70` |
+| dark chained_only audit | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv` | `33a0bedc2898f35855ff81f95c3d2f8ad0671140c7c80295c4f3e63135c86290` |
+| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `d955cd92ac84bb660f7ea022affb2eb7ecc0382514c73ba6d963193207645356` |
+| refuted dispositions (`.6b`) | `stimuli/sv/characterization/refuted_dispositions.tsv` | `1eabd58928cc56c6107f64301870e9cd1d4cc7bc5c92f36440c1a72758c73db7` |
+| parse binary | `rust/target/debug/parseability_probe` | `e39f53b4cc8e4a6ebb58abf53a39dcce9f4a00a2f6272f72d8a4ef858a8fd1ac` |
 
-Measured at `HEAD` = `95245c774+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
+Measured at `HEAD` = `ded5d4b23+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
 
 ## The headline
 
 - rows re-read: **6,911** (manifest rows in the three populations that the lane ran; 0 such rows have no lane row)
-- **explained_svpp** — must-accept rows the raw lane explained away by preprocessing (`divergence:explained_svpp_*`; `.12a`'s position test, `.12b`'s 263): 1,362 rows → `corroborated` 1,296, `refuted:cross_file_base_class` 35, `refuted:vendor_identity_branch` 9, `refused_engine` 7, `refuted:driver_define` 7, `refused_context` 5, `refuted:cross_file_define` 1, `refuted:preprocessor_item` 1, `refuted` 1
-- **chained_only** — multi-file design rows the raw lane could not judge (`deferred:chained_only`; `.13c`'s strata, `.13d`'s expansion-owned rows): 4,926 rows → `chained:accepted_under_expansion` 2,076, `chained:unreached_in_unit` 1,832, `chained:rejects_own_file` 599, `chained:refused_context` 210, `chained:hollow` 104, `chained:accepted_in_unit` 90, `chained:refused_engine` 15
+- **explained_svpp** — must-accept rows the raw lane explained away by preprocessing (`divergence:explained_svpp_*`; `.12a`'s position test, `.12b`'s 263): 1,362 rows → `corroborated` 1,331, `refuted:vendor_identity_branch` 9, `refused_engine` 7, `refuted:driver_define` 7, `refused_context` 5, `refuted:cross_file_define` 1, `refuted:preprocessor_item` 1, `refuted` 1
+- **chained_only** — multi-file design rows the raw lane could not judge (`deferred:chained_only`; `.13c`'s strata, `.13d`'s expansion-owned rows): 4,926 rows → `chained:accepted_under_expansion` 2,146, `chained:unreached_in_unit` 1,099, `chained:accepted_in_unit` 880, `chained:rejects_own_file` 529, `chained:refused_context` 210, `chained:hollow` 47, `chained:refused_engine` 15
 - **svpp_owned** — rows whose conformance the raw lane routed to the preprocessor lane (`deferred:svpp_owned`): 172 rows → `svpp_owned:accepted_under_expansion` 109, `svpp_owned:rejects_own_file` 30, `svpp_owned:refused_engine` 30, `svpp_owned:refused_context` 2, `svpp_owned:hollow` 1
 - **must_reject** — rows the answer key expects REJECTED — the manifest's `expected`, or a pin the raw lane demoted (`.6b.1`); a pipeline pass here is an over-acceptance candidate: 451 rows → `must_reject:match_under_expansion` 451
 
@@ -29,8 +29,8 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 
 | position verdict (`.12a`) | rows | `corroborated` | `accepted_in_unit` | `refuted` | `hollow` | `unreached_in_unit` | `refused_context` | `refused_engine` |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `IN-WINDOW` | 208 | 171 | 0 | 34 | 0 | 0 | 1 | 2 |
-| `STUCK-ON-SVPP-TOKEN` | 1139 | 1111 | 0 | 19 | 0 | 0 | 4 | 5 |
+| `IN-WINDOW` | 208 | 204 | 0 | 1 | 0 | 0 | 1 | 2 |
+| `STUCK-ON-SVPP-TOKEN` | 1139 | 1113 | 0 | 17 | 0 | 0 | 4 | 5 |
 | `not-in-audit` | 15 | 14 | 0 | 1 | 0 | 0 | 0 | 0 |
 
 **The refuted rows, by disposition** (`.6b`; `stimuli/sv/characterization/refuted_dispositions.tsv` — a row keeps `refuted` until someone has looked at it and written down what it is):
@@ -38,7 +38,6 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 | disposition | rows | what it means |
 |---|---:|---|
 | *(awaiting a disposition)* | 1 | not yet looked at |
-| `cross_file_base_class` | 35 | the class header's base class is declared in another file of the unit (uvm_pkg for the sv-tests `*-uvm.sv` rows) — the library design's population (`SVPP-EXPANSION.6d`); no expansion can supply a declaration |
 | `vendor_identity_branch` | 9 | the file's portable branch is the vendor's own `` `error `` stub behind `` `ifndef VERILATOR ``; the vendor branch needs the tool's identity predefine, which the lane does not carry (measured `.6b.3`: defining it recognises 5 files and rejects 24 on vendor extensions) — a fact about the row's context |
 | `driver_define` | 7 | the origin line uses a macro the suite's DRIVER defines on its command line (`+define+…`, `-D…`) that the derived context CANNOT carry: the driver computes the value at run time, or several variant drivers configure the file differently (`.4c.1` derives a literal value from the file's own driver and REPORTS both cases, never guesses) — a fact about the row's context |
 | `preprocessor_item` | 1 | an expansion-stage rule not yet implemented (named) — the expansion stage's own |
@@ -71,7 +70,7 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 | slang | `divergence:explained_svpp_include` | 0 | 4 |
 | slang | `divergence:explained_svpp_macro_use` | 1 | 1 |
 | sv-tests | `divergence:explained_svpp_conditional` | 0 | 15 |
-| sv-tests | `divergence:explained_svpp_include` | 35 | 68 |
+| sv-tests | `divergence:explained_svpp_include` | 0 | 103 |
 | sv-tests | `divergence:explained_svpp_keywords_region` | 0 | 1 |
 | sv-tests | `divergence:explained_svpp_macro_use` | 0 | 3 |
 | sv2v | `divergence:explained_svpp_include` | 0 | 12 |
@@ -90,34 +89,34 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 
 | `.13c` stratum | rows | `accepted_under_expansion` | `accepted_in_unit` | `rejects_own_file` | `hollow` | `unreached_in_unit` | `refused_context` | `refused_engine` |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `IN-WINDOW` | 1478 | 797 | 1 | 307 | 98 | 64 | 197 | 14 |
+| `IN-WINDOW` | 1479 | 861 | 22 | 301 | 41 | 43 | 197 | 14 |
 | `NO-ALTERABLE-TICK/CROSS-LIBRARY` | 3 | 0 | 0 | 2 | 0 | 1 | 0 | 0 |
 | `NO-ALTERABLE-TICK/FACT-GATED-CROSS-FILE` | 50 | 9 | 1 | 21 | 0 | 19 | 0 | 0 |
 | `NO-ALTERABLE-TICK/FACT-GATED-LOCAL-TYPE` | 2 | 0 | 0 | 0 | 0 | 2 | 0 | 0 |
-| `NO-ALTERABLE-TICK/NO-FACT-GATE-AT-FAILURE` | 13 | 0 | 0 | 13 | 0 | 0 | 0 | 0 |
+| `NO-ALTERABLE-TICK/NO-FACT-GATE-AT-FAILURE` | 7 | 0 | 0 | 7 | 0 | 0 | 0 | 0 |
 | `NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE` | 11 | 0 | 0 | 11 | 0 | 0 | 0 | 0 |
-| `ONE-SIDED (raw pass)` | 1357 | 1266 | 1 | 1 | 6 | 71 | 11 | 1 |
+| `ONE-SIDED (raw pass)` | 1363 | 1272 | 37 | 1 | 6 | 35 | 11 | 1 |
 | `PAST-LAST-TICK` | 8 | 4 | 0 | 1 | 0 | 2 | 1 | 0 |
-| `PRE-TICK/CROSS-LIBRARY` | 163 | 0 | 4 | 53 | 0 | 106 | 0 | 0 |
-| `PRE-TICK/FACT-GATED-CROSS-FILE` | 1811 | 0 | 83 | 173 | 0 | 1555 | 0 | 0 |
+| `PRE-TICK/CROSS-LIBRARY` | 163 | 0 | 81 | 35 | 0 | 47 | 0 | 0 |
+| `PRE-TICK/FACT-GATED-CROSS-FILE` | 1811 | 0 | 737 | 134 | 0 | 940 | 0 | 0 |
 | `PRE-TICK/FACT-GATED-LOCAL-TYPE` | 6 | 0 | 0 | 0 | 0 | 6 | 0 | 0 |
-| `PRE-TICK/NO-FACT-GATE-AT-FAILURE` | 10 | 0 | 0 | 6 | 0 | 4 | 0 | 0 |
-| `PRE-TICK/UNDECLARED-ANYWHERE` | 14 | 0 | 0 | 11 | 0 | 2 | 1 | 0 |
+| `PRE-TICK/NO-FACT-GATE-AT-FAILURE` | 9 | 0 | 0 | 5 | 0 | 4 | 0 | 0 |
+| `PRE-TICK/UNDECLARED-ANYWHERE` | 14 | 0 | 2 | 11 | 0 | 0 | 1 | 0 |
 
-**The expansion-owned stratum** (`IN-WINDOW` + `PAST-LAST-TICK` with no cross-file channel — `.13d`'s pre-registered population): **1,486** rows in the audit; under the pipeline `accepted_under_expansion` 801, `accepted_in_unit` 1, `rejects_own_file` 308, `hollow` 98, `unreached_in_unit` 66, `refused_context` 198, `refused_engine` 14.
+**The expansion-owned stratum** (`IN-WINDOW` + `PAST-LAST-TICK` with no cross-file channel — `.13d`'s pre-registered population): **1,487** rows in the audit; under the pipeline `accepted_under_expansion` 865, `accepted_in_unit` 22, `rejects_own_file` 302, `hollow` 41, `unreached_in_unit` 45, `refused_context` 198, `refused_engine` 14.
 
 **The rows that still reject in their own file after expansion, by construct** (chained_only, all strata — the barrier BEHIND the macro barrier):
 
 | construct at the origin line | rows | one example (origin) |
 |---|---:|---|
-| other | 310 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` |
-| class header with a base class (`extends`) | 220 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_driver.sv:4:37` |
-| a `::`-scoped name | 28 | `stimuli/sv/subs/Surelog/tests/SplitFile/svaunit_pkg.sv:1138:31` |
-| a function / task header | 11 | `stimuli/sv/subs/Surelog/tests/ClassFuncProto/top.v:30:13` |
-| a `uvm_*` name (typed, not a macro) | 10 | `stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_reg/dv_base_reg_pkg.sv:123:715` |
+| other | 309 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` |
+| class header with a base class (`extends`) | 166 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_driver.sv:4:37` |
+| a `::`-scoped name | 14 | `stimuli/sv/subs/Surelog/tests/UnitForeach/top2.v:5:45` |
+| a function / task header | 12 | `stimuli/sv/subs/Surelog/tests/ClassFuncProto/top.v:30:13` |
+| a `uvm_*` name (typed, not a macro) | 11 | `stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_reg/dv_base_reg_pkg.sv:123:715` |
 | - | 7 | `stimuli/sv/subs/opentitan/hw/ip/kmac/fpv/tb/sha3pad_fpv.sv:133:1` |
-| a parameter port list `#(` | 6 | `stimuli/sv/subs/opentitan/hw/dv/sv/dv_lib/dv_base_env.sv:5:63` |
 | a `new(…)` initializer / construction | 4 | `stimuli/sv/subs/verilator/test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh:13725:38` |
+| a parameter port list `#(` | 3 | `stimuli/sv/subs/opentitan/hw/ip/aon_timer/dv/tb.sv:48:33` |
 | a `typedef` | 3 | `stimuli/sv/subs/opentitan/hw/ip/entropy_src/dv/env/entropy_src_env_pkg.sv:157:16` |
 
 ## The unit-membership reading (`.6d.2`)
@@ -127,7 +126,7 @@ An `` `include ``d class file has no `import` of its own, so per file it rejects
 | suite | members re-read | `accepted_in_unit` | rejection lands here (per-file verdict kept) | `unreached_in_unit` |
 |---|---:|---:|---:|---:|
 | black-parrot | 3 | 0 | 0 | 0 |
-| opentitan | 1888 | 88 | 89 | 1693 |
+| opentitan | 1888 | 878 | 32 | 960 |
 | uvm-core | 168 | 2 | 1 | 139 |
 
 ## must_reject — the rows the answer key expects rejected, under the pipeline
