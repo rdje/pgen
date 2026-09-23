@@ -1,3 +1,4 @@
+// SV-CORPUS-GRAD.13c.2m - FIXED in release 1.0.244 (was an accepts_invalid pin: ACCEPTED through 1.0.243) - now class invalid / REJECT on every profile.
 // SV-CORPUS-GRAD.13c.2m — a KNOWN OVER-ACCEPTANCE (class `accepts_invalid`), pinned so it is
 // WATCHED rather than merely written down. IEEE 1800 Annex B has no keyword `class_qualifier`;
 // A.8.4 has a NONTERMINAL of that name. PGEN extracted it as a literal keyword

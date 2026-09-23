@@ -1,3 +1,4 @@
+// SV-CORPUS-GRAD.13c.2m - FIXED in release 1.0.244 (was an accepts_invalid pin: ACCEPTED through 1.0.243) - now class invalid / REJECT on every profile.
 // SV-CORPUS-GRAD.13c.2m — ⭐ THE SMOKING GUN: the LRM's OWN TEXT for a production, parsed as a
 // SystemVerilog expression, footnote superscript and all. IEEE 1800-2017 A.8.4 prints
 // `class_qualifier := [ local ::43 ] …` where `43` is a FOOTNOTE MARKER, and PGEN carries

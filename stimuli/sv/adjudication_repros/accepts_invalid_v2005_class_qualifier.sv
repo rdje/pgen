@@ -1,3 +1,4 @@
+// SV-CORPUS-GRAD.13c.2m - FIXED in release 1.0.244 (was an accepts_invalid pin: ACCEPTED through 1.0.243) - now class invalid / REJECT on every profile.
 // SV-CORPUS-GRAD.13e.7(b) — the verilog_2005 carrier for a defect .13c.2m ALREADY OWNS.
 // PGEN extracted the IEEE 1800 NONTERMINAL `class_qualifier` as a literal KEYWORD
 // (`kw_class_qualifier_fa08937d := trivia /class_qualifier\b/`), so two adjacent identifiers

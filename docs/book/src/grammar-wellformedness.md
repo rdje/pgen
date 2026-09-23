@@ -2493,11 +2493,11 @@ grammar, parser, generator or generated artifact; the cert numbers are read-only
 
 | Field | Contract key | Value |
 |---|---|---:|
-| canonical `total` | `expected_total` | 1534 |
-| canonical `proof` | `expected_proof` | 14 |
-| canonical `witness` | `expected_canonical_witness` | 1505 |
+| canonical `total` | `expected_total` | 1531 |
+| canonical `proof` | `expected_proof` | 13 |
+| canonical `witness` | `expected_canonical_witness` | 1503 |
 | canonical `UNKNOWN` | `expected_canonical_unknown` | 15 |
-| union `witness` | `expected_union_witness` | 1520 |
+| union `witness` | `expected_union_witness` | 1518 |
 | union `UNKNOWN` | `expected_union_unknown` | 0 |
 | union residual rule set | `expected_union_residual_rules` | `[]` |
 | recognized `fully_certified` via the union | `fully_certified_via_union` — derived as `expected_union_unknown == 0` | true |

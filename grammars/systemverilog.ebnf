@@ -4954,9 +4954,13 @@ split_hierarchical_callable_receiver := split_callable_receiver_scope? ( non_key
 # the `class_qualifier` literal before a callable receiver (`initial class_qualifier a.b();` parsed under
 # `verilog_2005` — the ONE confirmed over-acceptance of the V2005-KEYWORD-FAITHFULNESS census); this helper
 # is SV-gated, so that text now rejects there (`over_acceptances 1 → 0`, release 1.0.215).
+# SV-CORPUS-GRAD.13c.2m (release 1.0.244): the `class_qualifier` LITERAL — IEEE 1800 Annex A's NONTERMINAL
+# `class_qualifier`, welded into a keyword by the LRM extractor (one lost colon: the markdown prints
+# `class_qualifier := [ local ::43 ] …` where every other head prints `::=`) — is deleted from every site; its
+# real halves are rendered where the LRM puts them (`primary_hier_scope_prefix`: `local ::`, `class_scope`,
+# `implicit_class_handle .`). `y = class_qualifier m;` REJECTS from 1.0.244 on every profile.
 @profiles: ["sv_2017", "sv_2023"]
-split_callable_receiver_scope := kw_class_qualifier_fa08937d
-                               | non_typedef_package_scope
+split_callable_receiver_scope := non_typedef_package_scope
                                | class_scope
 
 split_direct_callable_method_call := split_hierarchical_callable_receiver dot callable_method_call_body
@@ -4995,10 +4999,10 @@ direct_callable_method_call := method_call_root dot callable_method_call_body
 # every one of 16 335 files under both SV profiles (a prefixed receiver wins through
 # `split_direct_callable_method_call` instead), so the corrected shape is held by the .3.42 pins.
 # IEEE 1800-2017 A.8.4 `primary ::= [ class_qualifier | package_scope ] hierarchical_identifier select`
-# (`class_qualifier` is still the literal keyword this grammar extracted — SV-CORPUS-GRAD.13c.2m).
+# (the `class_qualifier` literal this grammar had extracted — an Annex A NONTERMINAL welded as a keyword — was
+# deleted by SV-CORPUS-GRAD.13c.2m, release 1.0.244; the package scope is the one qualifier this copy renders).
 @profiles: ["sv_2017", "sv_2023"]
-method_call_receiver_qualifier := kw_class_qualifier_fa08937d
-                                | non_typedef_package_scope
+method_call_receiver_qualifier := non_typedef_package_scope
 
 @profiles: ["sv_2017"]
 method_call_receiver_sv_2017 := @probe_sample: "1" primary_literal
@@ -5016,8 +5020,6 @@ method_call_receiver_sv_2017 := @probe_sample: "1" primary_literal
                               | sequence_method_call                                                                    -> {kind: "sequence_method", body: $1}
                               | @probe_sample: "this" kw_this_c2543fff                                                  -> {kind: "this"}
                               | kw_sv_dollar_04da59ec                                                                   -> {kind: "dollar"}
-                              | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? implicit_handle_or_class_scope?
-                                                                                                                        -> {kind: "null_class", local_n43: $5, prefix: $6}
 
 # SV-CORPUS-GRAD.13c.2j — the sv_2023 twin of the copy above: same shorter prefix, same two
 # measurements, same pin in `sweep_scope_prefix_renderings.py`.
@@ -5035,8 +5037,6 @@ method_call_receiver_sv_2023 := primary_literal                                 
                               | sequence_method_call                                                                    -> {kind: "sequence_method", body: $1}
                               | kw_this_c2543fff                                                                        -> {kind: "this"}
                               | kw_sv_dollar_04da59ec                                                                   -> {kind: "dollar"}
-                              | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? implicit_handle_or_class_scope?
-                                                                                                                        -> {kind: "null_class", local_n48: $5, prefix: $6}
 
 @profiles: ["sv_2017", "sv_2023"]
 method_call_receiver := method_call_receiver_sv_2017 -> {kind: "sv_2017", body: $1}
@@ -6436,8 +6436,6 @@ primary_sv_2017 := @probe_sample: "1" primary_literal
                  | @probe_sample: "null" kw_null_2be88ca4
                         -> {kind: "null"}
                  | primary_dollar_sv_only
-                 | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( instance_or_class_scope )?
-                        -> {kind: "null_class_assign",  local_n: $5, scope: $6}
                  | scope_randomize_sv_only
                  | type_comparison_sv_only
                         -> {kind: "type_comparison",    body: $1}
@@ -6466,8 +6464,13 @@ primary_dollar_sv_only := kw_sv_dollar_04da59ec
 scope_randomize_sv_only := ( kw_std_55ec981f scope_resolution )? randomize_call
                         -> {kind: "scope_randomize", std_scope: $1, body: $2}
 
-primary_hier_scope_prefix := kw_class_qualifier_fa08937d -> {kind: "class_qualifier", body: $1}
-                           | non_typedef_package_scope    -> {kind: "package_scope",   body: $1}
+# SV-CORPUS-GRAD.13c.2m (release 1.0.244): branch 0 was the `class_qualifier` LITERAL (`{kind: "class_qualifier"}`),
+# the extractor's weld of Annex A's nonterminal name — deleted; the nonterminal's real halves are the arms below.
+# It was the only arm satisfiable under `verilog_2005` (every other arm is SV-only), so the rule is now SV-gated
+# (the lint's derived minimal fix, ANNOTATION-COMPOSITION.4); its hosts read an EMPTY optional there, as they did
+# on every legal 1364-2005 text before.
+@profiles: ["sv_2017", "sv_2023"]
+primary_hier_scope_prefix := non_typedef_package_scope    -> {kind: "package_scope",   body: $1}
                            # SV-EXH-PROOF.3.3.4.b.6.2.37.3 — H2 follow-up: class-scoped
                            # member access (`Class::member`, `super_t::m_name`,
                            # `pkg::Class::staticMember`) as a primary expression. Per
@@ -6545,8 +6548,6 @@ primary_sv_2023 := primary_literal
                         -> {kind: "null"}
                  | kw_sv_dollar_04da59ec
                         -> {kind: "system_dollar"}
-                 | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( instance_or_class_scope )?
-                        -> {kind: "null_class_assign",  local_n: $5, scope: $6}
                  | scope_randomize_sv_only
                  | type_comparison_sv_only
                         -> {kind: "type_comparison",    body: $1}
@@ -7078,18 +7079,21 @@ ps_parameter_identifier_v2005 := class_scope parameter_identifier               
 # a rule that carries return templates, the group's branch N is typed with the ENCLOSING rule's
 # template N whenever one exists (ENGINE-UNIVERSAL-SERVICES.96; interpreter and generated parser agree
 # byte for byte), so the shipped parser emitted the host's template wrapped around the prefix —
-# branch 0 (the `local::`-footnote literal) would wear the host's `{scope: $1, name: $2}`. IEEE 1800-2017
+# branch 0 (`local ::`) would wear the host's `{scope: $1, name: $2}`. IEEE 1800-2017
 # A.9.3 `ps_type_identifier ::= [ local ::43 | package_scope | class_scope ] type_identifier`; the 2023
-# twin cites footnote 48. One helper per edition because the footnote literal differs.
+# twin cites footnote 48. Until 1.0.244 branch 0 spelled the footnote SUPERSCRIPT as a literal token
+# (`local :: 43` / `local :: 48`), dead on legal text; SV-CORPUS-GRAD.13c.2m renders the LRM's `local ::`
+# (§18.7.1: legal only inside `randomize() with` constraints — elaboration's check, as for the primary's arm).
+# One helper per edition is kept although the two are now identical text, so the hosts' shapes stay as they are.
 @profiles: ["sv_2017"]
-ps_type_identifier_scope_sv_2017 := kw_local_939bb46a scope_resolution kw_n_43_0286dd55
-                                  | non_typedef_package_scope
-                                  | class_scope_plain
+ps_type_identifier_scope_sv_2017 := kw_local_939bb46a scope_resolution -> {kind: "local_qualifier"}
+                                  | non_typedef_package_scope         -> $1
+                                  | class_scope_plain                 -> $1
 
 @profiles: ["sv_2023"]
-ps_type_identifier_scope_sv_2023 := kw_local_939bb46a scope_resolution kw_n_48_64e095fe
-                                  | non_typedef_package_scope
-                                  | class_scope_plain
+ps_type_identifier_scope_sv_2023 := kw_local_939bb46a scope_resolution -> {kind: "local_qualifier"}
+                                  | non_typedef_package_scope         -> $1
+                                  | class_scope_plain                 -> $1
 
 @profiles: ["sv_2017"]
 ps_type_identifier_sv_2017 := ps_type_identifier_scope_sv_2017? type_identifier
@@ -8952,8 +8956,6 @@ kw_checker_29e5b9a8 := trivia /checker\b/
 
 kw_class_8d767bf5 := trivia /class\b/
 
-kw_class_qualifier_fa08937d := trivia /class_qualifier\b/
-
 kw_clocking_4d22041d := trivia /clocking\b/
 
 kw_cmos_aabe63a7 := trivia /cmos\b/
@@ -9225,10 +9227,6 @@ kw_n_1step_e6d37e7c := trivia /1step\b/
 
 
 kw_n_2_da4b9237 := trivia /2\b/
-
-kw_n_43_0286dd55 := trivia /43\b/
-
-kw_n_48_64e095fe := trivia /48\b/
 
 // kw_n_ef7e6794 := trivia /\\n\b/
 

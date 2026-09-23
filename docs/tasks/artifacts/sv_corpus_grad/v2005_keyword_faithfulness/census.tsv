@@ -1,6 +1,5 @@
 keyword	verdict	witness	accepts_verilog_2005	accepts_sv_2017_control	accepts_after_identifier_substitution	identifier_witness	accepts_as_identifier
 chandle	correctly_gated	chandle.sv	false	true	n/a		n/a
-class_qualifier	correctly_gated	class_qualifier.sv	false	true	n/a		n/a
 clocking	correctly_gated	clocking.sv	false	true	n/a		n/a
 const	correctly_gated	const.sv	false	true	n/a		n/a
 dist	correctly_gated	dist.sv	false	true	n/a		n/a

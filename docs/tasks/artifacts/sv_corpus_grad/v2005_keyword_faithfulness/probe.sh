@@ -56,8 +56,14 @@ check "baseline gate mode" 0 "over_acceptances=" -- \
 echo
 echo "[2] CONTROL — the reading MOVES with the profile (it is not stuck)"
 # The SAME code, over the SAME grammar and the SAME oracle, must report a different population
-# once only the profile changes. `verilog_2005` reaches 14 word-shaped IEEE-1800-only keywords
-# (15 until SV-CORPUS-GRAD.3.66, release 1.0.234: `ref` left the reachable set when the ANSI port
+# once only the profile changes. `verilog_2005` reaches 13 word-shaped IEEE-1800-only keywords
+# (14 until SV-CORPUS-GRAD.13c.2m, release 1.0.244: `class_qualifier` left the candidate set — it was never a
+# keyword at all but IEEE 1800 Annex A's NONTERMINAL, welded into a literal token by the grammar extractor
+# and reached under `verilog_2005` through `primary_hier_scope_prefix` and the welded `null class_qualifier := …`
+# alternative of `primary_sv_2017`; the token, the alternatives and the literal arms are deleted, so the
+# census's roster no longer carries a name that Annex B never reserved; measured: candidates 14 → 13,
+# `sv_2017` 135 → 134, its manifest row and witness retired with it;
+# 15 until SV-CORPUS-GRAD.3.66, release 1.0.234: `ref` left the reachable set when the ANSI port
 # header and the function port took `verilog_2005` twins whose directions are input / output /
 # inout only — IEEE 1364-2005 A.2.1.2, A.2.6 — so `kw_ref_69449f99` is reached by the sv twins alone;
 # measured by the census module on the 1.0.233 and 1.0.234 grammars: removed=['ref'], added=[]. The 15 were
@@ -65,13 +71,13 @@ echo "[2] CONTROL — the reading MOVES with the profile (it is not stuck)"
 # `tx_path_delay_expression` — an Annex A production NAME shipped as a literal terminal in
 # list_of_path_delay_expressions' non-LRM seventh alternative, counted here as an identifier-consumed
 # candidate until SV-CORPUS-GRAD.3.45 deleted the alternative and its terminal, release 1.0.219);
-# `sv_2017`, where those keywords are native, reaches 135 for the same reason (136 before .3.45). A
+# `sv_2017`, where those keywords are native, reaches 134 for the same reason (135 before .13c.2m, 136 before .3.45). A
 # census blind to the profile would print one of those numbers twice. ⛔ These two constants are a
 # tripwire, not a budget: a reachable IEEE-1800-only keyword added or removed moves them by one, and
 # the slice that moves them owes this comment its reason.
-check "verilog_2005 reaches 14 IEEE-1800-only keywords" 0 "candidates=14" -- \
+check "verilog_2005 reaches 13 IEEE-1800-only keywords" 0 "candidates=13" -- \
     python3 "$CENSUS"
-check "sv_2017 reaches 135 — the same code, a different reading" 1 "\`sv_2017\` reaches 135" -- \
+check "sv_2017 reaches 134 — the same code, a different reading" 1 "\`sv_2017\` reaches 134" -- \
     python3 "$CENSUS" --profile sv_2017
 # Censusing the CONTROL profile itself is a degenerate self-comparison, and the census names it
 # rather than reporting a flattering "leaks 0".
@@ -87,8 +93,10 @@ check "--write refused under --witness-dir" 2 "must never become the baseline" -
 
 echo
 echo "[4] a NEW reachable IEEE-1800-only keyword cannot land silently"
+# `this` is one of the 13 words the profile-filtered reach analysis arrives at (SV-CORPUS-GRAD.13c.2m: until 1.0.244 these two
+# arms used `class_qualifier`, the extractor's welded token, which left the roster with the weld).
 cp -R "$WITNESSES" "$SCRATCH/dropped_row"
-grep -v $'^class_qualifier\t' "$WITNESSES/MANIFEST.tsv" > "$SCRATCH/dropped_row/MANIFEST.tsv"
+grep -v $'^this\t' "$WITNESSES/MANIFEST.tsv" > "$SCRATCH/dropped_row/MANIFEST.tsv"
 check "manifest row removed for a reachable keyword" 1 "have no witness" -- \
     python3 "$CENSUS" --witness-dir "$SCRATCH/dropped_row"
 
@@ -109,7 +117,7 @@ check "witness does not contain its own keyword" 1 "cannot be run" -- \
 echo
 echo "[7] a reachable keyword whose sv_2017 CONTROL fails is an unmeasured HOLE, not 'clean'"
 cp -R "$WITNESSES" "$SCRATCH/broken_control"
-printf 'module top; integer y; class_qualifier class_qualifier; endmodule\n' > "$SCRATCH/broken_control/class_qualifier.sv"
+printf 'module top; integer y; this this; endmodule\n' > "$SCRATCH/broken_control/this.sv"
 check "sv_2017 control fails on a reachable keyword" 1 "nothing was measured" -- \
     python3 "$CENSUS" --witness-dir "$SCRATCH/broken_control"
 

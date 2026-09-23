@@ -476,7 +476,6 @@ kw_casez_b8fbe0e1	50439	27	0
 kw_chandle_34401c13	163698	4	0
 kw_checker_29e5b9a8	80035	0	0
 kw_class_8d767bf5	80724	26	0
-kw_class_qualifier_fa08937d	1681044	0	0
 kw_clocking_4d22041d	72176	0	0
 kw_cmos_aabe63a7	72168	0	0
 kw_config_dfba7aad	643	0	0
@@ -583,7 +582,7 @@ kw_not_557f2555	72419	0	0
 kw_notif0_2c8df148	72168	0	0
 kw_notif1_245fe7ea	72168	0	0
 kw_ns_7320d5b7	6	3	0
-kw_null_2be88ca4	3091717	1	0
+kw_null_2be88ca4	1361762	1	0
 kw_or_1758356d	99602	1	0
 kw_output_1029d676	6790	761	0
 kw_package_582681c2	643	32	0
@@ -1116,7 +1115,7 @@ timescale_directive	65	3	0
 timeunit_separator_slash	5	5	0
 timeunit_separator_trivia	5	5	0
 timeunits_declaration	80694	5	1352
-trivia	89059431	1225182	86761000
+trivia	85648432	1225182	83350001
 type_assignment	35	16	0
 type_assignment_sv_2017	35	16	0
 type_assignment_with_default	5	4	0

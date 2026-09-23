@@ -1,6 +1,6 @@
 {
   "classifier_pattern": "_lr_(?P<shape>base|suffix|seed|guard|alt)(?![a-z])",
-  "corpus_family_share_pct": "2.648",
+  "corpus_family_share_pct": "2.688",
   "derivation": "python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share --out docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json",
   "files_in_manifest": 16336,
   "files_measured": 16336,
@@ -17,17 +17,17 @@
     "generated parser": {
       "kind": "bytes",
       "path": "generated/systemverilog_parser.rs",
-      "sha256": "6b1a2502f717f7ce807c90c0fc01e94998e35656f9f52903248e990f04d47e26"
+      "sha256": "5bc3458c37bb019d386bed3dc2a4619301629b883e921a116a528573f1bb046e"
     },
     "grammar": {
       "kind": "ebnf_raw_ast",
       "path": "grammars/systemverilog.ebnf",
-      "sha256": "55201f85f55fc9996621b9f512a0a03653c3d501db20b5ed112b4fcb2b79498c"
+      "sha256": "0dcaf4e7ca8c9e056e5e96663499b06b8b6addf2d3e83d393001fcaa2c0d296f"
     }
   },
-  "lr_entries": 26911288,
+  "lr_entries": 26911385,
   "nodump": [],
   "note": "The share of all PROTOCOL-graph rule entries taken by the left-recursion elimination family over the whole SV corpus \u2014 `PARSE-COST-RATCHET`'s one co-published live number, quoted verbatim on every designated live surface. \u26d4 v1 of this schema also carried `blind_spot_factor` and `wall_clock_regression_pct`; ENGINE-UNIVERSAL-SERVICES.26 RETIRED both. The factor was wall_clock / this share, and both terms were wrong: the +24.3 % numerator is refuted (.20 slice 5, not reproducible from its own raw data), and the share was the wrong denominator independently of that \u2014 sensitivity is how much the counter MOVED (+10.59 %, guard_ab_entries.txt), not how large the family is. No ratio replaces it: no admissible wall-clock figure for the change exists. \u26d4 Derived, never hand-edited; `--verify-family-share` re-hashes every identity row above and re-checks lr_entries/total_entries against the declared share on every run.",
   "schema": "pgen.parse_cost.family_share/v2",
-  "total_entries": 1016474674
+  "total_entries": 1001345178
 }

@@ -1,3 +1,4 @@
+// SV-CORPUS-GRAD.13c.2m - FIXED in release 1.0.244 (was an accepts_invalid pin: ACCEPTED through 1.0.243) - now class invalid / REJECT on every profile.
 // SV-CORPUS-GRAD.13c.2m — the same extraction defect, one layer deeper. The LRM prints
 //     | null
 //   class_qualifier := [ local ::43 ] [ implicit_class_handle . | class_scope ]

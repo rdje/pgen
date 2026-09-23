@@ -17,18 +17,18 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `0eeadb03a1ec144366a4f3ea8a3442f57b165fe064a5edf129d19e09ca328ad3` |
-| grammar | `grammars/systemverilog.ebnf` | `22fc153f7144668a9998eb389b025cc2022760128615034b1d7cccd89626856f` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `55201f85f55fc9996621b9f512a0a03653c3d501db20b5ed112b4fcb2b79498c` |
-| generated parser | `generated/systemverilog_parser.rs` | `6b1a2502f717f7ce807c90c0fc01e94998e35656f9f52903248e990f04d47e26` |
+| parse binary | `rust/target/debug/parseability_probe` | `cfa35b0958c30472aabfd4bae230ede344081913756f3a236b5b7aad1c357cc6` |
+| grammar | `grammars/systemverilog.ebnf` | `a74b4bbe8b572b5b43b7cbd806accd03595b015e9fadcf7fc0b4eae00c14b5eb` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `0dcaf4e7ca8c9e056e5e96663499b06b8b6addf2d3e83d393001fcaa2c0d296f` |
+| generated parser | `generated/systemverilog_parser.rs` | `5bc3458c37bb019d386bed3dc2a4619301629b883e921a116a528573f1bb046e` |
 | context | `stimuli/sv/pipeline_context.tsv` | `f1b77668e01ef6bedcd293f3c5967052525fa48a9b40aa17941cc875a3c8d625` |
 | context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `636c8dec8eeab13488b6dd91c0b5547e53c3f6a25c46ccca884d2fb01f459333` |
 | context (per-file unit predecessors) | `stimuli/sv/pipeline_context_units.tsv` | `df065bdc8a87ff15fb441550d42775de494a6cf63eb971b1303e85ab4500bc70` |
-| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `6603e87aebbaa01955421fc2d106ba0de4b219e2cff3116f0d5a0862596e99d7` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `d955cd92ac84bb660f7ea022affb2eb7ecc0382514c73ba6d963193207645356` |
+| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `bdfe1f0d45948482f829d408146f79b2260deb109a84c5636438528117605683` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `334cd5b6bc8348d44c925f66e9a46d04499b4e263a3aec7dd3b2e7a0c1e876ff` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
 
-Measured at `HEAD` = `ded5d4b23+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `1055a6785+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
