@@ -41,8 +41,8 @@ tier still reported `fresh`.
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| grammar raw ast | `grammars/systemverilog.ebnf` | `0dcaf4e7ca8c9e056e5e96663499b06b8b6addf2d3e83d393001fcaa2c0d296f` |
-| generated parser | `generated/systemverilog_parser.rs` | `5bc3458c37bb019d386bed3dc2a4619301629b883e921a116a528573f1bb046e` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `928c583116d3ab9e0038a6b8cb8b258ac710143ed8ff78853eede9c8677087b8` |
+| generated parser | `generated/systemverilog_parser.rs` | `30e3bcb2d466c0bb7566554193ca1fed8523c8f39ae6e2e0dd78886580c30087` |
 | instrument | `stimuli/sv/corpus_parse_cost.py` | `d2b9b93c045acc98dd5df8cd3df1b81576956daffe6bae4d154c986fcb9ccf29` |
 | sample inputs | `stimuli/sv/parse_cost_sample.tsv` | `c3e01f2d29714af9bb15e977e3ca52c48045616d1cf157a8c13e5bd645016205` |
 
@@ -59,10 +59,10 @@ byte-identical between the debug and release probes before being made binding.
 |---|---:|---|
 | sample files measured | 192 | — |
 | accepted / rejected | 89 / 103 | a correctness move, not a cost move |
-| **rule entries** | **409,391,350** | more rule-method entries: structural work grew |
-| **committed entries** | **7,090,713** | more surviving work |
-| **failed speculation** (`entries − committed`) | **402,300,637** | more probing waste — the mechanism a GUARD spends through |
-| **memo hits** | **175,748,478** | memo behaviour moved |
+| **rule entries** | **409,344,527** | more rule-method entries: structural work grew |
+| **committed entries** | **7,090,581** | more surviving work |
+| **failed speculation** (`entries − committed`) | **402,253,946** | more probing waste — the mechanism a GUARD spends through |
+| **memo hits** | **175,726,222** | memo behaviour moved |
 
 Failed speculation is **98.3 %** of all rule entries in
 this sample: the parse is overwhelmingly probing work, so a guard that probes more shows
@@ -71,8 +71,8 @@ up here long before it shows up in the raw entry count.
 ⚠️ **`committed` is only meaningful for an ACCEPTED parse** (TOOLBOX 3.5) — a rejected parse
 commits nothing durable, so its entries are ALL speculation by construction and it drags
 the whole-sample ratio up. The accepted-only sub-total is published beside it so neither is
-mistaken for the other: over the 89 accepted files, entries 110,595,702 and
-committed 7,079,051 — 93.6 %
+mistaken for the other: over the 89 accepted files, entries 110,586,066 and
+committed 7,078,931 — 93.6 %
 failed speculation even where the parse succeeded.
 
 ## The left-recursion-elimination family
@@ -99,7 +99,7 @@ mistake the family's entry count for productive work.
 
 ⛔⛔ **AND IT CARRIES A FINDING THAT BOUNDS THIS WHOLE INSTRUMENT.** Across the full
 corpus the family takes **2.688 %** of all rule entries
-(26 911 385 of 1 001 345 178 entries over 16 336 files, `ENGINE-UNIVERSAL-SERVICES.21`; the previous 0.681 % counted only `_lr_base`/`_lr_suffix`).
+(26 911 385 of 1 001 092 597 entries over 16 336 files, `ENGINE-UNIVERSAL-SERVICES.21`; the previous 0.681 % counted only `_lr_base`/`_lr_suffix`).
 
 ⛔ **What this metric cannot see, stated as a property rather than as a number.** These
 counters tick only in the PROTOCOL graph, and a counter counts EVENTS — a rise in the cost
@@ -137,9 +137,9 @@ parser's 127 LR rule names. What `.26` removed is the ratio built on top of it.
 
 | tier | files | entries | what it is for |
 |---|---:|---:|---|
-| `hot` | 40 | 343,073,730 | the heaviest files — where parse cost concentrates |
-| `lr` | 40 | 63,546,873 | the heaviest guarded-admission files — the mechanism `.20` owns |
-| `breadth` | 112 | 2,770,747 | a deterministic stride across the rest — so the ratchet is not blind elsewhere |
+| `hot` | 40 | 343,040,006 | the heaviest files — where parse cost concentrates |
+| `lr` | 40 | 63,534,452 | the heaviest guarded-admission files — the mechanism `.20` owns |
+| `breadth` | 112 | 2,770,069 | a deterministic stride across the rest — so the ratchet is not blind elsewhere |
 
 _Per-file rows: `entries.tsv` — 12 columns (sub-corpus, tier, path, accepted, entries,
 committed, memo_hits, lr_entries, lr_committed, furthest — the rejected parse's furthest position,

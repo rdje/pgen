@@ -127,7 +127,7 @@ class_constructor_prototype	3	0	0
 class_constructor_prototype_sv_2017	3	0	0
 class_declaration	80695	10	614
 class_declaration_sv_2017	80081	10	0
-class_identifier	3575648	1569	0
+class_identifier	3567459	1547	0
 class_item	47	25	1
 class_item_qualifier	207	1	150
 class_item_sv_2017	46	25	0
@@ -228,7 +228,7 @@ data_type_or_implicit_declared	2453	1770	0
 data_type_or_implicit_explicit	80161	1808	0
 data_type_or_void	3538	2414	319
 data_type_or_void_sv_only	3251	48	18
-declaration_identifier	10216735	145813	0
+declaration_identifier	10208546	145791	0
 declaration_lifetime_sv_only	9118	3	728
 declared_class_alias_identifier	1	0	0
 declared_class_identifier	26	10	1
@@ -828,7 +828,7 @@ non_consecutive_repetition	2444	0	0
 non_consecutive_repetition_sv_2017	2444	0	0
 non_integer_type	769678	5	0
 non_integer_type_sv_only	769710	0	71727
-non_keyword_identifier	19127702	428828	18057279
+non_keyword_identifier	19119513	428806	18049090
 non_overlapped_implication	211	0	53
 non_port_interface_item	4	2	0
 non_port_module_item	71988	7090	80
@@ -884,7 +884,7 @@ parameter_override	72911	1	0
 parameter_port_declaration	1503	696	0
 parameter_port_declaration_sv_2017	1503	696	0
 parameter_port_list	441	23	173
-parameter_value_assignment	570800	502	324829
+parameter_value_assignment	563930	502	317959
 parameter_value_assignment_sv_2017	245971	502	0
 paren_operator_assignment_operand	922757	0	502703
 part_select_range	85687	12921	10351
@@ -946,7 +946,6 @@ property_port_item	15	0	4
 property_port_list	9	0	0
 property_qualifier	52	8	0
 property_spec	17	2	0
-provisional_unscoped_block_class_type	8516	22	327
 ps_checker_identifier	109309	32	0
 ps_covergroup_identifier	158291	1484	0
 ps_identifier	12262	2	0
@@ -987,7 +986,7 @@ rooted_tf_call_sv_only	1242491	0	639673
 rparen	409231	99541	179300
 scope_free_identifier	12262	2	0
 scope_randomize_sv_only	488308	0	12906
-scope_resolution	398085	8080	89412
+scope_resolution	391215	8080	82542
 scoped_base_class_type_identifier	15	0	1
 scoped_block_class_type	8516	0	327
 scoped_block_covergroup_identifier	8516	0	327
@@ -1042,7 +1041,7 @@ shift_right	477881	42	0
 shift_right_assign	39246	0	0
 signal_identifier	1	0	0
 signing	672136	116	0
-simple_identifier	1576980	428828	0
+simple_identifier	1576980	428806	0
 simple_identifier_no_scope	12262	2	0
 simple_immediate_assert_statement	50439	3	0
 simple_immediate_assertion_statement	50439	3	0
@@ -1115,7 +1114,7 @@ timescale_directive	65	3	0
 timeunit_separator_slash	5	5	0
 timeunit_separator_trivia	5	5	0
 timeunits_declaration	80694	5	1352
-trivia	85648432	1225182	83350001
+trivia	85648432	1225160	83350001
 type_assignment	35	16	0
 type_assignment_sv_2017	35	16	0
 type_assignment_with_default	5	4	0

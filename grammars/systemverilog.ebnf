@@ -2931,10 +2931,6 @@ scoped_data_type_identifier := scoped_type_scope_prefix type_identifier packed_d
 known_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
                                 -> {head: $1, params: $2, scope_chain: $3}
 
-@predicate: { name: has_fact, args: [type_name, $head.body], phase: post, view: shaped }
-provisional_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
-                                      -> {head: $1, params: $2, scope_chain: $3}
-
 @profiles: ["sv_2017", "sv_2023"]
 scoped_block_class_type := non_typedef_package_scope class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
                         -> {scope: $1, head: $2, params: $3, scope_chain: $4}
@@ -2982,7 +2978,12 @@ block_data_type := integer_vector_type ( signing )? packed_dimension*
                  | known_unscoped_block_type_identifier
                  | scoped_block_class_type
                  | known_unscoped_block_class_type
-                 | provisional_unscoped_block_class_type
+                 # SV-CORPUS-GRAD.32 (release 1.0.245): the permissive twin `provisional_unscoped_block_class_type` (gated on
+                 # has_fact(type_name) alone) sat here as the next arm. Measured on 1.0.244 over the whole sv_2017 lane
+                 # (the §1.5e liveness census): it committed in 357 files, the typedef-excluded arm above in 865, and every
+                 # file where it committed ALONE is a bare typedef'd type that branch 10 wins; the class-internal scoped
+                 # types it was kept for (`C::T x;`, `outer::inner h;`) take branch 9. Its only unique admissions were
+                 # over-acceptances — `T #(int) x;` and `T::P x;` on a typedef'd int (8.25 / 8.23) — so it is deleted.
                  | kw_event_5006ed02
                  | scoped_block_covergroup_identifier
                  | known_unscoped_block_covergroup_identifier
@@ -3046,8 +3047,9 @@ data_type := @probe_sample: "int" integer_vector_type ( signing )? packed_dimens
            # gate (same `{head, params, scope_chain}` shape, so the emitted
            # `provisional_class_type` AST kind is unchanged). Bare typedef-as-datatype
            # `T x;` is unaffected (it matches `known_unscoped_data_type_identifier`
-           # above). `block_data_type` keeps the permissive `provisional_*` branch for
-           # class-internal scoped types. Per [[feedback_grammar_rules_must_consult_store]].
+           # above). `block_data_type` kept the permissive `provisional_*` branch "for
+           # class-internal scoped types" until SV-CORPUS-GRAD.32 (release 1.0.245) measured that those
+           # take `scoped_block_type_identifier` and deleted it. Per [[feedback_grammar_rules_must_consult_store]].
            | known_unscoped_block_class_type
                   -> {kind: "provisional_class_type", body: $1}
            | kw_event_5006ed02
