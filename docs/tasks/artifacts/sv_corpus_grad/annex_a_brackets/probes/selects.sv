@@ -1,0 +1,1 @@
+module m; logic [7:0] a; logic [3:0] b [2]; struct { logic [1:0] f; } s; int x; initial begin x = a[1]; x = a[1:0]; x = a[1+:2]; x = s.f[1]; x = {a,a}[1]; x = {2{a}}[0]; x = b[1][2]; x = b[1]; end endmodule

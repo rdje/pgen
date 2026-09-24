@@ -1,0 +1,1 @@
+module m; logic clk, b; property p1; nexttime [2] b; endproperty property p2; s_nexttime [2] b; endproperty property p3; always [1:2] b; endproperty property p4; s_always [1:2] b; endproperty property p5; eventually [1:2] b; endproperty property p6; s_eventually [1:$] b; endproperty property p7; nexttime b; endproperty property p8; always b; endproperty endmodule

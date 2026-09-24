@@ -1,0 +1,1179 @@
+edition	production	alt	pair	depth	prev_token	inner	verdict	basis	clause_evidence	grammar	grammar_rule	probe
+1800-2017	library_declaration	0	0	0	}	-incdir file_path_spec { , file_path_spec }	OPTIONAL	default: EBNF optionality				
+1800-2017	source_text	0	0	0	^	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2017	module_nonansi_header	0	0	0	module_keyword	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2017	module_nonansi_header	0	1	0	}	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	module_ansi_header	0	0	0	module_keyword	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2017	module_ansi_header	0	1	0	}1	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	module_ansi_header	0	2	0	]	list_of_port_declarations	OPTIONAL	default: EBNF optionality				
+1800-2017	module_declaration	0	0	0	module_nonansi_header	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2017	module_declaration	0	1	0	endmodule	: module_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	module_declaration	1	0	0	module_ansi_header	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2017	module_declaration	1	1	0	endmodule	: module_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	module_declaration	2	0	0	module_keyword	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2017	module_declaration	2	1	0	;	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2017	module_declaration	2	2	0	endmodule	: module_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_declaration	0	0	0	interface_nonansi_header	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_declaration	0	1	0	endinterface	: interface_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_declaration	1	0	0	interface_ansi_header	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_declaration	1	1	0	endinterface	: interface_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_declaration	2	0	0	;	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_declaration	2	1	0	endinterface	: interface_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_nonansi_header	0	0	0	interface	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_nonansi_header	0	1	0	}	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_ansi_header	0	0	0	interface	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_ansi_header	0	1	0	}1	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_ansi_header	0	2	0	]	list_of_port_declarations	OPTIONAL	default: EBNF optionality				
+1800-2017	program_declaration	0	0	0	program_nonansi_header	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2017	program_declaration	0	1	0	endprogram	: program_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	program_declaration	1	0	0	program_ansi_header	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2017	program_declaration	1	1	0	endprogram	: program_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	program_declaration	2	0	0	;	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2017	program_declaration	2	1	0	endprogram	: program_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	program_nonansi_header	0	0	0	program	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2017	program_nonansi_header	0	1	0	}	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	program_ansi_header	0	0	0	program	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2017	checker_declaration	0	0	0	checker_identifier	( [ checker_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	checker_declaration	0	1	1	(	checker_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	checker_declaration	0	2	0	endchecker	: checker_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	class_declaration	0	0	0	```	virtual	OPTIONAL	default: EBNF optionality				
+1800-2017	class_declaration	0	1	0	class	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2017	class_declaration	0	2	0	class_identifier	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	class_declaration	0	3	0	]	extends class_type [ ( list_of_arguments ) ]	OPTIONAL	default: EBNF optionality				
+1800-2017	class_declaration	0	4	1	class_type	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2017	class_declaration	0	5	0	]	implements interface_class_type { , interface_class_type }	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_class_type	0	0	0	ps_class_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_class_declaration	0	0	0	class_identifier	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_class_declaration	0	1	0	]	extends interface_class_type { , interface_class_type }	OPTIONAL	default: EBNF optionality				
+1800-2017	package_declaration	0	0	0	package	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2017	package_declaration	0	1	0	;	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2017	package_declaration	0	2	0	endpackage	: package_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	timeunits_declaration	0	0	0	time_literal	/ time_literal	OPTIONAL	default: EBNF optionality				
+1800-2017	list_of_port_declarations	0	0	0	(	{ attribute_instance} ansi_port_declaration { , { attribute_instance} ansi_port_declaration }	OPTIONAL	default: EBNF optionality				
+1800-2017	port	0	0	0	```	port_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	port	1	0	0	(	port_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	net_port_header	0	0	0	^	port_direction	OPTIONAL	default: EBNF optionality				
+1800-2017	variable_port_header	0	0	0	^	port_direction	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_port_header	0	0	0	interface_identifier	. modport_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_port_header	1	0	0	interface	. modport_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	ansi_port_declaration	0	0	0	```	net_port_header | interface_port_header	OPTIONAL	default: EBNF optionality				
+1800-2017	ansi_port_declaration	0	1	0	}	= constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	ansi_port_declaration	1	0	0	^	variable_port_header	OPTIONAL	default: EBNF optionality				
+1800-2017	ansi_port_declaration	1	1	0	}	= constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	ansi_port_declaration	2	0	0	^	port_direction	OPTIONAL	default: EBNF optionality				
+1800-2017	ansi_port_declaration	2	1	0	(	expression	OPTIONAL	default: EBNF optionality				
+1800-2017	elaboration_system_task	0	0	0	$fatal	( finish_number [, list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2017	elaboration_system_task	1	0	0	$error	( [ list_of_arguments ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	elaboration_system_task	1	1	1	(	list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2017	elaboration_system_task	2	0	0	$warning	( [ list_of_arguments ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	elaboration_system_task	2	1	1	(	list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2017	elaboration_system_task	3	0	0	$info	( [ list_of_arguments ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	elaboration_system_task	3	1	1	(	list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2017	config_declaration	0	0	0	endconfig	: config_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	design_statement	0	0	0	{	library_identifier .	OPTIONAL	default: EBNF optionality				
+1800-2017	cell_clause	0	0	0	cell	library_identifier .	OPTIONAL	default: EBNF optionality				
+1800-2017	use_clause	0	0	0	use	library_identifier .	OPTIONAL	default: EBNF optionality				
+1800-2017	use_clause	0	1	0	cell_identifier	: config	OPTIONAL	default: EBNF optionality				
+1800-2017	use_clause	1	0	0	}	: config	OPTIONAL	default: EBNF optionality				
+1800-2017	use_clause	2	0	0	use	library_identifier .	OPTIONAL	default: EBNF optionality				
+1800-2017	use_clause	2	1	0	}	: config	OPTIONAL	default: EBNF optionality				
+1800-2017	checker_port_item	0	0	0	}	checker_port_direction	OPTIONAL	default: EBNF optionality				
+1800-2017	checker_port_item	0	1	0	{variable_dimension}	= property_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2017	checker_or_generate_item_declaration	0	0	0	```	rand	OPTIONAL	default: EBNF optionality				
+1800-2017	class_property	1	0	0	const_identifier	= constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	class_constructor_prototype	0	0	0	new	( [ tf_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	class_constructor_prototype	0	1	1	(	tf_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	method_qualifier	0	0	0	```	pure	OPTIONAL	default: EBNF optionality				
+1800-2017	class_constructor_declaration	0	0	0	function	class_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	class_constructor_declaration	0	1	0	new	( [ tf_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	class_constructor_declaration	0	2	1	(	tf_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	class_constructor_declaration	0	3	0	}	super . new [ ( list_of_arguments ) ] ;	OPTIONAL	default: EBNF optionality				
+1800-2017	class_constructor_declaration	0	4	1	new	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2017	class_constructor_declaration	0	5	0	endfunction	: new	OPTIONAL	default: EBNF optionality				
+1800-2017	constraint_declaration	0	0	0	^	static	OPTIONAL	default: EBNF optionality				
+1800-2017	constraint_primary	0	0	0	^	implicit_class_handle . | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	constraint_expression	0	0	0	```	soft	OPTIONAL	default: EBNF optionality				
+1800-2017	constraint_expression	3	0	0	constraint_set	else constraint_set	OPTIONAL	default: EBNF optionality				
+1800-2017	dist_item	0	0	0	value_range	dist_weight	OPTIONAL	default: EBNF optionality				
+1800-2017	constraint_prototype	0	0	0	[constraint_prototype_qualifier]	static	OPTIONAL	default: EBNF optionality				
+1800-2017	extern_constraint_declaration	0	0	0	```	static	OPTIONAL	default: EBNF optionality				
+1800-2017	specparam_declaration	0	0	0	specparam	packed_dimension	OPTIONAL	default: EBNF optionality				
+1800-2017	data_declaration	0	0	0	```	const	OPTIONAL	default: EBNF optionality				
+1800-2017	data_declaration	0	1	0	]	var	OPTIONAL	default: EBNF optionality				
+1800-2017	data_declaration	0	2	0	]	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2017	net_declaration	0	0	0	net_type	drive_strength | charge_strength	OPTIONAL	default: EBNF optionality				
+1800-2017	net_declaration	0	1	0	]	vectored | scalared	OPTIONAL	default: EBNF optionality				
+1800-2017	net_declaration	0	2	0	data_type_or_implicit	delay3	OPTIONAL	default: EBNF optionality				
+1800-2017	net_declaration	1	0	0	net_type_identifier	delay_control	OPTIONAL	default: EBNF optionality				
+1800-2017	net_declaration	2	0	0	implicit_data_type	# delay_value	OPTIONAL	default: EBNF optionality				
+1800-2017	type_declaration	2	0	0	typedef	enum | struct | union | class | interface class	OPTIONAL	default: EBNF optionality				
+1800-2017	net_type_declaration	0	0	0	net_type_identifier	with [ package_scope | class_scope ] tf_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	net_type_declaration	0	1	1	with	package_scope | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	net_type_declaration	1	0	0	nettype	package_scope | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	data_type	0	0	0	integer_vector_type	signing	OPTIONAL	default: EBNF optionality				
+1800-2017	data_type	1	0	0	integer_atom_type	signing	OPTIONAL	default: EBNF optionality				
+1800-2017	data_type	3	0	0	struct_union	packed [ signing ]	OPTIONAL	default: EBNF optionality				
+1800-2017	data_type	3	1	1	packed	signing	OPTIONAL	default: EBNF optionality				
+1800-2017	data_type	4	0	0	enum	enum_base_type	OPTIONAL	default: EBNF optionality				
+1800-2017	data_type	7	0	0	virtual	interface	OPTIONAL	default: EBNF optionality				
+1800-2017	data_type	7	1	0	interface_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2017	data_type	7	2	0	]	. modport_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	data_type	8	0	0	^	class_scope | package_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	implicit_data_type	0	0	0	^	signing	OPTIONAL	default: EBNF optionality				
+1800-2017	enum_base_type	0	0	0	integer_atom_type	signing	OPTIONAL	default: EBNF optionality				
+1800-2017	enum_base_type	1	0	0	integer_vector_type	signing	OPTIONAL	default: EBNF optionality				
+1800-2017	enum_base_type	1	1	0	]	packed_dimension	OPTIONAL	default: EBNF optionality				
+1800-2017	enum_name_declaration	0	0	0	enum_identifier	[ integral_number [ : integral_number ] ]	OPTIONAL	table: EBNF optionality inside enum_name_declaration				
+1800-2017	enum_name_declaration	0	1	1	[	integral_number [ : integral_number ]	LITERAL	table: enum_name_declaration	docs/systemverilog/2017/md/section-65536-216-bits.md:739: typedef enum { add=10, sub[5], jmp[6:8] } E1;	rendered	enum_name_declaration	enum_range.sv: sv_2017=ACCEPT
+1800-2017	enum_name_declaration	0	2	2	integral_number	: integral_number	OPTIONAL	table: EBNF optionality inside enum_name_declaration				
+1800-2017	enum_name_declaration	0	3	0	]	= constant_expression	OPTIONAL	table: EBNF optionality inside enum_name_declaration				
+1800-2017	class_type	0	0	0	ps_class_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2017	class_type	0	1	0	class_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2017	net_port_type	0	0	0	```	net_type	OPTIONAL	default: EBNF optionality				
+1800-2017	struct_union	0	0	0	union	tagged	OPTIONAL	default: EBNF optionality				
+1800-2017	delay	0	0	0	mintypmax_expression	, mintypmax_expression [ , ``` mintypmax_expression ]	OPTIONAL	default: EBNF optionality				
+1800-2017	delay	0	1	1	mintypmax_expression	, ``` mintypmax_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	delay	0	0	0	mintypmax_expression	, mintypmax_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	list_of_tf_variable_identifiers	0	0	0	}	= expression	OPTIONAL	default: EBNF optionality				
+1800-2017	list_of_tf_variable_identifiers	0	1	0	}	= expression	OPTIONAL	default: EBNF optionality				
+1800-2017	list_of_variable_port_identifiers	0	0	0	}	= constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	list_of_variable_port_identifiers	0	1	0	}	= constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	net_decl_assignment	0	0	0	}	= expression	OPTIONAL	default: EBNF optionality				
+1800-2017	pulse_control_specparam	0	0	0	reject_limit_value	, error_limit_value	OPTIONAL	default: EBNF optionality				
+1800-2017	pulse_control_specparam	1	0	0	reject_limit_value	, error_limit_value	OPTIONAL	default: EBNF optionality				
+1800-2017	variable_decl_assignment	0	0	0	}	= expression	OPTIONAL	default: EBNF optionality				
+1800-2017	variable_decl_assignment	1	0	0	}	= dynamic_array_new	OPTIONAL	default: EBNF optionality				
+1800-2017	variable_decl_assignment	2	0	0	class_variable_identifier	= class_new	OPTIONAL	default: EBNF optionality				
+1800-2017	class_new	0	0	0	```	class_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	class_new	0	1	0	new	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2017	dynamic_array_new	0	0	0	new	expression	LITERAL	table: dynamic_array_new	docs/systemverilog/2017/md/section-16-777-216-224-elements.md:247: The new[] constructor is used to set or change the size of the array and initialize its el	rendered	dynamic_array_new	dyn_new.sv: sv_2017=ACCEPT
+1800-2017	dynamic_array_new	0	1	0	]	( expression )	OPTIONAL	table: EBNF optionality inside dynamic_array_new				
+1800-2017	unpacked_dimension	0	0	0	```	constant_range	LITERAL	table: unpacked_dimension	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:519: c = {a + b}[1:0]; // 2 lsb's of sum of a and b	rendered	unpacked_dimension	dims.sv: sv_2017=ACCEPT
+1800-2017	unpacked_dimension	1	0	0	^	constant_expression	LITERAL	table: unpacked_dimension	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:519: c = {a + b}[1:0]; // 2 lsb's of sum of a and b	rendered	unpacked_dimension	dims.sv: sv_2017=ACCEPT
+1800-2017	packed_dimension	0	0	0	```	constant_range	LITERAL	table: packed_dimension	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:361: logic [3:0] start, result;	rendered	packed_dimension	dims.sv: sv_2017=ACCEPT
+1800-2017	associative_dimension	0	0	0	```	data_type	LITERAL	table: associative_dimension	docs/systemverilog/2017/md/section-100-time-units.md:418: ( R [*m–1] ##1 R ).	rendered	associative_dimension	dims.sv: sv_2017=ACCEPT
+1800-2017	associative_dimension	1	0	0	^	*	LITERAL	generic: operator-led `[*` / `[+`	docs/systemverilog/2017/md/section-100-time-units.md:418: ( R [*m–1] ##1 R ).	rendered	associative_dimension	dims.sv: sv_2017=ACCEPT
+1800-2017	queue_dimension	0	0	0	^	$ [ : constant_expression ]	LITERAL	generic: operator-led `[$`	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:611: int array [$] = '{3,4,5};	rendered	queue_dimension	dims.sv: sv_2017=ACCEPT
+1800-2017	queue_dimension	0	1	1	$	: constant_expression	OPTIONAL	table: EBNF optionality inside queue_dimension				
+1800-2017	unsized_dimension	0	0	0	^		LITERAL	generic: empty `[ ]`	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:874: rand byte payload[];	rendered	unsized_dimension	dims.sv: sv_2017=ACCEPT
+1800-2017	function_declaration	0	0	0	function	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2017	function_body_declaration	0	0	0	function_data_type_or_implicit	interface_identifier . | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	function_body_declaration	0	1	0	endfunction	: function_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	function_body_declaration	1	0	0	function_data_type_or_implicit	interface_identifier . | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	function_body_declaration	1	1	0	(	tf_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	function_body_declaration	1	2	0	endfunction	: function_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	function_prototype	0	0	0	function_identifier	( [ tf_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	function_prototype	0	1	1	(	tf_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	dpi_import_export	0	0	0	dpi_spec_string	dpi_function_import_property	OPTIONAL	default: EBNF optionality				
+1800-2017	dpi_import_export	0	1	0	]	c_identifier =	OPTIONAL	default: EBNF optionality				
+1800-2017	dpi_import_export	1	0	0	dpi_spec_string	dpi_task_import_property	OPTIONAL	default: EBNF optionality				
+1800-2017	dpi_import_export	1	1	0	]	c_identifier =	OPTIONAL	default: EBNF optionality				
+1800-2017	dpi_import_export	2	0	0	dpi_spec_string	c_identifier =	OPTIONAL	default: EBNF optionality				
+1800-2017	dpi_import_export	3	0	0	dpi_spec_string	c_identifier =	OPTIONAL	default: EBNF optionality				
+1800-2017	task_declaration	0	0	0	task	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2017	task_body_declaration	0	0	0	```	interface_identifier . | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	tf_port_item	0	0	0	}	tf_port_direction	OPTIONAL	default: EBNF optionality				
+1800-2017	tf_port_item	0	1	0	]	var	OPTIONAL	default: EBNF optionality				
+1800-2017	tf_port_item	0	2	0	data_type_or_implicit	port_identifier { variable_dimension } [ = expression ]	OPTIONAL	default: EBNF optionality				
+1800-2017	tf_port_item	0	3	1	}	= expression	OPTIONAL	default: EBNF optionality				
+1800-2017	tf_port_declaration	0	0	0	tf_port_direction	var	OPTIONAL	default: EBNF optionality				
+1800-2017	task_prototype	0	0	0	task_identifier	( [ tf_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	task_prototype	0	1	1	(	tf_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	modport_simple_port	1	0	0	(	expression	OPTIONAL	default: EBNF optionality				
+1800-2017	concurrent_assertion_item	0	0	0	```	block_identifier :	OPTIONAL	default: EBNF optionality				
+1800-2017	cover_sequence_statement	0	0	0	]	disable iff ( expression_or_dist )	OPTIONAL	default: EBNF optionality				
+1800-2017	property_instance	0	0	0	ps_or_hierarchical_property_identifier	( [ property_list_of_arguments ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	property_instance	0	1	1	(	property_list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2017	property_declaration	0	0	0	property_identifier	( [ property_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	property_declaration	0	1	1	(	property_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	property_declaration	0	2	0	property_spec	;	OPTIONAL	default: EBNF optionality				
+1800-2017	property_declaration	0	3	0	endproperty	: property_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	property_port_item	0	0	0	}	local [ property_lvar_port_direction ]	OPTIONAL	default: EBNF optionality				
+1800-2017	property_port_item	0	1	1	local	property_lvar_port_direction	OPTIONAL	default: EBNF optionality				
+1800-2017	property_port_item	0	2	0	{variable_dimension}	= property_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2017	property_spec	0	0	0	]	disable iff ( expression_or_dist )	OPTIONAL	default: EBNF optionality				
+1800-2017	property_expr	9	0	0	property_expr	else property_expr	OPTIONAL	table: EBNF optionality inside property_expr				
+1800-2017	property_expr	14	0	0	nexttime	constant _expression	LITERAL	table: property_expr	docs/systemverilog/2017/md/section-100-time-units.md:605: (nexttime[0] p)	hint:no-lbrack-within-3-hops	property_expr_sv_2017,property_expr_sv_2023,property_expr	prop_ops.sv: sv_2017=ACCEPT
+1800-2017	property_expr	16	0	0	s_nexttime	constant_expression	LITERAL	table: property_expr	docs/systemverilog/2017/md/section-100-time-units.md:611: Let m > 0. (s_nexttime[m] p)	hint:no-lbrack-within-3-hops	property_expr_sv_2017,property_expr_sv_2023,property_expr	prop_ops.sv: sv_2017=ACCEPT
+1800-2017	property_expr	18	0	0	always	cycle_delay_const_range_expression	LITERAL	table: property_expr	docs/systemverilog/2017/md/section-100-time-units.md:620: Let m > 0. (always[m:m] p)	hint:no-lbrack-within-3-hops	property_expr_sv_2017,property_expr_sv_2023,property_expr	prop_ops.sv: sv_2017=ACCEPT
+1800-2017	property_expr	21	0	0	eventually	constant_range	LITERAL	table: property_expr	docs/systemverilog/2017/md/section-100-time-units.md:614: Let m > 0. (eventually[m:m] p)	hint:no-lbrack-within-3-hops	property_expr_sv_2017,property_expr_sv_2023,property_expr	prop_ops.sv: sv_2017=ACCEPT
+1800-2017	property_expr	22	0	0	s_eventually	cycle_delay_const_range_expression	LITERAL	table: property_expr	docs/systemverilog/2017/md/section-100-time-units.md:629: Let m < n. (s_eventually[m:n] p)	hint:no-lbrack-within-3-hops	property_expr_sv_2017,property_expr_sv_2023,property_expr	prop_ops.sv: sv_2017=ACCEPT
+1800-2017	property_case_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1800-2017	sequence_declaration	0	0	0	sequence_identifier	( [ sequence_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	sequence_declaration	0	1	1	(	sequence_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	sequence_declaration	0	2	0	sequence_expr	;	OPTIONAL	default: EBNF optionality				
+1800-2017	sequence_declaration	0	3	0	endsequence	: sequence_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	sequence_port_item	0	0	0	}	local [ sequence_lvar_port_direction ]	OPTIONAL	default: EBNF optionality				
+1800-2017	sequence_port_item	0	1	1	local	sequence_lvar_port_direction	OPTIONAL	default: EBNF optionality				
+1800-2017	sequence_port_item	0	2	0	{variable_dimension}	= sequence_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2017	sequence_expr	2	0	0	expression_or_dist	boolean_abbrev	OPTIONAL	default: EBNF optionality				
+1800-2017	sequence_expr	3	0	0	sequence_instance	sequence_abbrev	OPTIONAL	default: EBNF optionality				
+1800-2017	sequence_expr	4	0	0	)	sequence_abbrev	OPTIONAL	default: EBNF optionality				
+1800-2017	sequence_instance	0	0	0	ps_or_hierarchical_sequence_identifier	( [ sequence_list_of_arguments ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	sequence_instance	0	1	1	(	sequence_list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2017	expression_or_dist	0	0	0	expression	dist { dist_list }	OPTIONAL	default: EBNF optionality				
+1800-2017	covergroup_declaration	0	0	0	covergroup_identifier	( [ tf_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	covergroup_declaration	0	1	1	(	tf_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	covergroup_declaration	0	2	0	]	coverage_event	OPTIONAL	default: EBNF optionality				
+1800-2017	covergroup_declaration	0	3	0	endgroup	: covergroup_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	coverage_event	1	0	0	(	tf_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	hierarchical_btf_identifier	2	0	0	^	hierarchical_identifier. | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	cover_point	0	0	0	```	[ data_type_or_implicit ] cover_point_identifier :	OPTIONAL	default: EBNF optionality				
+1800-2017	cover_point	0	1	1	[	data_type_or_implicit	OPTIONAL	default: EBNF optionality				
+1800-2017	cover_point	0	2	0	expression	iff ( expression )	OPTIONAL	default: EBNF optionality				
+1800-2017	bins_or_options	1	0	0	^	wildcard	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	1	1	0	bin_identifier	[ [ covergroup_expression ] ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	1	2	1	[	[ covergroup_expression ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	1	3	2	[	covergroup_expression	LITERAL	table: bins_or_options	docs/systemverilog/2017/md/section-19-functional-coverage.md:514: bins fixed [4] = { [1:10], 1, 4, 7 };	rendered	bins_or_options	bins.sv: sv_2017=ACCEPT
+1800-2017	bins_or_options	1	4	0	}	with ( with_covergroup_expression )	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	1	5	0	]	iff ( expression )	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	2	0	0	^	wildcard	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	2	1	0	bin_identifier	[ [ covergroup_expression ] ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	2	2	1	[	[ covergroup_expression ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	2	3	2	[	covergroup_expression	LITERAL	table: bins_or_options	docs/systemverilog/2017/md/section-19-functional-coverage.md:514: bins fixed [4] = { [1:10], 1, 4, 7 };	rendered	bins_or_options	bins.sv: sv_2017=ACCEPT
+1800-2017	bins_or_options	2	4	0	)	iff ( expression )	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	3	0	0	^	wildcard	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	3	1	0	bin_identifier	[ [ covergroup_expression ] ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	3	2	1	[	[ covergroup_expression ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	3	3	2	[	covergroup_expression	LITERAL	table: bins_or_options	docs/systemverilog/2017/md/section-19-functional-coverage.md:514: bins fixed [4] = { [1:10], 1, 4, 7 };	rendered	bins_or_options	bins.sv: sv_2017=ACCEPT
+1800-2017	bins_or_options	3	4	0	set_covergroup_expression	iff ( expression )	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	4	0	1	bin_identifier	[ ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	bins_or_options	4	1	2	[		LITERAL	generic: empty `[ ]`	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:874: rand byte payload[];	rendered	bins_or_options	bins.sv: sv_2017=ACCEPT
+1800-2017	bins_or_options	4	2	1	trans_list	iff ( expression )	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2017	cover_cross	0	0	0	```	cross_identifier :	OPTIONAL	default: EBNF optionality				
+1800-2017	cover_cross	0	1	0	list_of_cross_items	iff ( expression )	OPTIONAL	default: EBNF optionality				
+1800-2017	bins_selection	0	0	0	select_expression	iff ( expression )	OPTIONAL	default: EBNF optionality				
+1800-2017	select_expression	5	0	0	)	matches integer_covergroup_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	select_expression	7	0	0	cross_set_expression	matches integer_covergroup_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	select_condition	0	0	0	)	intersect { covergroup_range_list }	OPTIONAL	default: EBNF optionality				
+1800-2017	bins_expression	1	0	0	cover_point_identifier	. bin_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	let_declaration	0	0	0	let_identifier	( [ let_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	let_declaration	0	1	1	(	let_port_list	OPTIONAL	default: EBNF optionality				
+1800-2017	let_port_item	0	0	0	}	= expression	OPTIONAL	default: EBNF optionality				
+1800-2017	let_expression	0	0	0	```	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	let_expression	0	1	0	let_identifier	( [ let_list_of_arguments ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	let_expression	0	2	1	(	let_list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2017	let_list_of_arguments	0	0	0	```	let_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2017	let_list_of_arguments	0	1	0	{,	let_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2017	let_list_of_arguments	0	2	0	(	let_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2017	let_list_of_arguments	1	0	0	(	let_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2017	let_list_of_arguments	1	1	0	(	let_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2017	cmos_switch_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2017	enable_gate_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2017	mos_switch_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2017	n_input_gate_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2017	n_output_gate_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2017	pass_switch_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2017	pass_enable_switch_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2017	pull_gate_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2017	module_instantiation	0	0	0	module_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2017	parameter_value_assignment	0	0	0	(	list_of_parameter_assignments	OPTIONAL	default: EBNF optionality				
+1800-2017	named_parameter_assignment	0	0	0	(	param_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	hierarchical_instance	0	0	0	(	list_of_port_connections	OPTIONAL	default: EBNF optionality				
+1800-2017	ordered_port_connection	0	0	0	}	expression	OPTIONAL	default: EBNF optionality				
+1800-2017	named_port_connection	0	0	0	port_identifier	( [ expression ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	named_port_connection	0	1	1	(	expression	OPTIONAL	default: EBNF optionality				
+1800-2017	interface_instantiation	0	0	0	interface_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2017	program_instantiation	0	0	0	program_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2017	ordered_checker_port_connection	0	0	0	}	property_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2017	named_checker_port_connection	0	0	0	formal_port_identifier	( [ property_actual_arg ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	named_checker_port_connection	0	1	1	(	property_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2017	genvar_initialization	0	0	0	```	genvar	OPTIONAL	default: EBNF optionality				
+1800-2017	if_generate_construct	0	0	0	generate_block	else generate_block	OPTIONAL	default: EBNF optionality				
+1800-2017	case_generate_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1800-2017	generate_block	1	0	0	^	generate_block_identifier :	OPTIONAL	default: EBNF optionality				
+1800-2017	generate_block	1	1	0	begin	: generate_block_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	generate_block	1	2	0	end	: generate_block_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	udp_declaration	0	0	0	endprimitive	: udp_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	udp_declaration	1	0	0	endprimitive	: udp_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	udp_declaration	4	0	0	endprimitive	: udp_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	sequential_body	0	0	0	^	udp_initial_statement	OPTIONAL	default: EBNF optionality				
+1800-2017	udp_instantiation	0	0	0	udp_identifier	drive_strength	OPTIONAL	default: EBNF optionality				
+1800-2017	udp_instantiation	0	1	0	]	delay2	OPTIONAL	default: EBNF optionality				
+1800-2017	udp_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2017	continuous_assign	0	0	0	assign	drive_strength	OPTIONAL	default: EBNF optionality				
+1800-2017	continuous_assign	0	1	0	]	delay3	OPTIONAL	default: EBNF optionality				
+1800-2017	continuous_assign	1	0	0	assign	delay_control	OPTIONAL	default: EBNF optionality				
+1800-2017	blocking_assignment	2	0	0	^	implicit_class_handle . | class_scope | package_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	nonblocking_assignment	0	0	0	<=	delay_or_event_control	OPTIONAL	default: EBNF optionality				
+1800-2017	action_block	1	0	0	^	statement	OPTIONAL	default: EBNF optionality				
+1800-2017	seq_block	0	0	0	begin	: block_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	seq_block	0	1	0	end	: block_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	par_block	0	0	0	fork	: block_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	par_block	0	1	0	join_keyword	: block_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	statement	0	0	0	^	block_identifier :	OPTIONAL	default: EBNF optionality				
+1800-2017	event_expression	0	0	0	```	edge_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	event_expression	0	1	0	expression	iff expression	OPTIONAL	default: EBNF optionality				
+1800-2017	event_expression	1	0	0	sequence_instance	iff expression	OPTIONAL	default: EBNF optionality				
+1800-2017	event_trigger	1	0	0	->>	delay_or_event_control	OPTIONAL	default: EBNF optionality				
+1800-2017	conditional_statement	0	0	0	```	unique_priority	OPTIONAL	default: EBNF optionality				
+1800-2017	conditional_statement	0	1	0	}	else statement_or_null	OPTIONAL	default: EBNF optionality				
+1800-2017	case_statement	0	0	0	```	unique_priority	OPTIONAL	default: EBNF optionality				
+1800-2017	case_statement	1	0	0	^	unique_priority	OPTIONAL	default: EBNF optionality				
+1800-2017	case_statement	2	0	0	^	unique_priority	OPTIONAL	default: EBNF optionality				
+1800-2017	case_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1800-2017	case_pattern_item	0	0	0	pattern	&&& expression	OPTIONAL	default: EBNF optionality				
+1800-2017	case_pattern_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1800-2017	case_inside_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1800-2017	pattern	3	0	0	member_identifier	pattern	OPTIONAL	default: EBNF optionality				
+1800-2017	assignment_pattern_expression	0	0	0	```	assignment_pattern_expression_type	OPTIONAL	default: EBNF optionality				
+1800-2017	loop_statement	3	0	0	(	for_initialization	OPTIONAL	default: EBNF optionality				
+1800-2017	loop_statement	3	1	0	;	expression	OPTIONAL	default: EBNF optionality				
+1800-2017	loop_statement	3	2	0	;	for_step	OPTIONAL	default: EBNF optionality				
+1800-2017	loop_statement	5	0	0	ps_or_hierarchical_array_identifier	loop_variables	OPTIONAL	default: EBNF optionality				
+1800-2017	loop_variables	0	0	0	^	index_variable_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	loop_variables	0	1	0	,	index_variable_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	deferred_immediate_assertion_item	0	0	0	^	block_identifier :	OPTIONAL	default: EBNF optionality				
+1800-2017	clocking_declaration	0	0	0	^	default	OPTIONAL	default: EBNF optionality				
+1800-2017	clocking_declaration	0	1	0	clocking	clocking_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	clocking_declaration	0	2	0	endclocking	: clocking_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	clocking_declaration	1	0	0	clocking	clocking_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	clocking_declaration	1	1	0	endclocking	: clocking_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	clocking_direction	0	0	0	input	clocking_skew	OPTIONAL	default: EBNF optionality				
+1800-2017	clocking_direction	1	0	0	output	clocking_skew	OPTIONAL	default: EBNF optionality				
+1800-2017	clocking_direction	2	0	0	input	clocking_skew	OPTIONAL	default: EBNF optionality				
+1800-2017	clocking_direction	2	1	0	output	clocking_skew	OPTIONAL	default: EBNF optionality				
+1800-2017	clocking_decl_assign	0	0	0	signal_identifier	= expression	OPTIONAL	default: EBNF optionality				
+1800-2017	clocking_skew	0	0	0	edge_identifier	delay_control	OPTIONAL	default: EBNF optionality				
+1800-2017	clocking_drive	0	0	0	<=	cycle_delay	OPTIONAL	default: EBNF optionality				
+1800-2017	randsequence_statement	0	0	0	(	production_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	production	0	0	0	^	data_type_or_void	OPTIONAL	default: EBNF optionality				
+1800-2017	production	0	1	0	production_identifier	( tf_port_list )	OPTIONAL	default: EBNF optionality				
+1800-2017	rs_rule	0	0	0	rs_production_list	:= weight_specification [ rs_code_block ]	OPTIONAL	default: EBNF optionality				
+1800-2017	rs_rule	0	1	1	weight_specification	rs_code_block	OPTIONAL	default: EBNF optionality				
+1800-2017	rs_production_list	1	0	0	join	( expression )	OPTIONAL	default: EBNF optionality				
+1800-2017	production_item	0	0	0	production_identifier	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2017	rs_if_else	0	0	0	production_item	else production_item	OPTIONAL	default: EBNF optionality				
+1800-2017	rs_case_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1800-2017	parallel_path_description	0	0	0	specify_input_terminal_descriptor	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2017	full_path_description	0	0	0	list_of_path_inputs	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2017	specify_input_terminal_descriptor	0	0	0	input_identifier	[ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside specify_input_terminal_descriptor				
+1800-2017	specify_input_terminal_descriptor	0	1	1	[	constant_range_expression	LITERAL	table: specify_input_terminal_descriptor	docs/systemverilog/2017/md/section-13-tasks-and-functions-subroutines.md:794: $display( data[j] ); // data can be read but not written	rendered	specify_input_terminal_descriptor	sp_setup_select.sv: sv_2017=ACCEPT
+1800-2017	specify_output_terminal_descriptor	0	0	0	output_identifier	[ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside specify_output_terminal_descriptor				
+1800-2017	specify_output_terminal_descriptor	0	1	1	[	constant_range_expression	LITERAL	table: specify_output_terminal_descriptor	docs/systemverilog/2017/md/section-13-tasks-and-functions-subroutines.md:794: $display( data[j] ); // data can be read but not written	rendered	specify_output_terminal_descriptor	sp_path_select.sv: sv_2017=ACCEPT
+1800-2017	parallel_edge_sensitive_path_description	0	0	0	(	edge_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	parallel_edge_sensitive_path_description	0	1	0	specify_input_terminal_descriptor	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2017	parallel_edge_sensitive_path_description	0	2	0	specify_output_terminal_descriptor	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2017	full_edge_sensitive_path_description	0	0	0	(	edge_identifier	OPTIONAL	default: EBNF optionality				
+1800-2017	full_edge_sensitive_path_description	0	1	0	list_of_path_inputs	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2017	full_edge_sensitive_path_description	0	2	0	list_of_path_outputs	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	0	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	1	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	2	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	3	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	4	0	timing_check_limit	, [ notifier ] [ , [ timestamp_condition ] [ , [ timecheck_condition ] [ , [ delayed_reference ] [ ,	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	5	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	6	1	]	, [ timestamp_condition ] [ , [ timecheck_condition ] [ , [ delayed_reference ] [ , [ delayed_data ]	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	7	2	,	timestamp_condition	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	8	2	]	, [ timecheck_condition ] [ , [ delayed_reference ] [ , [ delayed_data ] ] ]	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	9	3	,	timecheck_condition	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	10	3	]	, [ delayed_reference ] [ , [ delayed_data ] ]	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	11	4	,	delayed_reference	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	12	4	]	, [ delayed_data ]	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	13	5	,	delayed_data	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	14	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	15	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	16	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	17	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	18	0	timing_check_limit	, [ notifier ] [ , [ timestamp_condition ] [ , [ timecheck_condition ] [ , [ delayed_reference ] [ ,	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	19	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	20	1	]	, [ timestamp_condition ] [ , [ timecheck_condition ] [ , [ delayed_reference ] [ , [ delayed_data ]	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	21	2	,	timestamp_condition	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	22	2	]	, [ timecheck_condition ] [ , [ delayed_reference ] [ , [ delayed_data ] ] ]	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	23	3	,	timecheck_condition	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	24	3	]	, [ delayed_reference ] [ , [ delayed_data ] ]	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	25	4	,	delayed_reference	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	26	4	]	, [ delayed_data ]	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	27	5	,	delayed_data	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	28	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1800-2017	system_timing_check	11	29	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1800-2017	delayed_data	1	0	0	terminal_identifier	constant_mintypmax_expression	LITERAL	table: delayed_data	NOTE: no clause example spells the bracket; the literal reading is SV-CORPUS-GRAD.3.63 (bold in the PDF, measured against the corpus) — the probe is the proof	rendered	delayed_data	sp_setuphold_delayed.sv: sv_2017=ACCEPT
+1800-2017	delayed_reference	1	0	0	terminal_identifier	constant_mintypmax_expression	LITERAL	table: delayed_reference	NOTE: no clause example spells the bracket; the literal reading is SV-CORPUS-GRAD.3.63 (bold in the PDF, measured against the corpus) — the probe is the proof	rendered	delayed_reference	sp_setuphold_delayed.sv: sv_2017=ACCEPT
+1800-2017	timing_check_event	0	0	0	specify_terminal_descriptor	&&& timing_check_condition	OPTIONAL	default: EBNF optionality				
+1800-2017	controlled_timing_check_event	0	0	0	specify_terminal_descriptor	&&& timing_check_condition	OPTIONAL	default: EBNF optionality				
+1800-2017	edge_control_specifier	0	0	0	edge	edge_descriptor { , edge_descriptor }	LITERAL	table: edge_control_specifier	docs/systemverilog/2017/md/section-31-timing-checks.md:189: edge_control_specifier ::= edge [ edge_descriptor { , edge_descriptor } ]	rendered	edge_control_specifier	sp_width_edge2.sv: sv_2017=ACCEPT
+1800-2017	streaming_concatenation	0	0	0	stream_operator	slice_size	OPTIONAL	default: EBNF optionality				
+1800-2017	stream_expression	0	0	0	expression	with [ array_range_expression ]	OPTIONAL	table: EBNF optionality inside stream_expression				
+1800-2017	stream_expression	0	1	1	with	array_range_expression	LITERAL	table: stream_expression	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:895: {<< byte{ p.header, p.len, p.payload with [0 +: p.len], p.crc }} = stream;	rendered	stream_expression	stream.sv: sv_2017=ACCEPT
+1800-2017	tf_call	0	0	0	}	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2017	system_tf_call	0	0	0	system_tf_identifier	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2017	subroutine_call	3	0	0	^	std ::	OPTIONAL	default: EBNF optionality				
+1800-2017	list_of_arguments	0	0	0	```	expression	OPTIONAL	default: EBNF optionality				
+1800-2017	list_of_arguments	0	1	0	,	expression	OPTIONAL	default: EBNF optionality				
+1800-2017	list_of_arguments	0	2	0	(	expression	OPTIONAL	default: EBNF optionality				
+1800-2017	list_of_arguments	1	0	0	(	expression	OPTIONAL	default: EBNF optionality				
+1800-2017	list_of_arguments	1	1	0	(	expression	OPTIONAL	default: EBNF optionality				
+1800-2017	method_call_body	0	0	0	}	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2017	array_manipulation_call	0	0	0	}	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2017	array_manipulation_call	0	1	0	]	with ( expression )	OPTIONAL	default: EBNF optionality				
+1800-2017	randomize_call	0	0	0	```	( [ variable_identifier_list | null ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	randomize_call	0	1	1	(	variable_identifier_list | null	OPTIONAL	default: EBNF optionality				
+1800-2017	randomize_call	0	2	1	with	( [ identifier_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2017	randomize_call	0	3	2	(	identifier_list	OPTIONAL	default: EBNF optionality				
+1800-2017	tagged_union_expression	0	0	0	member_identifier	expression	OPTIONAL	default: EBNF optionality				
+1800-2017	value_range	1	0	0	^	expression : expression	LITERAL	table: value_range	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:637: bit ba = a inside { [16:23], [32:47] };	rendered	value_range_sv_2017	inside_dist.sv: sv_2017=ACCEPT
+1800-2017	constant_primary	2	0	0	specparam_identifier	[ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside constant_primary				
+1800-2017	constant_primary	2	1	1	[	constant_range_expression	LITERAL	table: constant_primary	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:553: assign b[31:0] = { {32-P{1'b1}}, a[P-1:0] } ;	rendered	constant_primary_sv_2017	selects.sv: sv_2017=ACCEPT
+1800-2017	primary	1	0	0	^	class_qualifier | package_scope	OPTIONAL	table: EBNF optionality inside primary				
+1800-2017	primary	3	0	0	concatenation	[ range_expression ]	OPTIONAL	table: EBNF optionality inside primary				
+1800-2017	primary	3	1	1	[	range_expression	LITERAL	table: primary	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:553: assign b[31:0] = { {32-P{1'b1}}, a[P-1:0] } ;	rendered	primary_sv_2017	selects.sv: sv_2017=ACCEPT
+1800-2017	primary	4	0	0	multiple_concatenation	[ range_expression ]	OPTIONAL	table: EBNF optionality inside primary				
+1800-2017	primary	4	1	1	[	range_expression	LITERAL	table: primary	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:553: assign b[31:0] = { {32-P{1'b1}}, a[P-1:0] } ;	rendered	primary_sv_2017	selects.sv: sv_2017=ACCEPT
+1800-2017	primary	14	0	0	:=	local ::43	OPTIONAL	table: EBNF optionality inside primary				
+1800-2017	primary	14	1	0	]	implicit_class_handle . | class_scope	OPTIONAL	table: EBNF optionality inside primary				
+1800-2017	bit_select	0	0	0	{	expression	LITERAL	table: bit_select	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:1862: let my_let(x) = !x || b && c[i];	rendered	bit_select	selects.sv: sv_2017=ACCEPT
+1800-2017	select	0	0	0	```	{ . member_identifier bit_select } . member_identifier	OPTIONAL	table: EBNF optionality inside select				
+1800-2017	select	0	1	0	bit_select	[ part_select_range ]	OPTIONAL	table: EBNF optionality inside select				
+1800-2017	select	0	2	1	[	part_select_range	LITERAL	table: select	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:553: assign b[31:0] = { {32-P{1'b1}}, a[P-1:0] } ;	rendered(via bit_select, hop 1)	select	selects.sv: sv_2017=ACCEPT
+1800-2017	constant_bit_select	0	0	0	{	constant_expression	LITERAL	table: constant_bit_select	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:1862: let my_let(x) = !x || b && c[i];	rendered	constant_bit_select	selects.sv: sv_2017=ACCEPT
+1800-2017	constant_select	0	0	0	```	{ . member_identifier constant_bit_select } . member_identifier	OPTIONAL	table: EBNF optionality inside constant_select				
+1800-2017	constant_select	0	1	0	constant_bit_select	[ constant_part_select_range ]	OPTIONAL	table: EBNF optionality inside constant_select				
+1800-2017	constant_select	0	2	1	[	constant_part_select_range	LITERAL	table: constant_select	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:553: assign b[31:0] = { {32-P{1'b1}}, a[P-1:0] } ;	rendered(via constant_select_tail, hop 1)	constant_select_v2005	selects.sv: sv_2017=ACCEPT
+1800-2017	net_lvalue	2	0	0	^	assignment_pattern_expression_type	OPTIONAL	table: EBNF optionality inside net_lvalue				
+1800-2017	variable_lvalue	0	0	0	```	implicit_class_handle . | package_scope	OPTIONAL	table: EBNF optionality inside variable_lvalue				
+1800-2017	variable_lvalue	2	0	0	^	assignment_pattern_expression_type	OPTIONAL	table: EBNF optionality inside variable_lvalue				
+1800-2017	nonrange_variable_lvalue	0	0	0	```	implicit_class_handle . | package_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	decimal_number	1	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1800-2017	decimal_number	2	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1800-2017	decimal_number	3	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1800-2017	binary_number	0	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1800-2017	octal_number	0	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1800-2017	hex_number	0	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1800-2017	real_number	1	0	0	unsigned_number	. unsigned_number	OPTIONAL	default: EBNF optionality				
+1800-2017	real_number	1	1	0	exp	sign	OPTIONAL	default: EBNF optionality				
+1800-2017	attr_spec	0	0	0	attr_name	= constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	c_identifier	0	0	0	^	a-zA-Z_	OPTIONAL	default: EBNF optionality				
+1800-2017	c_identifier	0	1	0	{	a-zA-Z0-9_	OPTIONAL	default: EBNF optionality				
+1800-2017	hierarchical_identifier	0	0	0	^	$root .	LITERAL	generic: operator-led `[$`	docs/systemverilog/2017/md/section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-value-x-the-precedence-of-is-greater.md:611: int array [$] = '{3,4,5};	rendered(via hierarchical_bit_select, hop 1)	hierarchical_identifier	v2005_hier.v: sv_2017=ACCEPT
+1800-2017	ps_class_identifier	0	0	0	^	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	ps_covergroup_identifier	0	0	0	^	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	ps_checker_identifier	0	0	0	^	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	ps_identifier	0	0	0	^	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	ps_or_hierarchical_array_identifier	0	0	0	```	implicit_class_handle . | class_scope | package_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	ps_or_hierarchical_net_identifier	0	0	0	^	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	ps_or_hierarchical_sequence_identifier	0	0	0	```	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	ps_or_hierarchical_tf_identifier	0	0	0	```	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	ps_parameter_identifier	0	0	0	```	package_scope | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	ps_parameter_identifier	1	0	0	generate_block_identifier	[ constant_expression ]	OPTIONAL	default: EBNF optionality				
+1800-2017	ps_parameter_identifier	1	1	1	[	constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2017	ps_type_identifier	0	0	0	^	local ::43 | package_scope | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2017	simple_identifier	0	0	0	^	a-zA-Z_	OPTIONAL	default: EBNF optionality				
+1800-2017	simple_identifier	0	1	0	{	a-zA-Z0-9_$	OPTIONAL	default: EBNF optionality				
+1800-2017	system_tf_identifier	0	0	0	]{	a-zA-Z0-9_$	OPTIONAL	default: EBNF optionality				
+1800-2023	library_declaration	0	0	0	}	-incdir file_path_spec { , file_path_spec }	OPTIONAL	default: EBNF optionality				
+1800-2023	source_text	0	0	0	^	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2023	module_nonansi_header	0	0	0	module_keyword	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2023	module_nonansi_header	0	1	0	}	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	module_ansi_header	0	0	0	module_keyword	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2023	module_ansi_header	0	1	0	}1	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	module_ansi_header	0	2	0	]	list_of_port_declarations	OPTIONAL	default: EBNF optionality				
+1800-2023	module_declaration	0	0	0	module_nonansi_header	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2023	module_declaration	0	1	0	endmodule	: module_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	module_declaration	1	0	0	module_ansi_header	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2023	module_declaration	1	1	0	endmodule	: module_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	module_declaration	2	0	0	module_keyword	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2023	module_declaration	2	1	0	;	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2023	module_declaration	2	2	0	endmodule	: module_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_declaration	0	0	0	interface_nonansi_header	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_declaration	0	1	0	endinterface	: interface_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_declaration	1	0	0	interface_ansi_header	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_declaration	1	1	0	endinterface	: interface_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_declaration	2	0	0	;	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_declaration	2	1	0	endinterface	: interface_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_nonansi_header	0	0	0	interface	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_nonansi_header	0	1	0	}	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_ansi_header	0	0	0	interface	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_ansi_header	0	1	0	}1	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_ansi_header	0	2	0	]	list_of_port_declarations	OPTIONAL	default: EBNF optionality				
+1800-2023	program_declaration	0	0	0	program_nonansi_header	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2023	program_declaration	0	1	0	endprogram	: program_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	program_declaration	1	0	0	program_ansi_header	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2023	program_declaration	1	1	0	endprogram	: program_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	program_declaration	2	0	0	;	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2023	program_declaration	2	1	0	endprogram	: program_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	program_nonansi_header	0	0	0	program	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2023	program_nonansi_header	0	1	0	}	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	program_ansi_header	0	0	0	program	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2023	program_ansi_header	0	1	0	}1	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	program_ansi_header	0	2	0	]	list_of_port_declarations	OPTIONAL	default: EBNF optionality				
+1800-2023	checker_declaration	0	0	0	checker_identifier	( [ checker_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	checker_declaration	0	1	1	(	checker_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	checker_declaration	0	2	0	endchecker	: checker_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	class_declaration	0	0	0	```	virtual	OPTIONAL	default: EBNF optionality				
+1800-2023	class_declaration	0	1	0	class	final_specifier	OPTIONAL	default: EBNF optionality				
+1800-2023	class_declaration	0	2	0	class_identifier	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	class_declaration	0	3	0	]	extends class_type [ ( [ list_of_arguments | default ] ) ]	OPTIONAL	default: EBNF optionality				
+1800-2023	class_declaration	0	4	1	class_type	( [ list_of_arguments | default ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	class_declaration	0	5	2	(	list_of_arguments | default	OPTIONAL	default: EBNF optionality				
+1800-2023	class_declaration	0	6	0	]	implements interface_class_type { , interface_class_type }	OPTIONAL	default: EBNF optionality				
+1800-2023	class_declaration	0	7	0	endclass	: class_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_class_declaration	0	0	0	class_identifier	parameter_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_class_declaration	0	1	0	]	extends interface_class_type { , interface_class_type }	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_class_declaration	0	2	0	endclass	: class_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	package_declaration	0	0	0	package	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2023	package_declaration	0	1	0	;	timeunits_declaration	OPTIONAL	default: EBNF optionality				
+1800-2023	package_declaration	0	2	0	endpackage	: package_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	timeunits_declaration	0	0	0	time_literal	/ time_literal	OPTIONAL	default: EBNF optionality				
+1800-2023	list_of_port_declarations	0	0	0	(	{ attribute_instance } ansi_port_declaration { , { attribute_instance } ansi_port_declaration }	OPTIONAL	default: EBNF optionality				
+1800-2023	port	0	0	0	```	port_expression	OPTIONAL	default: EBNF optionality				
+1800-2023	port	1	0	0	(	port_expression	OPTIONAL	default: EBNF optionality				
+1800-2023	net_port_header	0	0	0	^	port_direction	OPTIONAL	default: EBNF optionality				
+1800-2023	variable_port_header	0	0	0	^	port_direction	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_port_header	0	0	0	interface_identifier	. modport_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_port_header	1	0	0	interface	. modport_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	ansi_port_declaration	0	0	0	```	net_port_header | interface_port_header	OPTIONAL	default: EBNF optionality				
+1800-2023	ansi_port_declaration	0	1	0	}	= constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2023	ansi_port_declaration	1	0	0	^	variable_port_header	OPTIONAL	default: EBNF optionality				
+1800-2023	ansi_port_declaration	1	1	0	}	= constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2023	ansi_port_declaration	2	0	0	^	port_direction	OPTIONAL	default: EBNF optionality				
+1800-2023	ansi_port_declaration	2	1	0	(	expression	OPTIONAL	default: EBNF optionality				
+1800-2023	severity_system_task	0	0	0	$fatal	( finish_number [, list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2023	severity_system_task	1	0	0	$error	( [ list_of_arguments ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	severity_system_task	1	1	1	(	list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2023	severity_system_task	2	0	0	$warning	( [ list_of_arguments ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	severity_system_task	2	1	1	(	list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2023	severity_system_task	3	0	0	$info	( [ list_of_arguments ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	severity_system_task	3	1	1	(	list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2023	bind_directive	0	0	0	bind_target_scope	: bind_target_instance_list	OPTIONAL	default: EBNF optionality				
+1800-2023	config_declaration	0	0	0	endconfig	: config_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	design_statement	0	0	0	{	library_identifier .	OPTIONAL	default: EBNF optionality				
+1800-2023	cell_clause	0	0	0	cell	library_identifier .	OPTIONAL	default: EBNF optionality				
+1800-2023	use_clause	0	0	0	use	library_identifier .	OPTIONAL	default: EBNF optionality				
+1800-2023	use_clause	0	1	0	cell_identifier	: config	OPTIONAL	default: EBNF optionality				
+1800-2023	use_clause	1	0	0	}	: config	OPTIONAL	default: EBNF optionality				
+1800-2023	use_clause	2	0	0	use	library_identifier .	OPTIONAL	default: EBNF optionality				
+1800-2023	use_clause	2	1	0	}	: config	OPTIONAL	default: EBNF optionality				
+1800-2023	checker_port_item	0	0	0	}	checker_port_direction	OPTIONAL	default: EBNF optionality				
+1800-2023	checker_port_item	0	1	0	}	= property_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	checker_or_generate_item_declaration	0	0	0	```	rand	OPTIONAL	default: EBNF optionality				
+1800-2023	class_property	1	0	0	const_identifier	= constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2023	class_constructor_declaration	0	0	0	function	class_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	class_constructor_declaration	0	1	0	new	( [ class_constructor_arg_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	class_constructor_declaration	0	2	1	(	class_constructor_arg_list	OPTIONAL	default: EBNF optionality				
+1800-2023	class_constructor_declaration	0	3	0	}	super . new [ ( [ list_of_arguments | default ] ) ] ;	OPTIONAL	default: EBNF optionality				
+1800-2023	class_constructor_declaration	0	4	1	new	( [ list_of_arguments | default ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	class_constructor_declaration	0	5	2	(	list_of_arguments | default	OPTIONAL	default: EBNF optionality				
+1800-2023	class_constructor_declaration	0	6	0	endfunction	: new	OPTIONAL	default: EBNF optionality				
+1800-2023	class_constructor_prototype	0	0	0	new	( [ class_constructor_arg_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	class_constructor_prototype	0	1	1	(	class_constructor_arg_list	OPTIONAL	default: EBNF optionality				
+1800-2023	method_qualifier	0	0	0	```	pure	OPTIONAL	default: EBNF optionality				
+1800-2023	constraint_declaration	0	0	0	```	static	OPTIONAL	default: EBNF optionality				
+1800-2023	constraint_primary	0	0	0	^	implicit_class_handle . | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	constraint_expression	0	0	0	```	soft	OPTIONAL	default: EBNF optionality				
+1800-2023	constraint_expression	3	0	0	constraint_set	else constraint_set	OPTIONAL	default: EBNF optionality				
+1800-2023	constraint_expression	4	0	0	ps_or_hierarchical_array_identifier	loop_variables	OPTIONAL	default: EBNF optionality				
+1800-2023	expression_or_dist	0	0	0	expression	dist { dist_list }	OPTIONAL	default: EBNF optionality				
+1800-2023	dist_item	0	0	0	value_range	dist_weight	OPTIONAL	default: EBNF optionality				
+1800-2023	constraint_prototype	0	0	0	```	constraint_prototype_qualifier	OPTIONAL	default: EBNF optionality				
+1800-2023	constraint_prototype	0	1	0	]	static	OPTIONAL	default: EBNF optionality				
+1800-2023	extern_constraint_declaration	0	0	0	```	static	OPTIONAL	default: EBNF optionality				
+1800-2023	type_parameter_declaration	0	0	0	type	forward_type	OPTIONAL	default: EBNF optionality				
+1800-2023	specparam_declaration	0	0	0	specparam	packed_dimension	OPTIONAL	default: EBNF optionality				
+1800-2023	data_declaration	0	0	0	```	const	OPTIONAL	default: EBNF optionality				
+1800-2023	data_declaration	0	1	0	]	var	OPTIONAL	default: EBNF optionality				
+1800-2023	data_declaration	0	2	0	]	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2023	net_declaration	0	0	0	net_type	drive_strength | charge_strength	OPTIONAL	default: EBNF optionality				
+1800-2023	net_declaration	0	1	0	]	vectored | scalared	OPTIONAL	default: EBNF optionality				
+1800-2023	net_declaration	0	2	0	data_type_or_implicit	delay3	OPTIONAL	default: EBNF optionality				
+1800-2023	net_declaration	1	0	0	nettype_identifier	delay_control	OPTIONAL	default: EBNF optionality				
+1800-2023	type_declaration	2	0	0	typedef	forward_type	OPTIONAL	default: EBNF optionality				
+1800-2023	nettype_declaration	0	0	0	nettype_identifier	with [ package_scope | class_scope ] tf_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	nettype_declaration	0	1	1	with	package_scope | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	nettype_declaration	1	0	0	nettype	package_scope | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	data_type	0	0	0	integer_vector_type	signing	OPTIONAL	default: EBNF optionality				
+1800-2023	data_type	1	0	0	integer_atom_type	signing	OPTIONAL	default: EBNF optionality				
+1800-2023	data_type	3	0	0	struct_union	packed [ signing ]	OPTIONAL	default: EBNF optionality				
+1800-2023	data_type	3	1	1	packed	signing	OPTIONAL	default: EBNF optionality				
+1800-2023	data_type	4	0	0	enum	enum_base_type	OPTIONAL	default: EBNF optionality				
+1800-2023	data_type	7	0	0	virtual	interface	OPTIONAL	default: EBNF optionality				
+1800-2023	data_type	7	1	0	interface_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2023	data_type	7	2	0	]	. modport_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	data_type	8	0	0	^	class_scope | package_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	implicit_data_type	0	0	0	^	signing	OPTIONAL	default: EBNF optionality				
+1800-2023	enum_base_type	0	0	0	integer_atom_type	signing	OPTIONAL	default: EBNF optionality				
+1800-2023	enum_base_type	1	0	0	integer_vector_type	signing	OPTIONAL	default: EBNF optionality				
+1800-2023	enum_base_type	1	1	0	]	packed_dimension	OPTIONAL	default: EBNF optionality				
+1800-2023	enum_name_declaration	0	0	0	enum_identifier	[ integral_number [ : integral_number ] ]	OPTIONAL	table: EBNF optionality inside enum_name_declaration				
+1800-2023	enum_name_declaration	0	1	1	[	integral_number [ : integral_number ]	LITERAL	table: enum_name_declaration	docs/systemverilog/2023/md/section-6-data-types.md:1997: typedef enum {add=10, sub[5], jmp[6:8]} E1;	rendered	enum_name_declaration	enum_range.sv: sv_2023=ACCEPT
+1800-2023	enum_name_declaration	0	2	2	integral_number	: integral_number	OPTIONAL	table: EBNF optionality inside enum_name_declaration				
+1800-2023	enum_name_declaration	0	3	0	]	= constant_expression	OPTIONAL	table: EBNF optionality inside enum_name_declaration				
+1800-2023	class_type	0	0	0	ps_class_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2023	class_type	0	1	0	class_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_class_type	0	0	0	ps_class_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2023	net_port_type	0	0	0	```	net_type	OPTIONAL	default: EBNF optionality				
+1800-2023	struct_union	1	0	0	union	soft | tagged	OPTIONAL	default: EBNF optionality				
+1800-2023	struct_union_member	0	0	0	}	random_qualifier	OPTIONAL	default: EBNF optionality				
+1800-2023	list_of_tf_variable_identifiers	0	0	0	}	= expression	OPTIONAL	default: EBNF optionality				
+1800-2023	list_of_tf_variable_identifiers	0	1	0	}	= expression	OPTIONAL	default: EBNF optionality				
+1800-2023	list_of_variable_port_identifiers	0	0	0	}	= constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2023	list_of_variable_port_identifiers	0	1	0	}	= constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2023	net_decl_assignment	0	0	0	}	= expression	OPTIONAL	default: EBNF optionality				
+1800-2023	pulse_control_specparam	0	0	0	reject_limit_value	, error_limit_value	OPTIONAL	default: EBNF optionality				
+1800-2023	pulse_control_specparam	1	0	0	reject_limit_value	, error_limit_value	OPTIONAL	default: EBNF optionality				
+1800-2023	variable_decl_assignment	0	0	0	}	= expression	OPTIONAL	default: EBNF optionality				
+1800-2023	variable_decl_assignment	1	0	0	}	= dynamic_array_new	OPTIONAL	default: EBNF optionality				
+1800-2023	variable_decl_assignment	2	0	0	class_variable_identifier	= class_new	OPTIONAL	default: EBNF optionality				
+1800-2023	class_new	0	0	0	```	class_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	class_new	0	1	0	new	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2023	dynamic_array_new	0	0	0	new	expression	LITERAL	table: dynamic_array_new	docs/systemverilog/2023/md/section-20-utility-system-tasks-and-system-functions.md:907: a[2] = new[4];	rendered	dynamic_array_new	dyn_new.sv: sv_2023=ACCEPT
+1800-2023	dynamic_array_new	0	1	0	]	( expression )	OPTIONAL	table: EBNF optionality inside dynamic_array_new				
+1800-2023	unpacked_dimension	0	0	0	```	constant_range	LITERAL	table: unpacked_dimension	docs/systemverilog/2023/md/section-10-assignment-statements.md:95: net_identifier { unpacked_dimension } [ , net_identifier { unpacked_dimension } ] ;	rendered	unpacked_dimension	dims.sv: sv_2023=ACCEPT
+1800-2023	unpacked_dimension	1	0	0	^	constant_expression	LITERAL	table: unpacked_dimension	docs/systemverilog/2023/md/section-10-assignment-statements.md:95: net_identifier { unpacked_dimension } [ , net_identifier { unpacked_dimension } ] ;	rendered	unpacked_dimension	dims.sv: sv_2023=ACCEPT
+1800-2023	packed_dimension	0	0	0	```	constant_range	LITERAL	table: packed_dimension	docs/systemverilog/2023/md/section-10-assignment-statements.md:161: output [3:0] sum_out;	rendered	packed_dimension	dims.sv: sv_2023=ACCEPT
+1800-2023	associative_dimension	0	0	0	```	data_type	LITERAL	table: associative_dimension	docs/systemverilog/2023/md/section-13-tasks-and-functions-subroutines.md:74: [ interface_identifier . | class_scope ] task_identifier ;	rendered	associative_dimension	dims.sv: sv_2023=ACCEPT
+1800-2023	associative_dimension	1	0	0	^	*	LITERAL	generic: operator-led `[*` / `[+`	docs/systemverilog/2023/md/section-14-clocking-blocks.md:698: @$global_clock a[*1:$] ##1 b);	rendered	associative_dimension	dims.sv: sv_2023=ACCEPT
+1800-2023	queue_dimension	0	0	0	^	$ [ : constant_expression ]	LITERAL	generic: operator-led `[$`	docs/systemverilog/2023/md/section-10-assignment-statements.md:1145: typedef string T_SQ[$];	rendered	queue_dimension	dims.sv: sv_2023=ACCEPT
+1800-2023	queue_dimension	0	1	1	$	: constant_expression	OPTIONAL	table: EBNF optionality inside queue_dimension				
+1800-2023	unsized_dimension	0	0	0	^		LITERAL	generic: empty `[ ]`	docs/systemverilog/2023/md/section-1-overview.md:145: Square brackets ( [ ] ) that are not in boldface-red enclose optional items. For example:	rendered	unsized_dimension	dims.sv: sv_2023=ACCEPT
+1800-2023	function_declaration	0	0	1	]25	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2023	function_body_declaration	0	0	0	function_data_type_or_implicit	interface_identifier . | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	function_body_declaration	0	1	0	endfunction	: function_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	function_body_declaration	1	0	0	function_data_type_or_implicit	interface_identifier . | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	function_body_declaration	1	1	0	(	tf_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	function_body_declaration	1	2	0	endfunction	: function_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	function_prototype	0	0	1	function_identifier	( [ tf_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	function_prototype	0	1	2	(	tf_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	dpi_import_export	0	0	0	dpi_spec_string	dpi_function_import_property	OPTIONAL	default: EBNF optionality				
+1800-2023	dpi_import_export	0	1	0	]	c_identifier =	OPTIONAL	default: EBNF optionality				
+1800-2023	dpi_import_export	1	0	0	dpi_spec_string	dpi_task_import_property	OPTIONAL	default: EBNF optionality				
+1800-2023	dpi_import_export	1	1	0	]	c_identifier =	OPTIONAL	default: EBNF optionality				
+1800-2023	dpi_import_export	2	0	0	dpi_spec_string	c_identifier =	OPTIONAL	default: EBNF optionality				
+1800-2023	dpi_import_export	3	0	0	dpi_spec_string	c_identifier =	OPTIONAL	default: EBNF optionality				
+1800-2023	task_declaration	0	0	1	]25	lifetime	OPTIONAL	default: EBNF optionality				
+1800-2023	task_body_declaration	0	0	0	```	interface_identifier . | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	task_body_declaration	0	1	0	endtask	: task_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	task_body_declaration	1	0	0	^	interface_identifier . | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	task_body_declaration	1	1	0	(	tf_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	task_body_declaration	1	2	0	endtask	: task_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	tf_port_item	0	0	0	}	tf_port_direction	OPTIONAL	default: EBNF optionality				
+1800-2023	tf_port_item	0	1	0	]	var	OPTIONAL	default: EBNF optionality				
+1800-2023	tf_port_item	0	2	0	data_type_or_implicit	port_identifier { variable_dimension } [ = expression ]	OPTIONAL	default: EBNF optionality				
+1800-2023	tf_port_item	0	3	1	}	= expression	OPTIONAL	default: EBNF optionality				
+1800-2023	tf_port_direction	1	0	0	^	const	OPTIONAL	default: EBNF optionality				
+1800-2023	tf_port_direction	1	1	0	ref	static	OPTIONAL	default: EBNF optionality				
+1800-2023	tf_port_declaration	0	0	0	tf_port_direction	var	OPTIONAL	default: EBNF optionality				
+1800-2023	task_prototype	0	0	1	task_identifier	( [ tf_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	task_prototype	0	1	2	(	tf_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	dynamic_override_specifiers	0	0	0	^	initial_or_extends_specifier	OPTIONAL	default: EBNF optionality				
+1800-2023	dynamic_override_specifiers	0	1	0	]	final_specifier	OPTIONAL	default: EBNF optionality				
+1800-2023	modport_simple_port	1	0	0	(	expression	OPTIONAL	default: EBNF optionality				
+1800-2023	concurrent_assertion_item	0	0	0	```	block_identifier :	OPTIONAL	default: EBNF optionality				
+1800-2023	cover_sequence_statement	0	0	0	(	clocking_event	OPTIONAL	default: EBNF optionality				
+1800-2023	cover_sequence_statement	0	1	0	]	disable iff ( expression_or_dist )	OPTIONAL	default: EBNF optionality				
+1800-2023	property_instance	0	0	0	ps_or_hierarchical_property_identifier	( [ property_list_of_arguments ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	property_instance	0	1	1	(	property_list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2023	property_list_of_arguments	0	0	0	```	property_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	property_list_of_arguments	0	1	0	,	property_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	property_list_of_arguments	0	2	0	(	property_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	property_list_of_arguments	1	0	0	(	property_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	property_list_of_arguments	1	1	0	(	property_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	property_declaration	0	0	0	property_identifier	( [ property_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	property_declaration	0	1	1	(	property_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	property_declaration	0	2	0	property_spec	;	OPTIONAL	default: EBNF optionality				
+1800-2023	property_declaration	0	3	0	endproperty	: property_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	property_port_item	0	0	0	}	local [ property_lvar_port_direction ]	OPTIONAL	default: EBNF optionality				
+1800-2023	property_port_item	0	1	1	local	property_lvar_port_direction	OPTIONAL	default: EBNF optionality				
+1800-2023	property_port_item	0	2	0	}	= property_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	property_spec	0	0	0	^	clocking_event	OPTIONAL	default: EBNF optionality				
+1800-2023	property_spec	0	1	0	]	disable iff ( expression_or_dist )	OPTIONAL	default: EBNF optionality				
+1800-2023	property_case_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_declaration	0	0	0	sequence_identifier	( [ sequence_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_declaration	0	1	1	(	sequence_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_declaration	0	2	0	sequence_expr	;	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_declaration	0	3	0	endsequence	: sequence_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_port_item	0	0	0	}	local [ sequence_lvar_port_direction ]	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_port_item	0	1	1	local	sequence_lvar_port_direction	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_port_item	0	2	0	}	= sequence_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_expr	2	0	0	expression_or_dist	boolean_abbrev	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_instance	0	0	0	ps_or_hierarchical_sequence_identifier	( [ sequence_list_of_arguments ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_instance	0	1	1	(	sequence_list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_list_of_arguments	0	0	0	```	sequence_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_list_of_arguments	0	1	0	,	sequence_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_list_of_arguments	0	2	0	(	sequence_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_list_of_arguments	1	0	0	(	sequence_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	sequence_list_of_arguments	1	1	0	(	sequence_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	covergroup_declaration	0	0	0	covergroup_identifier	( [ tf_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	covergroup_declaration	0	1	1	(	tf_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	covergroup_declaration	0	2	0	]	coverage_event	OPTIONAL	default: EBNF optionality				
+1800-2023	covergroup_declaration	0	3	0	endgroup	: covergroup_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	covergroup_declaration	1	0	0	endgroup	: covergroup_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	coverage_event	1	0	0	(	tf_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	hierarchical_btf_identifier	2	0	0	^	hierarchical_identifier . | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	cover_point	0	0	0	```	[ data_type_or_implicit ] cover_point_identifier :	OPTIONAL	default: EBNF optionality				
+1800-2023	cover_point	0	1	1	[	data_type_or_implicit	OPTIONAL	default: EBNF optionality				
+1800-2023	cover_point	0	2	0	expression	iff ( expression )	OPTIONAL	default: EBNF optionality				
+1800-2023	bins_or_options	1	0	0	^	wildcard	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	1	1	0	bin_identifier	[ [ covergroup_expression ] ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	1	2	1	[	[ covergroup_expression ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	1	3	2	[	covergroup_expression	LITERAL	table: bins_or_options	docs/systemverilog/2023/md/section-19-functional-coverage.md:601: bins fixed [4] = {[1:10], 1, 4, 7};	rendered	bins_or_options	bins.sv: sv_2023=ACCEPT
+1800-2023	bins_or_options	1	4	0	}	with ( with_covergroup_expression )	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	1	5	0	]	iff ( expression )	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	2	0	0	^	wildcard	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	2	1	0	bin_identifier	[ [ covergroup_expression ] ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	2	2	1	[	[ covergroup_expression ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	2	3	2	[	covergroup_expression	LITERAL	table: bins_or_options	docs/systemverilog/2023/md/section-19-functional-coverage.md:601: bins fixed [4] = {[1:10], 1, 4, 7};	rendered	bins_or_options	bins.sv: sv_2023=ACCEPT
+1800-2023	bins_or_options	2	4	0	)	iff ( expression )	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	3	0	0	^	wildcard	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	3	1	0	bin_identifier	[ [ covergroup_expression ] ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	3	2	1	[	[ covergroup_expression ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	3	3	2	[	covergroup_expression	LITERAL	table: bins_or_options	docs/systemverilog/2023/md/section-19-functional-coverage.md:601: bins fixed [4] = {[1:10], 1, 4, 7};	rendered	bins_or_options	bins.sv: sv_2023=ACCEPT
+1800-2023	bins_or_options	3	4	0	set_covergroup_expression	iff ( expression )	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	4	0	1	bin_identifier	[ ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	4	1	2	[		LITERAL	generic: empty `[ ]`	docs/systemverilog/2023/md/section-1-overview.md:145: Square brackets ( [ ] ) that are not in boldface-red enclose optional items. For example:	rendered	bins_or_options	bins.sv: sv_2023=ACCEPT
+1800-2023	bins_or_options	4	2	1	trans_list	iff ( expression )	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	5	0	0	bin_identifier	[ [ covergroup_expression ] ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	5	1	1	[	[ covergroup_expression ]	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	5	2	2	[	covergroup_expression	LITERAL	table: bins_or_options	docs/systemverilog/2023/md/section-19-functional-coverage.md:601: bins fixed [4] = {[1:10], 1, 4, 7};	rendered	bins_or_options	bins.sv: sv_2023=ACCEPT
+1800-2023	bins_or_options	5	3	0	default	iff ( expression )	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	bins_or_options	6	0	0	sequence	iff ( expression )	OPTIONAL	table: EBNF optionality inside bins_or_options				
+1800-2023	cover_cross	0	0	0	^	cross_identifier :	OPTIONAL	default: EBNF optionality				
+1800-2023	cover_cross	0	1	0	list_of_cross_items	iff ( expression )	OPTIONAL	default: EBNF optionality				
+1800-2023	bins_selection	0	0	0	select_expression	iff ( expression )	OPTIONAL	default: EBNF optionality				
+1800-2023	select_expression	5	0	0	)	matches integer_covergroup_expression	OPTIONAL	default: EBNF optionality				
+1800-2023	select_expression	7	0	0	cross_set_expression	matches integer_covergroup_expression	OPTIONAL	default: EBNF optionality				
+1800-2023	select_condition	0	0	0	)	intersect { covergroup_range_list }	OPTIONAL	default: EBNF optionality				
+1800-2023	bins_expression	1	0	0	cover_point_identifier	. bin_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	covergroup_value_range	1	0	0	^	covergroup_expression : covergroup_expression	LITERAL	table: covergroup_value_range	docs/systemverilog/2023/md/section-19-functional-coverage.md:601: bins fixed [4] = {[1:10], 1, 4, 7};	rendered	covergroup_value_range_sv_2017	bins.sv: sv_2023=ACCEPT
+1800-2023	covergroup_value_range	2	0	0	^	$ : covergroup_expression	LITERAL	generic: operator-led `[$`	docs/systemverilog/2023/md/section-10-assignment-statements.md:1145: typedef string T_SQ[$];	rendered	covergroup_value_range_sv_2017	bins.sv: sv_2023=ACCEPT
+1800-2023	covergroup_value_range	3	0	0	^	covergroup_expression : $	LITERAL	table: covergroup_value_range	docs/systemverilog/2023/md/section-19-functional-coverage.md:601: bins fixed [4] = {[1:10], 1, 4, 7};	rendered	covergroup_value_range_sv_2017	bins.sv: sv_2023=ACCEPT
+1800-2023	covergroup_value_range	4	0	0	^	covergroup_expression +/- covergroup_expression	LITERAL	table: covergroup_value_range	docs/systemverilog/2023/md/section-19-functional-coverage.md:601: bins fixed [4] = {[1:10], 1, 4, 7};	rendered	covergroup_value_range_sv_2017	bins.sv: sv_2023=ACCEPT
+1800-2023	covergroup_value_range	5	0	0	^	covergroup_expression +%- covergroup_expression	LITERAL	table: covergroup_value_range	docs/systemverilog/2023/md/section-19-functional-coverage.md:601: bins fixed [4] = {[1:10], 1, 4, 7};	rendered	covergroup_value_range_sv_2017	bins.sv: sv_2023=ACCEPT
+1800-2023	let_declaration	0	0	0	let_identifier	( [ let_port_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	let_declaration	0	1	1	(	let_port_list	OPTIONAL	default: EBNF optionality				
+1800-2023	let_port_item	0	0	0	}	= expression	OPTIONAL	default: EBNF optionality				
+1800-2023	let_expression	0	0	0	^	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	let_expression	0	1	0	let_identifier	( [ let_list_of_arguments ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	let_expression	0	2	1	(	let_list_of_arguments	OPTIONAL	default: EBNF optionality				
+1800-2023	let_list_of_arguments	0	0	0	```	let_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	let_list_of_arguments	0	1	0	,	let_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	let_list_of_arguments	0	2	0	(	let_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	let_list_of_arguments	1	0	0	(	let_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	let_list_of_arguments	1	1	0	(	let_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	gate_instantiation	0	0	0	cmos_switchtype	delay3	OPTIONAL	default: EBNF optionality				
+1800-2023	gate_instantiation	1	0	0	mos_switchtype	delay3	OPTIONAL	default: EBNF optionality				
+1800-2023	gate_instantiation	2	0	0	enable_gatetype	drive_strength	OPTIONAL	default: EBNF optionality				
+1800-2023	gate_instantiation	2	1	0	]	delay3	OPTIONAL	default: EBNF optionality				
+1800-2023	gate_instantiation	3	0	0	n_input_gatetype	drive_strength	OPTIONAL	default: EBNF optionality				
+1800-2023	gate_instantiation	3	1	0	]	delay2	OPTIONAL	default: EBNF optionality				
+1800-2023	gate_instantiation	4	0	0	n_output_gatetype	drive_strength	OPTIONAL	default: EBNF optionality				
+1800-2023	gate_instantiation	4	1	0	]	delay2	OPTIONAL	default: EBNF optionality				
+1800-2023	gate_instantiation	5	0	0	pass_en_switchtype	delay2	OPTIONAL	default: EBNF optionality				
+1800-2023	gate_instantiation	7	0	0	pulldown	pulldown_strength	OPTIONAL	default: EBNF optionality				
+1800-2023	gate_instantiation	8	0	0	pullup	pullup_strength	OPTIONAL	default: EBNF optionality				
+1800-2023	cmos_switch_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2023	enable_gate_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2023	mos_switch_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2023	n_input_gate_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2023	n_output_gate_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2023	pass_switch_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2023	pass_enable_switch_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2023	pull_gate_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2023	module_instantiation	0	0	0	module_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2023	parameter_value_assignment	0	0	0	(	list_of_parameter_value_assignments	OPTIONAL	default: EBNF optionality				
+1800-2023	named_parameter_assignment	0	0	0	(	param_expression	OPTIONAL	default: EBNF optionality				
+1800-2023	hierarchical_instance	0	0	0	(	list_of_port_connections	OPTIONAL	default: EBNF optionality				
+1800-2023	ordered_port_connection	0	0	0	}	expression	OPTIONAL	default: EBNF optionality				
+1800-2023	named_port_connection	0	0	0	port_identifier	( [ expression ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	named_port_connection	0	1	1	(	expression	OPTIONAL	default: EBNF optionality				
+1800-2023	interface_instantiation	0	0	0	interface_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2023	program_instantiation	0	0	0	program_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1800-2023	checker_instantiation	0	0	0	(	list_of_checker_port_connections	OPTIONAL	default: EBNF optionality				
+1800-2023	ordered_checker_port_connection	0	0	0	}	property_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	named_checker_port_connection	0	0	0	formal_port_identifier	( [ property_actual_arg ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	named_checker_port_connection	0	1	1	(	property_actual_arg	OPTIONAL	default: EBNF optionality				
+1800-2023	genvar_initialization	0	0	0	^	genvar	OPTIONAL	default: EBNF optionality				
+1800-2023	if_generate_construct	0	0	0	generate_block	else generate_block	OPTIONAL	default: EBNF optionality				
+1800-2023	case_generate_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1800-2023	generate_block	1	0	0	^	generate_block_identifier :	OPTIONAL	default: EBNF optionality				
+1800-2023	generate_block	1	1	0	begin	: generate_block_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	generate_block	1	2	0	end	: generate_block_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	udp_declaration	0	0	0	endprimitive	: udp_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	udp_declaration	1	0	0	endprimitive	: udp_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	udp_declaration	4	0	0	endprimitive	: udp_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	udp_output_declaration	1	0	0	port_identifier	= constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2023	sequential_body	0	0	0	^	udp_initial_statement	OPTIONAL	default: EBNF optionality				
+1800-2023	udp_instantiation	0	0	0	udp_identifier	drive_strength	OPTIONAL	default: EBNF optionality				
+1800-2023	udp_instantiation	0	1	0	]	delay2	OPTIONAL	default: EBNF optionality				
+1800-2023	udp_instance	0	0	0	^	name_of_instance	OPTIONAL	default: EBNF optionality				
+1800-2023	continuous_assign	0	0	0	assign	drive_strength	OPTIONAL	default: EBNF optionality				
+1800-2023	continuous_assign	0	1	0	]	delay3	OPTIONAL	default: EBNF optionality				
+1800-2023	continuous_assign	1	0	0	assign	delay_control	OPTIONAL	default: EBNF optionality				
+1800-2023	blocking_assignment	2	0	0	^	implicit_class_handle . | class_scope | package_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	nonblocking_assignment	0	0	0	<=	delay_or_event_control	OPTIONAL	default: EBNF optionality				
+1800-2023	action_block	1	0	0	^	statement	OPTIONAL	default: EBNF optionality				
+1800-2023	seq_block	0	0	0	begin	: block_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	seq_block	0	1	0	end	: block_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	par_block	0	0	0	fork	: block_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	par_block	0	1	0	join_keyword	: block_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	statement	0	0	0	^	block_identifier :	OPTIONAL	default: EBNF optionality				
+1800-2023	event_expression	0	0	0	```	edge_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	event_expression	0	1	0	expression	iff expression	OPTIONAL	default: EBNF optionality				
+1800-2023	event_expression	1	0	0	sequence_instance	iff expression	OPTIONAL	default: EBNF optionality				
+1800-2023	jump_statement	0	0	0	return	expression	OPTIONAL	default: EBNF optionality				
+1800-2023	event_trigger	1	0	0	->>	delay_or_event_control	OPTIONAL	default: EBNF optionality				
+1800-2023	conditional_statement	0	0	0	```	unique_priority	OPTIONAL	default: EBNF optionality				
+1800-2023	conditional_statement	0	1	0	}	else statement_or_null	OPTIONAL	default: EBNF optionality				
+1800-2023	case_statement	0	0	0	```	unique_priority	OPTIONAL	default: EBNF optionality				
+1800-2023	case_statement	1	0	0	^	unique_priority	OPTIONAL	default: EBNF optionality				
+1800-2023	case_statement	2	0	0	^	unique_priority	OPTIONAL	default: EBNF optionality				
+1800-2023	case_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1800-2023	case_pattern_item	0	0	0	pattern	&&& expression	OPTIONAL	default: EBNF optionality				
+1800-2023	case_pattern_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1800-2023	case_inside_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1800-2023	value_range	1	0	0	^	expression : expression	LITERAL	table: value_range	docs/systemverilog/2023/md/section-11-operators-and-expressions.md:1460: bit ba = a inside {[16:23], [32:47]};	rendered	value_range_sv_2017	inside_dist.sv: sv_2023=ACCEPT
+1800-2023	value_range	2	0	0	^	$ : expression	LITERAL	generic: operator-led `[$`	docs/systemverilog/2023/md/section-10-assignment-statements.md:1145: typedef string T_SQ[$];	rendered	value_range_sv_2017	inside_dist.sv: sv_2023=ACCEPT
+1800-2023	pattern	4	0	0	member_identifier	pattern	OPTIONAL	default: EBNF optionality				
+1800-2023	assignment_pattern_expression	0	0	0	^	assignment_pattern_expression_type	OPTIONAL	default: EBNF optionality				
+1800-2023	loop_statement	3	0	0	(	for_initialization	OPTIONAL	default: EBNF optionality				
+1800-2023	loop_statement	3	1	0	;	expression	OPTIONAL	default: EBNF optionality				
+1800-2023	loop_statement	3	2	0	;	for_step	OPTIONAL	default: EBNF optionality				
+1800-2023	loop_statement	5	0	0	ps_or_hierarchical_array_identifier	loop_variables	OPTIONAL	default: EBNF optionality				
+1800-2023	for_variable_declaration	0	0	0	```	var	OPTIONAL	default: EBNF optionality				
+1800-2023	loop_variables	0	0	0	^	index_variable_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	loop_variables	0	1	0	,	index_variable_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	deferred_immediate_assertion_item	0	0	0	^	block_identifier :	OPTIONAL	default: EBNF optionality				
+1800-2023	clocking_declaration	0	0	0	```	default	OPTIONAL	default: EBNF optionality				
+1800-2023	clocking_declaration	0	1	0	clocking	clocking_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	clocking_declaration	0	2	0	endclocking	: clocking_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	clocking_declaration	1	0	0	clocking	clocking_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	clocking_declaration	1	1	0	endclocking	: clocking_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	clocking_direction	0	0	0	input	clocking_skew	OPTIONAL	default: EBNF optionality				
+1800-2023	clocking_direction	1	0	0	output	clocking_skew	OPTIONAL	default: EBNF optionality				
+1800-2023	clocking_direction	2	0	0	input	clocking_skew	OPTIONAL	default: EBNF optionality				
+1800-2023	clocking_direction	2	1	0	output	clocking_skew	OPTIONAL	default: EBNF optionality				
+1800-2023	clocking_decl_assign	0	0	0	signal_identifier	= expression	OPTIONAL	default: EBNF optionality				
+1800-2023	clocking_skew	0	0	0	edge_identifier	delay_control	OPTIONAL	default: EBNF optionality				
+1800-2023	clocking_drive	0	0	0	<=	cycle_delay	OPTIONAL	default: EBNF optionality				
+1800-2023	randsequence_statement	0	0	0	(	rs_production_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	rs_production	0	0	0	^	data_type_or_void	OPTIONAL	default: EBNF optionality				
+1800-2023	rs_production	0	1	0	rs_production_identifier	( tf_port_list )	OPTIONAL	default: EBNF optionality				
+1800-2023	rs_rule	0	0	0	rs_production_list	:= rs_weight_specification [ rs_code_block ]	OPTIONAL	default: EBNF optionality				
+1800-2023	rs_rule	0	1	1	rs_weight_specification	rs_code_block	OPTIONAL	default: EBNF optionality				
+1800-2023	rs_production_list	1	0	0	join	( expression )	OPTIONAL	default: EBNF optionality				
+1800-2023	rs_production_item	0	0	0	rs_production_identifier	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2023	rs_if_else	0	0	0	rs_production_item	else rs_production_item	OPTIONAL	default: EBNF optionality				
+1800-2023	rs_case_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1800-2023	parallel_path_description	0	0	0	specify_input_terminal_descriptor	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2023	full_path_description	0	0	0	list_of_path_inputs	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2023	parallel_edge_sensitive_path_description	0	0	0	(	edge_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	parallel_edge_sensitive_path_description	0	1	0	specify_input_terminal_descriptor	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2023	parallel_edge_sensitive_path_description	0	2	0	specify_output_terminal_descriptor	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2023	parallel_edge_sensitive_path_description	1	0	0	(	edge_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	parallel_edge_sensitive_path_description	1	1	0	specify_input_terminal_descriptor	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2023	full_edge_sensitive_path_description	0	0	0	(	edge_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	full_edge_sensitive_path_description	0	1	0	list_of_path_inputs	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2023	full_edge_sensitive_path_description	0	2	0	list_of_path_outputs	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2023	full_edge_sensitive_path_description	1	0	0	(	edge_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	full_edge_sensitive_path_description	1	1	0	list_of_path_inputs	polarity_operator	OPTIONAL	default: EBNF optionality				
+1800-2023	specify_input_terminal_descriptor	0	0	0	input_identifier	[ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside specify_input_terminal_descriptor				
+1800-2023	specify_input_terminal_descriptor	0	1	1	[	constant_range_expression	LITERAL	table: specify_input_terminal_descriptor	docs/systemverilog/2023/md/section-13-tasks-and-functions-subroutines.md:878: $display( data[j] ); // data can be read but not written	rendered	specify_input_terminal_descriptor	sp_setup_select.sv: sv_2023=ACCEPT
+1800-2023	specify_output_terminal_descriptor	0	0	0	output_identifier	[ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside specify_output_terminal_descriptor				
+1800-2023	specify_output_terminal_descriptor	0	1	1	[	constant_range_expression	LITERAL	table: specify_output_terminal_descriptor	docs/systemverilog/2023/md/section-13-tasks-and-functions-subroutines.md:878: $display( data[j] ); // data can be read but not written	rendered	specify_output_terminal_descriptor	sp_path_select.sv: sv_2023=ACCEPT
+1800-2023	system_timing_check	11	0	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	1	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	2	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	3	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	4	0	timing_check_limit	, [ notifier ] [ , [ timestamp_condition ] [ , [ timecheck_condition ] [ , [ delayed_reference ] [ ,	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	5	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	6	1	]	, [ timestamp_condition ] [ , [ timecheck_condition ] [ , [ delayed_reference ] [ , [ delayed_data ]	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	7	2	,	timestamp_condition	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	8	2	]	, [ timecheck_condition ] [ , [ delayed_reference ] [ , [ delayed_data ] ] ]	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	9	3	,	timecheck_condition	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	10	3	]	, [ delayed_reference ] [ , [ delayed_data ] ]	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	11	4	,	delayed_reference	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	12	4	]	, [ delayed_data ]	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	13	5	,	delayed_data	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	14	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	15	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	16	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1800-2023	system_timing_check	11	17	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1800-2023	delayed_data	1	0	0	terminal_identifier	constant_mintypmax_expression	LITERAL	table: delayed_data	NOTE: no clause example spells the bracket; the literal reading is SV-CORPUS-GRAD.3.63 (bold in the PDF, measured against the corpus) — the probe is the proof	rendered	delayed_data	sp_setuphold_delayed.sv: sv_2023=ACCEPT
+1800-2023	delayed_reference	1	0	0	terminal_identifier	constant_mintypmax_expression	LITERAL	table: delayed_reference	NOTE: no clause example spells the bracket; the literal reading is SV-CORPUS-GRAD.3.63 (bold in the PDF, measured against the corpus) — the probe is the proof	rendered	delayed_reference	sp_setuphold_delayed.sv: sv_2023=ACCEPT
+1800-2023	timing_check_event	0	0	0	```	timing_check_event_control	OPTIONAL	default: EBNF optionality				
+1800-2023	timing_check_event	0	1	0	specify_terminal_descriptor	&&& timing_check_condition	OPTIONAL	default: EBNF optionality				
+1800-2023	controlled_timing_check_event	0	0	0	specify_terminal_descriptor	&&& timing_check_condition	OPTIONAL	default: EBNF optionality				
+1800-2023	edge_control_specifier	0	0	0	edge	edge_descriptor { , edge_descriptor }	LITERAL	table: edge_control_specifier	docs/systemverilog/2023/md/section-31-timing-checks.md:188: edge_control_specifier ::= edge [ edge_descriptor { , edge_descriptor } ]	rendered	edge_control_specifier	sp_width_edge2.sv: sv_2023=ACCEPT
+1800-2023	streaming_concatenation	0	0	0	stream_operator	slice_size	OPTIONAL	default: EBNF optionality				
+1800-2023	stream_expression	0	0	0	expression	with [ array_range_expression ]	OPTIONAL	table: EBNF optionality inside stream_expression				
+1800-2023	stream_expression	0	1	1	with	array_range_expression	LITERAL	table: stream_expression	docs/systemverilog/2023/md/section-11-operators-and-expressions.md:1736: {<< byte{ p.header, p.len, p.payload with [0 +: p.len], p.crc }} = stream;	rendered	stream_expression	stream.sv: sv_2023=ACCEPT
+1800-2023	tf_call	0	0	0	}	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2023	system_tf_call	0	0	0	system_tf_identifier	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2023	system_tf_call	1	0	0	data_type	, expression	OPTIONAL	default: EBNF optionality				
+1800-2023	system_tf_call	2	0	0	,	expression	OPTIONAL	default: EBNF optionality				
+1800-2023	system_tf_call	2	1	0	}	, [ clocking_event ]	OPTIONAL	default: EBNF optionality				
+1800-2023	system_tf_call	2	2	1	,	clocking_event	OPTIONAL	default: EBNF optionality				
+1800-2023	subroutine_call	3	0	0	^	std ::	OPTIONAL	default: EBNF optionality				
+1800-2023	list_of_arguments	0	0	0	```	expression	OPTIONAL	default: EBNF optionality				
+1800-2023	list_of_arguments	0	1	0	,	expression	OPTIONAL	default: EBNF optionality				
+1800-2023	list_of_arguments	0	2	0	(	expression	OPTIONAL	default: EBNF optionality				
+1800-2023	list_of_arguments	1	0	0	(	expression	OPTIONAL	default: EBNF optionality				
+1800-2023	list_of_arguments	1	1	0	(	expression	OPTIONAL	default: EBNF optionality				
+1800-2023	method_call_body	0	0	0	}	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2023	array_manipulation_call	0	0	0	}	( list_of_arguments )	OPTIONAL	default: EBNF optionality				
+1800-2023	array_manipulation_call	0	1	0	]	with ( expression )	OPTIONAL	default: EBNF optionality				
+1800-2023	randomize_call	0	0	0	```	( [ variable_identifier_list | null ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	randomize_call	0	1	1	(	variable_identifier_list | null	OPTIONAL	default: EBNF optionality				
+1800-2023	randomize_call	0	2	1	with	( [ identifier_list ] )	OPTIONAL	default: EBNF optionality				
+1800-2023	randomize_call	0	3	2	(	identifier_list	OPTIONAL	default: EBNF optionality				
+1800-2023	tagged_union_expression	0	0	0	member_identifier	primary	OPTIONAL	default: EBNF optionality				
+1800-2023	constant_primary	2	0	0	specparam_identifier	[ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside constant_primary				
+1800-2023	constant_primary	2	1	1	[	constant_range_expression	LITERAL	table: constant_primary	docs/systemverilog/2023/md/section-10-assignment-statements.md:345: rega[3:5] = 7;	rendered	constant_primary_sv_2017	selects.sv: sv_2023=ACCEPT
+1800-2023	constant_primary	5	0	0	^	package_scope | class_scope	OPTIONAL	table: EBNF optionality inside constant_primary				
+1800-2023	constant_primary	7	0	0	constant_concatenation	[ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside constant_primary				
+1800-2023	constant_primary	7	1	1	[	constant_range_expression	LITERAL	table: constant_primary	docs/systemverilog/2023/md/section-10-assignment-statements.md:345: rega[3:5] = 7;	rendered	constant_primary_sv_2017	selects.sv: sv_2023=ACCEPT
+1800-2023	constant_primary	8	0	0	constant_multiple_concatenation	[ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside constant_primary				
+1800-2023	constant_primary	8	1	1	[	constant_range_expression	LITERAL	table: constant_primary	docs/systemverilog/2023/md/section-10-assignment-statements.md:345: rega[3:5] = 7;	rendered	constant_primary_sv_2017	selects.sv: sv_2023=ACCEPT
+1800-2023	primary	1	0	0	^	class_qualifier | package_scope	OPTIONAL	table: EBNF optionality inside primary				
+1800-2023	primary	3	0	0	concatenation	[ range_expression ]	OPTIONAL	table: EBNF optionality inside primary				
+1800-2023	primary	3	1	1	[	range_expression	LITERAL	table: primary	docs/systemverilog/2023/md/section-10-assignment-statements.md:345: rega[3:5] = 7;	rendered	primary_sv_2017	selects.sv: sv_2023=ACCEPT
+1800-2023	primary	4	0	0	multiple_concatenation	[ range_expression ]	OPTIONAL	table: EBNF optionality inside primary				
+1800-2023	primary	4	1	1	[	range_expression	LITERAL	table: primary	docs/systemverilog/2023/md/section-10-assignment-statements.md:345: rega[3:5] = 7;	rendered	primary_sv_2017	selects.sv: sv_2023=ACCEPT
+1800-2023	primary	5	0	0	function_subroutine_call	[ range_expression ]	OPTIONAL	table: EBNF optionality inside primary				
+1800-2023	primary	5	1	1	[	range_expression	LITERAL	table: primary	docs/systemverilog/2023/md/section-10-assignment-statements.md:345: rega[3:5] = 7;	rendered	primary_sv_2017	selects.sv: sv_2023=ACCEPT
+1800-2023	primary	14	0	0	:=	local ::48	OPTIONAL	table: EBNF optionality inside primary				
+1800-2023	primary	14	1	0	]	implicit_class_handle . | class_scope	OPTIONAL	table: EBNF optionality inside primary				
+1800-2023	bit_select	0	0	0	{	expression	LITERAL	table: bit_select	docs/systemverilog/2023/md/section-10-assignment-statements.md:343: rega[3] = 1;	rendered	bit_select	selects.sv: sv_2023=ACCEPT
+1800-2023	select	0	0	0	```	{ . member_identifier bit_select } . member_identifier	OPTIONAL	table: EBNF optionality inside select				
+1800-2023	select	0	1	0	bit_select	[ part_select_range ]	OPTIONAL	table: EBNF optionality inside select				
+1800-2023	select	0	2	1	[	part_select_range	LITERAL	table: select	docs/systemverilog/2023/md/section-10-assignment-statements.md:345: rega[3:5] = 7;	rendered(via bit_select, hop 1)	select	selects.sv: sv_2023=ACCEPT
+1800-2023	nonrange_select	0	0	0	```	{ . member_identifier bit_select } . member_identifier	OPTIONAL	default: EBNF optionality				
+1800-2023	constant_bit_select	0	0	0	{	constant_expression	LITERAL	table: constant_bit_select	docs/systemverilog/2023/md/section-10-assignment-statements.md:343: rega[3] = 1;	rendered	constant_bit_select	selects.sv: sv_2023=ACCEPT
+1800-2023	constant_select	0	0	0	```	{ . member_identifier constant_bit_select } . member_identifier	OPTIONAL	table: EBNF optionality inside constant_select				
+1800-2023	constant_select	0	1	0	constant_bit_select	[ constant_part_select_range ]	OPTIONAL	table: EBNF optionality inside constant_select				
+1800-2023	constant_select	0	2	1	[	constant_part_select_range	LITERAL	table: constant_select	docs/systemverilog/2023/md/section-10-assignment-statements.md:345: rega[3:5] = 7;	rendered(via constant_select_tail, hop 1)	constant_select_v2005	selects.sv: sv_2023=ACCEPT
+1800-2023	net_lvalue	2	0	0	^	assignment_pattern_expression_type	OPTIONAL	table: EBNF optionality inside net_lvalue				
+1800-2023	variable_lvalue	0	0	0	```	implicit_class_handle . | package_scope	OPTIONAL	table: EBNF optionality inside variable_lvalue				
+1800-2023	variable_lvalue	2	0	0	^	assignment_pattern_expression_type	OPTIONAL	table: EBNF optionality inside variable_lvalue				
+1800-2023	nonrange_variable_lvalue	0	0	0	```	implicit_class_handle . | package_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	decimal_number	1	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1800-2023	decimal_number	2	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1800-2023	decimal_number	3	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1800-2023	binary_number	0	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1800-2023	octal_number	0	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1800-2023	hex_number	0	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1800-2023	real_number	1	0	0	unsigned_number	. unsigned_number	OPTIONAL	default: EBNF optionality				
+1800-2023	real_number	1	1	0	exp	sign	OPTIONAL	default: EBNF optionality				
+1800-2023	attr_spec	0	0	0	attr_name	= constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2023	c_identifier	0	0	0	^	a-zA-Z_	OPTIONAL	default: EBNF optionality				
+1800-2023	c_identifier	0	1	0	{	a-zA-Z0-9_	OPTIONAL	default: EBNF optionality				
+1800-2023	hierarchical_identifier	0	0	0	^	$root .	LITERAL	generic: operator-led `[$`	docs/systemverilog/2023/md/section-10-assignment-statements.md:1145: typedef string T_SQ[$];	rendered(via hierarchical_bit_select, hop 1)	hierarchical_identifier	v2005_hier.v: sv_2023=ACCEPT
+1800-2023	ps_class_identifier	0	0	0	^	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	ps_covergroup_identifier	0	0	0	^	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	ps_checker_identifier	0	0	0	^	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	ps_identifier	0	0	0	^	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	ps_or_hierarchical_array_identifier	0	0	0	```	implicit_class_handle . | class_scope | package_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	ps_or_hierarchical_net_identifier	0	0	0	```	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	ps_or_hierarchical_property_identifier	0	0	0	```	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	ps_or_hierarchical_sequence_identifier	0	0	0	```	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	ps_or_hierarchical_tf_identifier	0	0	0	```	package_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	ps_parameter_identifier	0	0	0	```	package_scope | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	ps_parameter_identifier	1	0	0	generate_block_identifier	[ constant_expression ]	OPTIONAL	default: EBNF optionality				
+1800-2023	ps_parameter_identifier	1	1	1	[	constant_expression	OPTIONAL	default: EBNF optionality				
+1800-2023	ps_type_identifier	0	0	0	^	local ::48 | package_scope | class_scope	OPTIONAL	default: EBNF optionality				
+1800-2023	simple_identifier	0	0	0	^	a-zA-Z_	OPTIONAL	default: EBNF optionality				
+1800-2023	simple_identifier	0	1	0	{	a-zA-Z0-9_$	OPTIONAL	default: EBNF optionality				
+1800-2023	system_tf_identifier	0	0	0	]{	a-zA-Z0-9_$	OPTIONAL	default: EBNF optionality				
+1364-2005	library_declaration	0	0	0	file_path_spec	{ , file_path_spec }	OPTIONAL	default: EBNF optionality				
+1364-2005	library_declaration	0	1	0	]	-incdir file_path_spec { , file_path_spec }	OPTIONAL	default: EBNF optionality				
+1364-2005	module_declaration	0	0	0	module_identifier	module_parameter_port_list	OPTIONAL	default: EBNF optionality				
+1364-2005	module_declaration	1	0	0	module_identifier	module_parameter_port_list	OPTIONAL	default: EBNF optionality				
+1364-2005	module_declaration	1	1	0	]	list_of_port_declarations	OPTIONAL	default: EBNF optionality				
+1364-2005	port_reference	0	0	0	port_identifier	[ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside port_reference				
+1364-2005	port_reference	0	1	1	[	constant_range_expression	LITERAL	table: port_reference	docs/verilog/2005/md/section-12-hierarchical-structures.md:734: module split_ports (a[7:4], a[3:0]);	rendered(via constant_bit_select, hop 2)	port_reference	v2005_ports.v: verilog_2005=ACCEPT
+1364-2005	local_parameter_declaration	0	0	0	localparam	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	local_parameter_declaration	0	1	0	]	range	OPTIONAL	default: EBNF optionality				
+1364-2005	parameter_declaration	0	0	0	parameter	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	parameter_declaration	0	1	0	]	range	OPTIONAL	default: EBNF optionality				
+1364-2005	specparam_declaration	0	0	0	specparam	range	OPTIONAL	default: EBNF optionality				
+1364-2005	inout_declaration	0	0	0	inout	net_type	OPTIONAL	default: EBNF optionality				
+1364-2005	inout_declaration	0	1	0	]	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	inout_declaration	0	2	0	]	range	OPTIONAL	default: EBNF optionality				
+1364-2005	input_declaration	0	0	0	input	net_type	OPTIONAL	default: EBNF optionality				
+1364-2005	input_declaration	0	1	0	]	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	input_declaration	0	2	0	]	range	OPTIONAL	default: EBNF optionality				
+1364-2005	output_declaration	0	0	0	output	net_type	OPTIONAL	default: EBNF optionality				
+1364-2005	output_declaration	0	1	0	]	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	output_declaration	0	2	0	]	range	OPTIONAL	default: EBNF optionality				
+1364-2005	output_declaration	1	0	0	reg	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	output_declaration	1	1	0	]	range	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	0	0	0	net_type	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	0	1	0	]	delay3	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	1	0	0	net_type	drive_strength	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	1	1	0	]	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	1	2	0	]	delay3	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	2	0	0	net_type	vectored | scalared	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	2	1	0	]	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	2	2	0	range	delay3	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	3	0	0	net_type	drive_strength	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	3	1	0	]	vectored | scalared	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	3	2	0	]	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	3	3	0	range	delay3	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	4	0	0	trireg	charge_strength	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	4	1	0	]	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	4	2	0	]	delay3	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	5	0	0	trireg	drive_strength	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	5	1	0	]	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	5	2	0	]	delay3	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	6	0	0	trireg	charge_strength	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	6	1	0	]	vectored | scalared	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	6	2	0	]	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	6	3	0	range	delay3	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	7	0	0	trireg	drive_strength	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	7	1	0	]	vectored | scalared	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	7	2	0	]	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	net_declaration	7	3	0	range	delay3	OPTIONAL	default: EBNF optionality				
+1364-2005	reg_declaration	0	0	0	reg	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	reg_declaration	0	1	0	]	range	OPTIONAL	default: EBNF optionality				
+1364-2005	list_of_variable_port_identifiers	0	0	0	port_identifier	= constant_expression	OPTIONAL	default: EBNF optionality				
+1364-2005	list_of_variable_port_identifiers	0	1	0	port_identifier	= constant_expression	OPTIONAL	default: EBNF optionality				
+1364-2005	pulse_control_specparam	0	0	0	reject_limit_value	, error_limit_value	OPTIONAL	default: EBNF optionality				
+1364-2005	pulse_control_specparam	1	0	0	reject_limit_value	, error_limit_value	OPTIONAL	default: EBNF optionality				
+1364-2005	dimension	0	0	0	^	dimension_constant_expression : dimension_constant_expression	LITERAL	table: dimension	docs/verilog/2005/md/section-10-tasks-and-functions.md:298: input [31:0] tics;	rendered	unpacked_dimension	dims_v2005.v: verilog_2005=ACCEPT
+1364-2005	range	0	0	0	^	msb_constant_expression : lsb_constant_expression	LITERAL	table: range	docs/verilog/2005/md/section-10-tasks-and-functions.md:298: input [31:0] tics;	rendered	packed_dimension	dims_v2005.v: verilog_2005=ACCEPT
+1364-2005	function_declaration	0	0	0	function	automatic	OPTIONAL	default: EBNF optionality				
+1364-2005	function_declaration	0	1	0	]	function_range_or_type	OPTIONAL	default: EBNF optionality				
+1364-2005	function_declaration	1	0	0	function	automatic	OPTIONAL	default: EBNF optionality				
+1364-2005	function_declaration	1	1	0	]	function_range_or_type	OPTIONAL	default: EBNF optionality				
+1364-2005	function_range_or_type	0	0	0	^	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	function_range_or_type	0	1	0	]	range	OPTIONAL	default: EBNF optionality				
+1364-2005	task_declaration	0	0	0	task	automatic	OPTIONAL	default: EBNF optionality				
+1364-2005	task_declaration	1	0	0	task	automatic	OPTIONAL	default: EBNF optionality				
+1364-2005	task_declaration	1	1	0	(	task_port_list	OPTIONAL	default: EBNF optionality				
+1364-2005	tf_input_declaration	0	0	0	input	reg	OPTIONAL	default: EBNF optionality				
+1364-2005	tf_input_declaration	0	1	0	]	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	tf_input_declaration	0	2	0	]	range	OPTIONAL	default: EBNF optionality				
+1364-2005	tf_output_declaration	0	0	0	output	reg	OPTIONAL	default: EBNF optionality				
+1364-2005	tf_output_declaration	0	1	0	]	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	tf_output_declaration	0	2	0	]	range	OPTIONAL	default: EBNF optionality				
+1364-2005	tf_inout_declaration	0	0	0	inout	reg	OPTIONAL	default: EBNF optionality				
+1364-2005	tf_inout_declaration	0	1	0	]	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	tf_inout_declaration	0	2	0	]	range	OPTIONAL	default: EBNF optionality				
+1364-2005	block_item_declaration	0	0	0	reg	signed	OPTIONAL	default: EBNF optionality				
+1364-2005	block_item_declaration	0	1	0	]	range	OPTIONAL	default: EBNF optionality				
+1364-2005	cmos_switch_instance	0	0	0	^	name_of_gate_instance	OPTIONAL	default: EBNF optionality				
+1364-2005	enable_gate_instance	0	0	0	^	name_of_gate_instance	OPTIONAL	default: EBNF optionality				
+1364-2005	mos_switch_instance	0	0	0	^	name_of_gate_instance	OPTIONAL	default: EBNF optionality				
+1364-2005	n_input_gate_instance	0	0	0	^	name_of_gate_instance	OPTIONAL	default: EBNF optionality				
+1364-2005	n_output_gate_instance	0	0	0	^	name_of_gate_instance	OPTIONAL	default: EBNF optionality				
+1364-2005	pass_switch_instance	0	0	0	^	name_of_gate_instance	OPTIONAL	default: EBNF optionality				
+1364-2005	pass_enable_switch_instance	0	0	0	^	name_of_gate_instance	OPTIONAL	default: EBNF optionality				
+1364-2005	pull_gate_instance	0	0	0	^	name_of_gate_instance	OPTIONAL	default: EBNF optionality				
+1364-2005	name_of_gate_instance	0	0	0	gate_instance_identifier	range	OPTIONAL	default: EBNF optionality				
+1364-2005	module_instantiation	0	0	0	module_identifier	parameter_value_assignment	OPTIONAL	default: EBNF optionality				
+1364-2005	named_parameter_assignment	0	0	0	(	mintypmax_expression	OPTIONAL	default: EBNF optionality				
+1364-2005	module_instance	0	0	0	(	list_of_port_connections	OPTIONAL	default: EBNF optionality				
+1364-2005	name_of_module_instance	0	0	0	module_instance_identifier	range	OPTIONAL	default: EBNF optionality				
+1364-2005	ordered_port_connection	0	0	0	}	expression	OPTIONAL	default: EBNF optionality				
+1364-2005	named_port_connection	0	0	0	(	expression	OPTIONAL	default: EBNF optionality				
+1364-2005	case_generate_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1364-2005	generate_block	1	0	0	begin	: generate_block_identifier	OPTIONAL	default: EBNF optionality				
+1364-2005	udp_output_declaration	1	0	0	port_identifier	= constant_expression	OPTIONAL	default: EBNF optionality				
+1364-2005	sequential_body	0	0	0	^	udp_initial_statement	OPTIONAL	default: EBNF optionality				
+1364-2005	udp_instantiation	0	0	0	udp_identifier	drive_strength	OPTIONAL	default: EBNF optionality				
+1364-2005	udp_instantiation	0	1	0	]	delay2	OPTIONAL	default: EBNF optionality				
+1364-2005	udp_instance	0	0	0	^	name_of_udp_instance	OPTIONAL	default: EBNF optionality				
+1364-2005	name_of_udp_instance	0	0	0	udp_instance_identifier	range	OPTIONAL	default: EBNF optionality				
+1364-2005	continuous_assign	0	0	0	assign	drive_strength	OPTIONAL	default: EBNF optionality				
+1364-2005	continuous_assign	0	1	0	]	delay3	OPTIONAL	default: EBNF optionality				
+1364-2005	blocking_assignment	0	0	0	=	delay_or_event_control	OPTIONAL	default: EBNF optionality				
+1364-2005	nonblocking_assignment	0	0	0	<=	delay_or_event_control	OPTIONAL	default: EBNF optionality				
+1364-2005	par_block	0	0	0	fork	: block_identifier { block_item_declaration }	OPTIONAL	default: EBNF optionality				
+1364-2005	seq_block	0	0	0	begin	: block_identifier { block_item_declaration }	OPTIONAL	default: EBNF optionality				
+1364-2005	event_trigger	0	0	0	{	expression	OPTIONAL	default: EBNF optionality				
+1364-2005	conditional_statement	0	0	0	statement_or_null	else statement_or_null	OPTIONAL	default: EBNF optionality				
+1364-2005	if_else_if_statement	0	0	0	}	else statement_or_null	OPTIONAL	default: EBNF optionality				
+1364-2005	case_item	1	0	0	default	:	OPTIONAL	default: EBNF optionality				
+1364-2005	system_task_enable	0	0	0	system_task_identifier	( [ expression ] { , [ expression ] } )	OPTIONAL	default: EBNF optionality				
+1364-2005	system_task_enable	0	1	1	(	expression	OPTIONAL	default: EBNF optionality				
+1364-2005	system_task_enable	0	2	1	,	expression	OPTIONAL	default: EBNF optionality				
+1364-2005	task_enable	0	0	0	hierarchical_task_identifier	( expression { , expression } )	OPTIONAL	default: EBNF optionality				
+1364-2005	parallel_path_description	0	0	0	specify_input_terminal_descriptor	polarity_operator	OPTIONAL	default: EBNF optionality				
+1364-2005	full_path_description	0	0	0	list_of_path_inputs	polarity_operator	OPTIONAL	default: EBNF optionality				
+1364-2005	specify_input_terminal_descriptor	0	0	0	input_identifier	[ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside specify_input_terminal_descriptor				
+1364-2005	specify_input_terminal_descriptor	0	1	1	[	constant_range_expression	LITERAL	table: specify_input_terminal_descriptor	docs/verilog/2005/md/section-18-value-change-dump-vcd-files.md:112: | $dumpvars ( levels [ , list_of_modules_or_variables ] ) ;	rendered	specify_input_terminal_descriptor	sp_setup_select.sv: verilog_2005=ACCEPT
+1364-2005	specify_output_terminal_descriptor	0	0	0	output_identifier	[ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside specify_output_terminal_descriptor				
+1364-2005	specify_output_terminal_descriptor	0	1	1	[	constant_range_expression	LITERAL	table: specify_output_terminal_descriptor	docs/verilog/2005/md/section-18-value-change-dump-vcd-files.md:112: | $dumpvars ( levels [ , list_of_modules_or_variables ] ) ;	rendered	specify_output_terminal_descriptor	sp_path_select.sv: verilog_2005=ACCEPT
+1364-2005	parallel_edge_sensitive_path_description	0	0	0	(	edge_identifier	OPTIONAL	default: EBNF optionality				
+1364-2005	parallel_edge_sensitive_path_description	0	1	0	specify_output_terminal_descriptor	polarity_operator	OPTIONAL	default: EBNF optionality				
+1364-2005	full_edge_sensitive_path_description	0	0	0	(	edge_identifier	OPTIONAL	default: EBNF optionality				
+1364-2005	full_edge_sensitive_path_description	0	1	0	list_of_path_outputs	polarity_operator	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	0	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	1	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	2	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	3	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	4	0	timing_check_limit	, [ notifier ] [ , [ stamptime_condition ] [ , [ checktime_condition ] [ , [ delayed_reference ] [ ,	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	5	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	6	1	]	, [ stamptime_condition ] [ , [ checktime_condition ] [ , [ delayed_reference ] [ , [ delayed_data ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	7	2	,	stamptime_condition	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	8	2	]	, [ checktime_condition ] [ , [ delayed_reference ] [ , [ delayed_data ] ] ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	9	3	,	checktime_condition	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	10	3	]	, [ delayed_reference ] [ , [ delayed_data ] ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	11	4	,	delayed_reference	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	12	4	]	, [ delayed_data ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	13	5	,	delayed_data	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	14	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	15	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	16	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	17	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	18	0	timing_check_limit	, [ notifier ] [ , [ stamptime_condition ] [ , [ checktime_condition ] [ , [ delayed_reference ] [ ,	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	19	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	20	1	]	, [ stamptime_condition ] [ , [ checktime_condition ] [ , [ delayed_reference ] [ , [ delayed_data ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	21	2	,	stamptime_condition	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	22	2	]	, [ checktime_condition ] [ , [ delayed_reference ] [ , [ delayed_data ] ] ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	23	3	,	checktime_condition	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	24	3	]	, [ delayed_reference ] [ , [ delayed_data ] ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	25	4	,	delayed_reference	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	26	4	]	, [ delayed_data ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	27	5	,	delayed_data	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	28	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	29	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	30	0	timing_check_limit	, [ notifier ] [ , [ event_based_flag ] [ , [ remain_active_flag ] ] ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	31	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	32	1	]	, [ event_based_flag ] [ , [ remain_active_flag ] ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	33	2	,	event_based_flag	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	34	2	]	, [ remain_active_flag ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	35	3	,	remain_active_flag	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	36	0	timing_check_limit	, [ notifier ] [ , [ event_based_flag ] [ , [ remain_active_flag ] ] ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	37	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	38	1	]	, [ event_based_flag ] [ , [ remain_active_flag ] ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	39	2	,	event_based_flag	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	40	2	]	, [ remain_active_flag ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	41	3	,	remain_active_flag	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	42	0	timing_check_limit	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	43	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	44	0	timing_check_limit	, threshold [ , notifier ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	45	1	threshold	, notifier	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	46	0	end_edge_offset	, [ notifier ]	OPTIONAL	default: EBNF optionality				
+1364-2005	system_timing_check	11	47	1	,	notifier	OPTIONAL	default: EBNF optionality				
+1364-2005	delayed_data	1	0	0	terminal_identifier	constant_mintypmax_expression	LITERAL	table: delayed_data	NOTE: no clause example spells the bracket; the literal reading is SV-CORPUS-GRAD.3.63 (bold in the PDF, measured against the corpus) — the probe is the proof	rendered	delayed_data	sp_setuphold_delayed.sv: verilog_2005=ACCEPT
+1364-2005	delayed_reference	1	0	0	terminal_identifier	constant_mintypmax_expression	LITERAL	table: delayed_reference	NOTE: no clause example spells the bracket; the literal reading is SV-CORPUS-GRAD.3.63 (bold in the PDF, measured against the corpus) — the probe is the proof	rendered	delayed_reference	sp_setuphold_delayed.sv: verilog_2005=ACCEPT
+1364-2005	timing_check_event	0	0	0	specify_terminal_descriptor	&&& timing_check_condition	OPTIONAL	default: EBNF optionality				
+1364-2005	controlled_timing_check_event	0	0	0	specify_terminal_descriptor	&&& timing_check_condition	OPTIONAL	default: EBNF optionality				
+1364-2005	edge_control_specifier	0	0	0	edge	edge_descriptor { , edge_descriptor }	LITERAL	table: edge_control_specifier	docs/verilog/2005/md/section-15-timing-checks.md:179: edge_control_specifier ::= edge [ edge_descriptor { , edge_descriptor } ]	rendered	edge_control_specifier	sp_width_edge2.sv: verilog_2005=ACCEPT
+1364-2005	system_function_call	0	0	0	system_function_identifier	( expression { , expression } )	OPTIONAL	default: EBNF optionality				
+1364-2005	constant_primary	1	0	0	parameter_identifier	[ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside constant_primary				
+1364-2005	constant_primary	1	1	1	[	constant_range_expression	LITERAL	table: constant_primary	docs/verilog/2005/md/section-12-hierarchical-structures.md:734: module split_ports (a[7:4], a[3:0]);	rendered	constant_primary_sv_2017	selects_v2005.v: verilog_2005=ACCEPT
+1364-2005	constant_primary	2	0	0	specparam_identifier	[ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside constant_primary				
+1364-2005	constant_primary	2	1	1	[	constant_range_expression	LITERAL	table: constant_primary	docs/verilog/2005/md/section-12-hierarchical-structures.md:734: module split_ports (a[7:4], a[3:0]);	rendered	constant_primary_sv_2017	selects_v2005.v: verilog_2005=ACCEPT
+1364-2005	primary	1	0	0	hierarchical_identifier	{ [ expression ] } [ range_expression ]	OPTIONAL	table: EBNF optionality inside primary				
+1364-2005	primary	1	1	1	{	expression	LITERAL	table: primary	docs/verilog/2005/md/section-12-hierarchical-structures.md:376: flop my_flop(in[i], in1[i], out1[i]);	rendered	primary_sv_2017	selects_v2005.v: verilog_2005=ACCEPT
+1364-2005	primary	1	2	1	}	range_expression	LITERAL	table: primary	docs/verilog/2005/md/section-12-hierarchical-structures.md:734: module split_ports (a[7:4], a[3:0]);	rendered	primary_sv_2017	selects_v2005.v: verilog_2005=ACCEPT
+1364-2005	net_lvalue	0	0	0	hierarchical_net_identifier	{ [ constant_expression ] } [ constant_range_expression ]	OPTIONAL	table: EBNF optionality inside net_lvalue				
+1364-2005	net_lvalue	0	1	1	{	constant_expression	LITERAL	table: net_lvalue	docs/verilog/2005/md/section-12-hierarchical-structures.md:376: flop my_flop(in[i], in1[i], out1[i]);	rendered(via constant_bit_select, hop 2)	net_lvalue	selects_v2005.v: verilog_2005=ACCEPT
+1364-2005	net_lvalue	0	2	1	}	constant_range_expression	LITERAL	table: net_lvalue	docs/verilog/2005/md/section-12-hierarchical-structures.md:734: module split_ports (a[7:4], a[3:0]);	rendered(via constant_bit_select, hop 2)	net_lvalue	selects_v2005.v: verilog_2005=ACCEPT
+1364-2005	variable_lvalue	0	0	0	hierarchical_variable_identifier	{ [ expression ] } [ range_expression ]	OPTIONAL	table: EBNF optionality inside variable_lvalue				
+1364-2005	variable_lvalue	0	1	1	{	expression	LITERAL	table: variable_lvalue	docs/verilog/2005/md/section-12-hierarchical-structures.md:376: flop my_flop(in[i], in1[i], out1[i]);	rendered(via unsized_dimension, hop 2)	variable_lvalue	selects_v2005.v: verilog_2005=ACCEPT
+1364-2005	variable_lvalue	0	2	1	}	range_expression	LITERAL	table: variable_lvalue	docs/verilog/2005/md/section-12-hierarchical-structures.md:734: module split_ports (a[7:4], a[3:0]);	rendered(via unsized_dimension, hop 2)	variable_lvalue	selects_v2005.v: verilog_2005=ACCEPT
+1364-2005	decimal_number	1	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1364-2005	decimal_number	2	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1364-2005	decimal_number	3	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1364-2005	binary_number	0	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1364-2005	octal_number	0	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1364-2005	hex_number	0	0	0	^	size	OPTIONAL	default: EBNF optionality				
+1364-2005	attr_spec	0	0	0	attr_name	= constant_expression	OPTIONAL	default: EBNF optionality				
+1364-2005	hierarchical_identifier	0	0	0	identifier	[ constant_expression ]	OPTIONAL	table: EBNF optionality inside hierarchical_identifier				
+1364-2005	hierarchical_identifier	0	1	1	[	constant_expression	LITERAL	table: hierarchical_identifier	docs/verilog/2005/md/section-12-hierarchical-structures.md:1617: word[3].p.read_mem(address, data[63:48]);	rendered(via hierarchical_bit_select, hop 1)	hierarchical_identifier	v2005_hier.v: verilog_2005=ACCEPT
+1364-2005	simple_identifier	0	0	0	^	a-zA-Z_	OPTIONAL	default: EBNF optionality				
+1364-2005	simple_identifier	0	1	0	{	a-zA-Z0-9_$	OPTIONAL	default: EBNF optionality				
+1364-2005	system_function_identifier	0	0	0	]{	a-zA-Z0-9_$	OPTIONAL	default: EBNF optionality				
+1364-2005	system_task_identifier	0	0	0	]{	a-zA-Z0-9_$	OPTIONAL	default: EBNF optionality				

@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-24 — SV-CORPUS-GRAD.21 (`PGEN-SV-CORPUS-GRAD-0418`): a typography class is closed by a census with evidence and a reproducer per row, not by the two members that bit
+
+- **The extraction cannot tell bold from plain, so the instrument reads the clause instead.** Every bracket pair in three Annex A texts got a verdict: 1 090 optional by EBNF, 88 literal — each with the clause's example that spells the bracket, or a named provenance where no example does — and a reproducer parsed on the edition's profile. The population was unknown for nine days and two incidents; it is 88, and it is fully rendered.
+- **A probe that rejects is a question for the standard first.** `$width(posedge clk, 1)` rejected on the SV profiles and accepted on verilog_2005; the brackets were innocent — 1800 makes the threshold mandatory where 1364 makes it optional, and the grammar already carried both readings as profile twins. Pinned two-sided so the difference stays a fact and not a re-derivation.
+- **The rendering hint is a hint.** Three hops of rule references miss arms that live beyond an LR-eliminated chain (`property_expr`'s operators sit in `prop_primary_sv_2017`); the probe column is the proof, and the TSV says which is which.
 ## 2026-09-24 — SV-CORPUS-GRAD.22 (`PGEN-SV-CORPUS-GRAD-0417`): a census carries the inventory it was taken on, and a doctrine that checks the census against itself is green forever
 
 - **Consistency with the artifact you derive from is not currency.** Tier 1 held the partition equal to the census's GAP set — true at every commit — while the census named rules deleted twenty-three releases earlier with `covered` counts. The missing arm is the one that reads the SUBJECT: the grammar's inventory from the census's own producer, compared as sets in both directions.

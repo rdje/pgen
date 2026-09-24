@@ -1,0 +1,1 @@
+module m; int x; covergroup cg; cp: coverpoint x { bins b[] = {[1:3]}; bins c[4] = {[1:10]}; bins t = (1 => 2 [*3]); bins u = (1 => 2 [-> 2]); bins v = (1 => 2 [= 2]); bins w = {[1:3], [5:7]}; } endgroup endmodule
