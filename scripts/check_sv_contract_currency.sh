@@ -149,9 +149,13 @@ if [ -x "$PIPELINE" ]; then
       # name that commit. The moment the commit EXISTS, the placeholder is rot, so back-filling it is
       # gated rather than reminded — a reminder has already lost 1 592 times in this repository
       # (LESSON-RETRIEVAL.1). The digest is what identifies the row, so the fix is one edit.
-      pending_row="$(printf '%s\n' "${ROWS[@]}" | awk -F'\t' -v d="$d" '$4 == d && $1 == "(pending)"')"
+      # ⛔ SV-CORPUS-GRAD.23 (2026-09-24): the rows are spelled `PENDING` (the release ceremony's row
+      # template writes that word) and this test read only `(pending)`, so it matched none of 49 such
+      # rows and never fired — a tripwire that fails OPEN in the passing direction. It now reads the
+      # register's OWN spelling, both forms; the RED control plants a `PENDING` row for a committed digest.
+      pending_row="$(printf '%s\n' "${ROWS[@]}" | awk -F'\t' -v d="$d" '$4 == d && ($1 == "PENDING" || $1 == "(pending)")')"
       [ -z "$pending_row" ] || note "the register row for semantic digest ${d:0:16}… still reads
-  \`(pending)\` in its \`commit\` column, but that state IS committed — as ${sha:0:8}. Back-fill it:
+  \`$(printf '%s' "$pending_row" | cut -f1)\` in its \`commit\` column, but that state IS committed — as ${sha:0:8}. Back-fill it:
   the digest is what identifies the row, so this is a one-word edit in $REGISTER."
     fi
   done < <(git rev-list --reverse "$GENESIS..HEAD" -- "$GRAMMAR")

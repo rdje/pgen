@@ -57,10 +57,14 @@ derive() {  # $1 = tree | <commit>; prints key=value lines
 eta() {  # reads the history; prints rate/eta fields
   [ -f "$HIST" ] || { echo "rate=n/a"; echo "eta_releases=n/a"; echo "eta_days=n/a"; echo "window=0"; return 0; }
   tail -n +2 "$HIST" | tail -n 5 | awk -F'\t' '
-    { n++; d[n]=$1; it[n]=$4 }
+    { n++; d[n]=$1; it[n]=$4; if (!($3 in seen)) { seen[$3]=1; labels++ } }
     END {
       if (n < 2) { print "rate=n/a"; print "eta_releases=n/a"; print "eta_days=n/a"; print "window=" n; exit }
-      closed = it[1] - it[n]; rel = n - 1
+      # rel = RELEASES in the window, not rows: a commit outside a release that moves the distance (a leaf
+      # closed or opened) records a row under the shipped release label (SV-CORPUS-GRAD.23, 2026-09-24),
+      # so rows can share a label and the per-release rate must not count them twice.
+      closed = it[1] - it[n]; rel = labels - 1
+      if (rel < 1) { print "rate=n/a"; print "eta_releases=n/a (one release in the window)"; print "eta_days=n/a"; print "window=" n; exit }
       cmd = "date -j -f %Y-%m-%dT%H:%M:%S " substr(d[1],1,19) " +%s 2>/dev/null || date -d " d[1] " +%s"; cmd | getline t1; close(cmd)
       cmd = "date -j -f %Y-%m-%dT%H:%M:%S " substr(d[n],1,19) " +%s 2>/dev/null || date -d " d[n] " +%s"; cmd | getline t2; close(cmd)
       days = (t2 - t1) / 86400.0; rpd = (days > 0) ? rel / days : 0
@@ -94,7 +98,7 @@ markdown_block() {
   echo
   echo "**Trailing closure rate:** ${e[rate]} items per release over the last ${e[window]} recorded release(s); **ETA ≈ ${e[eta_releases]} releases ≈ ${e[eta_days]} days** — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count."
   echo
-  echo "History: [\`release_distance/history.tsv\`](../../tasks/artifacts/sv_corpus_grad/release_distance/history.tsv) (one row per release, appended by \`--record\`; the last row must equal this tree, checked by \`--check\`)."
+  echo "History: [\`release_distance/history.tsv\`](../../tasks/artifacts/sv_corpus_grad/release_distance/history.tsv) (one row per release, appended by \`--record\` — and one more, under the shipped release's label, when a commit outside a release moves the distance; the rate above divides by distinct releases; the last row must equal this tree, checked by \`--check\`)."
   echo "$END"
 }
 

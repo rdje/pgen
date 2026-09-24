@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-24 — SV-CORPUS-GRAD.23 (`PGEN-SV-CORPUS-GRAD-0416`): a tripwire tested one spelling and the ceremony wrote another, so it passed for fourteen releases
+
+- **A gate that matches nothing passes.** `awk '$1 == "(pending)"'` against rows written `PENDING` is not a failing check, it is a check with an empty population — rc 0 every run, 49 rows unasked. The fix is to read the artifact's OWN spelling (both forms) and to prove the tripwire with a RED control in each — the same word the template writes, planted on a committed digest, refused by name.
+- **Back-fill by digest, and say which frontend read it.** 41 rows re-digest to their slice's commit under today's frontend; 8 do not, and every one of the 8 is an ancestor of the declared re-key — the previous frontend's reading, which only that frontend can reproduce. Rebuilding that frontend once (a detached worktree at the re-key commit, 40 s) and digesting the 8 under it read 8 of 8 to their rows — the cheap by-name back-fill was available and not taken, because a sha that no digest confirms is exactly the kind of documentation this register exists to replace.
+- **The row for the commit being made is the one row that may say `PENDING`, and the next commit pays it.** The ceremony list now says so, because the gate now enforces it.
 ## 2026-09-24 — GRAMMAR-WELLFORMED.H.20.3 (`PGEN-GRAMMAR-WELLFORMED-0185`): a ratchet goes stale from BELOW when the instrument improves, and a pinned-binary census is what separates the grammar's delta from the instrument's
 
 - **The ceiling vintage did not reproduce its own ceiling.** `958fcc24` was pinned at 155 on 2026-08-23; the HEAD binary reads it at 150. Nothing in the grammar moved — the frontend did (`EBNF-FRONTEND-SILENT-TRUNCATION.6` removed `H.20.1`'s whole class eleven days later) and nobody lowered the number. The same shape on `return_annotation`: `5 < 6`, red for weeks beside the SV row, and the `-0415` record read past it. A count against a ceiling is two numbers with two provenances; the two-sided ratchet is the only thing that made the second one visible.

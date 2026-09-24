@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6302f06a.js";
+            window.path_to_searchindex_js = "searchindex-235d4d58.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -549,7 +549,7 @@ blocks), <code>report_grammar_certification.sh --markdown</code> (re-splice the 
 <li><strong>Ceremony documents, in lockstep</strong>: the revision register row (digest → release → ledger id),
 the released-parser bug ledger row, the integration contract (current-state note, version,
 history, digest), this book’s changelog, the platform book’s anchors, the task leaf with its
-acceptance checklist, <code>docs/TASK_TREE.md</code>, <code>MEMORY.md</code>, <code>CHANGES.md</code>. ⛔ The digest those rows
+acceptance checklist, <code>docs/TASK_TREE.md</code>, <code>MEMORY.md</code>, <code>CHANGES.md</code>. ⛔ The register row of the commit being made is written <code>PENDING</code> — the ONE row that may say so — and the FIRST thing the commit after a release does is back-fill the previous row with its sha: tier A of <code>scripts/check_sv_contract_currency.sh</code> refuses a committed <code>PENDING</code> row from the next doctrines run on (<code>SV-CORPUS-GRAD.23</code>, 2026-09-24; it had read only <code>(pending)</code> and never fired). ⛔ The digest those rows
 carry is ONE command’s output — <code>bash scripts/check_baseline_identity.sh --digest ebnf_raw_ast grammars/systemverilog.ebnf</code> — because the identity carriers, the keyword-faithfulness census and
 the register’s back-fill tripwire all read that digester; a hand-rolled sha256 over an
 <code>--emit-raw-ast-json</code> dump serializes the same envelope differently and does not match it

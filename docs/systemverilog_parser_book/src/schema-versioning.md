@@ -374,7 +374,7 @@ each under the memory guard, sequentially.
 10. **Ceremony documents, in lockstep**: the revision register row (digest → release → ledger id),
     the released-parser bug ledger row, the integration contract (current-state note, version,
     history, digest), this book's changelog, the platform book's anchors, the task leaf with its
-    acceptance checklist, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`. ⛔ The digest those rows
+    acceptance checklist, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`. ⛔ The register row of the commit being made is written `PENDING` — the ONE row that may say so — and the FIRST thing the commit after a release does is back-fill the previous row with its sha: tier A of `scripts/check_sv_contract_currency.sh` refuses a committed `PENDING` row from the next doctrines run on (`SV-CORPUS-GRAD.23`, 2026-09-24; it had read only `(pending)` and never fired). ⛔ The digest those rows
     carry is ONE command's output — `bash scripts/check_baseline_identity.sh --digest ebnf_raw_ast
     grammars/systemverilog.ebnf` — because the identity carriers, the keyword-faithfulness census and
     the register's back-fill tripwire all read that digester; a hand-rolled sha256 over an
