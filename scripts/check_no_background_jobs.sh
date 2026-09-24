@@ -66,6 +66,16 @@ ancestry() {
 }
 EXCLUDE=" $(ancestry "$$" | tr '\n' ' ') "
 
+# ⛔ ENGINE-UNIVERSAL-SERVICES.77, resolved 2026-09-24 (routed by SV-CORPUS-GRAD.31): a process that holds a repo
+# handle is the right signal, and TWO classes of it are not jobs — the terminal's own git-badge probe
+# (iTerm's `pidinfo --git-state <repo>`, a ~3 s helper respawned with a NEW pid on every poll) and git's
+# own post-commit `maintenance run --auto` (detached, seconds). Both were read as `STILL RUNNING` on idle,
+# clean trees at every handoff of 2026-09-24. The discriminator is LIFETIME, never a token list: the
+# census samples TWICE, ${PGEN_HANDOFF_RESAMPLE_S:-5} s apart, and a candidate is a JOB only when the
+# same pid with the same command is present in both samples; one seen once is reported as transient.
+# RED control (measured): `tail -f README.md &` is present at both samples and blocks; a `cat README.md`
+# reader is gone by the second and does not.
+sample() {
 # ONE lsof call, pattern-free: which pids hold a repo FILE, and which merely inherited a repo cwd.
 LSOF="$(lsof -u "$(id -u)" -Fpfn 2>/dev/null | awk -v R="$REPO_ROOT/" -v RE="$REPO_ROOT" '
   /^p/ { pid = substr($0, 2); next }
@@ -105,6 +115,30 @@ done < <(printf '%s\n' "$SNAP")
 
 BLOCKING="$(printf '%s' "$BLOCKING" | sed '/^$/d')"
 ADVISORY="$(printf '%s' "$ADVISORY" | sed '/^$/d')"
+}
+sample
+TRANSIENT=""
+if [ -n "$BLOCKING" ]; then
+  FIRST="$BLOCKING"
+  sleep "${PGEN_HANDOFF_RESAMPLE_S:-5}"
+  sample
+  SECOND="$BLOCKING"; BLOCKING=""
+  # a job is present in BOTH samples: same pid, same command (etime differs, so compare without it)
+  # a row is `pid etime command…`; the command is everything after the two leading fields (etime moves between samples)
+  cmd_of() { printf '%s' "$1" | awk '{ $1 = ""; $2 = ""; sub(/^[ \t]+/, ""); print }'; }
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    pid="${line%% *}"; cmd="$(cmd_of "$line")"; persistent=0
+    while IFS= read -r l2; do
+      [ -n "$l2" ] || continue
+      [ "${l2%% *}" = "$pid" ] || continue
+      [ "$(cmd_of "$l2")" = "$cmd" ] && persistent=1
+    done < <(printf '%s\n' "$SECOND")
+    if [ "$persistent" = 1 ]; then BLOCKING="${BLOCKING}${line}"$'\n'; else TRANSIENT="${TRANSIENT}${line}"$'\n'; fi
+  done < <(printf '%s\n' "$FIRST")
+  BLOCKING="$(printf '%s' "$BLOCKING" | sed '/^$/d')"
+  TRANSIENT="$(printf '%s' "$TRANSIENT" | sed '/^$/d')"
+fi
 
 if [ -n "$BLOCKING" ]; then
   printf 'handoff: %s project-owned process(es) STILL RUNNING — not handoff-ready:\n\n' \
@@ -116,6 +150,10 @@ if [ -n "$BLOCKING" ]; then
 fi
 
 printf 'handoff: OK — no project-owned background job is running (repo %s)\n' "$REPO_ROOT"
+if [ -n "$TRANSIENT" ]; then
+  printf '  (transient: %s process(es) held a repo handle at the first sample and were gone %ss later — a terminal git-badge probe or git'"'"'s own post-commit maintenance, not a job:)\n' "$(printf '%s\n' "$TRANSIENT" | wc -l | tr -d ' ')" "${PGEN_HANDOFF_RESAMPLE_S:-5}"
+  printf '%s\n' "$TRANSIENT" | sed 's/^/    /'
+fi
 if [ -n "$ADVISORY" ]; then
   n="$(printf '%s\n' "$ADVISORY" | wc -l | tr -d ' ')"
   if [ -n "$SHOW_ALL" ]; then

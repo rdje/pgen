@@ -1,5 +1,9 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-24 — ENGINE-UNIVERSAL-SERVICES.77 routed class (`PGEN-ENGINE-UNIVERSAL-SERVICES-0162`): a job is what is still there when you look twice
+
+- **The signal was right and the reading was wrong.** A repo handle is the discriminator the handoff census was built on; the terminal's git-badge probe and git's own post-commit maintenance both hold one for a few seconds and neither is our job. A token list would have named two executables today and missed the third tomorrow; a second sample five seconds later names the class by the one property it actually has — it is gone.
+- **A grammar hygiene change without a disposition waits.** Deleting `method_call_receiver`'s dead qualifier arm moves parser bytes and nothing observable; the revision register can call that neither RELEASE nor GENERATOR-ONLY, and the rule of this repository is that a vocabulary hole gets a measured reason before it gets a word. `.33` waits for a release that moves a verdict.
 ## 2026-09-24 — SV-CORPUS-GRAD.21 (`PGEN-SV-CORPUS-GRAD-0418`): a typography class is closed by a census with evidence and a reproducer per row, not by the two members that bit
 
 - **The extraction cannot tell bold from plain, so the instrument reads the clause instead.** Every bracket pair in three Annex A texts got a verdict: 1 090 optional by EBNF, 88 literal — each with the clause's example that spells the bracket, or a named provenance where no example does — and a reproducer parsed on the edition's profile. The population was unknown for nine days and two incidents; it is 88, and it is fully rendered.
