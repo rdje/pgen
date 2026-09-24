@@ -68,7 +68,14 @@ envelope_divergence_ceiling() {
         semantic_annotation) echo 6 ;;
         # .10.13 plus LANG-CAPABILITY-AUDIT.10.14 — a leading `@annotation` binds to the
         # PREVIOUS rule's expression instead of the rule it precedes.
-        return_annotation) echo 6 ;;
+        # GRAMMAR-WELLFORMED.H.20.3 (2026-09-24, PGEN-GRAMMAR-WELLFORMED-0185) — 6 -> 5, LOWERED: the
+        # sixth row left with the FRONTEND, not the grammar. Under the HEAD binary the grammar reads 5
+        # at HEAD, at `c8b11f3ac` (its last edit) and at `3cb4b95b3` (the vintage this ceiling was set
+        # on) alike — the same five sites each time, all .10.14 pairs: extraction_target /
+        # positive_integer, number_literal / float, integer. The gate had read `5 < 6` as a stale
+        # ceiling since the frontend fix landed and nobody lowered it; measured red on the 1.0.245
+        # ceremony (s377) beside the systemverilog row.
+        return_annotation) echo 5 ;;
         regex) echo 38 ;;
         # SV-CORPUS-GRAD.13c.2i — 150 -> 151, and the extra divergence is NAMED rather than bumped.
         # The ceiling was set at 150/13 880 tokens on 2026-07-31; `019e1739` (2026-08-09,
@@ -107,7 +114,43 @@ envelope_divergence_ceiling() {
         # 56->58, 46->47 and 5->6. ⛔ The argument for raising rather than leaving it red: a gate
         # that is red for a KNOWN reason cannot report an UNKNOWN one, so while this row sat red an
         # envelope regression on any of the other thirteen grammars was invisible behind it.
-        systemverilog) echo 155 ;;
+        #
+        # GRAMMAR-WELLFORMED.H.20.3 — 155 -> 211 (2026-09-24, PGEN-GRAMMAR-WELLFORMED-0185): every row
+        # NAMED, attributed to an exact commit by a per-vintage census with the binary PINNED at HEAD
+        # over all 51 `grammars/systemverilog.ebnf` commits since `958fcc24`, the mechanism re-proven
+        # by a surgical one-edit control. Nothing is landed by this raise: the 22 vintages that moved a
+        # site all shipped under their own SV leaves and their own ceremonies (the other 29 moved none).
+        #   ⭐ Under the pinned binary the ceiling vintage `958fcc24` itself reads 150, not 155: the six
+        #   `return_scalar -> return_object` rows — H.20.1's live frontend defect — are GONE, fixed by
+        #   EBNF-FRONTEND-SILENT-TRUNCATION.6 (`e042b3e8a`, 2026-09-03: line comments excluded from
+        #   inline return-annotation payloads; 0 of 3 801 generated return annotations carry a `#`),
+        #   and the one row that defect MASKED (scoped_or_hierarchical_tf_identifier, H.20's C4
+        #   prediction) surfaced as semantic_annotation_inline -> semantic_annotation. So the
+        #   grammar-attributable delta is +61 net over 150: +83 / -22 sites along the 22 moving vintages
+        #   (+74 / -13 as a base-vs-HEAD multiset; nine sites were removed and re-added on the way).
+        #   All 211 at HEAD fall in the TWO classes already named on this row and nowhere else:
+        #   LANG-CAPABILITY-AUDIT.10.14 (arm 2 binds a rule's leading `@annotation` to the PREVIOUS
+        #   rule) — 69 `<absent> -> semantic_annotation` rows, EVERY one paired with a
+        #   `semantic_annotation -> <first body token>` row at rule i+1 (rule_reference 91, group_open 4,
+        #   semantic_annotation 2, regex 1, operator 1) = 168; and arm 2's inline / rule-level
+        #   annotation blind spot (the svpp row's class) — semantic_annotation_inline ->
+        #   semantic_annotation 41, -> return_object 2 = 43. The +83 are `@profiles:` / `@sample:` /
+        #   `@predicate:` / `@emit_fact:` / `@probe_sample:` lines the SV leaves wrote above or inside
+        #   rules (largest: `5a792c0b6` .3.39 +18, `ac2aa0126` .13e.7 +14, `0fcd8f5fa` .27 +9,
+        #   `8e8435db9` .3.42 +8, `ab7b00fdf` .3.66 +6); the -22 are rules deleted or re-homed
+        #   (`e7dc5c2da` .3.45 -8: cast, clocking_event_sv_2023, net_type_*, nettype_identifier*,
+        #   property_declaration; `3bb309d93` .3.67 -4; `58ab2e93e` .13c.2m -3; `8076505a8` .3.65 -2;
+        #   `8e8435db9` -2; `fd325703e`, `6c1a02913`, `ab7b00fdf` -1 each). The full table:
+        #   docs/tasks/GRAMMAR-WELLFORMED.md `H.20.3`.
+        #   C5 (scratch copy, ONE edit: the `@profiles:` line above lrm_directive_name_sv_only deleted):
+        #   211 -> 210 — exactly its semantic_annotation -> rule_reference row and
+        #   lrm_directive_name_shared's `<absent> -> semantic_annotation` row go, and the NEXT rule's
+        #   leading `@sample:` (opaque_directive_line) rebinds onto lrm_directive_name_sv_only as a
+        #   new `<absent> -> semantic_annotation` row: the pairing and H.20's masking lesson in one run.
+        # ⇒ the SV grammar is not wrong at any of the 211 (annotation COUNTS match in both arms; arm 1,
+        # the shipping frontend, routes every one to its rule). This ceiling comes DOWN when .10.14
+        # lands in grammars/ebnf.ebnf (expected: the 168 go), never up to land a grammar change.
+        systemverilog) echo 211 ;;
         systemverilog_lrm_profiled_generated) echo 317 ;;
         # .10.14 plus the two documented arm-2 blind spots: `[> …]` lexical annotations (which
         # arm 2 misparses as character classes) and arm 1's inline/rule-level annotation
