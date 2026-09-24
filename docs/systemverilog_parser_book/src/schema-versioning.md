@@ -386,6 +386,17 @@ each under the memory guard, sequentially.
 11. **Before the commit**: `bash scripts/check_doctrines.sh` (every registered doctrine, incl.
     `BASELINE-IDENTITY`, which refuses a contract whose declared inputs moved beyond its budget) and
     `bash scripts/check_no_background_jobs.sh`.
+11. **The family umbrellas, on the same final bytes** (since `1.0.243`, in post chain A2; recorded here by
+    `SV-CORPUS-GRAD.24`, 2026-09-24): `annotation_differential_parity_gate`, `return_parity_gate`,
+    `stimuli_module_parity_gate`, `rtl_const_expr_cert_gate`, `regex_formal_exhaustive_closure_gate`,
+    `vhdl_formal_exhaustive_closure_gate`, `sv_formal_exhaustive_closure_gate`,
+    `sv_preprocessor_formal_exhaustive_closure_gate`, `sv_preprocessor_reachability_closure_gate`,
+    `sv_preprocessor_syntax_closure_gate` — the SV done-bar's SECOND leg reads *gates green and invoked*
+    over exactly these, and `.24` found three of them RED for months because no release chain ran them.
+    A RED here is one of two things and the record says which: a condition already owned by name
+    (today: the EBNF dual-run envelope divergence on `systemverilog`, `GRAMMAR-WELLFORMED.H.20.3`),
+    or a NEW defect, routed the same day with its measured line. A RED that is neither blocks the
+    release.
 
 ## Future major version
 

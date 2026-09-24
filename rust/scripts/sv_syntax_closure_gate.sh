@@ -150,9 +150,19 @@ min_reachable_rules="$(jq -er '(.constraints.min_reachable_rules // 1) | numbers
 # same-named counter treats an unreferenced orphan as a ROOT by design
 # (`grammar_wellformedness.rs:341`) and reports 0. Neither is wrong; a contract that does not say
 # which it means sends a reader to the wrong instrument.
-allowed_unreachable_rules_json="$(jq -cer '(.constraints.allowed_unreachable_rules // null)
+# ⛔ SV-CORPUS-GRAD.24 (b), 2026-09-24: `jq -e` exits 1 on a `null` result, so under `set -e` a contract
+# WITHOUT the allow-list killed this gate here with NO message — the preprocessor contract (re-baselined
+# 2026-05-17, before the list existed) read as `make: *** Error 1` after a fresh `baseline-identity: OK`
+# line and nothing else. The absence is now an explicit refusal that names the field.
+allowed_unreachable_rules_json="$(jq -cr '(.constraints.allowed_unreachable_rules // null)
                                            | if . == null then null else sort end' "$CONTRACT_FILE")"
 required_unreachable_rule_reason="$(jq -r '.constraints.required_unreachable_rule_reason // ""' "$CONTRACT_FILE")"
+if [[ "$allowed_unreachable_rules_json" == "null" ]]; then
+    echo "error: constraints.allowed_unreachable_rules is ABSENT from ${CONTRACT_FILE#"$ROOT_DIR/"} — a bare" >&2
+    echo "       max_unreachable_rules ceiling records no reason (SV-CORPUS-GRAD.13c.2x.3): NAME the entry-scoped" >&2
+    echo "       unreachable rules (an empty list when the set is empty) beside required_unreachable_rule_reason" >&2
+    exit 2
+fi
 if [[ "$allowed_unreachable_rules_json" != "null" ]]; then
     if [[ -z "$required_unreachable_rule_reason" ]]; then
         echo "error: constraints.allowed_unreachable_rules is present but constraints.required_unreachable_rule_reason is not" >&2

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a64d8d95.js";
+            window.path_to_searchindex_js = "searchindex-6302f06a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -2935,6 +2935,17 @@ appends the release’s row to the history and <code>--markdown</code> republish
 <li><strong>Before the commit</strong>: <code>bash scripts/check_doctrines.sh</code> (every registered doctrine, incl.
 <code>BASELINE-IDENTITY</code>, which refuses a contract whose declared inputs moved beyond its budget) and
 <code>bash scripts/check_no_background_jobs.sh</code>.</li>
+<li><strong>The family umbrellas, on the same final bytes</strong> (since <code>1.0.243</code>, in post chain A2; recorded here by
+<code>SV-CORPUS-GRAD.24</code>, 2026-09-24): <code>annotation_differential_parity_gate</code>, <code>return_parity_gate</code>,
+<code>stimuli_module_parity_gate</code>, <code>rtl_const_expr_cert_gate</code>, <code>regex_formal_exhaustive_closure_gate</code>,
+<code>vhdl_formal_exhaustive_closure_gate</code>, <code>sv_formal_exhaustive_closure_gate</code>,
+<code>sv_preprocessor_formal_exhaustive_closure_gate</code>, <code>sv_preprocessor_reachability_closure_gate</code>,
+<code>sv_preprocessor_syntax_closure_gate</code> — the SV done-bar’s SECOND leg reads <em>gates green and invoked</em>
+over exactly these, and <code>.24</code> found three of them RED for months because no release chain ran them.
+A RED here is one of two things and the record says which: a condition already owned by name
+(today: the EBNF dual-run envelope divergence on <code>systemverilog</code>, <code>GRAMMAR-WELLFORMED.H.20.3</code>),
+or a NEW defect, routed the same day with its measured line. A RED that is neither blocks the
+release.</li>
 </ol>
 <h2 id="future-major-version"><a class="header" href="#future-major-version">Future major version</a></h2>
 <p>A schema 1.0.0 milestone will land when the SV annotation campaign completes — that is, when every rule in <code>grammars/systemverilog.ebnf</code> carries either a return annotation or a deliberate decision to remain raw envelope. At that point all shape definitions move to Tier 2 (locked) and no further default fall-through changes are expected.</p>

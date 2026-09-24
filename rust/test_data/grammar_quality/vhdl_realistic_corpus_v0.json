@@ -45,7 +45,7 @@
     {
       "name": "process_wait_statement",
       "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/process_wait_statement.vhd",
-      "expect_parse_full_pass": false
+      "expect_parse_full_pass": true
     },
     {
       "name": "use_package_vector_width",

@@ -2233,6 +2233,7 @@ index's readers), named rather than left.
   what the standard's own §8.19 prose describes as a constant with an initial value; recorded here so
   the decision, either way, is a ruling and not a drift. Owned by `.5`(d); until ruled, `.4`'s lane
   counts `uvm_pkg` and its dependants as rejects at this one origin.
+  ⭐ **2026-09-24 — a FOURTH surface waits on this ruling (`SV-CORPUS-GRAD.24`(d), `PGEN-SV-CORPUS-GRAD-0415`).** `.24`(b) gave the preprocessor syntax-closure contract its identity block, so `sv_formal_exhaustive_closure_gate` runs to its surface for the first time since `1.0.243` — and reads `external_corpus_backed_proof_totals_drift=count=2` / `status_drift=count=4`: the external-corpus triage's `uvm_pkg` and `uvm_compat_pkg` cases fail on both profiles at exactly this line (`furthest_position=1016474`, the preprocessed `uvm_transaction.svh:443:38`), against a sidecar (`systemverilog_external_corpus_backed_proof_surface_v0.json`) pinned 14 / 14 on 2026-05-29 under the mis-lexed `local`. Not re-pinned: `all_cases_must_pass` is that proof's meaning. Until ruled, the SV done-bar's second leg (`.24`) stays open on it beside `.6d.3` and `.4`'s lane.
 
 - ✅ **CLOSED, AND IT WAS ALREADY CLOSED WHEN THIS BULLET LAST READ "OWED" (corrected 2026-09-15 under a
   director challenge, `PGEN-SVPP-EXPANSION-0024`).** The question was: the preprocessor's 26 pre-existing unit

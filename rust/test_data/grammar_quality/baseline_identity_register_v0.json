@@ -36,9 +36,10 @@
     },
     {
       "entry": "systemverilog_preprocessor_syntax_closure_contract.json",
-      "disposition": "deferred",
-      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
-      "reason": "Same shape one family over: min_total_rules=71 / min_reachable_rules=69 / max_unreachable_rules=2 / max_unreachable_branches=24 over grammars/systemverilog_preprocessor .ebnf. Floors, so stale and green are indistinguishable without an identity block."
+      "disposition": "adopted",
+      "reason": "ADOPTED 2026-09-24 (SV-CORPUS-GRAD.24 (b), PGEN-SV-CORPUS-GRAD-0415), the second confirmed adoption. The row's own reason held: floors over grammars/systemverilog_preprocessor.ebnf with nothing watching their inputs -- and the missing block had refused sv_preprocessor_syntax_closure_gate, sv_formal_exhaustive_closure_gate and sv_preprocessor_formal_exhaustive_closure_gate on every ceremony since 1.0.243 (`baseline-identity: REFUSING -- ... carries NO identity block`). ⛔ STAMPED ONLY AFTER RE-DERIVATION: the gate refuses an --unconfirmed block as firmly as a missing one, so the expectations were re-derived first by the gate's own two steps run directly at 8f15c16c3 (defined_rule_count=74 reachable_rules=74 unreachable_rules=0 unreachable_branches=19 unresolved_rule_reference_count=0 -- every 2026-05-17 floor holds), the block stamped --confirmed-by that run over the three inputs the SV row names (the .ebnf as ebnf_raw_ast, indirect_lr_elimination.rs and stimuli_generator.rs as bytes), and the GREEN gate then read `identity fresh and expectations CONFIRMED`. As on the SV row the bare max_unreachable_rules ceiling (2) is superseded by a NAMED allowed_unreachable_rules set ([] -- all 74 rules reachable from systemverilog_preprocessor_file) enforced both ways, with the ceiling at the measured 0; and the gate that had died SILENTLY on a contract without that list (`jq -e` on null under set -e) now refuses it by name (rust/scripts/sv_syntax_closure_gate.sh).",
+      "resolved_by": "sv_preprocessor_syntax_closure_gate",
+      "cost_seconds": 5
     },
     {
       "entry": "systemverilog_preprocessor_zero_plausible_gap_proof_contract.json",
