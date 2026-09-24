@@ -370,7 +370,13 @@ each under the memory guard, sequentially.
    `check_sv_corpus_denominator.sh`, `report_family_status.sh --check-all` (re-splice the derived
    blocks), `report_grammar_certification.sh --markdown` (re-splice the per-grammar certification table —
    `GRAMMAR-CERT-CURRENCY` refuses when its inputs lead the table by more than ten commits, which is how
-   1.0.209's commit found two ceremonies had skipped it), `systemverilog_parser_book_gate` (rebuilds the tracked HTML).
+   1.0.209's commit found two ceremonies had skipped it), `systemverilog_parser_book_gate` (rebuilds the tracked HTML). ⛔ And the RULE-FIRE CENSUS: when the release moved the
+   grammar's rule inventory (`ast_pipeline --dump-rule-profiles`'s `rule_count`, a rule added or deleted), tier 2 of the
+   partition doctrine is re-derived on the final bytes — `make -C rust SHELL=/bin/bash sv_rule_fire_partition` (corpus census
+   ~3 min + certificate pass ~5 min) — and every rule the certificate pass leaves `unwitnessed` is adjudicated with a measured
+   construct before the commit; `check_sv_rule_fire_partition.sh`'s tier 1 refuses a census whose rule set is not the
+   inventory's, so a census taken on an older grammar cannot ride a release (`SV-CORPUS-GRAD.22`: the tracked census had named
+   rules deleted 23 releases earlier and lacked 218 the grammar defined, and the doctrine stayed green).
 10. **Ceremony documents, in lockstep**: the revision register row (digest → release → ledger id),
     the released-parser bug ledger row, the integration contract (current-state note, version,
     history, digest), this book's changelog, the platform book's anchors, the task leaf with its
@@ -383,9 +389,6 @@ each under the memory guard, sequentially.
     ⭐ And the release's LAST lockstep step is the distance: `bash scripts/report_sv_release_distance.sh --record <release>`
     appends the release's row to the history and `--markdown` republishes the block on the status page, so the
     `SV-RELEASE-DISTANCE-CURRENCY` doctrine reads the tree it describes (`SV-CORPUS-GRAD.25`).
-11. **Before the commit**: `bash scripts/check_doctrines.sh` (every registered doctrine, incl.
-    `BASELINE-IDENTITY`, which refuses a contract whose declared inputs moved beyond its budget) and
-    `bash scripts/check_no_background_jobs.sh`.
 11. **The family umbrellas, on the same final bytes** (since `1.0.243`, in post chain A2; recorded here by
     `SV-CORPUS-GRAD.24`, 2026-09-24): `annotation_differential_parity_gate`, `return_parity_gate`,
     `stimuli_module_parity_gate`, `rtl_const_expr_cert_gate`, `regex_formal_exhaustive_closure_gate`,
@@ -394,9 +397,12 @@ each under the memory guard, sequentially.
     `sv_preprocessor_syntax_closure_gate` — the SV done-bar's SECOND leg reads *gates green and invoked*
     over exactly these, and `.24` found three of them RED for months because no release chain ran them.
     A RED here is one of two things and the record says which: a condition already owned by name
-    (today: the EBNF dual-run envelope divergence on `systemverilog`, `GRAMMAR-WELLFORMED.H.20.3`),
+    (today: the SV formal umbrella's external-corpus surface on UVM's `const local … = new(…)`, the director's `SVPP-EXPANSION.5`(d) ruling; the envelope divergence `GRAMMAR-WELLFORMED.H.20.3` named on 2026-09-24 closed the same day),
     or a NEW defect, routed the same day with its measured line. A RED that is neither blocks the
     release.
+12. **Before the commit**: `bash scripts/check_doctrines.sh` (every registered doctrine, incl.
+    `BASELINE-IDENTITY`, which refuses a contract whose declared inputs moved beyond its budget) and
+    `bash scripts/check_no_background_jobs.sh`.
 
 ## Future major version
 

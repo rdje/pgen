@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-24 — SV-CORPUS-GRAD.22 (`PGEN-SV-CORPUS-GRAD-0417`): a census carries the inventory it was taken on, and a doctrine that checks the census against itself is green forever
+
+- **Consistency with the artifact you derive from is not currency.** Tier 1 held the partition equal to the census's GAP set — true at every commit — while the census named rules deleted twenty-three releases earlier with `covered` counts. The missing arm is the one that reads the SUBJECT: the grammar's inventory from the census's own producer, compared as sets in both directions.
+- **A tier-2 recipe nobody names is a tier nobody runs.** Eight minutes was the price; the ceremony list now names when it is paid (the inventory moved) and what it owes (every unwitnessed rule adjudicated with a measured construct).
+- **An unwitnessed rule is a candidate, and the honest verdicts are three, not two.** `dpi_open_packed_dimension` fired on its LRM construct; `method_call_receiver_qualifier` fired on none of twenty and on none of 10 022 files — entered, selected, rolled back, a sibling route committing every time. Calling that `coverage_gap` ("it can fire") would have been the confident wrong word; the partition now has a word for it and a leaf that owes the grammar its decision.
 ## 2026-09-24 — SV-CORPUS-GRAD.23 (`PGEN-SV-CORPUS-GRAD-0416`): a tripwire tested one spelling and the ceremony wrote another, so it passed for fourteen releases
 
 - **A gate that matches nothing passes.** `awk '$1 == "(pending)"'` against rows written `PENDING` is not a failing check, it is a check with an empty population — rc 0 every run, 49 rows unasked. The fix is to read the artifact's OWN spelling (both forms) and to prove the tripwire with a RED control in each — the same word the template writes, planted on a committed digest, refused by name.

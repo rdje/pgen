@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-235d4d58.js";
+            window.path_to_searchindex_js = "searchindex-38481b57.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -2920,7 +2920,13 @@ keyword censuses (<code>--write</code>), <code>check_corpus_key_integrity.sh</co
 <code>check_sv_corpus_denominator.sh</code>, <code>report_family_status.sh --check-all</code> (re-splice the derived
 blocks), <code>report_grammar_certification.sh --markdown</code> (re-splice the per-grammar certification table —
 <code>GRAMMAR-CERT-CURRENCY</code> refuses when its inputs lead the table by more than ten commits, which is how
-1.0.209’s commit found two ceremonies had skipped it), <code>systemverilog_parser_book_gate</code> (rebuilds the tracked HTML).</li>
+1.0.209’s commit found two ceremonies had skipped it), <code>systemverilog_parser_book_gate</code> (rebuilds the tracked HTML). ⛔ And the RULE-FIRE CENSUS: when the release moved the
+grammar’s rule inventory (<code>ast_pipeline --dump-rule-profiles</code>’s <code>rule_count</code>, a rule added or deleted), tier 2 of the
+partition doctrine is re-derived on the final bytes — <code>make -C rust SHELL=/bin/bash sv_rule_fire_partition</code> (corpus census
+~3 min + certificate pass ~5 min) — and every rule the certificate pass leaves <code>unwitnessed</code> is adjudicated with a measured
+construct before the commit; <code>check_sv_rule_fire_partition.sh</code>’s tier 1 refuses a census whose rule set is not the
+inventory’s, so a census taken on an older grammar cannot ride a release (<code>SV-CORPUS-GRAD.22</code>: the tracked census had named
+rules deleted 23 releases earlier and lacked 218 the grammar defined, and the doctrine stayed green).</li>
 <li><strong>Ceremony documents, in lockstep</strong>: the revision register row (digest → release → ledger id),
 the released-parser bug ledger row, the integration contract (current-state note, version,
 history, digest), this book’s changelog, the platform book’s anchors, the task leaf with its
@@ -2932,9 +2938,6 @@ the register’s back-fill tripwire all read that digester; a hand-rolled sha256
 ⭐ And the release’s LAST lockstep step is the distance: <code>bash scripts/report_sv_release_distance.sh --record &lt;release&gt;</code>
 appends the release’s row to the history and <code>--markdown</code> republishes the block on the status page, so the
 <code>SV-RELEASE-DISTANCE-CURRENCY</code> doctrine reads the tree it describes (<code>SV-CORPUS-GRAD.25</code>).</li>
-<li><strong>Before the commit</strong>: <code>bash scripts/check_doctrines.sh</code> (every registered doctrine, incl.
-<code>BASELINE-IDENTITY</code>, which refuses a contract whose declared inputs moved beyond its budget) and
-<code>bash scripts/check_no_background_jobs.sh</code>.</li>
 <li><strong>The family umbrellas, on the same final bytes</strong> (since <code>1.0.243</code>, in post chain A2; recorded here by
 <code>SV-CORPUS-GRAD.24</code>, 2026-09-24): <code>annotation_differential_parity_gate</code>, <code>return_parity_gate</code>,
 <code>stimuli_module_parity_gate</code>, <code>rtl_const_expr_cert_gate</code>, <code>regex_formal_exhaustive_closure_gate</code>,
@@ -2943,9 +2946,12 @@ appends the release’s row to the history and <code>--markdown</code> republish
 <code>sv_preprocessor_syntax_closure_gate</code> — the SV done-bar’s SECOND leg reads <em>gates green and invoked</em>
 over exactly these, and <code>.24</code> found three of them RED for months because no release chain ran them.
 A RED here is one of two things and the record says which: a condition already owned by name
-(today: the EBNF dual-run envelope divergence on <code>systemverilog</code>, <code>GRAMMAR-WELLFORMED.H.20.3</code>),
+(today: the SV formal umbrella’s external-corpus surface on UVM’s <code>const local … = new(…)</code>, the director’s <code>SVPP-EXPANSION.5</code>(d) ruling; the envelope divergence <code>GRAMMAR-WELLFORMED.H.20.3</code> named on 2026-09-24 closed the same day),
 or a NEW defect, routed the same day with its measured line. A RED that is neither blocks the
 release.</li>
+<li><strong>Before the commit</strong>: <code>bash scripts/check_doctrines.sh</code> (every registered doctrine, incl.
+<code>BASELINE-IDENTITY</code>, which refuses a contract whose declared inputs moved beyond its budget) and
+<code>bash scripts/check_no_background_jobs.sh</code>.</li>
 </ol>
 <h2 id="future-major-version"><a class="header" href="#future-major-version">Future major version</a></h2>
 <p>A schema 1.0.0 milestone will land when the SV annotation campaign completes — that is, when every rule in <code>grammars/systemverilog.ebnf</code> carries either a return annotation or a deliberate decision to remain raw envelope. At that point all shape definitions move to Tier 2 (locked) and no further default fall-through changes are expected.</p>

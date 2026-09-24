@@ -40,9 +40,29 @@ for f in "$COV" "$PART_TSV" "$PART_JSON" "$INSTRUMENT"; do
 done
 [ "$fail" = 0 ] || { note "1 breach(es)"; exit 1; }
 
-exec python3 - "$COV" "$PART_TSV" "$PART_JSON" <<'PY'
+# ── tier 1b (SV-CORPUS-GRAD.22, 2026-09-24): the census's RULE SET is the grammar's rule INVENTORY ──
+# The census (`corpus_rule_coverage.py`) writes one row per rule of `ast_pipeline --dump-rule-profiles`,
+# its own denominator. Nothing compared that set with the grammar's since the census was taken, and the
+# grammar gained and lost rules through 23 releases while the doctrine stayed green: at 1.0.245 the
+# tracked census named 27 rules the inventory no longer defined (kw_B_ae4f281d, deleted by .3.33 at
+# 1.0.209, among them; kw_x_11f6ad8e with `covered 19`) and lacked 218 the inventory did. The inventory is re-derived
+# here from the SAME producer (2 s); when the binary is not built this tier says NOT EVALUATED rather
+# than pass, and the breach names the tier-2 recipe that re-derives the census.
+INVENTORY=""
+if [ -x rust/target/debug/ast_pipeline ]; then
+  inv_root="$ROOT/rust/target/sv_rule_fire_partition"; mkdir -p "$inv_root" 2>/dev/null
+  INVENTORY="$(mktemp "$inv_root/inventory.XXXXXX.json")"
+  rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --dump-rule-profiles "$INVENTORY" >/dev/null 2>&1 \
+    || { breach "tier 1b could not derive the rule inventory (ast_pipeline --dump-rule-profiles failed) — a tier that cannot inspect its subject must say so, not pass"; rm -f "$INVENTORY"; INVENTORY=""; }
+else
+  note "tier 1b NOT EVALUATED — rust/target/debug/ast_pipeline is not built, so the census's rule set was not compared with the grammar's inventory (build it: make -C rust build_ast_pipeline)"
+fi
+[ "$fail" = 0 ] || { note "1 breach(es)"; exit 1; }
+
+python3 - "$COV" "$PART_TSV" "$PART_JSON" "$INVENTORY" <<'PY'
 import json, sys, pathlib
 cov, part_tsv, part_json = (pathlib.Path(p) for p in sys.argv[1:4])
+inventory_path = sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] else None
 fail = []
 
 status = {}
@@ -51,6 +71,18 @@ for line in cov.read_text(encoding="utf-8").splitlines()[1:]:
     if len(f) >= 2:
         status[f[0]] = f[1]
 gaps = {r for r, s in status.items() if s == "GAP"}
+
+# 1b — the census's rule set IS the grammar's inventory, both directions (SV-CORPUS-GRAD.22).
+if inventory_path:
+    inventory = set(json.loads(pathlib.Path(inventory_path).read_text(encoding="utf-8"))["rules"])
+    census = set(status)
+    stale, missing = sorted(census - inventory), sorted(inventory - census)
+    if stale or missing:
+        fail.append(f"the census's rule set is NOT the grammar's inventory: {len(stale)} census rule(s) the "
+                    f"grammar no longer defines {stale[:8]}{' …' if len(stale) > 8 else ''}; {len(missing)} "
+                    f"grammar rule(s) the census never measured {missing[:8]}{' …' if len(missing) > 8 else ''} "
+                    f"(census {len(census)} rules, inventory {len(inventory)}). The census is a reading of an "
+                    f"older grammar; re-derive it: make -C rust SHELL=/bin/bash sv_rule_fire_partition (~8 min)")
 
 rows = {}
 for line in part_tsv.read_text(encoding="utf-8").splitlines()[1:]:
@@ -102,5 +134,7 @@ if fail:
     print(f"sv-rule-fire-partition: {len(fail)} breach(es)", file=sys.stderr)
     sys.exit(1)
 print("sv-rule-fire-partition: OK (" + ", ".join(f"{k}={v}" for k, v in sorted(classes.items()))
-      + f"; {len(gaps)} never-fired rules, 0 unadjudicated)")
+      + f"; {len(gaps)} never-fired rules, 0 unadjudicated"
+      + (f"; census rule set = grammar inventory, {len(status)} rules" if inventory_path else "; inventory NOT EVALUATED") + ")")
 PY
+rc=$?; [ -n "$INVENTORY" ] && rm -f "$INVENTORY"; exit $rc

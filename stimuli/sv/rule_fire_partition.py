@@ -44,6 +44,11 @@ THE PARTITION — every class is decided by an instrument, never by reading:
                           it as a defect once produced a confident wrong root cause that reached a
                           task leaf. Each one is adjudicated by hand with a minimal LRM construct
                           and recorded in `ADJUDICATED_UNWITNESSED` below.
+  dominated_by_route      (adjudicated only) the rule's arm is ENTERED and even SELECTED in
+                          speculation, and a SIBLING ROUTE commits first at every site measured —
+                          neither a witness (it never commits) nor a proof (nothing says it cannot).
+                          A grammar-design finding: the arm is dead by precedence and a named leaf
+                          owes the decision to delete or unify it (SV-CORPUS-GRAD.22, 2026-09-24).
 
 ⛔⛔ AND THE FIRST CUT OF THIS INSTRUMENT MISCLASSIFIED 18 RULES, because it inferred `witnessed`
 from `not UNKNOWN`. The report published `proof=<n>` and never the NAMES, so the proof set was
@@ -115,6 +120,29 @@ ADJUDICATED_UNWITNESSED = {
         "coverage_gap", "IEEE 1800-2023 A.2.10 `| sync_accept_on ( expression_or_dist ) "
         "property_expr`. MEASURED: `sync_accept_on (a) b` ACCEPTS and the keyword rule fires 4x "
         "(its sibling sync_reject_on measured identically)"),
+    # SV-CORPUS-GRAD.22 (2026-09-24): the first re-derivation on 1.0.245 left two unwitnessed.
+    "dpi_open_packed_dimension": (
+        "coverage_gap", "IEEE 1800-2017 §35.5.6.1 open arrays: a DPI import formal's `[]` packed "
+        "dimension (A.2.5 `unsized_dimension ::= [ ]`, footnote 20 — `[]` is a packed dimension only "
+        "inside a DPI import, gated in_scope_kind(dpi_import)). MEASURED: `import \"DPI-C\" function "
+        "void f(input bit [] a);` in a module ACCEPTS on sv_2017 and sv_2023 and "
+        "dpi_open_packed_dimension COMMITS 1x on each (stimuli/sv/rule_fire_probes/"
+        "dpi_open_packed_dimension.sv); the corpus holds no DPI import with an open array in any "
+        "accepted file"),
+    "method_call_receiver_qualifier": (
+        "dominated_by_route", "the `method_call_receiver_qualifier? hierarchical_identifier` arm of "
+        "method_call_receiver_sv_2017 (and its sv_2023 twin). MEASURED: `p::h.f();` (package p, class C "
+        "with f, C h) ACCEPTS on both profiles and the qualifier is ENTERED 6-18x but COMMITS 0x — "
+        "split_direct_callable_method_call (the .3.42 split receiver, whose scope prefix reads "
+        "non_typedef_package_scope itself) commits instead; the same on 19 further shapes (expression "
+        "and argument positions, paren-less, chained, two-dot, built-in methods incl. size/push_back/"
+        "delete/sort/find-with/randomize-with/srandom, and cast-seeded `p::h.f()'(1)` where the cast "
+        "chain carries its own split seed); --trace-rules shows branch 2/13 SELECTED inside "
+        "casting_type_lr_seed_method_call_receiver_sv_2017 and rolled back. Liveness census over the "
+        "10 022 accepted sv_2017 files: method_call_receiver_sv_2017 commits in 30 (never with a "
+        "qualifier), method_call_receiver_qualifier in 0. Owned by SV-CORPUS-GRAD.33 (delete or "
+        "unify the arm; a GRAMMAR change with its ceremony). Reproducer: stimuli/sv/rule_fire_probes/"
+        "method_call_receiver_qualifier.sv"),
 }
 
 

@@ -1,20 +1,24 @@
 {
  "profile": "sv_2017",
- "gap_rules": 98,
+ "gap_rules": 92,
  "certificate": {
-  "total": 1406,
-  "proof": 19,
-  "witness": 1387,
-  "unknown": 0
+  "total": 1530,
+  "proof": 24,
+  "witness": 1502,
+  "unknown": 4
  },
- "coverage_artifact_satisfiable": 1406,
+ "coverage_artifact_satisfiable": 1530,
  "classes": {
-  "coverage_gap": 64,
+  "coverage_gap": 52,
+  "dominated_by_route": 1,
   "lr_eliminated_original": 2,
   "lr_synthetic": 14,
-  "unreachable_from_entry": 18
+  "unreachable_from_entry": 23
  },
- "corpus_covered_but_generator_hard": [],
+ "corpus_covered_but_generator_hard": [
+  "cross_predefined_type_identifier",
+  "cross_predefined_type_name"
+ ],
  "proof_refuted_by_corpus": [],
  "unadjudicated_unwitnessed": []
 }

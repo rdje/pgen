@@ -20,3 +20,5 @@ python3 -c "import json;d=json.load(open('/tmp/o.json'));print({k:v for k,v in d
 | `eventually_property_expr.sv` | `kw_eventually_5865020f` | A.2.10 `\| eventually [ constant_range ] property_expr` |
 | `s_always_property_expr.sv` | `kw_s_always_0f9aa900` | A.2.10 `\| s_always [ constant_range ] property_expr` |
 | `sync_accept_on_property_expr.sv` | `kw_sync_accept_on_b65eda53` | A.2.10 `\| sync_accept_on ( expression_or_dist ) property_expr` |
+| `dpi_open_packed_dimension.sv` | `dpi_open_packed_dimension` | §35.5.6.1 open arrays — `import "DPI-C" function void f(input bit [] a);`, the `[]` packed dimension of a DPI import formal (A.2.5 `unsized_dimension ::= [ ]`, footnote 20) |
+| `method_call_receiver_qualifier.sv` | `method_call_receiver_qualifier` | A.8.4 `primary ::= [ class_qualifier \| package_scope ] hierarchical_identifier select` as a method-call receiver — ⛔ DOMINATED, not witnessed: the file ACCEPTS and the arm never commits (the split receiver route does); adjudicated `dominated_by_route`, owned by `SV-CORPUS-GRAD.33` |
