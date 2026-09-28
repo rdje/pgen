@@ -21,6 +21,10 @@ The SystemVerilog parser's changelog index is long because its return-annotation
 
 This book is **live** and tracks current main HEAD. The entries below mirror the "Schema Versioning" table and the Resolved-Defects sections in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`; the contract is authoritative for the live state.
 
+### 1.0.8 / Contract 1.0.6 — ENGINE-UNIVERSAL-SERVICES.112 slice 3 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0168`, 2026-09-28) — the dialect is grammar-declared
+
+`grammars/vhdl.ebnf` now declares `@default_profile: vhdl_1076_2019` and `@profiles: ["vhdl_1076_2019"]` on its entry rule, so the generated parser carries the profile the embedding API has published as `vhdl_1076_2019` since 1.0 and the API derives it instead of typing it. Every parse runs under that profile by default, exactly as before; a request for an undeclared profile is now refused at the entry rule instead of being ignored. No rule, verdict or AST byte moved; AST-dump schema stays `3`.
+
 ### 1.0.7 / Contract 1.0.7 — ENGINE-UNIVERSAL-SERVICES.65 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0117`, 2026-08-28), ledger `VHDL-0006` — the 4096-frame recursion ceiling becomes a measurement of the host's stack (ENGINE; ZERO grammar bytes; schema stays 3)
 
 ⛔ **A fixed acceptance ceiling, replaced by the stack this host actually supplies.** `4096`

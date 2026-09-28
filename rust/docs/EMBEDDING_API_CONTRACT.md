@@ -11,15 +11,14 @@ Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) 
   - `embedding_api_contract() -> EmbeddingApiContract`
   - `parser_embedding_api_contract() -> ParserEmbeddingApiContract`
 - Parse API:
-  - host-oriented convenience grammar entry points:
-    - `parse_systemverilog_2017(...)`
-    - `parse_systemverilog_2023(...)`
-    - `parse_vhdl_1076_2019(...)`
-    - `parse_regex_default(...)`
+  - host-oriented convenience grammar entry points — since `2.0.0` they live beside the family
+    that owns them, under `pgen::families::<family>::embed` (the neutral API names no language):
+    - `pgen::families::systemverilog::embed::parse_systemverilog_2017(...)` / `_2023(...)`
+    - `pgen::families::vhdl::embed::parse_vhdl_1076_2019(...)`
+    - `pgen::families::regex::embed::parse_regex_default(...)`
     - plus `*_with_limits`, `*_result`, `*_with_limits_result` variants
-  - host-oriented convenience grammar AST-dump entry points:
-    - `parse_systemverilog_2017_ast_dump(...)`
-    - `parse_systemverilog_2023_ast_dump(...)`
+  - host-oriented convenience grammar AST-dump entry points (same modules):
+    - `parse_systemverilog_2017_ast_dump(...)` / `_2023_ast_dump(...)`
     - `parse_vhdl_1076_2019_ast_dump(...)`
     - `parse_regex_default_ast_dump(...)`
     - plus `*_ast_dump_with_limits` variants
@@ -53,7 +52,31 @@ Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) 
   - default via `AstDumpOptions::default()`
 
 ## Versioning
-- Contract version constant: `EMBEDDING_API_VERSION = "1.3.5"`
+- Contract version constant: `EMBEDDING_API_VERSION = "2.0.0"`
+  - `2.0.0` (2026-09-28, `ENGINE-UNIVERSAL-SERVICES.112` slice 3): **the API is DERIVED from the
+    registry and names no language** — a BREAKING Rust-surface change, wire-compatible for JSON
+    consumers. `GrammarFamily` and `GrammarProfile` are resolved values, not enums: obtain them with
+    `GrammarFamily::from_str("systemverilog")` / `GrammarFamily::registered()` and
+    `family.profile("sv_2017")` / `family.default_profile()`; the enum variants
+    (`GrammarFamily::SystemVerilog`, `GrammarProfile::Sv2017`, …) are gone, and so is the
+    undocumented `sv` family spelling. Every profile spelling comes from the grammar's own
+    `@profiles` / `@profile_alias` / `@default_profile` (the VHDL and regex grammars now declare
+    `vhdl_1076_2019` and `regex_default` themselves); a spelling the grammar does not declare is
+    `E_UNSUPPORTED_PROFILE`. `ParserEmbeddingApiContract` (schema `2` → `3`): `supported_grammars` /
+    `supported_profiles` / `profile_matrix` are every registered downstream family and its declared
+    profiles; the three `supports_<family>_generated_backend` flags are `generated_backends`
+    (family → `true`, registration IS the backend); the eight `regex_*` fields are
+    `family_contracts["regex"]` (a `FamilyContract` the regex family module publishes). The
+    per-family convenience entry points moved to `pgen::families::<family>::embed` (one line each
+    over the generic API). A family whose artifact is not compiled in is UNREGISTERED — it does not
+    resolve (`E_INVALID_ARGUMENT`), where `1.x` reported `E_BACKEND_UNAVAILABLE` for a known family.
+    Every parse still runs on a dedicated parse thread with the host-derived stack reservation
+    (the Stack-Robustness Contract), now as the registry's neutral default for every family.
+    On the wire nothing moved for a declared profile: `"grammar": "systemverilog"`, `"profile": "sv_2017"`;
+    the one visible difference is that a RESOLVED profile carries its grammar's canonical spelling, so a
+    typed regex outcome reads `"profile": "pcre2"` where 1.x wrote the API's own `regex_default`
+    (the string-named outcomes still echo the requested spelling).
+  - `1.3.6` (2026-09-0x, `ENGINE-UNIVERSAL-SERVICES.87`(d)): the dedicated stack reservation derived in both directions (see the SV contract).
   - `1.3.5` (2026-08-31, `ENGINE-UNIVERSAL-SERVICES.69`(a)): backward-compatible change to how the
     dedicated parse thread's stack reservation DEFAULT is chosen. It was a compiled-in 256 MiB —
     the last literal `.65` left standing, and the one the recursion ceiling is derived FROM. It is
@@ -210,8 +233,14 @@ Annotation API:
   - `location.column`
 
 Grammar parser API:
-- `GrammarFamily`: `systemverilog | vhdl | regex`
-- `GrammarProfile`: `sv_2017 | sv_2023 | verilog_2005 | vhdl_1076_2019 | regex_default`
+- `GrammarFamily`: a resolved registered family (`GrammarFamily::registered()` lists them; every
+  downstream parser the build compiled in — today `systemverilog`, `vhdl`, `regex`, `json`,
+  `rtl_const_expr`, `rtl_frontend`, `systemverilog_preprocessor`, and `scratch` when built).
+- `GrammarProfile`: a resolved profile of a family — its grammar's declared `@profiles` value,
+  reached through `@profile_alias` and `@default_profile` (`sv_2017 | sv_2023 | verilog_2005` for
+  SystemVerilog, `vhdl_1076_2019` for VHDL, `pcre2 | relaxed` for regex with `regex_default` an
+  alias of `pcre2`; a family declaring no profiles has one unprofiled dialect, serialised as `null`).
+- `FamilyContract`: a family's published downstream contract identity (`family_contracts`).
   - `verilog_2005` (aliases `1364-2005` / `ieee1364-2005` / `ieee_1364_2005`) is a strict IEEE
     1364-2005 (Verilog) parsing profile on the SystemVerilog grammar: it rides the `sv_2017` baseline
     of shared core constructs and rejects SV-only constructs. Subset enforcement is being completed

@@ -2101,7 +2101,7 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
 ### What it is
 - A strict IEEE 1364-2005 (Verilog) parsing profile carried by the **same** `grammars/systemverilog.ebnf` single source of truth — realized purely by `@profiles: [...]` semantic-annotation gating, with **no separate parser, no fork, and no out-of-band validator**.
 - Select it exactly like the existing profiles:
-  - embedding API: `GrammarProfile::Verilog2005` / profile string `verilog_2005` (aliases `1364-2005`, `ieee1364-2005`, `ieee_1364_2005`); available since embedding API `1.3.0`,
+  - embedding API: profile string `verilog_2005` (aliases `1364-2005`, `ieee1364-2005`, `ieee_1364_2005` — grammar-declared), resolved as `GrammarFamily::from_str("systemverilog")?.profile("verilog_2005")` since embedding API `2.0.0` (the `GrammarProfile::Verilog2005` variant of `1.3.0`–`1.3.6` is gone); available since embedding API `1.3.0`,
   - CLI: `parseability_probe --parse systemverilog file.v --profile verilog_2005`.
 - Because IEEE 1364-2005 is (nearly) a strict syntactic subset of IEEE 1800, the profile **rides the `sv_2017` baseline** of shared core constructs; its job is *enforcement*: reject the SystemVerilog-only surface that would otherwise silently parse.
 
@@ -8368,7 +8368,9 @@ systemverilog_parseable_file := trivia parseable_source_item* trivia
 - Stable host profiles:
   - `sv_2017`
   - `sv_2023`
-- Stable convenience entry points:
+- Stable convenience entry points (since embedding API `2.0.0` under
+  `pgen::families::systemverilog::embed`, one line each over the generic API; the
+  `pgen::embedding_api::parse_systemverilog_*` spellings of `1.x` are gone):
   - `parse_systemverilog_2017(...)`
   - `parse_systemverilog_2023(...)`
   - `parse_systemverilog_2017_ast_dump(...)`

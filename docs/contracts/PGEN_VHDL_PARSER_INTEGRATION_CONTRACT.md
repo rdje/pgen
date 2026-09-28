@@ -7,9 +7,10 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
 
 ## Contract Identity
 - Contract version:
-  - `1.0.5`
+  - `1.0.6`
 - Parser release version:
-  - `1.0.7` (`ENGINE-UNIVERSAL-SERVICES.65`, 2026-08-28: engine-level, grammar-agnostic, ledger
+  - `1.0.8` (`ENGINE-UNIVERSAL-SERVICES.112` slice 3, 2026-09-28: **the dialect this grammar implements is grammar-declared** — `grammars/vhdl.ebnf` carries `@default_profile: vhdl_1076_2019` and `@profiles: ["vhdl_1076_2019"]` on its entry rule, so the generated parser carries `GRAMMAR_PROFILES` / `DEFAULT_GRAMMAR_PROFILE` and the embedding API derives the profile it has published as `vhdl_1076_2019` since 1.0 instead of typing it. Every parse runs under that profile by default, exactly as before; a request for it resolves to it; a request for any OTHER profile is now refused at the entry rule (before, an unknown requested profile was silently ignored). No rule, no verdict on any input that names no profile, no AST byte moved; AST-dump schema stays `3`.)
+  - previously `1.0.7` (`ENGINE-UNIVERSAL-SERVICES.65`, 2026-08-28: engine-level, grammar-agnostic, ledger
     `VHDL-0006` — **the 4096-frame recursion ceiling is replaced by a bound the parse thread's own
     stack supplies.** `4096` survives only as the depth at which the guard first measures its stack
     spend. Measured after the change at a deliberately SMALL 96 MiB reservation — under a third of
@@ -66,11 +67,18 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
 - Per-family gate:
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_book_gate`
 
+## Release 1.0.8 / Contract 1.0.6 — ENGINE-UNIVERSAL-SERVICES.112 slice 3 (2026-09-28): the dialect is grammar-declared (surface-neutral)
+
+- `grammars/vhdl.ebnf`: `@default_profile: vhdl_1076_2019` and `@profiles: ["vhdl_1076_2019"]` on `vhdl_file` — the only gated rule. The generated parser starts on that profile, restores it for `set_grammar_profile(None)`, and carries `GRAMMAR_PROFILES = ["vhdl_1076_2019"]`.
+- Behaviour: identical for every caller that requests no profile or `vhdl_1076_2019` (all of today's); a caller requesting a profile the grammar does not declare is refused at the entry rule instead of being silently ignored.
+- Why: the embedding API's `vhdl_1076_2019` was a spelling only the API knew; the `ENGINE-NEUTRALITY` doctrine requires the engine to derive a family's dialects from the grammar's own declaration (`ENGINE-UNIVERSAL-SERVICES.112`).
+- Verification: the VHDL formal exhaustive closure umbrella, the equivalence and semantic-directive suites and the AST-shape contract on the regenerated parser (the slice-3 record).
+
 ## Schema Versioning
 
 The VHDL parser carries two version axes:
 
-1. **Parser release version** (`1.0.5`). Tracks the parser library's release identity. Bumped on every functional change, including bug fixes, perf work, and grammar changes.
+1. **Parser release version** (`1.0.8`). Tracks the parser library's release identity. Bumped on every functional change, including bug fixes, perf work, and grammar changes.
 2. **AST-dump schema version** (`3`). Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
 
 A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two version numbers move independently.

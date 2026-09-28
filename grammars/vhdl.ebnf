@@ -8,6 +8,13 @@
 # - process + core sequential statements
 # - expression/type/literal baseline
 
+# ENGINE-UNIVERSAL-SERVICES.112 slice 3 (2026-09-28): the dialect this grammar implements is DECLARED here — IEEE
+# 1076-2019, the profile the embedding API has published as `vhdl_1076_2019` since 1.0 — so the parser carries it
+# (`GRAMMAR_PROFILES` / `DEFAULT_GRAMMAR_PROFILE`) and the API derives it instead of typing it. One profile, the
+# default: every parse runs under it, a request for it resolves to it, a request for anything else is refused at
+# the entry (the guard below is the only gated rule; no verdict on any input that names no profile moves).
+@default_profile: vhdl_1076_2019
+@profiles: ["vhdl_1076_2019"]
 @entry: true
 vhdl_file := design_unit*
 -> {type: "vhdl_file", design_units: $1}

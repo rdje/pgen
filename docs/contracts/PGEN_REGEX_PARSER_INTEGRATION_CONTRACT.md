@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.109`
+  - `1.1.110`
 - Parser release version:
-  - `1.1.106`
+  - `1.1.107`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -31,6 +31,11 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Maintenance Update 2026-09-28 — ENGINE-UNIVERSAL-SERVICES.112 slice 3: the stable host profile spelling `regex_default` is now GRAMMAR-DECLARED (release 1.1.106 → 1.1.107, contract 1.1.109 → 1.1.110; AST-dump schema stays `1`; SURFACE-NEUTRAL)
+
+- **What changed.** `grammars/regex.ebnf` declares `@profile_alias: { "regex_default": pcre2, "regex": pcre2 }` — both spellings the embedding API accepted in 1.x — so the generated parser carries the mapping (`GRAMMAR_PROFILE_ALIASES`, resolved case-insensitively inside `set_grammar_profile`). Since embedding API `2.0.0` a RESOLVED profile carries the grammar's canonical spelling: a typed outcome for this family reads `"profile": "pcre2"`, while the string-named outcomes still echo the requested spelling (`"regex_default"`). Until now `regex_default` was a spelling only the embedding API knew — typed in its `GrammarProfile` enum — and the parser was always run on its declared default `pcre2` with no profile requested. The spelling now resolves to that same default through the artifact itself, which is what lets the embedding API derive its profile universe from the registry instead of typing it (the `ENGINE-NEUTRALITY` doctrine, `ENGINE-UNIVERSAL-SERVICES.112`).
+- **What did NOT change.** No rule, no verdict, no AST byte: the alias resolves to the profile every parse already ran under. The regex formal exhaustive closure umbrella, the equivalence and semantic-directive suites and the AST-shape contract were re-run on the regenerated parser (see the `ENGINE-UNIVERSAL-SERVICES.112` slice-3 record). Downstream (RGX): nothing to do; `regex_default` keeps working at every entry point and is now also accepted by the parser directly.
 
 ## Maintenance Update 2026-07-21 — PGEN-RGX-0090: the cold-clone bootstrap recipe REPAIRED (BUILD-FLOW ONLY; release/contract/schema versions UNCHANGED)
 

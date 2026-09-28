@@ -18,6 +18,9 @@ pub trait ParseTarget {
     fn semantic_runtime_state_mut(&mut self) -> &mut crate::ast_pipeline::SemanticRuntimeState;
 }
 
+/// One family's downstream contract identity (defined by the embedding API, which derives it from here).
+pub use crate::embedding_api::FamilyContract;
+
 /// The hook points a family may fill. Every field defaults to a no-op; the template calls them in
 /// this order around a parse: `pre_check(sample)` → (`dedicated_stack(sample)` decides where the
 /// parse runs) → `pre_parse(&mut parser, resolved_profile)` → the parse → `post_parse(sample)`.
@@ -35,12 +38,21 @@ pub struct FamilyHooks {
     /// Judge the input after a SUCCESSFUL parse (the PCRE2 compile contract): `Err(message)` turns
     /// the accepted parse into a failure with the family's own message.
     pub post_parse: fn(&str) -> Result<(), String>,
+    /// The family's published downstream contract identity, when it ships one.
+    pub contract: fn() -> Option<FamilyContract>,
 }
 
 fn no_pre_check(_: &str) -> Result<(), String> {
     Ok(())
 }
-fn never_dedicated(_: &str) -> Option<usize> {
+/// The NEUTRAL default: every parse runs on a dedicated thread whose stack is the host-derived
+/// reservation (`dedicated_parse_stack`) — the Stack-Robustness Contract the embedding API
+/// publishes, now for every registry caller; a family may narrow it (regex runs shallow inputs
+/// inline and deep ones on its own 64 MiB worker).
+fn host_dedicated(_: &str) -> Option<usize> {
+    Some(crate::dedicated_parse_stack::dedicated_parse_stack_bytes())
+}
+fn no_contract() -> Option<FamilyContract> {
     None
 }
 fn no_pre_parse(_: &mut dyn ParseTarget, _: Option<&str>) -> Result<(), String> {
@@ -54,9 +66,10 @@ impl FamilyHooks {
     /// The hooks of a family that declares none.
     pub const NONE: FamilyHooks = FamilyHooks {
         pre_check: no_pre_check,
-        dedicated_stack: never_dedicated,
+        dedicated_stack: host_dedicated,
         pre_parse: no_pre_parse,
         post_parse: no_post_parse,
+        contract: no_contract,
     };
 }
 

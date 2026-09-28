@@ -45,6 +45,12 @@
 # annotation-system.md).
 @whitespace_sensitive: true
 @default_profile: pcre2
+# ENGINE-UNIVERSAL-SERVICES.112 slice 3 (2026-09-28): the spelling the embedding API has published as this family's
+# stable host profile (`regex_default`) is DECLARED as an alias of the grammar's own default, so the parser carries
+# the mapping (`GRAMMAR_PROFILE_ALIASES`) and the API derives it instead of typing it — `regex` too, the family's own
+# name, which the API's 1.x `FromStr` also accepted. No verdict moves: both aliases resolve to the profile every parse
+# already ran under.
+@profile_alias: { "regex_default": pcre2, "regex": pcre2 }
 @entry: true
 regex          = entry_alternation
 -> {type: "regex", pattern: $1}

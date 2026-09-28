@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse vhdl <file> `, timeout 60s, 8-way
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `6aae359ea255687be60fb55efc7a862c02be35a972f74eda8eefb815534b8555` |
-| grammar | `grammars/vhdl.ebnf` | `df5b8f94736492b0b3fa9fab6e75f217a9662402027c1ec8f3db073ea988dea2` |
-| grammar raw ast | `grammars/vhdl.ebnf` | `6964873cc335969ccc6597c4be3b433d5e8c9ab0e883419aae3434124e4f5bc7` |
-| generated parser | `generated/vhdl_parser.rs` | `4b7a4b0dda4596197839c7eb9d8c2aede6db5deed582c04d76ef05d991844eab` |
+| parse binary | `rust/target/release/parseability_probe` | `6a3f077e9085b9f540177c53f9a3f398e57c3b834ae83a8fb9ff4fa19ab8f203` |
+| grammar | `grammars/vhdl.ebnf` | `5bd5a096926703ee6033b3cea352212860df38379e9c2ac06200cbcce998081b` |
+| grammar raw ast | `grammars/vhdl.ebnf` | `b561581f0f37e70ecf138b4ebbee25162f8f4c803543f2c260c7d582e39e8031` |
+| generated parser | `generated/vhdl_parser.rs` | `e6bcd4c4e69c3d4143629a73c7814b4f616be611ea557cc090c1d19a02d2e8ed` |
 | results (output) | `stimuli/vhdl/characterization/results.tsv` | `0211dcec87a4b5704b3d8c507c4b3f899412b5e0e8514986158a3f029de87f77` |
 | positions (output) | `stimuli/vhdl/characterization/positions.tsv` | `07fd90c163597ce3ed111ef210a4112a168656c26da3b77ee1eca9e80b29d59a` |
 
-Measured at `HEAD` = `a60fad7f7+dirty` (2026-09-14).
+Measured at `HEAD` = `f04f5b807+dirty` (2026-09-28).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -44,10 +44,10 @@ Measured at `HEAD` = `a60fad7f7+dirty` (2026-09-14).
 
 | parameter | value | source for this run |
 |---|---|---|
-| per-file timeout | 60 s | provenance |
-| parallel jobs | 8 | provenance |
-| max files | 0 (no cap) | provenance |
-| parse binary | `rust/target/release/parseability_probe` | provenance |
+| per-file timeout | 60 s | caller |
+| parallel jobs | 8 | caller |
+| max files | 0 (no cap) | caller |
+| parse binary | `rust/target/release/parseability_probe` | caller |
 
 ## Deadline proximity and serial re-confirmation
 
@@ -65,7 +65,7 @@ Measured at `HEAD` = `a60fad7f7+dirty` (2026-09-14).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.63` s — `stimuli/vhdl/subs/ghdl/testsuite/gna/issue2051/repro.vhdl`.
+Slowest completing file: `1.19` s — `stimuli/vhdl/subs/ghdl/testsuite/gna/issue2051/repro.vhdl`.
 
 ## Totals
 

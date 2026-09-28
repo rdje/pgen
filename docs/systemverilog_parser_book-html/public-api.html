@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-92795830.js";
+            window.path_to_searchindex_js = "searchindex-00543103.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -184,9 +184,14 @@
 <p>The stable downstream contract is the <code>pgen::embedding_api</code> host surface, <strong>not</strong> internal generated-parser types. This chapter enumerates the entry points downstream consumers should call.</p>
 <p>All entry points return <code>Outcome</code> types (<code>NamedGrammarParseOutcome</code>, <code>GrammarAstDumpOutcome</code>, etc.) that carry an <code>api_version</code>, <code>grammar</code>, <code>profile</code>, <code>status</code>, and <code>diagnostic</code>/<code>ast_dump</code> payload. The <code>Outcome</code> types are stable and source-compatible across patch / minor releases.</p>
 <h2 id="convenience-entry-points"><a class="header" href="#convenience-entry-points">Convenience entry points</a></h2>
+<p>Since embedding API <code>2.0.0</code> (<code>ENGINE-UNIVERSAL-SERVICES.112</code>) these live beside the family that
+owns them — <code>pgen::families::systemverilog::embed</code> — because the neutral API names no language;
+each is one line over the generic entry points below.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Parse-only (no AST dump):
+</span>use pgen::families::systemverilog::embed::*;
+
+// Parse-only (no AST dump):
 pub fn parse_systemverilog_2017(input: &amp;str) -&gt; NamedGrammarParseOutcome;
 pub fn parse_systemverilog_2023(input: &amp;str) -&gt; NamedGrammarParseOutcome;
 
@@ -201,7 +206,10 @@ pub fn parse_systemverilog_2023_ast_dump(
 ) -&gt; NamedGrammarAstDumpOutcome;
 <span class="boring">}</span></code></pre>
 <h2 id="generic-entry-points"><a class="header" href="#generic-entry-points">Generic entry points</a></h2>
-<p>For tools that select the grammar family at runtime:</p>
+<p>For tools that select the grammar family at runtime. <code>GrammarFamily</code> and <code>GrammarProfile</code> are
+RESOLVED values since <code>2.0.0</code>: <code>GrammarFamily::from_str("systemverilog")?</code> and
+<code>family.profile("sv_2017")?</code> (every spelling comes from the grammar’s own <code>@profiles</code> /
+<code>@profile_alias</code>); the <code>1.x</code> enum variants are gone.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn parse_grammar_profile(

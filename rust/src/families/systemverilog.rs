@@ -52,3 +52,23 @@ pub const HOOKS: FamilyHooks = FamilyHooks {
     pre_parse: preload_stdlib,
     ..FamilyHooks::NONE
 };
+
+/// The convenience entry points this family has always published through the embedding API
+/// (`parse_systemverilog_2017*` / `_2023*`), moved beside the family that owns them (slice 3).
+/// Each is one line over the generic, registry-derived API.
+pub mod embed {
+    use crate::embedding_api::{self as api, AstDumpOptions, GrammarAstDumpOutcome, GrammarParseOutcome, ParseDiagnostic, ParseLimits};
+    const FAMILY: &str = "systemverilog";
+    macro_rules! shims {
+        ($profile:literal, $p:ident, $pl:ident, $pr:ident, $plr:ident, $pa:ident, $pal:ident) => {
+            pub fn $p(input: &str) -> GrammarParseOutcome { api::parse_grammar_profile_named_typed(FAMILY, $profile, input, &ParseLimits::default()) }
+            pub fn $pl(input: &str, limits: &ParseLimits) -> GrammarParseOutcome { api::parse_grammar_profile_named_typed(FAMILY, $profile, input, limits) }
+            pub fn $pr(input: &str) -> Result<(), ParseDiagnostic> { api::parse_grammar_profile_named_with_limits_result(FAMILY, $profile, input, &ParseLimits::default()) }
+            pub fn $plr(input: &str, limits: &ParseLimits) -> Result<(), ParseDiagnostic> { api::parse_grammar_profile_named_with_limits_result(FAMILY, $profile, input, limits) }
+            pub fn $pa(input: &str, options: &AstDumpOptions) -> GrammarAstDumpOutcome { api::parse_grammar_profile_ast_dump_named_typed(FAMILY, $profile, input, &ParseLimits::default(), options) }
+            pub fn $pal(input: &str, limits: &ParseLimits, options: &AstDumpOptions) -> GrammarAstDumpOutcome { api::parse_grammar_profile_ast_dump_named_typed(FAMILY, $profile, input, limits, options) }
+        };
+    }
+    shims!("sv_2017", parse_systemverilog_2017, parse_systemverilog_2017_with_limits, parse_systemverilog_2017_result, parse_systemverilog_2017_with_limits_result, parse_systemverilog_2017_ast_dump, parse_systemverilog_2017_ast_dump_with_limits);
+    shims!("sv_2023", parse_systemverilog_2023, parse_systemverilog_2023_with_limits, parse_systemverilog_2023_result, parse_systemverilog_2023_with_limits_result, parse_systemverilog_2023_ast_dump, parse_systemverilog_2023_ast_dump_with_limits);
+}

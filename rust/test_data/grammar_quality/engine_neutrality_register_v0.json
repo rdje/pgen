@@ -54,6 +54,10 @@
       {
         "path": "rust/src/bin/rtl_frontend_generated_contract_probe.rs",
         "family": "rtl_frontend"
+      },
+      {
+        "path": "rust/src/families/vhdl.rs",
+        "family": "vhdl"
       }
     ],
     "registry": [
@@ -99,7 +103,7 @@
   "_file_classes_note": "per-family: a language-specific COMPONENT (it may name its own family — its name, its profiles, its rules — and nothing of another's) — owed to its own crate behind a neutral stage interface; registry: the enumeration of registered generated parsers (derived by build.rs from generated/); api: the shipped embedding surface — its family / profile enumeration is owed to derivation from the registry and the generated parsers' declared profiles; bin: operator tools (build / measure / debug), not shipped to users; harness: test suites and censuses that name families as fixtures. Everything else is the ENGINE.",
   "ceilings": {
     "rust/src/embedding_api.rs": {
-      "ceiling": 37,
+      "ceiling": 0,
       "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.112",
       "why_non_zero": "GrammarFamily / GrammarProfile enums and the contract's hand-typed family and profile lists — to be derived from the registry and each generated parser's declared @profiles / @profile_alias (a versioned embedding-API change; Nexsim consumes 1.3.6 / schema 2)"
     },

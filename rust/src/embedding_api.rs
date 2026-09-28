@@ -1,25 +1,18 @@
+
+
 use crate::ast_pipeline::{ParseError, UnifiedReturnAST, UnifiedSemanticAST, runtime_logger};
+
 use crate::regex_compile_validation::{
     RegexCompileValidationError, validate_regex_compile_contract,
 };
+
 use serde::{Deserialize, Serialize};
+
 use serde_json::Value as JsonValue;
+
 use std::fmt;
+
 use std::str::FromStr;
-#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-// PCRE2 conformance includes deeply nested and grammar-like recursive regexes
-// (e.g. `nested_capturing_groups_50`, `deep_nested_backreference_80` in the
-// integration contract corpus). Empirically (debug build, 2026-05-04) 80
-// levels deep through the parser + recursive AST Drop needs roughly 32-48MB
-// of stack; debug frames dwarf release. 64MB stays as the safety margin
-// (matching the original dedicated-thread stack size). Used as the
-// `new_stack_size` argument to `stacker::maybe_grow` and as the dedicated
-// test-thread stack size for the few tests that opt out of the stacker fast
-// path. The performance win comes from running INLINE on the caller's stack
-// when there is enough headroom (the typical case for production callers
-// running on the macOS main thread with 8MB default), not from shrinking the
-// growth segment.
-const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 
 /// Stable embedding API contract version.
 ///
@@ -87,10 +80,10 @@ const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 /// address space, not a practical limit.
 /// ⛔ No API surface or schema change, and the generated artifacts are byte-identical — the
 /// change is one clamp in `dedicated_parse_stack::derive_parse_stack_reservation`.
-pub const EMBEDDING_API_VERSION: &str = "1.3.6";
+pub const EMBEDDING_API_VERSION: &str = "2.0.0";
 
 /// Stable schema version for serialized embedding API metadata.
-pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
+pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 3;
 
 // PGEN-RGX-0086: these two constants are the canonical downstream
 // handoff surface (`parser_embedding_api_contract()`), which the
@@ -103,15 +96,6 @@ pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 // reflected here). Last synced 2026-05-18 to ledger row `REGEX-0084`
 // (downstream `PGEN-RGX-0085`): regex parser release 1.1.77; regex
 // integration contract 1.1.79.
-
-/// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.109";
-
-/// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.106";
-
-/// Stable schema version for regex AST-dump JSON payloads.
-pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
 
 /// Default hard limit for embedding API input payload size (in bytes).
 ///
@@ -233,30 +217,6 @@ pub struct ParseOutcome {
     pub diagnostic: Option<ParseDiagnostic>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum GrammarFamily {
-    #[serde(rename = "systemverilog")]
-    SystemVerilog,
-    #[serde(rename = "vhdl")]
-    Vhdl,
-    #[serde(rename = "regex")]
-    Regex,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum GrammarProfile {
-    #[serde(rename = "sv_2017")]
-    Sv2017,
-    #[serde(rename = "sv_2023")]
-    Sv2023,
-    #[serde(rename = "verilog_2005")]
-    Verilog2005,
-    #[serde(rename = "vhdl_1076_2019")]
-    Vhdl1076_2019,
-    #[serde(rename = "regex_default")]
-    RegexDefault,
-}
-
 impl AnnotationFamily {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -271,28 +231,6 @@ impl ParserBackend {
         match self {
             ParserBackend::Bootstrap => "bootstrap",
             ParserBackend::Generated => "generated",
-        }
-    }
-}
-
-impl GrammarFamily {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            GrammarFamily::SystemVerilog => "systemverilog",
-            GrammarFamily::Vhdl => "vhdl",
-            GrammarFamily::Regex => "regex",
-        }
-    }
-}
-
-impl GrammarProfile {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            GrammarProfile::Sv2017 => "sv_2017",
-            GrammarProfile::Sv2023 => "sv_2023",
-            GrammarProfile::Verilog2005 => "verilog_2005",
-            GrammarProfile::Vhdl1076_2019 => "vhdl_1076_2019",
-            GrammarProfile::RegexDefault => "regex_default",
         }
     }
 }
@@ -327,40 +265,212 @@ impl FromStr for ParserBackend {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// `ENGINE-UNIVERSAL-SERVICES.112` slice 3 — the family and profile types are RESOLVED, not typed.
+//
+// A `GrammarFamily` is a parser the build registered (`registry::registered_grammars()`,
+// minus the engine's own meta languages); a `GrammarProfile` is a spelling a family's grammar
+// declares (`@profiles`), reached through its own alias map (`@profile_alias`) and default
+// (`@default_profile`). Nothing here names a language: the engine derives every value from the
+// artifacts the grammars produced (the `ENGINE-NEUTRALITY` doctrine). On the wire both are the same
+// plain strings they always were (`"systemverilog"`, `"sv_2017"`), so a JSON consumer sees no change;
+// the Rust surface moved from enum variants to resolved values, which is why this is 2.0.0.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+/// One family's downstream contract identity — published by the family's own module and reached
+/// through the registry, so the API derives it and types none of it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FamilyContract {
+    pub integration_contract_version: String,
+    pub parser_release_version: String,
+    pub ast_dump_schema_version: u32,
+    pub generated_backend_required_feature: String,
+    pub generated_backend_required_artifact: String,
+    pub generated_backend_env_override: String,
+    pub frontend_json_artifact: String,
+    pub frontend_json_role: String,
+}
+
+/// The registry this API resolves through — the real one when generated parsers are compiled in,
+/// an empty one otherwise (every family unregistered: `E_BACKEND_UNAVAILABLE`, as before).
+#[cfg(feature = "generated_parsers")]
+use crate::parser_registry as registry;
+#[cfg(not(feature = "generated_parsers"))]
+mod registry {
+    pub fn registered_grammars() -> Vec<&'static str> { Vec::new() }
+    pub fn registered_profiles(_: &str) -> Option<&'static [&'static str]> { None }
+    pub fn active_grammar_profile(_: &str, _: Option<&str>) -> Option<String> { None }
+    pub fn family_contract(_: &str) -> Option<super::FamilyContract> { None }
+    pub fn parse_sample_detail_with_profile(_: &str, _: &str, _: Option<&str>) -> Option<Result<(), String>> { None }
+    pub fn parse_sample_ast_json_with_profile(_: &str, _: &str, _: Option<&str>) -> Option<Result<serde_json::Value, String>> { None }
+}
+
+/// The engine's own languages: registered like any artifact, but not a downstream parser family.
+const META_GRAMMARS: &[&str] = &[
+    "return_annotation",
+    "semantic_annotation",
+    "builtin_return_annotation",
+    "builtin_semantic_annotation",
+    "ebnf",
+];
+
+/// A registered downstream grammar family. Obtain one with [`GrammarFamily::from_str`] /
+/// [`GrammarFamily::registered`]; the value carries the family's registered spelling.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct GrammarFamily(&'static str);
+
+impl GrammarFamily {
+    /// The family's registered spelling (`--parse <grammar>` takes it; the wire carries it).
+    pub fn as_str(self) -> &'static str {
+        self.0
+    }
+
+    /// Every downstream family the build registered, in registry order.
+    pub fn registered() -> Vec<GrammarFamily> {
+        registry::registered_grammars()
+            .into_iter()
+            .filter(|name| !META_GRAMMARS.contains(name))
+            .map(GrammarFamily)
+            .collect()
+    }
+
+    /// The family's declared profile universe (empty for a grammar that declares none).
+    pub fn profiles(self) -> Vec<GrammarProfile> {
+        registry::registered_profiles(self.0)
+            .unwrap_or(&[])
+            .iter()
+            .map(|name| GrammarProfile { family: self, name: Some(name) })
+            .collect()
+    }
+
+    /// The profile an unspecified request resolves to: the grammar's declared default, else the
+    /// family's unprofiled parse.
+    pub fn default_profile(self) -> GrammarProfile {
+        let name = registry::active_grammar_profile(self.0, None)
+            .and_then(|resolved| registry::registered_profiles(self.0).and_then(|declared| declared.iter().copied().find(|p| *p == resolved)));
+        GrammarProfile { family: self, name }
+    }
+
+    /// Resolve a requested spelling within this family — through the grammar's own alias map, or the
+    /// declared default for an empty request. A spelling the grammar does not declare is
+    /// `E_UNSUPPORTED_PROFILE`.
+    pub fn profile(self, requested: &str) -> Result<GrammarProfile, ParseDiagnostic> {
+        let requested = requested.trim();
+        if requested.is_empty() {
+            return Ok(self.default_profile());
+        }
+        let declared = registry::registered_profiles(self.0).unwrap_or(&[]);
+        let resolved = registry::active_grammar_profile(self.0, Some(requested));
+        match resolved.and_then(|r| declared.iter().copied().find(|p| p.eq_ignore_ascii_case(&r))) {
+            Some(name) => Ok(GrammarProfile { family: self, name: Some(name) }),
+            None => Err(unsupported_profile_diagnostic(self.0, requested)),
+        }
+    }
+}
+
+impl std::fmt::Display for GrammarFamily {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.0)
+    }
+}
+
 impl FromStr for GrammarFamily {
     type Err = ParseDiagnostic;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        match input.trim().to_ascii_lowercase().as_str() {
-            "systemverilog" | "sv" => Ok(Self::SystemVerilog),
-            "vhdl" => Ok(Self::Vhdl),
-            "regex" => Ok(Self::Regex),
-            other => Err(invalid_argument_diagnostic(format!(
-                "unsupported grammar family '{}'",
-                other
-            ))),
-        }
+        let wanted = input.trim().to_ascii_lowercase();
+        GrammarFamily::registered()
+            .into_iter()
+            .find(|family| family.0 == wanted)
+            .ok_or_else(|| invalid_argument_diagnostic(format!("unsupported grammar family '{}'", input.trim())))
+    }
+}
+
+impl Serialize for GrammarFamily {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.0)
+    }
+}
+
+impl<'de> Deserialize<'de> for GrammarFamily {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = String::deserialize(deserializer)?;
+        GrammarFamily::from_str(&raw).map_err(|err| serde::de::Error::custom(err.message))
+    }
+}
+
+/// A profile of a registered family: the canonical spelling the grammar declares (`None` for a
+/// family whose grammar declares no profiles — its single, unprofiled dialect).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct GrammarProfile {
+    family: GrammarFamily,
+    name: Option<&'static str>,
+}
+
+impl GrammarProfile {
+    /// The family this profile belongs to.
+    pub fn family(self) -> GrammarFamily {
+        self.family
+    }
+
+    /// The canonical spelling (`""` for an unprofiled family).
+    pub fn as_str(self) -> &'static str {
+        self.name.unwrap_or("")
+    }
+
+    /// Resolve `requested` within `family` (alias map, default for an empty request).
+    pub fn of(family: GrammarFamily, requested: &str) -> Result<GrammarProfile, ParseDiagnostic> {
+        family.profile(requested)
+    }
+}
+
+impl std::fmt::Display for GrammarProfile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
 impl FromStr for GrammarProfile {
     type Err = ParseDiagnostic;
 
+    /// A family-less resolution: the spelling is looked up in every registered family's declared
+    /// profiles and aliases; it must resolve in exactly one family.
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        match input.trim().to_ascii_lowercase().as_str() {
-            "sv_2017" | "2017" | "ieee1800-2017" | "ieee_1800_2017" => Ok(Self::Sv2017),
-            "sv_2023" | "2023" | "ieee1800-2023" | "ieee_1800_2023" => Ok(Self::Sv2023),
-            "verilog_2005" | "1364-2005" | "ieee1364-2005" | "ieee_1364_2005" => {
-                Ok(Self::Verilog2005)
+        let mut hits: Vec<GrammarProfile> = Vec::new();
+        for family in GrammarFamily::registered() {
+            if let Ok(profile) = family.profile(input) {
+                if profile.name.is_some() && !hits.contains(&profile) {
+                    hits.push(profile);
+                }
             }
-            "vhdl_1076_2019" | "1076-2019" | "ieee1076-2019" | "ieee_1076_2019" => {
-                Ok(Self::Vhdl1076_2019)
-            }
-            "regex_default" | "regex" => Ok(Self::RegexDefault),
-            other => Err(invalid_argument_diagnostic(format!(
-                "unsupported grammar profile '{}'",
-                other
+        }
+        match hits.as_slice() {
+            [one] => Ok(*one),
+            [] => Err(invalid_argument_diagnostic(format!("unsupported grammar profile '{}'", input.trim()))),
+            many => Err(invalid_argument_diagnostic(format!(
+                "ambiguous grammar profile '{}': declared by {}",
+                input.trim(),
+                many.iter().map(|p| p.family.as_str()).collect::<Vec<_>>().join(", ")
             ))),
+        }
+    }
+}
+
+impl Serialize for GrammarProfile {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self.name {
+            Some(name) => serializer.serialize_str(name),
+            None => serializer.serialize_none(),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for GrammarProfile {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = Option::<String>::deserialize(deserializer)?;
+        match raw {
+            Some(spelling) => GrammarProfile::from_str(&spelling).map_err(|err| serde::de::Error::custom(err.message)),
+            None => Err(serde::de::Error::custom("an unprofiled GrammarProfile cannot be deserialized without its family")),
         }
     }
 }
@@ -434,17 +544,10 @@ pub struct ParserEmbeddingApiContract {
     pub supported_grammars: Vec<GrammarFamily>,
     pub supported_profiles: Vec<GrammarProfile>,
     pub profile_matrix: Vec<GrammarProfileBinding>,
-    pub supports_systemverilog_generated_backend: bool,
-    pub supports_vhdl_generated_backend: bool,
-    pub supports_regex_generated_backend: bool,
-    pub regex_integration_contract_version: String,
-    pub regex_parser_release_version: String,
-    pub regex_ast_dump_schema_version: u32,
-    pub regex_generated_backend_required_feature: String,
-    pub regex_generated_backend_required_artifact: String,
-    pub regex_generated_backend_env_override: String,
-    pub regex_frontend_json_artifact: String,
-    pub regex_frontend_json_role: String,
+    /// Every registered downstream family → `true` (registration IS the generated backend).
+    pub generated_backends: std::collections::BTreeMap<String, bool>,
+    /// The families that publish a downstream contract identity, keyed by family name.
+    pub family_contracts: std::collections::BTreeMap<String, FamilyContract>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -461,80 +564,6 @@ pub fn embedding_api_contract() -> EmbeddingApiContract {
         supports_generated_backend: generated_backend_enabled(),
         deterministic_by_default: true,
         supported_families: vec![AnnotationFamily::Return, AnnotationFamily::Semantic],
-    }
-}
-
-/// Returns stable grammar-parser contract metadata for embedding users.
-///
-/// This contract covers profile-aware parser entry points used by host applications
-/// (for example Nexsim) and intentionally keeps diagnostics deterministic.
-pub fn parser_embedding_api_contract() -> ParserEmbeddingApiContract {
-    let systemverilog_profiles = vec![
-        GrammarProfile::Sv2017,
-        GrammarProfile::Sv2023,
-        GrammarProfile::Verilog2005,
-    ];
-    let vhdl_profiles = vec![GrammarProfile::Vhdl1076_2019];
-    let regex_profiles = vec![GrammarProfile::RegexDefault];
-    ParserEmbeddingApiContract {
-        api_version: EMBEDDING_API_VERSION.to_string(),
-        schema_version: EMBEDDING_API_SCHEMA_VERSION,
-        deterministic_by_default: true,
-        input_ownership_model: InputOwnershipModel::BorrowedStr,
-        parse_session_model: ParseSessionModel::StatelessPerCall,
-        zero_copy_input_boundary: true,
-        stable_diagnostic_codes: vec![
-            "E_BACKEND_UNAVAILABLE".to_string(),
-            "E_INPUT_TOO_LARGE".to_string(),
-            "E_INVALID_ARGUMENT".to_string(),
-            "E_INVALID_LIMITS".to_string(),
-            "E_PARSE_FAILURE".to_string(),
-            "E_UNSUPPORTED_PROFILE".to_string(),
-        ],
-        stable_diagnostic_location_fields: vec![
-            "byte_offset".to_string(),
-            "line".to_string(),
-            "column".to_string(),
-        ],
-        supported_grammars: vec![
-            GrammarFamily::SystemVerilog,
-            GrammarFamily::Vhdl,
-            GrammarFamily::Regex,
-        ],
-        supported_profiles: vec![
-            systemverilog_profiles[0],
-            systemverilog_profiles[1],
-            systemverilog_profiles[2],
-            vhdl_profiles[0],
-            regex_profiles[0],
-        ],
-        profile_matrix: vec![
-            GrammarProfileBinding {
-                grammar: GrammarFamily::SystemVerilog,
-                profiles: systemverilog_profiles,
-            },
-            GrammarProfileBinding {
-                grammar: GrammarFamily::Vhdl,
-                profiles: vhdl_profiles,
-            },
-            GrammarProfileBinding {
-                grammar: GrammarFamily::Regex,
-                profiles: regex_profiles,
-            },
-        ],
-        supports_systemverilog_generated_backend: systemverilog_generated_backend_enabled(),
-        supports_vhdl_generated_backend: vhdl_generated_backend_enabled(),
-        supports_regex_generated_backend: regex_generated_backend_enabled(),
-        regex_integration_contract_version: REGEX_PARSER_INTEGRATION_CONTRACT_VERSION.to_string(),
-        regex_parser_release_version: REGEX_PARSER_RELEASE_VERSION.to_string(),
-        regex_ast_dump_schema_version: REGEX_AST_DUMP_SCHEMA_VERSION,
-        regex_generated_backend_required_feature: "generated_parsers".to_string(),
-        regex_generated_backend_required_artifact: "generated/regex_parser.rs".to_string(),
-        regex_generated_backend_env_override: "PGEN_REGEX_PARSER_PATH".to_string(),
-        regex_frontend_json_artifact: "generated/regex.json".to_string(),
-        regex_frontend_json_role:
-            "PGEN-generated frontend normalization and provenance artifact; not a stable downstream runtime input or AST contract"
-                .to_string(),
     }
 }
 
@@ -556,19 +585,6 @@ fn backend_unavailable_diagnostic(message: impl Into<String>) -> ParseDiagnostic
 
 fn parse_failure_diagnostic(message: impl Into<String>) -> ParseDiagnostic {
     ParseDiagnostic::new("E_PARSE_FAILURE", message)
-}
-
-fn unsupported_profile_diagnostic(
-    grammar: GrammarFamily,
-    profile: GrammarProfile,
-) -> ParseDiagnostic {
-    ParseDiagnostic::new(
-        "E_UNSUPPORTED_PROFILE",
-        format!(
-            "profile {:?} is not supported for grammar {:?}",
-            profile, grammar
-        ),
-    )
 }
 
 fn parse_error_position(error: &ParseError) -> usize {
@@ -625,16 +641,6 @@ fn generated_parse_failure_diagnostic(
     )
 }
 
-fn regex_compile_contract_diagnostic(
-    input: &str,
-    error: RegexCompileValidationError,
-) -> ParseDiagnostic {
-    ParseDiagnostic::with_location(
-        "E_PARSE_FAILURE",
-        error.message,
-        parse_diagnostic_location(input, error.byte_offset),
-    )
-}
 
 /// Parses a single annotation payload using the selected parser family/backend.
 ///
@@ -754,26 +760,6 @@ pub fn parse_grammar_profile(
     parse_grammar_profile_with_limits(grammar, profile, input, &ParseLimits::default())
 }
 
-/// Convenience entry point for Nexsim SV integration (`IEEE 1800-2017` profile).
-pub fn parse_systemverilog_2017(input: &str) -> GrammarParseOutcome {
-    parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, input)
-}
-
-/// Convenience entry point for Nexsim SV integration (`IEEE 1800-2023` profile).
-pub fn parse_systemverilog_2023(input: &str) -> GrammarParseOutcome {
-    parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2023, input)
-}
-
-/// Convenience entry point for Nexsim VHDL integration (`IEEE 1076-2019` profile).
-pub fn parse_vhdl_1076_2019(input: &str) -> GrammarParseOutcome {
-    parse_grammar_profile(GrammarFamily::Vhdl, GrammarProfile::Vhdl1076_2019, input)
-}
-
-/// Convenience entry point for regex host integrations (`regex_default` profile).
-pub fn parse_regex_default(input: &str) -> GrammarParseOutcome {
-    parse_grammar_profile(GrammarFamily::Regex, GrammarProfile::RegexDefault, input)
-}
-
 /// Parses a full grammar input using explicit input limits.
 pub fn parse_grammar_profile_with_limits(
     grammar: GrammarFamily,
@@ -799,52 +785,6 @@ pub fn parse_grammar_profile_with_limits(
     }
 }
 
-/// Convenience entry point with explicit limits for `IEEE 1800-2017`.
-pub fn parse_systemverilog_2017_with_limits(
-    input: &str,
-    limits: &ParseLimits,
-) -> GrammarParseOutcome {
-    parse_grammar_profile_with_limits(
-        GrammarFamily::SystemVerilog,
-        GrammarProfile::Sv2017,
-        input,
-        limits,
-    )
-}
-
-/// Convenience entry point with explicit limits for `IEEE 1800-2023`.
-pub fn parse_systemverilog_2023_with_limits(
-    input: &str,
-    limits: &ParseLimits,
-) -> GrammarParseOutcome {
-    parse_grammar_profile_with_limits(
-        GrammarFamily::SystemVerilog,
-        GrammarProfile::Sv2023,
-        input,
-        limits,
-    )
-}
-
-/// Convenience entry point with explicit limits for `IEEE 1076-2019`.
-pub fn parse_vhdl_1076_2019_with_limits(input: &str, limits: &ParseLimits) -> GrammarParseOutcome {
-    parse_grammar_profile_with_limits(
-        GrammarFamily::Vhdl,
-        GrammarProfile::Vhdl1076_2019,
-        input,
-        limits,
-    )
-}
-
-/// Convenience entry point with explicit limits for `regex_default`.
-pub fn parse_regex_default_with_limits(input: &str, limits: &ParseLimits) -> GrammarParseOutcome {
-    parse_grammar_profile_with_limits(
-        GrammarFamily::Regex,
-        GrammarProfile::RegexDefault,
-        input,
-        limits,
-    )
-}
-
 /// Idiomatic Rust Result-based grammar parse API.
 pub fn parse_grammar_profile_result(
     grammar: GrammarFamily,
@@ -852,26 +792,6 @@ pub fn parse_grammar_profile_result(
     input: &str,
 ) -> Result<(), ParseDiagnostic> {
     parse_grammar_profile_with_limits_result(grammar, profile, input, &ParseLimits::default())
-}
-
-/// Convenience `Result` API for `IEEE 1800-2017`.
-pub fn parse_systemverilog_2017_result(input: &str) -> Result<(), ParseDiagnostic> {
-    parse_grammar_profile_result(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, input)
-}
-
-/// Convenience `Result` API for `IEEE 1800-2023`.
-pub fn parse_systemverilog_2023_result(input: &str) -> Result<(), ParseDiagnostic> {
-    parse_grammar_profile_result(GrammarFamily::SystemVerilog, GrammarProfile::Sv2023, input)
-}
-
-/// Convenience `Result` API for `IEEE 1076-2019`.
-pub fn parse_vhdl_1076_2019_result(input: &str) -> Result<(), ParseDiagnostic> {
-    parse_grammar_profile_result(GrammarFamily::Vhdl, GrammarProfile::Vhdl1076_2019, input)
-}
-
-/// Convenience `Result` API for `regex_default`.
-pub fn parse_regex_default_result(input: &str) -> Result<(), ParseDiagnostic> {
-    parse_grammar_profile_result(GrammarFamily::Regex, GrammarProfile::RegexDefault, input)
 }
 
 /// Result-based grammar parse API with explicit input limits.
@@ -882,58 +802,6 @@ pub fn parse_grammar_profile_with_limits_result(
     limits: &ParseLimits,
 ) -> Result<(), ParseDiagnostic> {
     run_grammar_parse(grammar, profile, input, limits)
-}
-
-/// Convenience `Result` API with explicit limits for `IEEE 1800-2017`.
-pub fn parse_systemverilog_2017_with_limits_result(
-    input: &str,
-    limits: &ParseLimits,
-) -> Result<(), ParseDiagnostic> {
-    parse_grammar_profile_with_limits_result(
-        GrammarFamily::SystemVerilog,
-        GrammarProfile::Sv2017,
-        input,
-        limits,
-    )
-}
-
-/// Convenience `Result` API with explicit limits for `IEEE 1800-2023`.
-pub fn parse_systemverilog_2023_with_limits_result(
-    input: &str,
-    limits: &ParseLimits,
-) -> Result<(), ParseDiagnostic> {
-    parse_grammar_profile_with_limits_result(
-        GrammarFamily::SystemVerilog,
-        GrammarProfile::Sv2023,
-        input,
-        limits,
-    )
-}
-
-/// Convenience `Result` API with explicit limits for `IEEE 1076-2019`.
-pub fn parse_vhdl_1076_2019_with_limits_result(
-    input: &str,
-    limits: &ParseLimits,
-) -> Result<(), ParseDiagnostic> {
-    parse_grammar_profile_with_limits_result(
-        GrammarFamily::Vhdl,
-        GrammarProfile::Vhdl1076_2019,
-        input,
-        limits,
-    )
-}
-
-/// Convenience `Result` API with explicit limits for `regex_default`.
-pub fn parse_regex_default_with_limits_result(
-    input: &str,
-    limits: &ParseLimits,
-) -> Result<(), ParseDiagnostic> {
-    parse_grammar_profile_with_limits_result(
-        GrammarFamily::Regex,
-        GrammarProfile::RegexDefault,
-        input,
-        limits,
-    )
 }
 
 /// Language-neutral grammar parse API using string names.
@@ -978,7 +846,7 @@ pub fn parse_grammar_profile_named_with_limits_result(
     limits: &ParseLimits,
 ) -> Result<(), ParseDiagnostic> {
     let grammar = GrammarFamily::from_str(grammar)?;
-    let profile = GrammarProfile::from_str(profile)?;
+    let profile = grammar.profile(profile)?;
     run_grammar_parse(grammar, profile, input, limits)
 }
 
@@ -1110,120 +978,8 @@ pub fn parse_grammar_profile_ast_dump_named_with_limits_result(
     options: &AstDumpOptions,
 ) -> Result<AstDumpPayload, ParseDiagnostic> {
     let grammar = GrammarFamily::from_str(grammar)?;
-    let profile = GrammarProfile::from_str(profile)?;
+    let profile = grammar.profile(profile)?;
     run_grammar_parse_ast_dump(grammar, profile, input, limits, options)
-}
-
-/// Convenience AST-dump entry point for Nexsim SV integration (`IEEE 1800-2017` profile).
-pub fn parse_systemverilog_2017_ast_dump(
-    input: &str,
-    options: &AstDumpOptions,
-) -> GrammarAstDumpOutcome {
-    parse_grammar_profile_ast_dump(
-        GrammarFamily::SystemVerilog,
-        GrammarProfile::Sv2017,
-        input,
-        options,
-    )
-}
-
-/// Convenience AST-dump entry point for Nexsim SV integration (`IEEE 1800-2023` profile).
-pub fn parse_systemverilog_2023_ast_dump(
-    input: &str,
-    options: &AstDumpOptions,
-) -> GrammarAstDumpOutcome {
-    parse_grammar_profile_ast_dump(
-        GrammarFamily::SystemVerilog,
-        GrammarProfile::Sv2023,
-        input,
-        options,
-    )
-}
-
-/// Convenience AST-dump entry point for Nexsim VHDL integration (`IEEE 1076-2019` profile).
-pub fn parse_vhdl_1076_2019_ast_dump(
-    input: &str,
-    options: &AstDumpOptions,
-) -> GrammarAstDumpOutcome {
-    parse_grammar_profile_ast_dump(
-        GrammarFamily::Vhdl,
-        GrammarProfile::Vhdl1076_2019,
-        input,
-        options,
-    )
-}
-
-/// Convenience AST-dump entry point for regex host integrations (`regex_default` profile).
-pub fn parse_regex_default_ast_dump(
-    input: &str,
-    options: &AstDumpOptions,
-) -> GrammarAstDumpOutcome {
-    parse_grammar_profile_ast_dump(
-        GrammarFamily::Regex,
-        GrammarProfile::RegexDefault,
-        input,
-        options,
-    )
-}
-
-/// Convenience AST-dump entry point with explicit limits for `IEEE 1800-2017`.
-pub fn parse_systemverilog_2017_ast_dump_with_limits(
-    input: &str,
-    limits: &ParseLimits,
-    options: &AstDumpOptions,
-) -> GrammarAstDumpOutcome {
-    parse_grammar_profile_ast_dump_with_limits(
-        GrammarFamily::SystemVerilog,
-        GrammarProfile::Sv2017,
-        input,
-        limits,
-        options,
-    )
-}
-
-/// Convenience AST-dump entry point with explicit limits for `IEEE 1800-2023`.
-pub fn parse_systemverilog_2023_ast_dump_with_limits(
-    input: &str,
-    limits: &ParseLimits,
-    options: &AstDumpOptions,
-) -> GrammarAstDumpOutcome {
-    parse_grammar_profile_ast_dump_with_limits(
-        GrammarFamily::SystemVerilog,
-        GrammarProfile::Sv2023,
-        input,
-        limits,
-        options,
-    )
-}
-
-/// Convenience AST-dump entry point with explicit limits for `IEEE 1076-2019`.
-pub fn parse_vhdl_1076_2019_ast_dump_with_limits(
-    input: &str,
-    limits: &ParseLimits,
-    options: &AstDumpOptions,
-) -> GrammarAstDumpOutcome {
-    parse_grammar_profile_ast_dump_with_limits(
-        GrammarFamily::Vhdl,
-        GrammarProfile::Vhdl1076_2019,
-        input,
-        limits,
-        options,
-    )
-}
-
-/// Convenience AST-dump entry point with explicit limits for `regex_default`.
-pub fn parse_regex_default_ast_dump_with_limits(
-    input: &str,
-    limits: &ParseLimits,
-    options: &AstDumpOptions,
-) -> GrammarAstDumpOutcome {
-    parse_grammar_profile_ast_dump_with_limits(
-        GrammarFamily::Regex,
-        GrammarProfile::RegexDefault,
-        input,
-        limits,
-        options,
-    )
 }
 
 fn run_parse(
@@ -1241,23 +997,6 @@ fn run_parse(
     }
 }
 
-fn run_grammar_parse(
-    grammar: GrammarFamily,
-    profile: GrammarProfile,
-    input: &str,
-    limits: &ParseLimits,
-) -> Result<(), ParseDiagnostic> {
-    validate_input_limits(input, limits)?;
-    validate_profile_match(grammar, profile)?;
-    match grammar {
-        GrammarFamily::SystemVerilog => {
-            parse_generated_systemverilog(input, Some(profile.as_str()))
-        }
-        GrammarFamily::Vhdl => parse_generated_vhdl(input),
-        GrammarFamily::Regex => parse_generated_regex(input),
-    }
-}
-
 #[derive(Debug, Serialize)]
 struct AstDumpTruncationDiagnostic {
     pgen_dump_contract_version: u32,
@@ -1267,26 +1006,6 @@ struct AstDumpTruncationDiagnostic {
     max_bytes: usize,
     full_bytes: usize,
     reason: &'static str,
-}
-
-fn run_grammar_parse_ast_dump(
-    grammar: GrammarFamily,
-    profile: GrammarProfile,
-    input: &str,
-    limits: &ParseLimits,
-    options: &AstDumpOptions,
-) -> Result<AstDumpPayload, ParseDiagnostic> {
-    validate_input_limits(input, limits)?;
-    validate_ast_dump_options(options)?;
-    validate_profile_match(grammar, profile)?;
-    let ast_json = match grammar {
-        GrammarFamily::SystemVerilog => {
-            parse_generated_systemverilog_ast_json(input, Some(profile.as_str()))?
-        }
-        GrammarFamily::Vhdl => parse_generated_vhdl_ast_json(input)?,
-        GrammarFamily::Regex => parse_generated_regex_ast_json(input)?,
-    };
-    encode_ast_dump_payload(&ast_json, options)
 }
 
 fn validate_ast_dump_options(options: &AstDumpOptions) -> Result<(), ParseDiagnostic> {
@@ -1375,27 +1094,6 @@ fn encode_ast_dump_payload(
         full_bytes,
         emitted_bytes: full_bytes,
     })
-}
-
-fn validate_profile_match(
-    grammar: GrammarFamily,
-    profile: GrammarProfile,
-) -> Result<(), ParseDiagnostic> {
-    let valid = match grammar {
-        GrammarFamily::SystemVerilog => {
-            matches!(
-                profile,
-                GrammarProfile::Sv2017 | GrammarProfile::Sv2023 | GrammarProfile::Verilog2005
-            )
-        }
-        GrammarFamily::Vhdl => matches!(profile, GrammarProfile::Vhdl1076_2019),
-        GrammarFamily::Regex => matches!(profile, GrammarProfile::RegexDefault),
-    };
-    if valid {
-        return Ok(());
-    }
-
-    Err(unsupported_profile_diagnostic(grammar, profile))
 }
 
 fn validate_input_limits(input: &str, limits: &ParseLimits) -> Result<(), ParseDiagnostic> {
@@ -1496,458 +1194,6 @@ fn parse_generated_semantic(input: &str) -> Result<(), ParseDiagnostic> {
     feature = "generated_parsers",
     any(has_generated_systemverilog_parser, has_generated_vhdl_parser)
 ))]
-fn run_generated_family_on_dedicated_stack<T, F>(
-    family_label: &'static str,
-    f: F,
-) -> Result<T, ParseDiagnostic>
-where
-    T: Send + 'static,
-    F: FnOnce() -> Result<T, ParseDiagnostic> + Send + 'static,
-{
-    use crate::dedicated_parse_stack::{DedicatedParseStackError, run_on_dedicated_parse_stack};
-    let thread_name = format!("pgen-generated-{}", family_label);
-    match run_on_dedicated_parse_stack(&thread_name, f) {
-        Ok(result) => result,
-        Err(DedicatedParseStackError::Panic(_)) => Err(parse_failure_diagnostic(format!(
-            "generated {} parser worker panicked while processing input",
-            family_label
-        ))),
-        Err(DedicatedParseStackError::Spawn(err)) => Err(parse_failure_diagnostic(format!(
-            "failed to spawn generated {} parser worker thread: {}",
-            family_label, err
-        ))),
-    }
-}
-
-fn parse_generated_systemverilog(
-    input: &str,
-    grammar_profile: Option<&str>,
-) -> Result<(), ParseDiagnostic> {
-    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
-    {
-        use crate::generated_parsers::systemverilog::SystemverilogParser;
-        let owned_input = input.to_string();
-        let owned_profile = grammar_profile.map(|p| p.to_string());
-        return run_generated_family_on_dedicated_stack("systemverilog", move || {
-            let node_arena = crate::ast_pipeline::NodeArena::new();
-            let mut parser = SystemverilogParser::new(
-                &owned_input,
-                &node_arena,
-                crate::ast_pipeline::runtime_logger_box("embedding.generated.systemverilog"),
-            );
-            parser.set_grammar_profile(owned_profile.as_deref());
-            parser
-                .parse_full_systemverilog_file()
-                .map(|_| ())
-                .map_err(|err| {
-                    generated_parse_failure_diagnostic("systemverilog", &owned_input, err)
-                })
-        });
-    }
-    #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
-    {
-        let _ = (input, grammar_profile);
-        Err(backend_unavailable_diagnostic(
-            "systemverilog parser backend requires `generated_parsers` and generated/systemverilog_parser.rs",
-        ))
-    }
-}
-
-fn parse_generated_systemverilog_ast_json(
-    input: &str,
-    grammar_profile: Option<&str>,
-) -> Result<JsonValue, ParseDiagnostic> {
-    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
-    {
-        use crate::generated_parsers::systemverilog::SystemverilogParser;
-        let owned_input = input.to_string();
-        let owned_profile = grammar_profile.map(|p| p.to_string());
-        return run_generated_family_on_dedicated_stack("systemverilog", move || {
-            let node_arena = crate::ast_pipeline::NodeArena::new();
-            let mut parser = SystemverilogParser::new(
-                &owned_input,
-                &node_arena,
-                crate::ast_pipeline::runtime_logger_box("embedding.generated.systemverilog"),
-            );
-            parser.set_grammar_profile(owned_profile.as_deref());
-            let parsed = parser.parse_full_systemverilog_file().map_err(|err| {
-                generated_parse_failure_diagnostic("systemverilog", &owned_input, err)
-            })?;
-            serde_json::to_value(parsed).map_err(|err| {
-                parse_failure_diagnostic(format!(
-                    "generated systemverilog AST serialization failed: {}",
-                    err
-                ))
-            })
-        });
-    }
-    #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
-    {
-        let _ = (input, grammar_profile);
-        Err(backend_unavailable_diagnostic(
-            "systemverilog parser backend requires `generated_parsers` and generated/systemverilog_parser.rs",
-        ))
-    }
-}
-
-fn parse_generated_vhdl(input: &str) -> Result<(), ParseDiagnostic> {
-    #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
-    {
-        use crate::generated_parsers::vhdl::VhdlParser;
-        let owned_input = input.to_string();
-        return run_generated_family_on_dedicated_stack("vhdl", move || {
-            let node_arena = crate::ast_pipeline::NodeArena::new();
-            let mut parser = VhdlParser::new(
-                &owned_input,
-                &node_arena,
-                crate::ast_pipeline::runtime_logger_box("embedding.generated.vhdl"),
-            );
-            parser
-                .parse_full_vhdl_file()
-                .map(|_| ())
-                .map_err(|err| generated_parse_failure_diagnostic("vhdl", &owned_input, err))
-        });
-    }
-    #[cfg(not(all(feature = "generated_parsers", has_generated_vhdl_parser)))]
-    {
-        let _ = input;
-        Err(backend_unavailable_diagnostic(
-            "vhdl parser backend requires `generated_parsers` and generated/vhdl_parser.rs",
-        ))
-    }
-}
-
-fn parse_generated_vhdl_ast_json(input: &str) -> Result<JsonValue, ParseDiagnostic> {
-    #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
-    {
-        use crate::generated_parsers::vhdl::VhdlParser;
-        let owned_input = input.to_string();
-        return run_generated_family_on_dedicated_stack("vhdl", move || {
-            let node_arena = crate::ast_pipeline::NodeArena::new();
-            let mut parser = VhdlParser::new(
-                &owned_input,
-                &node_arena,
-                crate::ast_pipeline::runtime_logger_box("embedding.generated.vhdl"),
-            );
-            let parsed = parser
-                .parse_full_vhdl_file()
-                .map_err(|err| generated_parse_failure_diagnostic("vhdl", &owned_input, err))?;
-            serde_json::to_value(parsed).map_err(|err| {
-                parse_failure_diagnostic(format!("generated vhdl AST serialization failed: {}", err))
-            })
-        });
-    }
-    #[cfg(not(all(feature = "generated_parsers", has_generated_vhdl_parser)))]
-    {
-        let _ = input;
-        Err(backend_unavailable_diagnostic(
-            "vhdl parser backend requires `generated_parsers` and generated/vhdl_parser.rs",
-        ))
-    }
-}
-
-fn parse_generated_regex(input: &str) -> Result<(), ParseDiagnostic> {
-    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-    {
-        run_generated_regex_on_dedicated_stack(input, |owned_input| {
-            use crate::generated_parsers::regex::RegexParser;
-            let node_arena = crate::ast_pipeline::NodeArena::new();
-            let mut parser = RegexParser::new(
-                &owned_input,
-                &node_arena,
-                crate::ast_pipeline::runtime_logger_box("embedding.generated.regex"),
-            );
-            // REGEX-PCRE2-FIDELITY.3.1 / DEFAULT-PROFILE.2: the `regex_default` embedding path is
-            // PCRE2-faithful by DEFAULT — and since DEFAULT-PROFILE.2 the ARTIFACT owns that default:
-            // the generated constructor starts on the grammar-declared `@default_profile` (`pcre2`),
-            // so no explicit `set_grammar_profile` is needed (the former call site here was the
-            // embedder-must-remember footgun the directive retired).
-            parser
-                .parse_full_regex()
-                .map_err(|err| generated_parse_failure_diagnostic("regex", &owned_input, err))?;
-            validate_regex_compile_contract(&owned_input)
-                .map_err(|err| regex_compile_contract_diagnostic(&owned_input, err))
-        })
-    }
-    #[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
-    {
-        let _ = input;
-        Err(backend_unavailable_diagnostic(
-            "regex parser backend requires `generated_parsers` and generated/regex_parser.rs",
-        ))
-    }
-}
-
-fn parse_generated_regex_ast_json(input: &str) -> Result<JsonValue, ParseDiagnostic> {
-    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-    {
-        run_generated_regex_on_dedicated_stack(input, |owned_input| {
-            use crate::generated_parsers::regex::RegexParser;
-            let node_arena = crate::ast_pipeline::NodeArena::new();
-            let mut parser = RegexParser::new(
-                &owned_input,
-                &node_arena,
-                crate::ast_pipeline::runtime_logger_box("embedding.generated.regex"),
-            );
-            // REGEX-PCRE2-FIDELITY.3.1 / DEFAULT-PROFILE.2: PCRE2-faithful default — the generated
-            // constructor starts on the grammar-declared `@default_profile` (`pcre2`); no explicit
-            // set needed. See parse_generated_regex.
-            let parsed = parser
-                .parse_full_regex()
-                .map_err(|err| generated_parse_failure_diagnostic("regex", &owned_input, err))?;
-            validate_regex_compile_contract(&owned_input)
-                .map_err(|err| regex_compile_contract_diagnostic(&owned_input, err))?;
-            serde_json::to_value(parsed).map_err(|err| {
-                parse_failure_diagnostic(format!(
-                    "generated regex AST serialization failed: {}",
-                    err
-                ))
-            })
-        })
-    }
-    #[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
-    {
-        let _ = input;
-        Err(backend_unavailable_diagnostic(
-            "regex parser backend requires `generated_parsers` and generated/regex_parser.rs",
-        ))
-    }
-}
-
-// Long-lived 64MB-stack worker thread for the generated regex parser.
-//
-// PGEN-RGX-0078 follow-up: the prior implementation spawned a fresh thread per
-// parse call, paying ~50-100µs of OS-thread setup on every call regardless of
-// input depth. The vast majority of real-world regex patterns parse with <1MB
-// of stack, so the per-call thread spawn was pure dispatch overhead — 60-85%
-// of the embedding-API path's wall time on shallow patterns.
-//
-// This implementation keeps a single 64MB-stack worker thread alive for the
-// lifetime of the process. Per-call cost drops from ~50-100µs (thread spawn +
-// join) to a channel send + condvar wakeup (~6-50µs depending on system
-// load). Empirically a 2.5-4.4x speedup across the 8-pattern bench corpus on
-// Apple M4 Pro. The 64MB stack guarantee is preserved — the dedicated worker
-// has it once, amortized across all parses — for deeply nested patterns and
-// deeply nested serde_json::Value Drop trees that the dedicated thread was
-// originally introduced to defend against.
-//
-// `stacker::maybe_grow` was investigated as a way to eliminate the worker
-// thread entirely (run inline on the caller's stack with stacker growing a
-// segment when needed), but the heuristic does not appear to grow on the
-// cargo test runner threads under Rust 1.95 / macOS arm64 — the deeply nested
-// success-sample tests overflow even with `new_stack_size = 64MB`. Tracking
-// as a follow-up; the cached-worker design is the conservative fallback.
-#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-type GeneratedRegexJob = Box<dyn FnOnce() + Send + 'static>;
-
-#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-struct GeneratedRegexWorker {
-    sender: std::sync::Mutex<std::sync::mpsc::Sender<GeneratedRegexJob>>,
-}
-
-#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-fn generated_regex_worker() -> &'static GeneratedRegexWorker {
-    static WORKER: std::sync::OnceLock<GeneratedRegexWorker> = std::sync::OnceLock::new();
-    WORKER.get_or_init(|| {
-        let (sender, receiver) = std::sync::mpsc::channel::<GeneratedRegexJob>();
-        std::thread::Builder::new()
-            .name("pgen-generated-regex".to_string())
-            .stack_size(GENERATED_REGEX_WORKER_STACK_BYTES)
-            .spawn(move || {
-                while let Ok(job) = receiver.recv() {
-                    job();
-                }
-            })
-            .expect("failed to spawn long-lived pgen-generated-regex worker thread");
-        GeneratedRegexWorker {
-            sender: std::sync::Mutex::new(sender),
-        }
-    })
-}
-
-// PGEN-RGX-0085: configurable parenthesis-nesting ceiling for the regex
-// embedding path. Any pattern whose `(`-group nesting exceeds this returns a
-// clean located `ParseDiagnostic` *before the recursive-descent parser is
-// ever invoked* — so unbounded recursion (and the host-process SIGABRT it
-// caused) is structurally impossible. The value is the exact PCRE2
-// `PCRE2_CONFIG_PARENSLIMIT` / Rust `regex` crate `nest_limit` default of
-// 250 (the downstream report's own reference behaviour) — beyond any sane
-// real pattern, and comfortably within the 64 MiB dedicated worker stack
-// (~512 nesting in debug) with a >2x margin. This is the integration-
-// boundary analogue of PCRE2's compile-time parens-nest limit; it does NOT
-// touch the *global* engine `RecursionGuard` (whose ceiling is derived from
-// real host stack headroom since `ENGINE-UNIVERSAL-SERVICES.65`), so SV/VHDL
-// recursion is provably unaffected. Single-source-of-truth knob: to change the ceiling, change
-// this one const (PCRE2's build-time `--with-parens-nest-limit` model);
-// also surfaced in `parser_embedding_api_contract()` for downstream
-// discoverability.
-#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-pub(crate) const REGEX_MAX_NESTING_DEPTH: usize = 250;
-
-// First byte offset of the `(` group-open that crosses
-// `REGEX_MAX_NESTING_DEPTH`, or `None` if the pattern's parenthesis nesting
-// stays within the ceiling. Parenthesis-specific (PCRE2 PARENSLIMIT
-// semantics: every `(` form — capturing, `(?:`, `(?<name>`, `(?#…`, … —
-// drives one `parse_group` recursion frame-chain, so the unescaped-`(`
-// depth IS the parser recursion depth). Escaped `\(`/`\)` are literals;
-// `(`/`)` inside a `[...]` character class are literals (classes cannot
-// nest) and are skipped. O(n), allocation-free, runs before any parse.
-#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-fn regex_paren_nesting_violation(input: &str) -> Option<usize> {
-    let bytes = input.as_bytes();
-    let mut depth: usize = 0;
-    let mut i = 0usize;
-    while i < bytes.len() {
-        match bytes[i] {
-            b'\\' => {
-                // Escaped byte: `\(`/`\)`/`\[` etc. are literals.
-                i += 2;
-                continue;
-            }
-            b'[' => {
-                // Character class: `(`/`)` within are literals; classes do
-                // not nest. Skip to the matching `]`, honoring a leading
-                // `^`, a leading literal `]`, and `\]` escapes.
-                i += 1;
-                if i < bytes.len() && bytes[i] == b'^' {
-                    i += 1;
-                }
-                if i < bytes.len() && bytes[i] == b']' {
-                    i += 1; // leading `]` is a literal class member (PCRE2)
-                }
-                while i < bytes.len() && bytes[i] != b']' {
-                    if bytes[i] == b'\\' {
-                        i += 1;
-                    }
-                    i += 1;
-                }
-                // i is at the closing `]` (or end); fall through to i += 1.
-            }
-            b'(' => {
-                depth += 1;
-                if depth > REGEX_MAX_NESTING_DEPTH {
-                    return Some(i);
-                }
-            }
-            b')' => {
-                depth = depth.saturating_sub(1);
-            }
-            _ => {}
-        }
-        i += 1;
-    }
-    None
-}
-
-// Conservative inline-vs-worker threshold: a pattern whose `(`/`[` nesting
-// stays at or below this runs the recursive descent + AST serialization
-// inline on the caller's stack (zero cross-thread dispatch). PGEN-RGX-0085:
-// lowered 16 -> 4. The previous comment ("16-deep ... well under 1 MB in
-// debug") was empirically FALSE — RGX's
-// `compile_patterns_of_increasing_complexity` SIGABRTed at ≈16 on a 2 MiB
-// libtest worker stack in debug. The PGEN-RGX-0073 8-pattern bench corpus
-// has max depth 4, so depth ≤ 4 keeps the zero-overhead fast path for every
-// real-world pattern; anything deeper goes to the dedicated 64 MiB worker
-// (whose capacity is now bounded by `REGEX_MAX_NESTING_DEPTH` ≪ what 64 MiB
-// holds), so no over-deep recursion ever runs on an unknown/small caller
-// stack.
-#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-const GENERATED_REGEX_INLINE_DEPTH_THRESHOLD: usize = 4;
-
-#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-fn estimate_max_grouping_nesting(input: &str) -> usize {
-    let mut depth = 0usize;
-    let mut max_depth = 0usize;
-    let mut bytes = input.bytes();
-    while let Some(b) = bytes.next() {
-        match b {
-            b'\\' => {
-                // Skip escaped byte (next byte is not a grouping marker).
-                let _ = bytes.next();
-            }
-            b'(' | b'[' => {
-                depth += 1;
-                if depth > max_depth {
-                    max_depth = depth;
-                }
-            }
-            b')' | b']' => {
-                depth = depth.saturating_sub(1);
-            }
-            _ => {}
-        }
-    }
-    max_depth
-}
-
-#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-fn run_generated_regex_on_dedicated_stack<T, F>(input: &str, f: F) -> Result<T, ParseDiagnostic>
-where
-    T: Send + 'static,
-    F: FnOnce(String) -> Result<T, ParseDiagnostic> + Send + 'static,
-{
-    // PGEN-RGX-0085: enforce the configurable parenthesis-nesting ceiling
-    // BEFORE any recursive-descent parse (and before the inline/worker
-    // dispatch). Over-nested input gets a clean, located `ParseDiagnostic`
-    // and the parser is never invoked, so unbounded recursion — and the
-    // host-process SIGABRT it caused — is structurally impossible. This is
-    // the integration-boundary analogue of PCRE2's compile-time parens-nest
-    // limit returning "parentheses are too deeply nested".
-    if let Some(offset) = regex_paren_nesting_violation(input) {
-        return Err(ParseDiagnostic::with_location(
-            "E_PARSE_FAILURE",
-            format!(
-                "regex parenthesis nesting exceeds the maximum supported depth of {} \
-                 (PGEN-RGX-0085 ceiling; PCRE2 / Rust-`regex` parity)",
-                REGEX_MAX_NESTING_DEPTH
-            ),
-            parse_diagnostic_location(input, offset),
-        ));
-    }
-
-    // Fast path: shallow inputs run inline on the caller's stack with zero
-    // cross-thread dispatch overhead. The vast majority of real-world regex
-    // patterns are shallow (the PGEN-RGX-0073 8-pattern bench corpus has max
-    // depth 4); only the integration contract's deeply nested stress samples
-    // exceed the threshold and need the worker thread's 64MB safety margin.
-    if estimate_max_grouping_nesting(input) <= GENERATED_REGEX_INLINE_DEPTH_THRESHOLD {
-        return f(input.to_string());
-    }
-
-    let owned_input = input.to_string();
-    let (result_tx, result_rx) =
-        std::sync::mpsc::sync_channel::<std::thread::Result<Result<T, ParseDiagnostic>>>(1);
-    let job: GeneratedRegexJob = Box::new(move || {
-        let result =
-            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(owned_input)));
-        let _ = result_tx.send(result);
-    });
-    let worker = generated_regex_worker();
-    worker
-        .sender
-        .lock()
-        .map_err(|_| {
-            parse_failure_diagnostic(
-                "pgen-generated-regex worker mutex poisoned".to_string(),
-            )
-        })?
-        .send(job)
-        .map_err(|err| {
-            parse_failure_diagnostic(format!(
-                "failed to enqueue generated regex worker job: {}",
-                err
-            ))
-        })?;
-    match result_rx.recv() {
-        Ok(Ok(parse_result)) => parse_result,
-        Ok(Err(_panic)) => Err(parse_failure_diagnostic(
-            "generated regex worker panicked while processing input".to_string(),
-        )),
-        Err(_) => Err(parse_failure_diagnostic(
-            "generated regex worker thread closed unexpectedly".to_string(),
-        )),
-    }
-}
 
 #[cfg(feature = "generated_parsers")]
 fn generated_backend_enabled() -> bool {
@@ -1959,39 +1205,149 @@ fn generated_backend_enabled() -> bool {
     false
 }
 
-#[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
-fn systemverilog_generated_backend_enabled() -> bool {
-    true
+/// Returns stable grammar-parser contract metadata for embedding users: every field DERIVED from
+/// the registry the build wrote and from the families' own declarations.
+pub fn parser_embedding_api_contract() -> ParserEmbeddingApiContract {
+    let families = GrammarFamily::registered();
+    let profile_matrix: Vec<GrammarProfileBinding> = families
+        .iter()
+        .map(|family| GrammarProfileBinding { grammar: *family, profiles: family.profiles() })
+        .collect();
+    let supported_profiles: Vec<GrammarProfile> = profile_matrix.iter().flat_map(|b| b.profiles.iter().copied()).collect();
+    let generated_backends: std::collections::BTreeMap<String, bool> =
+        families.iter().map(|family| (family.as_str().to_string(), true)).collect();
+    let family_contracts: std::collections::BTreeMap<String, FamilyContract> = families
+        .iter()
+        .filter_map(|family| registry::family_contract(family.as_str()).map(|c| (family.as_str().to_string(), c.clone())))
+        .collect();
+    ParserEmbeddingApiContract {
+        api_version: EMBEDDING_API_VERSION.to_string(),
+        schema_version: EMBEDDING_API_SCHEMA_VERSION,
+        deterministic_by_default: true,
+        input_ownership_model: InputOwnershipModel::BorrowedStr,
+        parse_session_model: ParseSessionModel::StatelessPerCall,
+        zero_copy_input_boundary: true,
+        stable_diagnostic_codes: vec![
+            "E_BACKEND_UNAVAILABLE".to_string(),
+            "E_INPUT_TOO_LARGE".to_string(),
+            "E_INVALID_ARGUMENT".to_string(),
+            "E_INVALID_LIMITS".to_string(),
+            "E_PARSE_FAILURE".to_string(),
+            "E_UNSUPPORTED_PROFILE".to_string(),
+        ],
+        stable_diagnostic_location_fields: vec![
+            "byte_offset".to_string(),
+            "line".to_string(),
+            "column".to_string(),
+        ],
+        supported_grammars: families,
+        supported_profiles,
+        profile_matrix,
+        generated_backends,
+        family_contracts,
+    }
 }
 
-#[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
-fn systemverilog_generated_backend_enabled() -> bool {
-    false
+/// The surface position a registry error string names (`… at position N …`), for the diagnostic's
+/// location; `0` when the message carries none.
+fn registry_error_position(message: &str) -> usize {
+    message
+        .rsplit_once("at position ")
+        .and_then(|(_, tail)| tail.split(|c: char| !c.is_ascii_digit()).next().and_then(|s| s.parse::<usize>().ok()))
+        .unwrap_or(0)
 }
 
-#[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
-fn vhdl_generated_backend_enabled() -> bool {
-    true
+fn registry_parse_failure_diagnostic(family: GrammarFamily, input: &str, message: String) -> ParseDiagnostic {
+    ParseDiagnostic::with_location(
+        "E_PARSE_FAILURE",
+        format!("generated {} parse failed: {}", family, message),
+        parse_diagnostic_location(input, registry_error_position(&message)),
+    )
 }
 
-#[cfg(not(all(feature = "generated_parsers", has_generated_vhdl_parser)))]
-fn vhdl_generated_backend_enabled() -> bool {
-    false
+fn run_grammar_parse(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &str,
+    limits: &ParseLimits,
+) -> Result<(), ParseDiagnostic> {
+    validate_input_limits(input, limits)?;
+    if profile.family() != grammar {
+        return Err(unsupported_profile_diagnostic(grammar.as_str(), profile.as_str()));
+    }
+    // The registry's ONE template runs the family's own stack policy (the neutral default is a
+    // dedicated parse thread sized by the host — the Stack-Robustness Contract — a family may
+    // narrow it); the profile was resolved through the family's own alias map when it was built.
+    match registry::parse_sample_detail_with_profile(grammar.as_str(), input, profile.name) {
+        Some(Ok(())) => Ok(()),
+        Some(Err(message)) => Err(registry_parse_failure_diagnostic(grammar, input, message)),
+        None => Err(backend_unavailable_diagnostic(format!(
+            "{} parser backend is not registered in this build (the `generated_parsers` feature and the family's generated artifact are required)",
+            grammar
+        ))),
+    }
 }
 
-#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-fn regex_generated_backend_enabled() -> bool {
-    true
+fn run_grammar_parse_ast_dump(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &str,
+    limits: &ParseLimits,
+    options: &AstDumpOptions,
+) -> Result<AstDumpPayload, ParseDiagnostic> {
+    validate_input_limits(input, limits)?;
+    if profile.family() != grammar {
+        return Err(unsupported_profile_diagnostic(grammar.as_str(), profile.as_str()));
+    }
+    validate_ast_dump_options(options)?;
+    let ast_json = match registry::parse_sample_ast_json_with_profile(grammar.as_str(), input, profile.name) {
+        Some(Ok(json)) => json,
+        Some(Err(message)) => return Err(registry_parse_failure_diagnostic(grammar, input, message)),
+        None => {
+            return Err(backend_unavailable_diagnostic(format!(
+                "{} parser backend is not registered in this build (the `generated_parsers` feature and the family's generated artifact are required)",
+                grammar
+            )))
+        }
+    };
+    encode_ast_dump_payload(&ast_json, options)
 }
 
-#[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
-fn regex_generated_backend_enabled() -> bool {
-    false
+fn unsupported_profile_diagnostic(grammar: &str, profile: &str) -> ParseDiagnostic {
+    ParseDiagnostic::new(
+        "E_UNSUPPORTED_PROFILE",
+        format!("profile '{}' is not supported for grammar '{}'", profile, grammar),
+    )
+}
+
+/// The typed outcome for a family-module shim: the family and profile are the module's own, so
+/// resolution cannot fail on a build that compiled the module in.
+#[doc(hidden)]
+pub fn parse_grammar_profile_named_typed(grammar: &str, profile: &str, input: &str, limits: &ParseLimits) -> GrammarParseOutcome {
+    let family = GrammarFamily::from_str(grammar).expect("a family module's own family is registered");
+    let profile = family.profile(profile).expect("a family module's own profile is declared by its grammar");
+    parse_grammar_profile_with_limits(family, profile, input, limits)
+}
+
+#[doc(hidden)]
+pub fn parse_grammar_profile_ast_dump_named_typed(grammar: &str, profile: &str, input: &str, limits: &ParseLimits, options: &AstDumpOptions) -> GrammarAstDumpOutcome {
+    let family = GrammarFamily::from_str(grammar).expect("a family module's own family is registered");
+    let profile = family.profile(profile).expect("a family module's own profile is declared by its grammar");
+    parse_grammar_profile_ast_dump_with_limits(family, profile, input, limits, options)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `ENGINE-UNIVERSAL-SERVICES.112` slice 3: the tests resolve families and profiles the way a
+    /// host does — through the registry — instead of naming enum variants the API no longer has.
+    fn fam(name: &str) -> GrammarFamily {
+        GrammarFamily::from_str(name).unwrap_or_else(|err| panic!("family {name}: {}", err.message))
+    }
+    fn prof(family: &str, spelling: &str) -> GrammarProfile {
+        fam(family).profile(spelling).unwrap_or_else(|err| panic!("profile {family}/{spelling}: {}", err.message))
+    }
 
     #[derive(Debug, Deserialize)]
     struct RegexParserIntegrationContractCase {
@@ -2033,7 +1389,9 @@ mod tests {
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     fn regex_ast_dump_json(input: &str) -> serde_json::Value {
-        parse_generated_regex_ast_json(input).expect("generated regex ast json")
+        crate::parser_registry::parse_sample_ast_json_with_profile("regex", input, None)
+            .expect("the regex parser is registered")
+            .expect("generated regex ast json")
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
@@ -2324,8 +1682,10 @@ mod tests {
         let diagnostic = outcome
             .diagnostic
             .as_ref()
-            .expect("expected invalid-argument diagnostic");
-        assert_eq!(diagnostic.code, "E_INVALID_ARGUMENT");
+            .expect("expected unsupported-profile diagnostic");
+        // 2.0.0: a spelling the family's grammar does not declare is an unsupported PROFILE of a
+        // known family (1.x said "invalid argument" because its typed enum had no such variant).
+        assert_eq!(diagnostic.code, "E_UNSUPPORTED_PROFILE");
     }
 
     #[test]
@@ -2342,11 +1702,9 @@ mod tests {
                 .as_str(),
             "generated"
         );
-        assert_eq!(
-            GrammarFamily::from_str("sv")
-                .expect("grammar alias")
-                .as_str(),
-            "systemverilog"
+        assert!(
+            GrammarFamily::from_str("sv").is_err(),
+            "2.0.0: a family is its registered spelling; the undocumented `sv` alias is gone"
         );
         assert_eq!(
             GrammarFamily::from_str("regex")
@@ -2360,11 +1718,13 @@ mod tests {
                 .as_str(),
             "sv_2023"
         );
+        // 2.0.0: `regex` and `regex_default` are grammar-declared aliases of the regex grammar's
+        // own default profile, so a resolved value carries the CANONICAL spelling `pcre2`.
         assert_eq!(
             GrammarProfile::from_str("regex")
                 .expect("profile alias")
                 .as_str(),
-            "regex_default"
+            "pcre2"
         );
     }
 
@@ -2404,58 +1764,39 @@ mod tests {
         assert!(
             contract
                 .supported_grammars
-                .contains(&GrammarFamily::SystemVerilog)
+                .contains(&fam("systemverilog"))
         );
-        assert!(contract.supported_grammars.contains(&GrammarFamily::Vhdl));
+        assert!(contract.supported_grammars.contains(&fam("vhdl")));
         assert!(
             contract
                 .supported_profiles
-                .contains(&GrammarProfile::Sv2017)
-        );
-        assert!(
-            contract
-                .supported_profiles
-                .contains(&GrammarProfile::Sv2023)
+                .contains(&prof("systemverilog", "sv_2017"))
         );
         assert!(
             contract
                 .supported_profiles
-                .contains(&GrammarProfile::Vhdl1076_2019)
+                .contains(&prof("systemverilog", "sv_2023"))
         );
-        assert!(contract.supported_grammars.contains(&GrammarFamily::Regex));
         assert!(
             contract
                 .supported_profiles
-                .contains(&GrammarProfile::RegexDefault)
+                .contains(&prof("vhdl", "vhdl_1076_2019"))
         );
-        assert_eq!(
-            contract.regex_integration_contract_version,
-            REGEX_PARSER_INTEGRATION_CONTRACT_VERSION
+        assert!(contract.supported_grammars.contains(&fam("regex")));
+        assert!(
+            contract
+                .supported_profiles
+                .contains(&prof("regex", "regex_default"))
         );
-        assert_eq!(
-            contract.regex_parser_release_version,
-            REGEX_PARSER_RELEASE_VERSION
-        );
-        assert_eq!(
-            contract.regex_ast_dump_schema_version,
-            REGEX_AST_DUMP_SCHEMA_VERSION
-        );
-        assert_eq!(
-            contract.regex_generated_backend_required_feature,
-            "generated_parsers"
-        );
-        assert_eq!(
-            contract.regex_generated_backend_required_artifact,
-            "generated/regex_parser.rs"
-        );
-        assert_eq!(
-            contract.regex_generated_backend_env_override,
-            "PGEN_REGEX_PARSER_PATH"
-        );
-        assert_eq!(
-            contract.regex_frontend_json_artifact,
-            "generated/regex.json"
-        );
+        assert_eq!(contract.generated_backends.get("regex"), Some(&true));
+        let regex_contract = contract.family_contracts.get("regex").expect("the regex family publishes a contract identity");
+        assert_eq!(regex_contract.integration_contract_version, crate::families::regex::INTEGRATION_CONTRACT_VERSION);
+        assert_eq!(regex_contract.parser_release_version, crate::families::regex::PARSER_RELEASE_VERSION);
+        assert_eq!(regex_contract.ast_dump_schema_version, crate::families::regex::AST_DUMP_SCHEMA_VERSION);
+        assert_eq!(regex_contract.generated_backend_required_feature, "generated_parsers");
+        assert_eq!(regex_contract.generated_backend_required_artifact, "generated/regex_parser.rs");
+        assert_eq!(regex_contract.generated_backend_env_override, "PGEN_REGEX_PARSER_PATH");
+        assert_eq!(regex_contract.frontend_json_artifact, "generated/regex.json");
     }
 
     #[test]
@@ -2466,17 +1807,17 @@ mod tests {
         assert_eq!(manifest.version, 1);
         assert_eq!(
             manifest.integration_contract_version,
-            REGEX_PARSER_INTEGRATION_CONTRACT_VERSION
+            crate::families::regex::INTEGRATION_CONTRACT_VERSION
         );
         assert_eq!(
             manifest.parser_release_version,
-            REGEX_PARSER_RELEASE_VERSION
+            crate::families::regex::PARSER_RELEASE_VERSION
         );
         assert_eq!(manifest.grammar, "regex");
         assert_eq!(manifest.profile, "regex_default");
         assert_eq!(
             manifest.required_generated_backend_flag,
-            "supports_regex_generated_backend"
+            "generated_backends[\"regex\"]"
         );
         assert_eq!(
             manifest.required_generated_backend_feature,
@@ -2492,7 +1833,7 @@ mod tests {
         );
         assert_eq!(
             manifest.ast_dump_schema_version,
-            REGEX_AST_DUMP_SCHEMA_VERSION
+            crate::families::regex::AST_DUMP_SCHEMA_VERSION
         );
         assert_eq!(manifest.frontend_json_artifact, "generated/regex.json");
         assert!(
@@ -3009,44 +2350,21 @@ mod tests {
                 == "empty_quoted_class_literal_does_not_form_posix_range")
         );
         assert_eq!(manifest.failure_samples[0].name, "unbalanced_group");
-        assert!(contract.supported_grammars.contains(&GrammarFamily::Regex));
+        assert!(contract.supported_grammars.contains(&fam("regex")));
         assert!(
             contract
                 .supported_profiles
-                .contains(&GrammarProfile::RegexDefault)
+                .contains(&prof("regex", "regex_default"))
         );
-        assert_eq!(
-            contract.regex_integration_contract_version,
-            manifest.integration_contract_version
-        );
-        assert_eq!(
-            contract.regex_parser_release_version,
-            manifest.parser_release_version
-        );
-        assert_eq!(
-            contract.regex_generated_backend_required_feature,
-            manifest.required_generated_backend_feature
-        );
-        assert_eq!(
-            contract.regex_generated_backend_required_artifact,
-            manifest.required_generated_backend_artifact
-        );
-        assert_eq!(
-            contract.regex_generated_backend_env_override,
-            manifest.generated_backend_env_override
-        );
-        assert_eq!(
-            contract.regex_ast_dump_schema_version,
-            manifest.ast_dump_schema_version
-        );
-        assert_eq!(
-            contract.regex_frontend_json_artifact,
-            manifest.frontend_json_artifact
-        );
-        assert_eq!(
-            contract.regex_frontend_json_role,
-            manifest.frontend_json_role
-        );
+        let regex_contract = contract.family_contracts.get("regex").expect("the regex family publishes a contract identity");
+        assert_eq!(regex_contract.integration_contract_version, manifest.integration_contract_version);
+        assert_eq!(regex_contract.parser_release_version, manifest.parser_release_version);
+        assert_eq!(regex_contract.generated_backend_required_feature, manifest.required_generated_backend_feature);
+        assert_eq!(regex_contract.generated_backend_required_artifact, manifest.required_generated_backend_artifact);
+        assert_eq!(regex_contract.generated_backend_env_override, manifest.generated_backend_env_override);
+        assert_eq!(regex_contract.ast_dump_schema_version, manifest.ast_dump_schema_version);
+        assert_eq!(regex_contract.frontend_json_artifact, manifest.frontend_json_artifact);
+        assert_eq!(regex_contract.frontend_json_role, manifest.frontend_json_role);
         assert_eq!(
             contract.stable_diagnostic_location_fields,
             manifest.stable_diagnostic_location_fields
@@ -3067,7 +2385,7 @@ mod tests {
     #[test]
     fn regex_parser_integration_contract_enforces_limits_before_backend_availability() {
         let result =
-            parse_regex_default_with_limits_result("a|b", &ParseLimits { max_input_bytes: 1 });
+            crate::families::regex::embed::parse_regex_default_with_limits_result("a|b", &ParseLimits { max_input_bytes: 1 });
         let diagnostic = result.expect_err("expected input limit failure");
         assert_eq!(diagnostic.code, "E_INPUT_TOO_LARGE");
     }
@@ -3075,9 +2393,9 @@ mod tests {
     #[test]
     fn parser_embedding_convenience_sv2017_matches_profile_entry_point() {
         let input = "module m; endmodule";
-        let convenience = parse_systemverilog_2017(input);
+        let convenience = crate::families::systemverilog::embed::parse_systemverilog_2017(input);
         let profile =
-            parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, input);
+            parse_grammar_profile(fam("systemverilog"), prof("systemverilog", "sv_2017"), input);
 
         assert_eq!(convenience.status, profile.status);
         assert_eq!(
@@ -3092,9 +2410,9 @@ mod tests {
     #[test]
     fn parser_embedding_convenience_sv2023_matches_profile_entry_point() {
         let input = "module m; endmodule";
-        let convenience = parse_systemverilog_2023(input);
+        let convenience = crate::families::systemverilog::embed::parse_systemverilog_2023(input);
         let profile =
-            parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2023, input);
+            parse_grammar_profile(fam("systemverilog"), prof("systemverilog", "sv_2023"), input);
 
         assert_eq!(convenience.status, profile.status);
         assert_eq!(
@@ -3109,9 +2427,9 @@ mod tests {
     #[test]
     fn parser_embedding_convenience_vhdl_matches_profile_entry_point() {
         let input = "entity e is end entity;";
-        let convenience = parse_vhdl_1076_2019(input);
+        let convenience = crate::families::vhdl::embed::parse_vhdl_1076_2019(input);
         let profile =
-            parse_grammar_profile(GrammarFamily::Vhdl, GrammarProfile::Vhdl1076_2019, input);
+            parse_grammar_profile(fam("vhdl"), prof("vhdl", "vhdl_1076_2019"), input);
 
         assert_eq!(convenience.status, profile.status);
         assert_eq!(
@@ -3126,9 +2444,9 @@ mod tests {
     #[test]
     fn parser_embedding_convenience_regex_matches_profile_entry_point() {
         let input = "a|b";
-        let convenience = parse_regex_default(input);
+        let convenience = crate::families::regex::embed::parse_regex_default(input);
         let profile =
-            parse_grammar_profile(GrammarFamily::Regex, GrammarProfile::RegexDefault, input);
+            parse_grammar_profile(fam("regex"), prof("regex", "regex_default"), input);
 
         assert_eq!(convenience.status, profile.status);
         assert_eq!(
@@ -3143,8 +2461,8 @@ mod tests {
     #[test]
     fn parser_embedding_rejects_profile_grammar_mismatch() {
         let outcome = parse_grammar_profile(
-            GrammarFamily::SystemVerilog,
-            GrammarProfile::Vhdl1076_2019,
+            fam("systemverilog"),
+            prof("vhdl", "vhdl_1076_2019"),
             "module m; endmodule",
         );
         assert_eq!(outcome.status, ParseStatus::Failure);
@@ -3157,7 +2475,7 @@ mod tests {
 
     #[test]
     fn parser_embedding_rejects_regex_profile_grammar_mismatch() {
-        let outcome = parse_grammar_profile(GrammarFamily::Regex, GrammarProfile::Sv2017, "a|b");
+        let outcome = parse_grammar_profile(fam("regex"), prof("systemverilog", "sv_2017"), "a|b");
         assert_eq!(outcome.status, ParseStatus::Failure);
         let diagnostic = outcome
             .diagnostic
@@ -3170,8 +2488,8 @@ mod tests {
     fn parser_embedding_enforces_input_limits() {
         let limits = ParseLimits { max_input_bytes: 4 };
         let outcome = parse_grammar_profile_with_limits(
-            GrammarFamily::SystemVerilog,
-            GrammarProfile::Sv2017,
+            fam("systemverilog"),
+            prof("systemverilog", "sv_2017"),
             "module m; endmodule",
             &limits,
         );
@@ -3193,8 +2511,8 @@ mod tests {
     #[test]
     fn parser_embedding_ast_dump_rejects_zero_max_ast_bytes() {
         let outcome = parse_grammar_profile_ast_dump(
-            GrammarFamily::SystemVerilog,
-            GrammarProfile::Sv2017,
+            fam("systemverilog"),
+            prof("systemverilog", "sv_2017"),
             "module m; endmodule",
             &AstDumpOptions {
                 pretty: false,
@@ -3221,8 +2539,9 @@ mod tests {
         let diagnostic = outcome
             .diagnostic
             .as_ref()
-            .expect("expected invalid argument diagnostic");
-        assert_eq!(diagnostic.code, "E_INVALID_ARGUMENT");
+            .expect("expected unsupported-profile diagnostic");
+        // 2.0.0: an undeclared spelling is an unsupported profile of a known family.
+        assert_eq!(diagnostic.code, "E_UNSUPPORTED_PROFILE");
     }
 
     /// PARSE-SOTA.10 / adoption A4: PARSE-DETERMINISM — parsing the same input repeatedly
@@ -3238,7 +2557,7 @@ mod tests {
         let inputs = ["a|bc", "(ab)*c+", "[A-Za-z0-9_]+", "foo(bar|baz)?d", "x{2,4}y"];
         let opts = AstDumpOptions::default();
         for input in inputs {
-            let first = parse_regex_default_ast_dump(input, &opts);
+            let first = crate::families::regex::embed::parse_regex_default_ast_dump(input, &opts);
             assert_eq!(
                 first.status,
                 ParseStatus::Success,
@@ -3247,7 +2566,7 @@ mod tests {
             );
             assert!(first.ast_dump.is_some(), "success must carry an AST dump for {input:?}");
             for run in 1..=3 {
-                let again = parse_regex_default_ast_dump(input, &opts);
+                let again = crate::families::regex::embed::parse_regex_default_ast_dump(input, &opts);
                 assert_eq!(
                     again.ast_dump, first.ast_dump,
                     "parse of {input:?} must be deterministic (run {run} produced a different AST dump)"
@@ -3281,63 +2600,57 @@ mod tests {
     #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
     #[test]
     fn parser_embedding_reports_missing_systemverilog_backend() {
-        let outcome = parse_grammar_profile(
-            GrammarFamily::SystemVerilog,
-            GrammarProfile::Sv2017,
-            "module m; endmodule",
-        );
+        // Without the artifact the family is not registered at all, so it cannot be resolved —
+        // the derived API has no "known family whose backend is missing".
+        let err = GrammarFamily::from_str("systemverilog").expect_err("an unregistered family does not resolve");
+        assert_eq!(err.code, "E_INVALID_ARGUMENT");
+        let outcome = parse_grammar_profile_named("systemverilog", "", "");
         assert_eq!(outcome.status, ParseStatus::Failure);
-        let diagnostic = outcome
-            .diagnostic
-            .as_ref()
-            .expect("expected backend-unavailable diagnostic");
-        assert_eq!(diagnostic.code, "E_BACKEND_UNAVAILABLE");
+        assert_eq!(outcome.diagnostic.as_ref().map(|d| d.code.as_str()), Some("E_INVALID_ARGUMENT"));
     }
 
     #[cfg(not(all(feature = "generated_parsers", has_generated_vhdl_parser)))]
     #[test]
     fn parser_embedding_reports_missing_vhdl_backend() {
-        let outcome = parse_grammar_profile(
-            GrammarFamily::Vhdl,
-            GrammarProfile::Vhdl1076_2019,
-            "entity e is end entity;",
-        );
+        // Without the artifact the family is not registered at all, so it cannot be resolved —
+        // the derived API has no "known family whose backend is missing".
+        let err = GrammarFamily::from_str("vhdl").expect_err("an unregistered family does not resolve");
+        assert_eq!(err.code, "E_INVALID_ARGUMENT");
+        let outcome = parse_grammar_profile_named("vhdl", "", "");
         assert_eq!(outcome.status, ParseStatus::Failure);
-        let diagnostic = outcome
-            .diagnostic
-            .as_ref()
-            .expect("expected backend-unavailable diagnostic");
-        assert_eq!(diagnostic.code, "E_BACKEND_UNAVAILABLE");
+        assert_eq!(outcome.diagnostic.as_ref().map(|d| d.code.as_str()), Some("E_INVALID_ARGUMENT"));
     }
 
     #[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
     #[test]
     fn parser_embedding_reports_missing_regex_backend() {
-        let outcome =
-            parse_grammar_profile(GrammarFamily::Regex, GrammarProfile::RegexDefault, "a|b");
+        // Without the artifact the family is not registered at all, so it cannot be resolved —
+        // the derived API has no "known family whose backend is missing".
+        let err = GrammarFamily::from_str("regex").expect_err("an unregistered family does not resolve");
+        assert_eq!(err.code, "E_INVALID_ARGUMENT");
+        let outcome = parse_grammar_profile_named("regex", "", "");
         assert_eq!(outcome.status, ParseStatus::Failure);
-        let diagnostic = outcome
-            .diagnostic
-            .as_ref()
-            .expect("expected backend-unavailable diagnostic");
-        assert_eq!(diagnostic.code, "E_BACKEND_UNAVAILABLE");
+        assert_eq!(outcome.diagnostic.as_ref().map(|d| d.code.as_str()), Some("E_INVALID_ARGUMENT"));
     }
 
     #[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
     #[test]
     fn regex_parser_integration_contract_reports_backend_unavailable_without_generated_backend() {
-        let manifest = regex_parser_integration_contract_manifest();
-        let diagnostic = parse_regex_default_result(&manifest.success_samples[0].input)
-            .expect_err("expected backend-unavailable diagnostic");
-        assert_eq!(diagnostic.code, "E_BACKEND_UNAVAILABLE");
+        // Without the artifact the family is not registered at all, so it cannot be resolved —
+        // the derived API has no "known family whose backend is missing".
+        let err = GrammarFamily::from_str("regex").expect_err("an unregistered family does not resolve");
+        assert_eq!(err.code, "E_INVALID_ARGUMENT");
+        let outcome = parse_grammar_profile_named("regex", "", "");
+        assert_eq!(outcome.status, ParseStatus::Failure);
+        assert_eq!(outcome.diagnostic.as_ref().map(|d| d.code.as_str()), Some("E_INVALID_ARGUMENT"));
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     #[test]
     fn parser_embedding_uses_systemverilog_generated_backend_when_available() {
         let outcome = parse_grammar_profile(
-            GrammarFamily::SystemVerilog,
-            GrammarProfile::Sv2017,
+            fam("systemverilog"),
+            prof("systemverilog", "sv_2017"),
             "module m; endmodule",
         );
         let maybe_code = outcome.diagnostic.as_ref().map(|diag| diag.code.as_str());
@@ -3348,8 +2661,8 @@ mod tests {
     #[test]
     fn parser_embedding_uses_vhdl_generated_backend_when_available() {
         let outcome = parse_grammar_profile(
-            GrammarFamily::Vhdl,
-            GrammarProfile::Vhdl1076_2019,
+            fam("vhdl"),
+            prof("vhdl", "vhdl_1076_2019"),
             "entity e is end entity;",
         );
         let maybe_code = outcome.diagnostic.as_ref().map(|diag| diag.code.as_str());
@@ -3380,9 +2693,9 @@ mod tests {
         // could not terminate and the suite it sits in was twice recorded as "abandoned after
         // ~50 min" with exactly this test still running. A lock that hangs reports nothing. Now it
         // FAILS instead, which is a report.
-        for profile in [GrammarProfile::Sv2017, GrammarProfile::Verilog2005] {
+        for profile in [prof("systemverilog", "sv_2017"), prof("systemverilog", "verilog_2005")] {
             let crossing = ceiling_crossing(
-                GrammarFamily::SystemVerilog,
+                fam("systemverilog"),
                 profile,
                 systemverilog_nested_paren_source,
                 ceiling_hang_detector_budget(),
@@ -3433,8 +2746,8 @@ mod tests {
         //
         // ENGINE-UNIVERSAL-SERVICES.43 — see the SystemVerilog twin: the clock is the re-arm.
         let crossing = ceiling_crossing(
-            GrammarFamily::Vhdl,
-            GrammarProfile::Vhdl1076_2019,
+            fam("vhdl"),
+            prof("vhdl", "vhdl_1076_2019"),
             vhdl_nested_paren_source,
             // ⛔ THE CAP, NOT THE HANG DETECTOR — this arm does not require a crossing.
             ceiling_climb_cost_cap(),
@@ -3970,8 +3283,8 @@ mod tests {
         // derived the ceiling from the host's stack. Measured: 400 parens ACCEPTS in 2.60 s. The
         // over-ceiling input is now found, not asserted.
         let crossing = ceiling_crossing(
-            GrammarFamily::SystemVerilog,
-            GrammarProfile::Sv2017,
+            fam("systemverilog"),
+            prof("systemverilog", "sv_2017"),
             systemverilog_nested_paren_source,
             ceiling_hang_detector_budget(),
             CEILING_LADDER_PINNED_RESERVATION,
@@ -4029,8 +3342,8 @@ mod tests {
     #[test]
     fn parser_embedding_recursion_ceiling_is_anchored_to_the_reservation() {
         let crossing = ceiling_crossing(
-            GrammarFamily::SystemVerilog,
-            GrammarProfile::Sv2017,
+            fam("systemverilog"),
+            prof("systemverilog", "sv_2017"),
             systemverilog_nested_paren_source,
             ceiling_hang_detector_budget(),
             CEILING_LADDER_PINNED_RESERVATION,
@@ -4122,8 +3435,8 @@ mod tests {
 
         let at = |reservation: usize| {
             ceiling_crossing(
-                GrammarFamily::SystemVerilog,
-                GrammarProfile::Sv2017,
+                fam("systemverilog"),
+                prof("systemverilog", "sv_2017"),
                 systemverilog_nested_paren_source,
                 ceiling_hang_detector_budget(),
                 reservation,
@@ -4196,8 +3509,8 @@ mod tests {
         // "over-ceiling nesting must carry a diagnostic" — a stale input reported as a missing
         // label.
         let crossing = ceiling_crossing(
-            GrammarFamily::SystemVerilog,
-            GrammarProfile::Sv2017,
+            fam("systemverilog"),
+            prof("systemverilog", "sv_2017"),
             systemverilog_nested_paren_source,
             ceiling_hang_detector_budget(),
             CEILING_LADDER_PINNED_RESERVATION,
@@ -4240,7 +3553,7 @@ mod tests {
         // the other way.
         let broken = "module m; assign x = ; endmodule";
         let outcome =
-            parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, broken);
+            parse_grammar_profile(fam("systemverilog"), prof("systemverilog", "sv_2017"), broken);
         assert_eq!(
             outcome.status,
             ParseStatus::Failure,
@@ -4272,8 +3585,8 @@ mod tests {
         // is a measurement of this host, and it is within a factor of two of the real cliff, so
         // the control is also tighter than the literal it replaces.
         let crossing = ceiling_crossing(
-            GrammarFamily::SystemVerilog,
-            GrammarProfile::Sv2017,
+            fam("systemverilog"),
+            prof("systemverilog", "sv_2017"),
             systemverilog_nested_paren_source,
             ceiling_hang_detector_budget(),
             CEILING_LADDER_PINNED_RESERVATION,
@@ -4287,7 +3600,7 @@ mod tests {
         let under = systemverilog_nested_paren_source(crossing.deepest_accepting_depth);
         let started = std::time::Instant::now();
         let outcome =
-            parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, &under);
+            parse_grammar_profile(fam("systemverilog"), prof("systemverilog", "sv_2017"), &under);
         let elapsed = started.elapsed();
         assert_eq!(
             outcome.status,
@@ -4322,7 +3635,7 @@ mod tests {
     #[test]
     fn parser_embedding_uses_regex_generated_backend_when_available() {
         let outcome =
-            parse_grammar_profile(GrammarFamily::Regex, GrammarProfile::RegexDefault, "a|b");
+            parse_grammar_profile(fam("regex"), prof("regex", "regex_default"), "a|b");
         let maybe_code = outcome.diagnostic.as_ref().map(|diag| diag.code.as_str());
         assert_ne!(maybe_code, Some("E_BACKEND_UNAVAILABLE"));
     }
@@ -4333,7 +3646,7 @@ mod tests {
         let manifest = regex_parser_integration_contract_manifest();
 
         for sample in &manifest.success_samples {
-            if let Err(diagnostic) = parse_regex_default_result(&sample.input) {
+            if let Err(diagnostic) = crate::families::regex::embed::parse_regex_default_result(&sample.input) {
                 panic!(
                     "expected regex success sample '{}' to parse, got {}: {}",
                     sample.name, diagnostic.code, diagnostic.message
@@ -4865,7 +4178,7 @@ mod tests {
     fn run_with_regex_worker_stack<F: FnOnce() + Send + 'static>(f: F) {
         std::thread::Builder::new()
             .name("pgen-regex-test-worker".to_string())
-            .stack_size(GENERATED_REGEX_WORKER_STACK_BYTES)
+            .stack_size(crate::families::regex::STACK_BYTES)
             .spawn(f)
             .expect("spawn regex test worker thread")
             .join()
@@ -4923,7 +4236,7 @@ mod tests {
         let manifest = regex_parser_integration_contract_manifest();
 
         for sample in &manifest.failure_samples {
-            let diagnostic = parse_regex_default_result(&sample.input)
+            let diagnostic = crate::families::regex::embed::parse_regex_default_result(&sample.input)
                 .expect_err("expected regex failure sample to fail");
             assert_eq!(
                 diagnostic.code, "E_PARSE_FAILURE",
@@ -4939,7 +4252,7 @@ mod tests {
         let manifest = regex_parser_integration_contract_manifest();
 
         for sample in &manifest.failure_samples {
-            let diagnostic = parse_regex_default_result(&sample.input)
+            let diagnostic = crate::families::regex::embed::parse_regex_default_result(&sample.input)
                 .expect_err("expected regex failure sample to fail");
             let location = diagnostic
                 .location
@@ -4957,21 +4270,20 @@ mod tests {
     #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
     #[test]
     fn parser_embedding_ast_dump_reports_missing_systemverilog_backend() {
-        let outcome =
-            parse_systemverilog_2017_ast_dump("module m; endmodule", &AstDumpOptions::default());
+        // Without the artifact the family is not registered at all, so it cannot be resolved —
+        // the derived API has no "known family whose backend is missing".
+        let err = GrammarFamily::from_str("systemverilog").expect_err("an unregistered family does not resolve");
+        assert_eq!(err.code, "E_INVALID_ARGUMENT");
+        let outcome = parse_grammar_profile_named("systemverilog", "", "");
         assert_eq!(outcome.status, ParseStatus::Failure);
-        let diagnostic = outcome
-            .diagnostic
-            .as_ref()
-            .expect("expected backend-unavailable diagnostic");
-        assert_eq!(diagnostic.code, "E_BACKEND_UNAVAILABLE");
+        assert_eq!(outcome.diagnostic.as_ref().map(|d| d.code.as_str()), Some("E_INVALID_ARGUMENT"));
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     #[test]
     fn parser_embedding_ast_dump_uses_systemverilog_generated_backend_when_available() {
         let outcome =
-            parse_systemverilog_2017_ast_dump("module m; endmodule", &AstDumpOptions::default());
+            crate::families::systemverilog::embed::parse_systemverilog_2017_ast_dump("module m; endmodule", &AstDumpOptions::default());
         let maybe_code = outcome.diagnostic.as_ref().map(|diag| diag.code.as_str());
         assert_ne!(maybe_code, Some("E_BACKEND_UNAVAILABLE"));
         if outcome.status == ParseStatus::Success {
@@ -4985,33 +4297,32 @@ mod tests {
     #[cfg(not(all(feature = "generated_parsers", has_generated_vhdl_parser)))]
     #[test]
     fn parser_embedding_ast_dump_reports_missing_vhdl_backend() {
-        let outcome =
-            parse_vhdl_1076_2019_ast_dump("entity e is end entity;", &AstDumpOptions::default());
+        // Without the artifact the family is not registered at all, so it cannot be resolved —
+        // the derived API has no "known family whose backend is missing".
+        let err = GrammarFamily::from_str("vhdl").expect_err("an unregistered family does not resolve");
+        assert_eq!(err.code, "E_INVALID_ARGUMENT");
+        let outcome = parse_grammar_profile_named("vhdl", "", "");
         assert_eq!(outcome.status, ParseStatus::Failure);
-        let diagnostic = outcome
-            .diagnostic
-            .as_ref()
-            .expect("expected backend-unavailable diagnostic");
-        assert_eq!(diagnostic.code, "E_BACKEND_UNAVAILABLE");
+        assert_eq!(outcome.diagnostic.as_ref().map(|d| d.code.as_str()), Some("E_INVALID_ARGUMENT"));
     }
 
     #[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
     #[test]
     fn parser_embedding_ast_dump_reports_missing_regex_backend() {
-        let outcome = parse_regex_default_ast_dump("a|b", &AstDumpOptions::default());
+        // Without the artifact the family is not registered at all, so it cannot be resolved —
+        // the derived API has no "known family whose backend is missing".
+        let err = GrammarFamily::from_str("regex").expect_err("an unregistered family does not resolve");
+        assert_eq!(err.code, "E_INVALID_ARGUMENT");
+        let outcome = parse_grammar_profile_named("regex", "", "");
         assert_eq!(outcome.status, ParseStatus::Failure);
-        let diagnostic = outcome
-            .diagnostic
-            .as_ref()
-            .expect("expected backend-unavailable diagnostic");
-        assert_eq!(diagnostic.code, "E_BACKEND_UNAVAILABLE");
+        assert_eq!(outcome.diagnostic.as_ref().map(|d| d.code.as_str()), Some("E_INVALID_ARGUMENT"));
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     #[test]
     fn regex_parser_integration_contract_ast_dump_succeeds_for_contract_sample() {
         let manifest = regex_parser_integration_contract_manifest();
-        let outcome = parse_regex_default_ast_dump(
+        let outcome = crate::families::regex::embed::parse_regex_default_ast_dump(
             &manifest.success_samples[1].input,
             &AstDumpOptions::default(),
         );
@@ -5454,7 +4765,7 @@ mod tests {
     #[test]
     fn parser_embedding_ast_dump_uses_vhdl_generated_backend_when_available() {
         let outcome =
-            parse_vhdl_1076_2019_ast_dump("entity e is end entity;", &AstDumpOptions::default());
+            crate::families::vhdl::embed::parse_vhdl_1076_2019_ast_dump("entity e is end entity;", &AstDumpOptions::default());
         let maybe_code = outcome.diagnostic.as_ref().map(|diag| diag.code.as_str());
         assert_ne!(maybe_code, Some("E_BACKEND_UNAVAILABLE"));
         if outcome.status == ParseStatus::Success {
@@ -5468,7 +4779,7 @@ mod tests {
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     #[test]
     fn parser_embedding_ast_dump_uses_regex_generated_backend_when_available() {
-        let outcome = parse_regex_default_ast_dump("a|b", &AstDumpOptions::default());
+        let outcome = crate::families::regex::embed::parse_regex_default_ast_dump("a|b", &AstDumpOptions::default());
         let maybe_code = outcome.diagnostic.as_ref().map(|diag| diag.code.as_str());
         assert_ne!(maybe_code, Some("E_BACKEND_UNAVAILABLE"));
         if outcome.status == ParseStatus::Success {
@@ -5506,7 +4817,7 @@ mod tests {
                 let plain = |n: usize| format!("{}a{}", "(".repeat(n), ")".repeat(n));
 
                 assert_eq!(
-                    REGEX_MAX_NESTING_DEPTH, 250,
+                    crate::families::regex::MAX_NESTING_DEPTH, 250,
                     "ceiling must be the PCRE2 / Rust-`regex` ecosystem default"
                 );
 
@@ -5556,7 +4867,7 @@ mod tests {
 
                 // Manifestation A (AST-dump serialize path) — the deep
                 // serde_json serialization must not overflow either.
-                let over = parse_regex_default_ast_dump(
+                let over = crate::families::regex::embed::parse_regex_default_ast_dump(
                     &faithful(2_000),
                     &AstDumpOptions {
                         pretty: false,
@@ -5568,7 +4879,7 @@ mod tests {
                     ParseStatus::Failure,
                     "deep AST-dump must be a clean failure, not a serialize-overflow abort"
                 );
-                let ok = parse_regex_default_ast_dump(
+                let ok = crate::families::regex::embed::parse_regex_default_ast_dump(
                     &faithful(64),
                     &AstDumpOptions {
                         pretty: false,
@@ -5855,17 +5166,17 @@ mod tests {
         // 2026-07-20/21 bumps PGEN-RGX-0091 reported).
         let (identity_release, identity_contract) = regex_contract_identity_versions();
         assert_eq!(
-            REGEX_PARSER_RELEASE_VERSION, identity_release,
-            "PGEN-RGX-0091 drift gate: REGEX_PARSER_RELEASE_VERSION (`{}`) must equal the \
+            crate::families::regex::PARSER_RELEASE_VERSION, identity_release,
+            "PGEN-RGX-0091 drift gate: crate::families::regex::PARSER_RELEASE_VERSION (`{}`) must equal the \
              contract document's Contract Identity `Parser release version` (`{}`). Bump the \
              const in lockstep with every identity-block change.",
-            REGEX_PARSER_RELEASE_VERSION, identity_release
+            crate::families::regex::PARSER_RELEASE_VERSION, identity_release
         );
         assert_eq!(
-            REGEX_PARSER_INTEGRATION_CONTRACT_VERSION, identity_contract,
-            "PGEN-RGX-0091 drift gate: REGEX_PARSER_INTEGRATION_CONTRACT_VERSION (`{}`) must \
+            crate::families::regex::INTEGRATION_CONTRACT_VERSION, identity_contract,
+            "PGEN-RGX-0091 drift gate: crate::families::regex::INTEGRATION_CONTRACT_VERSION (`{}`) must \
              equal the contract document's Contract Identity `Contract version` (`{}`).",
-            REGEX_PARSER_INTEGRATION_CONTRACT_VERSION, identity_contract
+            crate::families::regex::INTEGRATION_CONTRACT_VERSION, identity_contract
         );
     }
 

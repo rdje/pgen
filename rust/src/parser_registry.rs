@@ -514,15 +514,17 @@ where
     match (hooks.dedicated_stack)(sample) {
         None => f(sample.to_string()),
         Some(stack_bytes) => {
+            // The engine's dedicated-stack service: it records the thread's stack extent for the
+            // recursion guard (the host-derived ceiling the Stack-Robustness Contract publishes)
+            // and runs INLINE when the caller is already on a dedicated parse stack (the CLI's
+            // main is), so a parse never nests a second thread for nothing.
+            use crate::dedicated_parse_stack::{run_on_dedicated_parse_stack_with_reservation, DedicatedParseStackError};
             let owned_sample = sample.to_string();
-            let handle = std::thread::Builder::new()
-                .name("pgen-generated-parse".to_string())
-                .stack_size(stack_bytes)
-                .spawn(move || f(owned_sample))
-                .map_err(|err| format!("failed to spawn the generated parser's worker thread: {}", err))?;
-            handle
-                .join()
-                .map_err(|_| "the generated parser's worker thread panicked".to_string())?
+            match run_on_dedicated_parse_stack_with_reservation("pgen-generated-parse", stack_bytes, move || f(owned_sample)) {
+                Ok(result) => result,
+                Err(DedicatedParseStackError::Spawn(err)) => Err(format!("failed to spawn the generated parser's worker thread: {}", err)),
+                Err(DedicatedParseStackError::Panic(_)) => Err("the generated parser's worker thread panicked".to_string()),
+            }
         }
     }
 }
@@ -792,6 +794,13 @@ pub fn supports_grammar(grammar_name: &str) -> bool {
 
 pub fn registered_grammars() -> Vec<&'static str> {
     registry().iter().map(|entry| entry.grammar_name).collect()
+}
+
+/// The family's published downstream contract identity, when its module ships one (`None` for a
+/// family without one or an unregistered grammar) — the embedding API derives its per-family
+/// contract fields from this.
+pub fn family_contract(grammar_name: &str) -> Option<crate::families::FamilyContract> {
+    find_entry(grammar_name).and_then(|entry| (entry.hooks.contract)())
 }
 
 /// The grammar's declared profile universe (empty for a grammar that declares none, `None` for an

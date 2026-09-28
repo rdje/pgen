@@ -3796,19 +3796,23 @@ Current stable surfaces:
     - `zero_copy_input_boundary=true`
     - `stable_diagnostic_codes=[E_BACKEND_UNAVAILABLE,E_INPUT_TOO_LARGE,E_INVALID_ARGUMENT,E_INVALID_LIMITS,E_PARSE_FAILURE,E_UNSUPPORTED_PROFILE]`
 
-Current parser profiles:
-- `systemverilog`: `sv_2017`, `sv_2023`
-- `vhdl`: `vhdl_1076_2019`
-- `regex`: `regex_default`
+Current parser profiles (embedding API `2.0.0`: every value below is DERIVED from the grammars'
+own `@profiles` / `@profile_alias` / `@default_profile` through the parser registry — the API types
+none of them; `GrammarFamily::registered()` and `family.profiles()` list them at run time):
+- `systemverilog`: `sv_2017`, `sv_2023`, `verilog_2005` (aliases such as `2017`, `ieee1800-2023`, `1364-2005` are grammar-declared)
+- `vhdl`: `vhdl_1076_2019` (the grammar's declared dialect and default)
+- `regex`: `pcre2` (default), `relaxed`; `regex_default` and `regex` are grammar-declared aliases of `pcre2`
+- every other registered generated parser (`json`, `rtl_const_expr`, `rtl_frontend`, `systemverilog_preprocessor`, `scratch` when built) is a family too, with its single unprofiled dialect
 
-Host-oriented convenience parser entry points:
+Host-oriented convenience parser entry points — since `2.0.0` under `pgen::families::<family>::embed`,
+beside the family that owns them (`use pgen::families::systemverilog::embed::*;`):
 - `parse_systemverilog_2017(...)`
 - `parse_systemverilog_2023(...)`
 - `parse_vhdl_1076_2019(...)`
 - `parse_regex_default(...)`
 - each has corresponding `*_with_limits`, `*_result`, and `*_with_limits_result` variants.
 
-Host-oriented convenience AST dump entry points:
+Host-oriented convenience AST dump entry points (same modules):
 - `parse_systemverilog_2017_ast_dump(...)`
 - `parse_systemverilog_2023_ast_dump(...)`
 - `parse_vhdl_1076_2019_ast_dump(...)`
@@ -3823,9 +3827,9 @@ Operator note:
   - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 
 Deterministic integration behavior:
-- grammar/profile mismatch returns `E_UNSUPPORTED_PROFILE`.
-- missing generated backend returns `E_BACKEND_UNAVAILABLE`.
-- invalid family/backend/grammar/profile names in named APIs return `E_INVALID_ARGUMENT`.
+- grammar/profile mismatch, or a profile spelling the family's grammar does not declare, returns `E_UNSUPPORTED_PROFILE`.
+- a missing generated annotation backend returns `E_BACKEND_UNAVAILABLE`; a grammar family whose artifact is not compiled in is UNREGISTERED and does not resolve (`E_INVALID_ARGUMENT`) — since `2.0.0` there is no "known family whose backend is missing".
+- invalid family/backend/grammar names in named APIs return `E_INVALID_ARGUMENT`.
 - per-call bounded input limits enforced via `ParseLimits`.
 - dedicated parser-profile contract gate executes in both build modes:
   - `cargo test --lib parser_embedding_`
@@ -3850,9 +3854,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.106`
+  - `1.1.107`
 - integration contract version:
-  - `1.1.109`
+  - `1.1.110`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:

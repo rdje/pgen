@@ -43,19 +43,21 @@ source of truth for exact version and profile values.
 Since `PROFILE-ALIAS.2`, the SystemVerilog alias spellings are **grammar-declared** (`@profile_alias`
 in `grammars/systemverilog.ebnf`) and burned into the generated parser (`GRAMMAR_PROFILE_ALIASES` +
 case-insensitive resolution inside `set_grammar_profile`), so the artifact itself accepts them at
-every entry point. The embedding API's typed `GrammarProfile` enum keeps its own spellings as part
-of the typed contract, and a drift-gate test asserts they resolve every grammar-declared alias to
-the declared canonical profile — the two surfaces cannot silently diverge.
+every entry point. Since embedding API `2.0.0` (`ENGINE-UNIVERSAL-SERVICES.112` slice 3) the
+API has no spellings of its own: `GrammarProfile` is a RESOLVED value reached through the artifact's
+alias map and default (`family.profile("2017")` → `sv_2017`), and a drift-gate test asserts every
+grammar-declared alias resolves through the API to the declared canonical profile — there is one
+surface, the grammar's.
 
 Since `ENGINE-UNIVERSAL-SERVICES.112` (slice 1, 2026-09-28), every generated parser also carries its
 **identity surface**: `GRAMMAR_NAME` (the registered spelling `--parse <grammar>` takes),
 `GRAMMAR_PROFILES` (every `@profiles:` value the grammar declares, sorted — empty for an unprofiled
 grammar) and `GRAMMAR_ENTRY_RULE` (the canonical entry that `parse_full_from` reproduces), beside the
 `DEFAULT_GRAMMAR_PROFILE` and `GRAMMAR_PROFILE_ALIASES` it already carried. These consts are the
-source the registry and this API derive a family's facts from: the typed `GrammarFamily` /
-`GrammarProfile` enumeration above is being retired in the leaf's remaining slices (a versioned
-change to 2.0.0), because the engine may not know a language's name — see *The responsibility
-boundary and its guard* in the developer-architecture chapter.
+source the registry and this API derive a family's facts from: since `2.0.0` `GrammarFamily` /
+`GrammarProfile` are resolved through the registry (the typed enumeration is gone), because the
+engine may not know a language's name — see *The responsibility boundary and its guard* in the
+developer-architecture chapter.
 
 Since slice 2 (2026-09-28) the parser registry the API and the operator tools dispatch through is
 **derived**: `build.rs` lists `generated/*_parser.rs`, writes the module includes and the registry

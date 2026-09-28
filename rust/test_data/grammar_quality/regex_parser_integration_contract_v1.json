@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.109",
-  "parser_release_version": "1.1.106",
+  "integration_contract_version": "1.1.110",
+  "parser_release_version": "1.1.107",
   "grammar": "regex",
   "profile": "regex_default",
-  "required_generated_backend_flag": "supports_regex_generated_backend",
+  "required_generated_backend_flag": "generated_backends[\"regex\"]",
   "required_generated_backend_feature": "generated_parsers",
   "required_generated_backend_artifact": "generated/regex_parser.rs",
   "generated_backend_env_override": "PGEN_REGEX_PARSER_PATH",

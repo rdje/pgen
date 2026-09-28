@@ -1,5 +1,10 @@
 # Public API Surface
 
+> Since embedding API `2.0.0` (`ENGINE-UNIVERSAL-SERVICES.112`, 2026-09-28) the convenience entry
+> points below live under `pgen::families::vhdl::embed` (`use pgen::families::vhdl::embed::*;`),
+> beside the family that owns them; the generic `parse_grammar_profile*` entry points take resolved
+> `GrammarFamily` / `GrammarProfile` values (`GrammarFamily::from_str("vhdl")?`, `family.profile("…")?`).
+
 The stable downstream contract is the `pgen::embedding_api` host surface, **not** internal generated-parser types. This chapter enumerates the entry points downstream VHDL consumers should call.
 
 All entry points return `Outcome` types (`GrammarParseOutcome`, `GrammarAstDumpOutcome`, etc.) that carry an `api_version`, `grammar`, `profile`, `status`, and `diagnostic`/`ast_dump` payload. The `Outcome` types are stable and source-compatible across patch / minor releases.

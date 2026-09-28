@@ -6,7 +6,13 @@ All entry points return `Outcome` types (`NamedGrammarParseOutcome`, `GrammarAst
 
 ## Convenience entry points
 
+Since embedding API `2.0.0` (`ENGINE-UNIVERSAL-SERVICES.112`) these live beside the family that
+owns them — `pgen::families::systemverilog::embed` — because the neutral API names no language;
+each is one line over the generic entry points below.
+
 ```rust
+use pgen::families::systemverilog::embed::*;
+
 // Parse-only (no AST dump):
 pub fn parse_systemverilog_2017(input: &str) -> NamedGrammarParseOutcome;
 pub fn parse_systemverilog_2023(input: &str) -> NamedGrammarParseOutcome;
@@ -24,7 +30,10 @@ pub fn parse_systemverilog_2023_ast_dump(
 
 ## Generic entry points
 
-For tools that select the grammar family at runtime:
+For tools that select the grammar family at runtime. `GrammarFamily` and `GrammarProfile` are
+RESOLVED values since `2.0.0`: `GrammarFamily::from_str("systemverilog")?` and
+`family.profile("sv_2017")?` (every spelling comes from the grammar's own `@profiles` /
+`@profile_alias`); the `1.x` enum variants are gone.
 
 ```rust
 pub fn parse_grammar_profile(

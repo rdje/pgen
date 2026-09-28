@@ -1,5 +1,10 @@
 # Public API Surface
 
+> Since embedding API `2.0.0` (`ENGINE-UNIVERSAL-SERVICES.112`, 2026-09-28) the convenience entry
+> points below live under `pgen::families::regex::embed` (`use pgen::families::regex::embed::*;`),
+> beside the family that owns them; the generic `parse_grammar_profile*` entry points take resolved
+> `GrammarFamily` / `GrammarProfile` values (`GrammarFamily::from_str("regex")?`, `family.profile("…")?`).
+
 The regex parser exposes a small, stable Rust API. This chapter is the canonical reference for what downstream consumers should call.
 
 ## Library identity
