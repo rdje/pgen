@@ -180,10 +180,10 @@ INSTRUMENT_FILE = "stimuli/sv/corpus_parse_cost.py"
 # adds one memoized keyword ask per primary-prefix attempt (more total entries), the LR family's own entries unchanged.
 # SV-CORPUS-GRAD.30 (release 1.0.242): adopted 2.679 -> 2.678 from family_share.json - the block-site parameterized-class escape
 # adds one memoized identifier ask + an import-fact lookup per block_data_type attempt (more total entries), the LR family's own entries unchanged.
-# SV-CORPUS-GRAD.13c.2m (release 1.0.244): adopted 2.648 -> 2.688 from family_share.json - the deleted pseudo-keyword arms (the class_qualifier
-# literal at three scope-prefix copies, the welded null-class_qualifier alternative at four primary / receiver sites) were tried at every primary and
-# receiver-scope evaluation; with them gone the corpus total FALLS (1,001,345,178 entries) while the LR family's own entries are unchanged (26,911,385), so its share rises.
-CORPUS_FAMILY_SHARE_PCT = "2.688"
+# ENGINE-UNIVERSAL-SERVICES.111 (release 1.0.246): adopted 2.688 -> 2.641 from family_share.json - the write epoch restored on a
+# discarding rollback answers memoized store-tainted successes the old counter evicted, and the qualifier arm is gone: the
+# whole-corpus entry total fell (the LR family unchanged), so the share moved with the denominator.
+CORPUS_FAMILY_SHARE_PCT = "2.641"
 FAMILY_SHARE_ARTIFACT = (
     "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json"
 )

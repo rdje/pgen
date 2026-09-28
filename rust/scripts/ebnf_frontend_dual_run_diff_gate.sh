@@ -150,7 +150,23 @@ envelope_divergence_ceiling() {
         # ⇒ the SV grammar is not wrong at any of the 211 (annotation COUNTS match in both arms; arm 1,
         # the shipping frontend, routes every one to its rule). This ceiling comes DOWN when .10.14
         # lands in grammars/ebnf.ebnf (expected: the 168 go), never up to land a grammar change.
-        systemverilog) echo 211 ;;
+        # 211 -> 208 (2026-09-28, PGEN-ENGINE-UNIVERSAL-SERVICES-0163, release 1.0.246 — a FALL locked
+        # in, not a raise): the release's grammar edit (ENGINE-UNIVERSAL-SERVICES.111 ungated the
+        # class_type escape arm and split scoped_block_type_identifier's prefix; SV-CORPUS-GRAD.33
+        # deleted the dead method_call_receiver_qualifier arm) moved nine rows, six gone / three new,
+        # every one in the two classes named above and read from the full dump
+        # (`ebnf_dual_run_diff --envelope-differential` under PGEN_ENVELOPE_DUMP_ALL=1, HEAD grammar
+        # vs the release grammar, one binary). .10.14 class 168 -> 166: gone — the deleted rule's
+        # `<absent> -> semantic_annotation` row and its paired `semantic_annotation -> probe_sample`
+        # row at method_call_receiver_sv_2017, wildcard_escape_class_type_head's `@profiles ->
+        # rule_reference` row, scoped_block_type_identifier's row (re-homed onto the new prefix name);
+        # new — scoped_block_type_scope_prefix's leading `@profiles -> rule_reference class_scope_plain`
+        # row and scoped_block_type_identifier's re-homed row. Inline blind-spot class 43 -> 42: gone —
+        # class_type's `@predicate` inline row (its next token is now the ungated escape arm) and
+        # method_call_receiver_sv_2017's `probe_sample -> return_object` row; new — that site's
+        # `probe_sample -> semantic_annotation` row (the same blind spot, one row where two were).
+        # 166 + 42 = 208. Nothing else moved; the other thirteen grammars' rows are unchanged.
+        systemverilog) echo 208 ;;
         systemverilog_lrm_profiled_generated) echo 317 ;;
         # .10.14 plus the two documented arm-2 blind spots: `[> …]` lexical annotations (which
         # arm 2 misparses as character classes) and arm 1's inline/rule-level annotation

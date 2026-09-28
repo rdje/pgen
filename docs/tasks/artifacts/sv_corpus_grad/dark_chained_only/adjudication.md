@@ -8,7 +8,7 @@
 | input | repo-root-relative path | sha256 |
 |---|---|---|
 | worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `8779f0d13f30cb74418893f28db8bffdca5e40c2b66e224e992ad79f75766751` |
-| grammar | `grammars/systemverilog.ebnf` | `b9dfa65bd7612ed1d07b6951b2ee84bfab224920c94f19035a0a75ff4937a061` |
+| grammar | `grammars/systemverilog.ebnf` | `a41a2c6236e6025b905942a9bb945f7caf46861cc8af7ff85a8d57385fc0f05e` |
 | residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `44144778149f8d21ac014513248eb28fb7b64bc35fa506dcaf1128fa330eecb9` |
 
 ## Verdicts

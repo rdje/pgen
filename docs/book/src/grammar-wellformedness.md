@@ -2495,8 +2495,8 @@ grammar, parser, generator or generated artifact; the cert numbers are read-only
 |---|---|---:|
 | canonical `total` | `expected_total` | 1530 |
 | canonical `proof` | `expected_proof` | 13 |
-| canonical `witness` | `expected_canonical_witness` | 1502 |
-| canonical `UNKNOWN` | `expected_canonical_unknown` | 15 |
+| canonical `witness` | `expected_canonical_witness` | 1503 |
+| canonical `UNKNOWN` | `expected_canonical_unknown` | 14 |
 | union `witness` | `expected_union_witness` | 1517 |
 | union `UNKNOWN` | `expected_union_unknown` | 0 |
 | union residual rule set | `expected_union_residual_rules` | `[]` |

@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `e5d793607ffe88fc0b1e4449bdc495c410a077331dad0b89e3d405308f54ff2b` |
-| grammar | `grammars/systemverilog.ebnf` | `b9dfa65bd7612ed1d07b6951b2ee84bfab224920c94f19035a0a75ff4937a061` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `928c583116d3ab9e0038a6b8cb8b258ac710143ed8ff78853eede9c8677087b8` |
-| generated parser | `generated/systemverilog_parser.rs` | `30e3bcb2d466c0bb7566554193ca1fed8523c8f39ae6e2e0dd78886580c30087` |
+| parse binary | `rust/target/release/parseability_probe` | `a9c393d41801a90e647773a006e2ad72aa178b9e65de257094dc20155c64d0b9` |
+| grammar | `grammars/systemverilog.ebnf` | `a41a2c6236e6025b905942a9bb945f7caf46861cc8af7ff85a8d57385fc0f05e` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `3fe3b12fe98f1947b9b0d0eb5dda18f25d000be50278bcd8d742b1ffa6576a75` |
+| generated parser | `generated/systemverilog_parser.rs` | `d404dd1b15a211cb2f31d8ce3a63e76003291cecf4d08c59009f735c8b73b17b` |
 | results (output) | `stimuli/sv/characterization/results_v2005.tsv` | `00f7fc1d0e479ef71190d11618e84894be77c33654ad1bee6852fcd003575224` |
 | positions (output) | `stimuli/sv/characterization/positions_v2005.tsv` | `d0974f5a5428deedd5c81a2d4793eddb1e66294a2631ba4859e8a8dbfe20879d` |
 
-Measured at `HEAD` = `58ab2e93e+dirty` (2026-09-23).
+Measured at `HEAD` = `7ac640e94+dirty` (2026-09-24).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -65,7 +65,7 @@ Measured at `HEAD` = `58ab2e93e+dirty` (2026-09-23).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.48` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1000.v`.
+Slowest completing file: `0.36` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
 
 ## Totals
 

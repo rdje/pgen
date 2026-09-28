@@ -1786,6 +1786,22 @@ promptly *regressed* the two fact-writing patterns (+3% and +15%) because every 
 fact evicted the whole spine's entries — the per-entry classes recovered them to 9% and
 6% wins, a controlled A/B in which only the validity rule changed.
 
+⭐ **The write epoch names CONTENT, not time (`ENGINE-UNIVERSAL-SERVICES.111`, release `1.0.246`).**
+Through `1.0.245` the epoch was a counter of mutation *events*: every emission bumped it, and so did
+every rollback that discarded a fact. That second bump evicted the innocent — a store-reading entry
+stamped *before* a speculative branch, whose every consulted fact stood again after the branch rolled
+back, read stale and re-parsed (`SV-CORPUS-GRAD.28`'s first candidate re-parsed an instantiation
+head's parameter list on the instantiation route after the class route rolled back: `+5.18 %` rule
+entries on the pinned sample, which is why the SystemVerilog wildcard escapes were confined away from
+module scope). Now every mutation takes a *fresh* value from a monotone allocator and a discarding
+rollback *restores* the checkpoint's value, because facts, arena and chain are the checkpoint's again:
+one value names one store content, a fresh value is never re-issued, a value comes back only with its
+content. The two O(1) fast paths keep their proof — equality still means identity — and the
+`sem_memo_*` anchors keep theirs (a mutation still evicts). Measured alone on the pinned 192-file
+sample: `entries −0.05 %`, `memo_hits −0.07 %`, `committed` unchanged, every generated parser
+byte-identical; then the grammar admitted the escapes at module scope and the two pinned residuals
+flipped at no measured cost.
+
 A **fourth class, orthogonal to those three, joined both memos in `SV-CORPUS-GRAD.3.12`:
 recursion-tainted.** The store is not the only context a `(rule, position)` key omits — so
 is the parse stack itself. A body whose subtree hit a cycle-guard rejection produced an

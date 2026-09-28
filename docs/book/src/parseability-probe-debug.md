@@ -462,7 +462,9 @@ Key properties:
 - **A stale-tainted eviction means the entry was epoch-stamped and the store moved underneath it.**
   Under `MEMO-STORE-SOUNDNESS.2` an entry whose body consulted the store may be replayed only while
   the store is unchanged; the eviction path can therefore only run on a tainted entry, which makes
-  the eviction count itself proof of taint.
+  the eviction count itself proof of taint. Since `1.0.246` (`ENGINE-UNIVERSAL-SERVICES.111`) "moved"
+  means a MUTATION: a rollback that puts the store back to its checkpoint restores the checkpoint's
+  epoch too, so a branch's own rollback no longer evicts the entries stamped before it.
 - **Ground truth — it refuses rather than guesses.** `--verify` cross-checks the trace census against
   the independent atomic counters (`miss + hits` must equal `rule_entry_counts`), and verifies the
   id→name join itself. A mismatch exits non-zero instead of publishing a number.

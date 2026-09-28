@@ -129,20 +129,6 @@ ADJUDICATED_UNWITNESSED = {
         "dpi_open_packed_dimension COMMITS 1x on each (stimuli/sv/rule_fire_probes/"
         "dpi_open_packed_dimension.sv); the corpus holds no DPI import with an open array in any "
         "accepted file"),
-    "method_call_receiver_qualifier": (
-        "dominated_by_route", "the `method_call_receiver_qualifier? hierarchical_identifier` arm of "
-        "method_call_receiver_sv_2017 (and its sv_2023 twin). MEASURED: `p::h.f();` (package p, class C "
-        "with f, C h) ACCEPTS on both profiles and the qualifier is ENTERED 6-18x but COMMITS 0x — "
-        "split_direct_callable_method_call (the .3.42 split receiver, whose scope prefix reads "
-        "non_typedef_package_scope itself) commits instead; the same on 19 further shapes (expression "
-        "and argument positions, paren-less, chained, two-dot, built-in methods incl. size/push_back/"
-        "delete/sort/find-with/randomize-with/srandom, and cast-seeded `p::h.f()'(1)` where the cast "
-        "chain carries its own split seed); --trace-rules shows branch 2/13 SELECTED inside "
-        "casting_type_lr_seed_method_call_receiver_sv_2017 and rolled back. Liveness census over the "
-        "10 022 accepted sv_2017 files: method_call_receiver_sv_2017 commits in 30 (never with a "
-        "qualifier), method_call_receiver_qualifier in 0. Owned by SV-CORPUS-GRAD.33 (delete or "
-        "unify the arm; a GRAMMAR change with its ceremony). Reproducer: stimuli/sv/rule_fire_probes/"
-        "method_call_receiver_qualifier.sv"),
 }
 
 

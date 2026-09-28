@@ -1,3 +1,4 @@
+// ENGINE-UNIVERSAL-SERVICES.111 - FIXED in release 1.0.246 (was a defect pin: REJECT through 1.0.245) - now class fixed / ACCEPT on both SV profiles.
 // SV-CORPUS-GRAD.31 - a DEFECT pin (REJECT on both SV profiles) - ROUTED to ENGINE-UNIVERSAL-SERVICES.111, like the .28
 // module-scope member: a class-scoped TYPE at MODULE scope whose class is unresolved under an open wildcard import. The .31
 // escape is deliberately NOT reached from the type-position prefixes: at a module item's start `ident #( ... )` is also an

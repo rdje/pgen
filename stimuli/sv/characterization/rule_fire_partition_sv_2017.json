@@ -1,16 +1,15 @@
 {
  "profile": "sv_2017",
- "gap_rules": 92,
+ "gap_rules": 91,
  "certificate": {
   "total": 1530,
   "proof": 24,
-  "witness": 1502,
-  "unknown": 4
+  "witness": 1503,
+  "unknown": 3
  },
  "coverage_artifact_satisfiable": 1530,
  "classes": {
   "coverage_gap": 52,
-  "dominated_by_route": 1,
   "lr_eliminated_original": 2,
   "lr_synthetic": 14,
   "unreachable_from_entry": 23

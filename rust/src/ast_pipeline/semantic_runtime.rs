@@ -2627,20 +2627,35 @@ pub struct SemanticRuntimeState {
     predicate_defs: FxHashMap<String, PredicateDef>,
     /// `.3.3.4.b.5.1.6`: cumulative operation counters (observability).
     counters: SemanticStoreCounters,
-    /// MEMO-STORE-SOUNDNESS.2 — the store WRITE epoch: a monotonic counter
-    /// bumped by every observable store MUTATION (fact emission/import,
-    /// scope open/close, delta application, and rollbacks that actually
-    /// discard something). Pure queries never bump it. `memoized_call` stamps
+    /// MEMO-STORE-SOUNDNESS.2 — the store WRITE epoch: an IDENTITY OF THE
+    /// STORE's CONTENT. Every observable store MUTATION (fact emission/import,
+    /// scope open/close, delta application) sets it to a FRESH value from
+    /// `next_epoch`, a monotone allocator that never hands out a value twice;
+    /// a rollback that actually discards something RESTORES it to the
+    /// checkpoint's value, because the store's content IS the checkpoint's
+    /// content again (`ENGINE-UNIVERSAL-SERVICES.111`, 2026-09-24 — before
+    /// that a discarding rollback bumped the counter, so a memoized success
+    /// stamped BEFORE a speculative branch was evicted by the branch's own
+    /// rollback although nothing it had consulted had changed: `.28`'s first
+    /// candidate re-parsed an instantiation head's parameter list on the
+    /// instantiation route after the class route rolled back, entries
+    /// +5.18 %). Pure queries never touch it. `memoized_call` stamps
     /// store-tainted memo entries with this epoch at insert time and treats
     /// them as valid only while it is unchanged: predicates are pure
-    /// functions of (position-determined args, store), so an unchanged epoch
-    /// means every predicate the cached body evaluated would evaluate
-    /// identically today — replay is sound. A changed epoch evicts the entry
-    /// and the retry honestly re-parses (the `sem_memo_*` sound anchors).
-    /// Deliberately NOT part of the memo key (a keyed epoch would strand
-    /// every entry on each write and collapse the memo on store-heavy
-    /// grammars — the rejected alternative in `docs/tasks/MEMO-STORE-SOUNDNESS.md` §2).
+    /// functions of (position-determined args, store), and one epoch value
+    /// names exactly one content, so an unchanged epoch means every predicate
+    /// the cached body evaluated would evaluate identically today — replay is
+    /// sound. A changed epoch evicts the entry and the retry honestly
+    /// re-parses (the `sem_memo_*` sound anchors). Deliberately NOT part of
+    /// the memo key (a keyed epoch would strand every entry on each write and
+    /// collapse the memo on store-heavy grammars — the rejected alternative
+    /// in `docs/tasks/MEMO-STORE-SOUNDNESS.md` §2).
     write_epoch: u64,
+    /// `ENGINE-UNIVERSAL-SERVICES.111` — the epoch ALLOCATOR: the largest
+    /// epoch ever handed out. A mutation takes `next_epoch + 1`; a rollback
+    /// restores an older `write_epoch` and leaves this alone, so no two
+    /// distinct store contents ever share an epoch value.
+    next_epoch: u64,
     /// `SV-EXH-PROOF.3.3.4.b.6.2.36.2` — the rule whose IIFE / transaction
     /// currently owns the state. Set by `with_rule_context` (called by the
     /// generated `with_semantic_runtime_rule_transaction` wrapper); cleared
@@ -2783,6 +2798,7 @@ impl SemanticRuntimeState {
             predicate_defs: FxHashMap::default(),
             counters: SemanticStoreCounters::default(),
             write_epoch: 0,
+            next_epoch: 0,
             // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — initialised empty; the
             // generated parser's per-rule IIFE pushes/pops via
             // `push_rule_context` / `pop_rule_context`.
@@ -2906,6 +2922,14 @@ impl SemanticRuntimeState {
         self.write_epoch
     }
 
+    /// `ENGINE-UNIVERSAL-SERVICES.111` — a store MUTATION: the content is new,
+    /// so it gets an epoch value nobody has ever seen (see `write_epoch`).
+    #[inline]
+    fn fresh_write_epoch(&mut self) {
+        self.next_epoch += 1;
+        self.write_epoch = self.next_epoch;
+    }
+
     /// `SV-EXH-PROOF.3.3.4.b.5.1.6`: iterate the facts matching `filter`.
     /// A `None` filter field matches anything; `Some` fields are ANDed.
     /// Read-only — does not touch counters. Iteration order is insertion
@@ -3004,6 +3028,7 @@ impl SemanticRuntimeState {
         self.counters = SemanticStoreCounters::default();
         self.counters.facts_imported = self.facts.len() as u64;
         self.write_epoch = self.facts.len() as u64;
+        self.next_epoch = self.facts.len() as u64;
         let facts = &mut self.facts;
         let fact_index = &mut self.fact_index;
         fact_index.by_kind.clear();
@@ -3412,7 +3437,7 @@ impl SemanticRuntimeState {
             || !delta.new_scope_nodes.is_empty()
             || !delta.closed_scope_ids.is_empty()
         {
-            self.write_epoch += 1;
+            self.fresh_write_epoch();
         }
         // Push new scope_arena nodes (preserving their `closed` flag —
         // a scope opened AND closed in the branch is reapplied as
@@ -3619,7 +3644,16 @@ impl SemanticRuntimeState {
             || self.scope_arena.len() > scope_arena_len
             || !self.chain_unchanged_since(&checkpoint);
         if store_changed {
-            self.write_epoch += 1;
+            // ENGINE-UNIVERSAL-SERVICES.111 — the store is being put back to
+            // EXACTLY the checkpoint's content (facts, arena, chain), so its
+            // epoch is the checkpoint's epoch again: every store-tainted memo
+            // entry stamped with that value — inserted before the branch, or
+            // inside it before its first mutation — consulted this very
+            // content and is answered again. Entries stamped inside the
+            // branch AFTER a mutation carry values the allocator will never
+            // hand out again, so they stay unanswerable. (Through 2026-09-24
+            // this line was `write_epoch += 1`, which evicted them all.)
+            self.write_epoch = checkpoint.write_epoch;
         }
         // RGX-0078.5.i.5 (P3c scout) — classify this rollback for the
         // checkpoint/delta-protocol exposure census. `store_changed` is the
@@ -3864,7 +3898,7 @@ impl SemanticRuntimeState {
     }
 
     pub fn open_scope(&mut self, spec: SemanticScopeSpec) {
-        self.write_epoch += 1; // MEMO-STORE-SOUNDNESS.2 — store mutation
+        self.fresh_write_epoch(); // MEMO-STORE-SOUNDNESS.2 — store mutation (.111: a fresh content id)
         // `.3.3.4.b.5.1.3`: allocate a new arena node, parent = current
         // active leaf. Maintain the legacy `scopes` Vec in lockstep so
         // existing predicates that consult `scopes` keep working.
@@ -3936,7 +3970,7 @@ impl SemanticRuntimeState {
                 }
             }
             self.counters.scopes_closed += 1;
-            self.write_epoch += 1; // MEMO-STORE-SOUNDNESS.2 — store mutation
+            self.fresh_write_epoch(); // MEMO-STORE-SOUNDNESS.2 — store mutation (.111: a fresh content id)
             true
         } else {
             // SV-EXH-PROOF.3.3.4.b.6.2.28 — close mismatch.
@@ -3950,7 +3984,7 @@ impl SemanticRuntimeState {
     }
 
     pub fn emit_fact(&mut self, fact: SemanticFactSpec) {
-        self.write_epoch += 1; // MEMO-STORE-SOUNDNESS.2 — store mutation
+        self.fresh_write_epoch(); // MEMO-STORE-SOUNDNESS.2 — store mutation (.111: a fresh content id)
         let scope_depth = self.scopes.len() - 1;
         let scope_id = self.current_scope_id();
         let position = self.facts.len();
@@ -4007,7 +4041,7 @@ impl SemanticRuntimeState {
     /// importer's scope tree); MVP-0 imports merge at the current active
     /// scope.
     pub fn push_fact_record(&mut self, mut record: SemanticFactRecord) {
-        self.write_epoch += 1; // MEMO-STORE-SOUNDNESS.2 — store mutation
+        self.fresh_write_epoch(); // MEMO-STORE-SOUNDNESS.2 — store mutation (.111: a fresh content id)
         record.scope_depth = self.scopes.len() - 1;
         record.scope_id = self.current_scope_id();
         let position = self.facts.len();
@@ -10498,6 +10532,55 @@ mod tests {
     }
 
     #[test]
+    /// ENGINE-UNIVERSAL-SERVICES.111 — a discarding rollback RESTORES the
+    /// checkpoint's epoch (the store's content is the checkpoint's again), a
+    /// mutation always takes a value nobody has seen, and the zero-change
+    /// rollback keeps the epoch as before. Together: a store-tainted memo
+    /// entry stamped before a speculative branch is valid again after the
+    /// branch rolls back, and one stamped after the branch's mutation never is.
+    #[test]
+    fn write_epoch_is_a_content_identity_restored_by_rollback() {
+        let mut st = SemanticRuntimeState::new();
+        let e0 = st.write_epoch();
+        let before_branch = st.checkpoint();
+        // a zero-change rollback: nothing moved, the epoch is untouched
+        st.rollback_to(before_branch);
+        assert_eq!(st.write_epoch(), e0, "a no-op rollback keeps the epoch");
+        // the branch mutates: a fresh epoch
+        st.emit_fact(SemanticFactSpec {
+            kind: "g".to_string(),
+            name: SemanticRuntimeValue::Identifier("on".to_string()),
+            attributes: Vec::new(),
+        });
+        let e_branch = st.write_epoch();
+        assert_ne!(e_branch, e0, "a mutation moves the epoch");
+        // the branch fails and rolls back: the content is the checkpoint's again,
+        // and so is the epoch — the entry stamped `e0` before the branch is valid
+        st.rollback_to(before_branch);
+        assert_eq!(st.facts().len(), 0);
+        assert_eq!(st.write_epoch(), e0, "a discarding rollback restores the checkpoint's epoch");
+        // a later mutation must NOT reuse the rolled-back branch's value: two
+        // different contents never share an epoch
+        st.emit_fact(SemanticFactSpec {
+            kind: "g".to_string(),
+            name: SemanticRuntimeValue::Identifier("other".to_string()),
+            attributes: Vec::new(),
+        });
+        let e_after = st.write_epoch();
+        assert_ne!(e_after, e_branch, "a fresh mutation never reuses a rolled-back epoch");
+        assert_ne!(e_after, e0);
+        assert!(e_after > e_branch, "the allocator is monotone");
+        // nested: a checkpoint inside a mutated branch restores to ITS epoch, not the outer one
+        let inner = st.checkpoint();
+        st.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(SemanticRuntimeValue::Identifier("m".to_string())),
+        });
+        assert_ne!(st.write_epoch(), e_after);
+        st.rollback_to(inner);
+        assert_eq!(st.write_epoch(), e_after, "the inner checkpoint's epoch is restored");
+    }
+
     fn reset_for_new_parse_matches_legacy_on_empty_and_repeated_resets() {
         use super::PredicateDef;
         // Empty fast path: a virgin state resets to exactly a fresh state.

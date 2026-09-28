@@ -1959,6 +1959,11 @@ class_scope_type := class_scope_type_head ( parameter_value_assignment )? ( scop
 # the two ps_type_identifier_scope twins) take `class_scope_plain` instead: at a module item's start `ident #( … )` is
 # also an instantiation head, and the consumed list would be re-parsed after the rollback (ENGINE-UNIVERSAL-SERVICES.111;
 # the `.28` first candidate, entries +5.18 %).
+# ENGINE-UNIVERSAL-SERVICES.111 (release 1.0.246): three of the four type-position prefixes (data-type, nettype, ps_type) take
+# `class_scope` — with its escape — again; the BLOCK site keeps `class_scope_plain` through its own `scoped_block_type_scope_prefix`: the runtime's write epoch is a content identity restored by a rollback, so the parameter
+# list the escape consumes at a module item's start is ANSWERED from the memo on the instantiation route after the class
+# route rolls back (no fact it consulted moved), and the re-parse this note guarded against no longer exists — measured on the
+# pinned sample before the grammar moved (entries -0.05 %, memo_hits -0.07 %, committed flat with the engine change alone).
 @branch_policy: ordered
 @profiles: ["sv_2017", "sv_2023"]
 class_scope := @probe_sample: "C::" class_scope_type scope_resolution
@@ -1970,7 +1975,8 @@ class_scope := @probe_sample: "C::" class_scope_type scope_resolution
 wildcard_escape_class_scope_type := wildcard_escape_class_type_identifier parameter_value_assignment ( scope_resolution class_identifier ( parameter_value_assignment )? &scope_resolution )*
                                  -> {head: $1, params: $2, scope_chain: $3}
 
-# The plain twin for the four type-position prefixes — `class_scope`'s first alternative alone, the same node.
+# The plain twin — `class_scope`'s first alternative alone, the same node — for the BLOCK site's prefix since 1.0.246
+# (ENGINE-UNIVERSAL-SERVICES.111; through 1.0.245 for all four type-position prefixes).
 @profiles: ["sv_2017", "sv_2023"]
 class_scope_plain := class_scope_type scope_resolution
                   -> {body: $1}
@@ -2027,7 +2033,7 @@ scoped_class_type_identifier := non_typedef_package_scope class_identifier -> {s
 
 class_type := class_type_head ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
            -> {head: $1, params: $2, suffix: $3}
-           | @predicate: { name: in_scope_kind, args: [class_body], phase: branch } wildcard_escape_class_type -> $1
+           | wildcard_escape_class_type -> $1
 
 # SV-CORPUS-GRAD.28 (release 1.0.240): the SV-PARSE-STRICT.2 / .27 policy at the one gated type position .27 left out —
 # a PARAMETERIZED class type whose class is unresolved while an `import pkg::*` is open: IEEE 1800-2017 A.1.9
@@ -2051,6 +2057,12 @@ class_type := class_type_head ( parameter_value_assignment )? ( scope_resolution
 # member (`uvm_tlm_fifo#(int) fifo;` at module level) therefore stays refused — routed ENGINE-UNIVERSAL-SERVICES.111 (a
 # memoized success should survive a rollback that removed no fact). The template binds the head and the list ($1, $3),
 # never the gate ($2, a lookahead child); the arm renders exactly what the known arm renders for a declared class.
+# ENGINE-UNIVERSAL-SERVICES.111 (release 1.0.246): the `in_scope_kind(class_body)` gate on the `class_type` arm is GONE — the escape
+# is reachable at every `class_type`, module scope included (`uvm_tlm_fifo#(int) fifo;` in a module under an open wildcard
+# import, the .28 residual). The confinement guarded against a re-parse: at a module item's start the class route consumed
+# the parameter list, the declaration failed at the instance name, and the instantiation route parsed the SAME list again
+# (entries +5.18 % on the .28 first candidate). The runtime's write epoch is now a content identity that a rollback RESTORES,
+# so that memoized list is answered on the second route; measured before the grammar moved and again on these bytes.
 @profiles: ["sv_2017", "sv_2023"]
 wildcard_escape_class_type_head := wildcard_escape_class_type_identifier -> {kind: "class", body: $1}
 
@@ -2905,10 +2917,18 @@ known_unscoped_block_type_identifier := checked_type_identifier packed_dimension
 # ONE shared rule fixes both — the `.1` `ansi_port_header` / `.2.1` `forward_type_keyword`
 # named-lift precedent.
 @profiles: ["sv_2017", "sv_2023"]
-scoped_type_scope_prefix := class_scope_plain | non_typedef_package_scope
+scoped_type_scope_prefix := class_scope | non_typedef_package_scope
 
 @profiles: ["sv_2017", "sv_2023"]
-scoped_block_type_identifier := scoped_type_scope_prefix type_identifier packed_dimension*
+scoped_block_type_scope_prefix := class_scope_plain | non_typedef_package_scope
+
+@profiles: ["sv_2017", "sv_2023"]
+# ENGINE-UNIVERSAL-SERVICES.111 (release 1.0.246): the BLOCK site keeps the plain prefix. With the escape on the shared prefix the
+# scoped arm (branch 9) won `uvm_reg_predictor #(int)::T t;` inside a function body over the .30 block escape (branch 18) and the
+# tree moved (`{scope, type, dims}` for `{head, params, scope_chain}`) — measured by the interpreter A/B on the .30 shapes control.
+# The block site already admits every unresolved parameterized / scoped class through its own last arm, so it needs no escape
+# here; the data-type and nettype sites (module / package scope) take `scoped_type_scope_prefix` with the escape.
+scoped_block_type_identifier := scoped_block_type_scope_prefix type_identifier packed_dimension*
                              -> {scope: $1, type: $2, dims: $3}
 
 # SV-EXH-PROOF.3.3.3: route use-site type-id through checked_type_identifier. SV-CORPUS-GRAD.3.29: an
@@ -5003,14 +5023,11 @@ direct_callable_method_call := method_call_root dot callable_method_call_body
 # IEEE 1800-2017 A.8.4 `primary ::= [ class_qualifier | package_scope ] hierarchical_identifier select`
 # (the `class_qualifier` literal this grammar had extracted — an Annex A NONTERMINAL welded as a keyword — was
 # deleted by SV-CORPUS-GRAD.13c.2m, release 1.0.244; the package scope is the one qualifier this copy renders).
-@profiles: ["sv_2017", "sv_2023"]
-method_call_receiver_qualifier := non_typedef_package_scope
-
 @profiles: ["sv_2017"]
 method_call_receiver_sv_2017 := @probe_sample: "1" primary_literal
                              -> {kind: "primary_literal", body: $1}
-                              | @probe_sample: "a" method_call_receiver_qualifier? hierarchical_identifier
-                                                                                                                        -> {kind: "hierarchical", qualifier: $1, name: $2}
+                              | @probe_sample: "a" hierarchical_identifier
+                                                                                                                        -> {kind: "hierarchical", qualifier: null, name: $1}
                               | empty_unpacked_array_concatenation                                                      -> {kind: "empty_concat", body: $1}
                               | multiple_concatenation ( lbrack range_expression rbrack )?                              -> {kind: "multi_concat", body: $1, select: $2}
                               | concatenation ( lbrack range_expression rbrack )?                                       -> {kind: "concat", body: $1, select: $2}
@@ -5027,7 +5044,7 @@ method_call_receiver_sv_2017 := @probe_sample: "1" primary_literal
 # measurements, same pin in `sweep_scope_prefix_renderings.py`.
 @profiles: ["sv_2023"]
 method_call_receiver_sv_2023 := primary_literal                                                                         -> {kind: "primary_literal", body: $1}
-                              | method_call_receiver_qualifier? hierarchical_identifier    -> {kind: "hierarchical", qualifier: $1, name: $2}
+                              | hierarchical_identifier    -> {kind: "hierarchical", qualifier: null, name: $1}
                               | empty_unpacked_array_concatenation                                                      -> {kind: "empty_concat", body: $1}
                               | multiple_concatenation ( lbrack range_expression rbrack )?                              -> {kind: "multi_concat", body: $1, select: $2}
                               | concatenation ( lbrack range_expression rbrack )?                                       -> {kind: "concat", body: $1, select: $2}
@@ -5593,7 +5610,7 @@ net_type := kw_supply0 -> {kind: "supply0"}
 # NOT the reversed `scoped_type_scope_prefix`); shared by all 4 nettype occurrences (both profiles,
 # both branches). The `.2.3` `scoped_type_scope_prefix` named-lift precedent.
 @profiles: ["sv_2017", "sv_2023"]
-nettype_scope_prefix := non_typedef_package_scope | class_scope_plain
+nettype_scope_prefix := non_typedef_package_scope | class_scope
 
 @profiles: ["sv_2017"]
 @sample: "nettype int nt;"
@@ -7090,12 +7107,12 @@ ps_parameter_identifier_v2005 := class_scope parameter_identifier               
 @profiles: ["sv_2017"]
 ps_type_identifier_scope_sv_2017 := kw_local_939bb46a scope_resolution -> {kind: "local_qualifier"}
                                   | non_typedef_package_scope         -> $1
-                                  | class_scope_plain                 -> $1
+                                  | class_scope                       -> $1
 
 @profiles: ["sv_2023"]
 ps_type_identifier_scope_sv_2023 := kw_local_939bb46a scope_resolution -> {kind: "local_qualifier"}
                                   | non_typedef_package_scope         -> $1
-                                  | class_scope_plain                 -> $1
+                                  | class_scope                       -> $1
 
 @profiles: ["sv_2017"]
 ps_type_identifier_sv_2017 := ps_type_identifier_scope_sv_2017? type_identifier

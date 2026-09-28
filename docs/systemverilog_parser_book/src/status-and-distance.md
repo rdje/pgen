@@ -112,17 +112,17 @@ ESTIMATE over the last five recorded releases; a structural leg (a corpus confor
 the 38 % of corpus rows with no verdict are an answer-key gap outside `items`; and an item can be opened by a release as well as closed — the history shows both.
 
 <!-- BEGIN DERIVED: scripts/report_sv_release_distance.sh --markdown -->
-**SV release distance: 19 items** (`legs_unmet + bar_rows + open_leaves`).
+**SV release distance: 17 items** (`legs_unmet + bar_rows + open_leaves`).
 
 | Component | Count | Derived from |
 |---|---:|---|
 | Done-bar legs unmet | 3 of 3 | the derived block above (`report_family_status.sh`) |
 | Corpus bar rows (unexplained divergences) | 0 (sv_2017 0, sv_2023 0, verilog_2005 0) | `stimuli/sv/characterization/adjudication_manifest*.tsv` |
-| Open leaves owning SV work | 16 (SV-CORPUS-GRAD 3, engine leaves SV opened 13) | `docs/tasks/SV-CORPUS-GRAD.md`, `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` |
+| Open leaves owning SV work | 14 (SV-CORPUS-GRAD 2, engine leaves SV opened 12) | `docs/tasks/SV-CORPUS-GRAD.md`, `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` |
 | Corpus passing (sv_2017, `match` rows) | 6069 of 16336 (37.2 %) | the sv_2017 manifest |
 | Known defects (unexplained, sv_2017) | 0 | the sv_2017 manifest |
 
-**Trailing closure rate:** 1.50 items per release over the last 5 recorded release(s); **ETA ≈ 12.7 releases ≈ 3.6 days** — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.
+**Trailing closure rate:** 2.50 items per release over the last 5 recorded release(s); **ETA ≈ 6.8 releases ≈ 16.2 days** — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.
 
 History: [`release_distance/history.tsv`](../../tasks/artifacts/sv_corpus_grad/release_distance/history.tsv) (one row per release, appended by `--record` — and one more, under the shipped release's label, when a commit outside a release moves the distance; the rate above divides by distinct releases; the last row must equal this tree, checked by `--check`).
 <!-- END DERIVED: scripts/report_sv_release_distance.sh -->

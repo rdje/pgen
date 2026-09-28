@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-28 — ENGINE-UNIVERSAL-SERVICES.111 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0163`, release 1.0.246): an epoch that counts events evicts the innocent; an epoch that names content comes back with it
+
+- **The memo's validity question is "is the store what I saw", not "has anything happened".** A rollback that discards a fact is an event, but the store it leaves is the checkpoint's exact content — the entries that consulted that content are still right. Naming contents (a fresh id per mutation, the checkpoint's id restored on rollback) answers the real question in O(1) and keeps the anchors that matter: a mutation still evicts.
+- **Measure the engine alone before the grammar it unblocks.** The ratchet on the unchanged grammar read a small fall and an identical parser; the grammar change then had to earn its own cost line on the same instrument. Two claims, two measurements, one release.
+- **A hygiene deletion rides a release that moves a verdict.** `.33` had no register disposition on its own; batched into `1.0.246` it is carried by a `RELEASE` row that is honest about what moved.
 ## 2026-09-24 — ENGINE-UNIVERSAL-SERVICES.77 routed class (`PGEN-ENGINE-UNIVERSAL-SERVICES-0162`): a job is what is still there when you look twice
 
 - **The signal was right and the reading was wrong.** A repo handle is the discriminator the handoff census was built on; the terminal's git-badge probe and git's own post-commit maintenance both hold one for a few seconds and neither is our job. A token list would have named two executables today and missed the third tomorrow; a second sample five seconds later names the class by the one property it actually has — it is gone.

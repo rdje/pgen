@@ -77,6 +77,8 @@ case among the **survivors** and never a bound.
 | **accept set** | the set of inputs a parser accepts. A fix that removes a crash by **narrowing** it has traded one defect for another |
 | **censored** | a metric whose failing values cannot be observed by the instrument that reports it |
 | **advisory vs binding** | a gate metric that is machine-dependent and does not block, versus a deterministic one that does |
+| **write epoch** | `SemanticRuntimeState::write_epoch`, a `u64` naming the semantic store's CONTENT: every mutation (fact emission / import, scope open / close, a non-empty delta apply) takes a fresh value from the monotone allocator `next_epoch`; a discarding rollback restores the checkpoint's value, because the store is the checkpoint's content again (`ENGINE-UNIVERSAL-SERVICES.111`, `1.0.246`; through `1.0.245` a discarding rollback bumped it instead). Two contents never share a value. It answers: *is the store exactly what a memo entry saw?* |
+| **store-tainted memo entry** | a memoized parse whose body evaluated at least one semantic predicate (`predicate_evaluations` moved across the body), stamped `tainted_at_epoch = Some(write_epoch)` at insert and replayable only while `write_epoch` is unchanged (`MEMO-STORE-SOUNDNESS.2`); a stale one is evicted and re-parsed. A pure body carries no stamp and replays at any store state. It answers: *may this cached result be replayed without re-reading the store?* |
 
 ## Refusal causes
 
