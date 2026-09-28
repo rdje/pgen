@@ -72,13 +72,16 @@ def derive_vocabulary(grammar_dir, reg):
     language = {n: g for n, g in on_disk.items() if classes.get(n) == "language"}
     meta = {n: g for n, g in on_disk.items() if classes.get(n) == "meta"}
     meta_names = names(meta.values()) | set(reg.get("meta_token_types", []))
-    profiles = set()
-    for g in language.values():
+    profiles = set(); own = {}   # own[family] = the profiles, rules and kw_* tokens THAT family's grammar declares
+    for n, g in language.items():
         t = open(g, encoding="utf-8", errors="replace").read()
+        fam_profiles = set()
         for m in re.findall(r"@profiles:\s*\[([^\]]*)\]", t):
-            profiles |= {x.strip().strip('"') for x in m.split(",") if x.strip()}
+            fam_profiles |= {x.strip().strip('"') for x in m.split(",") if x.strip()}
+        profiles |= fam_profiles
+        own[n] = fam_profiles | names([g])
     rules = {r for r in names(language.values()) if not r.startswith("kw_") and len(r) >= 8 and "_" in r} - meta_names
-    return dict(families=sorted(language), profiles=sorted(profiles), rules=rules, problems=problems)
+    return dict(families=sorted(language), profiles=sorted(profiles), rules=rules, own=own, problems=problems)
 
 def scan(files, vocab, classify):
     fam_rx = re.compile(r"\b(" + "|".join(map(re.escape, sorted(vocab["families"], key=len, reverse=True))) + r")\b") if vocab["families"] else None
@@ -97,7 +100,7 @@ def scan(files, vocab, classify):
             hits += [("keyword-rule", m.group(0)) for m in kw_rx.finditer(l)]
             hits += [("rule", m.group(1)) for m in re.finditer(r'"([a-z][a-z0-9_]{7,})"', l) if m.group(1) in vocab["rules"]]
             for kind, tok in hits:
-                if cls == "per-family" and kind == "family" and tok == own: continue   # a component may name its OWN family
+                if cls == "per-family" and (tok == own or tok in vocab["own"].get(own, ())): continue   # a component may name its OWN family: its name, its profiles, its rules
                 rows.append(dict(file=f, cls=cls, pos=pos, line=i + 1, kind=kind, token=tok, text=l.strip()[:110]))
     return rows
 
@@ -163,7 +166,7 @@ def tree_files(root):
     return sorted(glob.glob(os.path.join(root, "rust/src/**/*.rs"), recursive=True)) + [os.path.join(root, "rust/build.rs")]
 
 def self_test():
-    """Seven arms on synthetic inputs: every refusal is driven for real."""
+    """Eleven arms on synthetic inputs: every refusal is driven for real, and the own-family exemption is proven green."""
     arms = []
     with tempfile.TemporaryDirectory(dir=os.path.join(ROOT, "rust/target") if os.path.isdir(os.path.join(ROOT, "rust/target")) else None) as d:
         os.makedirs(os.path.join(d, "grammars")); os.makedirs(os.path.join(d, "rust/src/bin")); os.makedirs(os.path.join(d, "rust/test_data/grammar_quality"))
@@ -205,6 +208,7 @@ def self_test():
         arm("RED: a classed file that does not exist", 1, reg5)
         reg6 = json.loads(json.dumps(base_reg)); reg6["engine_allow"] = [{"file": "rust/src/engine.rs", "token": "lang"}]
         arm("RED: an allow-list row without reason / owner", 1, reg6, ("rust/src/engine.rs", 'fn g() { let s = "lang"; }\n'))
+        arm("GREEN: a per-family component names its OWN family's profile", 0, base_reg, ("rust/src/sv_thing.rs", 'fn f() -> &\'static str { "lp_2017" }\n'))
     n = len(arms); ok = sum(arms)
     print(f"{TAG} --self-test: arms={n} failed={n - ok}")
     return 0 if ok == n else 1

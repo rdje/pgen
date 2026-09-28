@@ -826,7 +826,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```bash
   bash scripts/check_engine_neutrality.sh              # the gate: self-test first, then the tree, ~1 s
   bash scripts/check_engine_neutrality.sh --census     # every hit by class / position / kind
-  bash scripts/check_engine_neutrality.sh --self-test  # the ten arms alone
+  bash scripts/check_engine_neutrality.sh --self-test  # the eleven arms alone
   bash scripts/check_engine_neutrality.sh --rebaseline # promote a FALL of a classed file's ceiling
   ```
 - **OUTPUT / READ:** `engine-neutrality: OK (engine: 0 language tokens in production code over N files; …)`

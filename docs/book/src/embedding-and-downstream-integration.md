@@ -57,6 +57,13 @@ source the registry and this API derive a family's facts from: the typed `Gramma
 change to 2.0.0), because the engine may not know a language's name — see *The responsibility
 boundary and its guard* in the developer-architecture chapter.
 
+Since slice 2 (2026-09-28) the parser registry the API and the operator tools dispatch through is
+**derived**: `build.rs` lists `generated/*_parser.rs`, writes the module includes and the registry
+table, and every artifact is served by ONE template (`parse_full_from(GRAMMAR_ENTRY_RULE)`, the
+profile resolved through the artifact's own alias map and default). What is genuinely per-family —
+the SystemVerilog standard-library preload, the regex worker stack and PCRE2 compile contract — lives
+in `rust/src/families/<name>.rs`, reached only through a hook table keyed on `GRAMMAR_NAME`.
+
 ### Reading source files — `pgen::source_text`
 
 The embedding API parses a `&str`; **turning a file into that `&str` is the host's job**, and it is
@@ -868,6 +875,14 @@ The detailed platform plan for that lane lives in:
 ## Parser Registry
 
 The parser registry is the in-process discovery and routing seam used by several internal and proof paths. It matters because many contract lanes and probes do not call generated parsers directly; they go through registry-backed surfaces that downstream consumers can rely on more easily.
+
+Since `ENGINE-UNIVERSAL-SERVICES.112` slice 2 (2026-09-28) the registry is **derived**: `build.rs`
+lists the generated parser artifacts and writes the registry table, one template serves every
+artifact (its name, entry, profiles, default and alias map read from the artifact itself), and the
+only per-family code the engine links — the SystemVerilog standard-library preload, the regex
+dedicated stack and PCRE2 compile contract — lives under `rust/src/families/`, reached through a hook
+table keyed on the artifact's `GRAMMAR_NAME`. `registered_grammars()` and `registered_profiles()`
+are the registry's answers to "what is built in", and they are what the embedding API derives from.
 
 ## Contracts As Downstream Truth
 

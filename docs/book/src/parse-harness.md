@@ -184,21 +184,25 @@ small, reviewable, one-time registration:
 
 - **Makefile** (`rust/Makefile`) — `SCRATCH_EBNF` / `SCRATCH_JSON` / `SCRATCH_PARSER` variables and a
   `focus_scratch` target: `.ebnf → raw-AST JSON → parser.rs`, identical to `focus_json`.
-- **`rust/build.rs`** — sets the `has_generated_scratch_parser` cfg (and the resolved `include!` path)
-  **only when the artifact exists**. With no built artifact, the slot is simply *absent* — additive,
-  never affecting any shipped grammar, and a clean checkout compiles unchanged.
-- **`rust/src/lib.rs`** — `generated_parsers::scratch`, gated on that cfg.
-- **`rust/src/parser_registry.rs`** — a `GeneratedParserRegistryEntry { grammar_name: "scratch", … }`
-  plus the dispatch closures for parse, certificate-coverage witness, and labelled detail.
+- **`rust/build.rs`** — DERIVES the registered parsers from `generated/*_parser.rs`
+  (`ENGINE-UNIVERSAL-SERVICES.112` slice 2): for every artifact present it emits the
+  `has_generated_<name>_parser` cfg, the resolved `include!` path and the fingerprint, and writes the
+  module includes and the registry table into `OUT_DIR`. With no built scratch artifact, the slot is
+  simply *absent* — additive, never affecting any shipped grammar, and a clean checkout compiles
+  unchanged. Nothing is typed per grammar any more: the scratch slot is registered by existing.
+- **`rust/src/lib.rs`** — includes the build-written module list (`generated_parsers::scratch` appears
+  in it, gated on that cfg).
+- **`rust/src/parser_registry.rs`** — ONE template (`generated_parser_row!`) instantiated per artifact
+  by the build-written table: parse, certificate-coverage witness and labelled detail come from the
+  same code path every shipped grammar uses.
 
-The one design subtlety worth calling out: a shipped grammar's registry closure hard-codes its entry
-method (e.g. `parser.parse_full_json()`), but a *scratch* grammar's entry-rule name changes every time
-you overwrite the body. The slot sidesteps this by dispatching through the generated parser's
-**entry-rule-agnostic** `parse_full()` (the method every generated parser exposes; `parse_full_json`
-is just a thin alias for it). So the registration is **stable across arbitrary probe grammars** — the
-registry never needs to know the probe grammar's entry-rule name. An explicit
-`--entry-rule RULE` still routes through `parse_full_from(RULE)`, so you can inspect a non-entry rule
-(for example a shadowed alternative) in isolation.
+The one design subtlety worth calling out: a *scratch* grammar's entry-rule name changes every time
+you overwrite the body. Every generated parser carries its canonical entry as `GRAMMAR_ENTRY_RULE`
+(beside `GRAMMAR_NAME` and `GRAMMAR_PROFILES`), and the registry's template dispatches through
+`parse_full_from(GRAMMAR_ENTRY_RULE)` for every grammar — so the registration is **stable across
+arbitrary probe grammars**: the registry never types the probe grammar's entry-rule name, it reads it
+from the artifact. An explicit `--entry-rule RULE` routes through `parse_full_from(RULE)`, so you can
+inspect a non-entry rule (for example a shadowed alternative) in isolation.
 
 ### Why this is trustworthy — "by construction"
 

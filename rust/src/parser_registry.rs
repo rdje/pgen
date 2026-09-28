@@ -1,31 +1,6 @@
-//! Registry for generated parser adapters used by parseability and round-trip checks.
-//!
-//! This centralizes grammar-name dispatch so new generated grammars are added in one place.
+
 
 use crate::ast_pipeline::{ParseNode, UnifiedSemanticAST, runtime_logger, runtime_logger_box};
-#[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
-use crate::ebnf_generated_parser::EbnfParser;
-#[cfg(has_generated_json_parser)]
-use crate::generated_parsers::json::JsonParser;
-#[cfg(has_generated_regex_parser)]
-use crate::generated_parsers::regex::RegexParser;
-#[cfg(has_generated_rtl_const_expr_parser)]
-use crate::generated_parsers::rtl_const_expr::RtlConstExprParser;
-#[cfg(has_generated_rtl_frontend_parser)]
-use crate::generated_parsers::rtl_frontend::RtlFrontendParser;
-// PARSE-HARNESS.2 — the blessed scratch-register slot (arbitrary-grammar probe).
-#[cfg(has_generated_scratch_parser)]
-use crate::generated_parsers::scratch::ScratchParser;
-#[cfg(has_generated_systemverilog_parser)]
-use crate::generated_parsers::systemverilog::SystemverilogParser;
-#[cfg(has_generated_systemverilog_preprocessor_parser)]
-use crate::generated_parsers::systemverilog_preprocessor::SystemverilogPreprocessorParser;
-#[cfg(has_generated_vhdl_parser)]
-use crate::generated_parsers::vhdl::VhdlParser;
-use crate::generated_parsers::{
-    return_annotation::Return_annotationParser, semantic_annotation::Semantic_annotationParser,
-};
-use crate::regex_compile_validation::validate_regex_compile_contract;
 use serde_json::Value as JsonValue;
 
 // SV-EXH-PROOF.3.3.4.b.6.2.17 — rule-level targeted trace, thread-local set.
@@ -321,7 +296,7 @@ fn dump_rule_outcome_counts_json(
 /// excludes any construction-time parsing. Grammar-agnostic: works for every generated
 /// parser type (they all emit index-aligned `rule_call_counts()` / `rule_names()`).
 macro_rules! with_rule_entry_count_dump {
-    ($grammar:literal, $parser:ident, $parser_ty:ty, $parse:expr) => {{
+    ($grammar:expr, $parser:ident, $parser_ty:ty, $parse:expr) => {{
         let __entry_dump = current_dump_rule_entry_counts_json();
         // RGX-0078.5.h.1b — the OUTCOME dump shares the same expansion point: it
         // additionally enables the transactional coverage stack BEFORE the parse
@@ -415,887 +390,6 @@ macro_rules! with_rule_entry_count_dump {
         __outcome
     }};
 }
-#[cfg(has_generated_regex_parser)]
-// PCRE2 conformance includes deeply nested and grammar-like recursive regexes.
-// Keep the generated parser on a larger bounded stack than Rust's default.
-const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
-
-type ParseSampleFn = fn(&str) -> bool;
-
-/// GRAMMAR-WELLFORMED.G.4: a grammar's witness-verification hook — parse `sample` through its REAL
-/// generated parser and return `(parsed_ok, rules_exercised)` (the rule names PRESENT in the
-/// successful AST). Registered per-grammar in the table below; the pipeline dispatches generically
-/// via `parse_and_cover(grammar_name, …)` and never names a grammar.
-///
-/// GRAMMAR-WELLFORMED.H.12.8.4.3: the third argument is the optional ENTRY rule — the start symbol the
-/// sample should be parsed from. `None` ⇒ the grammar's canonical entry (byte-identical to before this
-/// param existed). `Some(entry)` ⇒ verify from `parser.parse_full_from(entry)`, so an entry-relative
-/// rule (rooted under an alternate LRM start symbol such as `library_text`) is verified from the SAME
-/// entry the cert's `--entry-rule` / `--cert-union-config` generated it under. Parser-agnostic.
-type ParseAndCoverFn =
-    fn(&str, Option<&str>, Option<&str>) -> (bool, std::collections::HashSet<String>);
-/// GRAMMAR-WELLFORMED.G.4.7: the per-grammar "parse and return WHY it failed" hook — a rich error
-/// string (the generated SV parser augments it with `furthest_position`, the deepest byte any branch
-/// reached). Lets the certificate-coverage gate LABEL its sample-parse failures instead of silently
-/// counting them. Same data-driven boundary as `parse_and_cover`: the per-grammar knowledge lives in
-/// the registry table, never in the pipeline.
-
-/// The **active** dialect profile a grammar parses under, given a requested profile — the single source
-/// of truth for per-grammar profile resolution (an unspecified/empty profile resolves to the grammar's
-/// DECLARED `@default_profile`, sourced from the generated parser's `DEFAULT_GRAMMAR_PROFILE` constant
-/// — e.g. regex → strict `pcre2`; SV's `2017`/`2023` aliases map to `sv_2017`/`sv_2023`). This is what
-/// a profile-aware second parser (the PARSE-HARNESS interpreter) must gate `@profiles` rules against so
-/// it matches `parse_sample` byte-for-byte (PARSE-HARNESS.5.1). Returns an owned `String` so a
-/// non-registry caller need not borrow the request.
-///
-/// ⛔ `CI-PARITY-GATE-ROT.40`: this accessor is **UNGATED on purpose — do not re-add a
-/// `has_generated_*` cfg to it.** Its only caller, `parse_harness_equivalence`, is gated on
-/// FEATURES (`ebnf_dual_run` + `generated_parsers`), an axis ORTHOGONAL to the `has_generated_*`
-/// ARTIFACT cfgs — so an artifact gate here makes the crate unbuildable (`E0425`) in exactly the
-/// configuration the COLD-CLONE BOOTSTRAP passes through: the build that GENERATES the first family
-/// parser must compile before any family parser exists. The artifact-specific knowledge stays gated
-/// one level down — inside `default_generated_grammar_profile`'s match arm and the alias
-/// resolver's cfg companion pair. **The data is gated; the accessor never is.**
-pub fn active_grammar_profile(grammar_name: &str, grammar_profile: Option<&str>) -> Option<String> {
-    normalize_generated_grammar_profile(grammar_name, grammar_profile)
-        .map(|s| s.to_string())
-        .or_else(|| default_generated_grammar_profile(grammar_name).map(|s| s.to_string()))
-}
-
-/// `DEFAULT-PROFILE.2`: the grammar-DECLARED default dialect profile — the profile an
-/// UNSPECIFIED/empty requested profile resolves to. Sourced from the generated parser's
-/// `DEFAULT_GRAMMAR_PROFILE` constant, which codegen emits from the grammar's own
-/// `@default_profile:` directive — so the registry holds NO profile knowledge of its own (the
-/// retired `== "regex" → "pcre2"` literal was exactly that defect class). Same data-driven
-/// boundary as `parse_and_cover`: the per-grammar datum lives in this table, sourced from the
-/// grammar-derived artifact.
-///
-/// ⛔ `CI-PARITY-GATE-ROT.40`: **UNGATED on purpose** (see `active_grammar_profile`). With neither
-/// family artifact compiled in, every arm below is cfg-ed out and the lookup answers `None` — no
-/// registered grammar declares a `@default_profile` it could source. The arms carry the gate; the
-/// function does not.
-fn default_generated_grammar_profile(grammar_name: &str) -> Option<&'static str> {
-    match grammar_name {
-        #[cfg(has_generated_regex_parser)]
-        "regex" => Some(RegexParser::DEFAULT_GRAMMAR_PROFILE),
-        _ => None,
-    }
-}
-
-fn normalize_generated_grammar_profile<'a>(
-    grammar_name: &str,
-    grammar_profile: Option<&'a str>,
-) -> Option<&'a str> {
-    let profile = grammar_profile?.trim();
-    if profile.is_empty() {
-        return None;
-    }
-    Some(resolve_generated_grammar_profile_alias(
-        grammar_name,
-        profile,
-    ))
-}
-
-/// `PROFILE-ALIAS.2`: the grammar-DECLARED request-spelling alias resolver —
-/// dispatches to the generated parser's `resolve_grammar_profile_alias`
-/// (emitted from the grammar's own `@profile_alias:` directives, e.g. SV's
-/// `2017`/`ieee1800-2017` → `sv_2017`), so the registry holds NO spelling
-/// knowledge of its own (the retired `"systemverilog"` alias match arm was
-/// exactly that defect class). Same data-driven boundary as
-/// `default_generated_grammar_profile`: the per-grammar datum lives in this
-/// table, sourced from the grammar-derived artifact. Unmatched spellings and
-/// alias-free grammars pass through unchanged.
-#[cfg(has_generated_systemverilog_parser)]
-fn resolve_generated_grammar_profile_alias<'a>(grammar_name: &str, profile: &'a str) -> &'a str {
-    match grammar_name {
-        "systemverilog" => SystemverilogParser::resolve_grammar_profile_alias(profile),
-        _ => profile,
-    }
-}
-
-/// `PROFILE-ALIAS.2`: without the SV artifact compiled in, no registered
-/// grammar declares `@profile_alias` — every spelling passes through.
-#[cfg(not(has_generated_systemverilog_parser))]
-fn resolve_generated_grammar_profile_alias<'a>(_grammar_name: &str, profile: &'a str) -> &'a str {
-    profile
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct GeneratedParserRegistryEntry {
-    pub grammar_name: &'static str,
-    parse_sample: ParseSampleFn,
-    /// GRAMMAR-WELLFORMED.G.4: the witness-verification hook, when this grammar's parser supports it
-    /// (`None` until wired — Phase H wires the rest). Kept here so the per-grammar knowledge lives in
-    /// the registry table (data-driven), never in the pipeline.
-    parse_and_cover: Option<ParseAndCoverFn>,
-}
-
-impl GeneratedParserRegistryEntry {
-    fn parse(&self, sample: &str) -> bool {
-        (self.parse_sample)(sample)
-    }
-}
-
-fn parse_with_return_annotation(sample: &str) -> bool {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        Return_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.return_annotation"));
-    parser.parse_full_return_annotation().is_ok()
-}
-
-fn parse_with_return_annotation_detail(sample: &str) -> Result<(), String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        Return_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.return_annotation"));
-    let result = with_rule_entry_count_dump!(
-        "return_annotation",
-        parser,
-        Return_annotationParser,
-        parser
-            .parse_full_return_annotation()
-            .map(|_| ())
-            .map_err(|err| err.to_string())
-    );
-    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
-    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
-    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
-    node_arena.footprint().report("return_annotation");
-    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
-}
-
-fn parse_with_return_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        Return_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.return_annotation"));
-    let parsed = parser
-        .parse_full_return_annotation()
-        .map_err(|err| err.to_string())?;
-    parse_node_to_json(&parsed)
-}
-
-/// GRAMMAR-WELLFORMED.H.15 — parse `sample` through the REAL return_annotation parser and return
-/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
-/// `parse_and_cover_json`: enable the transactional `coverage_stack`, parse, and return the PARSER's
-/// own record of the committed rules on a SUCCESSFUL parse. return_annotation declares no grammar
-/// profile and its entry (`return_annotation := arrow expression`) is shallow, so neither a profile
-/// (`_grammar_profile` is unused) nor a dedicated worker stack (unlike regex's RGX-0085 stack) is
-/// needed.
-pub fn parse_and_cover_return_annotation(
-    sample: &str,
-    _grammar_profile: Option<&str>,
-    entry: Option<&str>,
-) -> (bool, std::collections::HashSet<String>) {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        Return_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.return_annotation"));
-    parser.enable_coverage();
-    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
-    let outcome = match entry {
-        Some(e) => parser.parse_full_from(e),
-        None => parser.parse_full_return_annotation(),
-    };
-    match outcome {
-        Ok(_) => (true, parser.exercised_rule_names()),
-        Err(_) => (false, std::collections::HashSet::new()),
-    }
-}
-
-fn parse_with_semantic_annotation(sample: &str) -> bool {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        Semantic_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.semantic_annotation"));
-    parser.parse_full_semantic_annotation().is_ok()
-}
-
-fn parse_with_semantic_annotation_detail(sample: &str) -> Result<(), String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        Semantic_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.semantic_annotation"));
-    let result = with_rule_entry_count_dump!(
-        "semantic_annotation",
-        parser,
-        Semantic_annotationParser,
-        parser
-            .parse_full_semantic_annotation()
-            .map(|_| ())
-            .map_err(|err| err.to_string())
-    );
-    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
-    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
-    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
-    node_arena.footprint().report("semantic_annotation");
-    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
-}
-
-fn parse_with_semantic_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        Semantic_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.semantic_annotation"));
-    let parsed = parser
-        .parse_full_semantic_annotation()
-        .map_err(|err| err.to_string())?;
-    parse_node_to_json(&parsed)
-}
-
-/// GRAMMAR-WELLFORMED.H.15 — parse `sample` through the REAL semantic_annotation parser and return
-/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
-/// `parse_and_cover_return_annotation`: enable the transactional `coverage_stack`, parse, and return
-/// the PARSER's own record of the committed rules on a SUCCESSFUL parse. semantic_annotation declares
-/// no grammar profile, and its entry is a single `@name: value` annotation rather than a recursive
-/// item list, so neither a profile (`_grammar_profile` is unused) nor a dedicated worker stack is
-/// needed.
-pub fn parse_and_cover_semantic_annotation(
-    sample: &str,
-    _grammar_profile: Option<&str>,
-    entry: Option<&str>,
-) -> (bool, std::collections::HashSet<String>) {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        Semantic_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.semantic_annotation"));
-    parser.enable_coverage();
-    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
-    let outcome = match entry {
-        Some(e) => parser.parse_full_from(e),
-        None => parser.parse_full_semantic_annotation(),
-    };
-    match outcome {
-        Ok(_) => (true, parser.exercised_rule_names()),
-        Err(_) => (false, std::collections::HashSet::new()),
-    }
-}
-
-fn parse_with_builtin_return_annotation(sample: &str) -> bool {
-    // Built-in return grammar is a strict subset of return_annotation grammar.
-    parse_with_return_annotation(sample)
-}
-
-fn parse_with_builtin_return_annotation_detail(sample: &str) -> Result<(), String> {
-    parse_with_return_annotation_detail(sample)
-}
-
-fn parse_with_builtin_return_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
-    // Built-in return grammar is a strict subset of return_annotation grammar.
-    parse_with_return_annotation_ast_json(sample)
-}
-
-fn parse_with_builtin_semantic_annotation(sample: &str) -> bool {
-    // Built-in semantic parser behavior is intentionally permissive and marker-based.
-    // Parseability for builtin_semantic_annotation must follow this bootstrap contract,
-    // not the stricter full semantic_annotation grammar.
-    let logger = runtime_logger("bootstrap.semantic_annotation");
-    UnifiedSemanticAST::parse_bootstrap(sample, &logger).is_ok()
-}
-
-fn parse_with_builtin_semantic_annotation_detail(sample: &str) -> Result<(), String> {
-    let logger = runtime_logger("bootstrap.semantic_annotation");
-    UnifiedSemanticAST::parse_bootstrap(sample, &logger)
-        .map(|_| ())
-        .map_err(|err| err.to_string())
-}
-
-fn parse_with_builtin_semantic_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let logger = runtime_logger("bootstrap.semantic_annotation");
-    let parsed =
-        UnifiedSemanticAST::parse_bootstrap(sample, &logger).map_err(|err| err.to_string())?;
-    serde_json::to_value(parsed)
-        .map_err(|err| format!("failed to serialize bootstrap semantic AST: {}", err))
-}
-
-#[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
-fn parse_with_ebnf(sample: &str) -> bool {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = EbnfParser::new(sample, &node_arena, runtime_logger_box("generated.ebnf"));
-    parser.parse_full_grammar_file().is_ok()
-}
-
-#[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
-fn parse_with_ebnf_detail(sample: &str) -> Result<(), String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = EbnfParser::new(sample, &node_arena, runtime_logger_box("generated.ebnf"));
-    let result = with_rule_entry_count_dump!(
-        "ebnf",
-        parser,
-        EbnfParser,
-        parser
-            .parse_full_grammar_file()
-            .map(|_| ())
-            .map_err(|err| err.to_string())
-    );
-    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
-    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
-    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
-    node_arena.footprint().report("ebnf");
-    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
-}
-
-#[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
-fn parse_with_ebnf_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = EbnfParser::new(sample, &node_arena, runtime_logger_box("generated.ebnf"));
-    let parsed = parser
-        .parse_full_grammar_file()
-        .map_err(|err| err.to_string())?;
-    parse_node_to_json(&parsed)
-}
-
-/// GRAMMAR-WELLFORMED.H.15 — parse `sample` through the REAL ebnf meta-parser and return
-/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
-/// `parse_and_cover_return_annotation`: enable the transactional `coverage_stack`, parse, and return
-/// the PARSER's own record of the committed rules on a SUCCESSFUL parse. ebnf declares no grammar
-/// profile (`_grammar_profile` is unused). It carries the SAME `cfg` as the rest of the ebnf
-/// dispatch — the generated meta-parser exists only under `--features ebnf_dual_run`, which is also
-/// the build `ast_pipeline` needs to read a `.ebnf` directly, so cert-coverage on `grammars/ebnf.ebnf`
-/// and this hook are available together or not at all.
-#[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
-pub fn parse_and_cover_ebnf(
-    sample: &str,
-    _grammar_profile: Option<&str>,
-    entry: Option<&str>,
-) -> (bool, std::collections::HashSet<String>) {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = EbnfParser::new(sample, &node_arena, runtime_logger_box("generated.ebnf"));
-    parser.enable_coverage();
-    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
-    let outcome = match entry {
-        Some(e) => parser.parse_full_from(e),
-        None => parser.parse_full_grammar_file(),
-    };
-    match outcome {
-        Ok(_) => (true, parser.exercised_rule_names()),
-        Err(_) => (false, std::collections::HashSet::new()),
-    }
-}
-
-#[cfg(has_generated_json_parser)]
-fn parse_with_json(sample: &str) -> bool {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = JsonParser::new(sample, &node_arena, runtime_logger_box("generated.json"));
-    parser.parse_full_json().is_ok()
-}
-
-#[cfg(has_generated_json_parser)]
-fn parse_with_json_detail(sample: &str) -> Result<(), String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = JsonParser::new(sample, &node_arena, runtime_logger_box("generated.json"));
-    let result = with_rule_entry_count_dump!(
-        "json",
-        parser,
-        JsonParser,
-        parser
-            .parse_full_json()
-            .map(|_| ())
-            .map_err(|err| err.to_string())
-    );
-    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
-    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
-    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
-    node_arena.footprint().report("json");
-    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
-}
-
-#[cfg(has_generated_json_parser)]
-fn parse_with_json_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = JsonParser::new(sample, &node_arena, runtime_logger_box("generated.json"));
-    let parsed = parser.parse_full_json().map_err(|err| err.to_string())?;
-    parse_node_to_json(&parsed)
-}
-
-/// GRAMMAR-WELLFORMED.H.3 — parse `sample` through the REAL json parser and return
-/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
-/// `parse_and_cover_systemverilog`: enable the transactional `coverage_stack`, parse, and return the
-/// PARSER's own record of the committed rules on a SUCCESSFUL parse. json has no grammar profile and no
-/// deep recursion, so neither a profile (`_grammar_profile` is unused) nor a dedicated worker stack
-/// (unlike regex's RGX-0085 stack) is needed.
-#[cfg(has_generated_json_parser)]
-pub fn parse_and_cover_json(
-    sample: &str,
-    _grammar_profile: Option<&str>,
-    entry: Option<&str>,
-) -> (bool, std::collections::HashSet<String>) {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = JsonParser::new(sample, &node_arena, runtime_logger_box("generated.json"));
-    parser.enable_coverage();
-    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
-    let outcome = match entry {
-        Some(e) => parser.parse_full_from(e),
-        None => parser.parse_full_json(),
-    };
-    match outcome {
-        Ok(_) => (true, parser.exercised_rule_names()),
-        Err(_) => (false, std::collections::HashSet::new()),
-    }
-}
-
-#[cfg(has_generated_regex_parser)]
-fn parse_with_regex(sample: &str) -> bool {
-    parse_with_regex_detail(sample, None).is_ok()
-}
-
-#[cfg(has_generated_regex_parser)]
-fn run_generated_regex_on_dedicated_stack<T, F>(sample: &str, f: F) -> Result<T, String>
-where
-    T: Send + 'static,
-    F: FnOnce(String) -> Result<T, String> + Send + 'static,
-{
-    let owned_sample = sample.to_string();
-    let handle = std::thread::Builder::new()
-        .name("pgen-generated-regex".to_string())
-        .stack_size(GENERATED_REGEX_WORKER_STACK_BYTES)
-        .spawn(move || f(owned_sample))
-        .map_err(|err| format!("failed to spawn generated.regex worker thread: {}", err))?;
-    handle
-        .join()
-        .map_err(|_| "generated.regex worker thread panicked".to_string())?
-}
-
-#[cfg(has_generated_regex_parser)]
-fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Result<(), String> {
-    // REGEX-PCRE2-FIDELITY.2 / DEFAULT-PROFILE.2: default = strict `pcre2` (PCRE2-faithful);
-    // `relaxed` opt-out. The default now comes from the ARTIFACT: `set_grammar_profile(None)`
-    // restores the grammar-declared `@default_profile` (owned into the 'static worker closure).
-    let profile = normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
-    // RGX-0078.5.h.1: thread-locals do not cross into the dedicated worker thread —
-    // capture the entry-count dump path here and move it into the closure.
-    let entry_dump = current_dump_rule_entry_counts_json();
-    // RGX-0078.5.h.1b: same capture for the outcome-count dump.
-    let outcome_dump = current_dump_rule_outcome_counts_json();
-    run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
-        let node_arena = crate::ast_pipeline::NodeArena::new();
-        let mut parser = RegexParser::new(&owned_sample, &node_arena, runtime_logger_box("generated.regex"));
-        parser.set_grammar_profile(profile.as_deref());
-        if outcome_dump.is_some() {
-            parser.enable_coverage();
-        }
-        // RGX-0078.5.i.8.t1 — the pre-parse `rule_call_counts()` grab is ALSO the
-        // D2-A counter-consumer routing trigger (`counters_observed` ⇒ the protocol
-        // graph serves the counted parse — TOOLBOX 3.4 ROUTING). This fresh-parser
-        // lane needs no zero baseline, but it MUST still fire the trigger; without
-        // it the fused cascade graph (which ticks no per-rule counters) serves the
-        // parse and only protocol-boundary frames tick (measured: 5 vs 33 entries).
-        if entry_dump.is_some() {
-            let _ = parser.rule_call_counts();
-        }
-        // CORPUS-GRAD-ALL.2.0: augment the PARSE error only, BEFORE the `and_then`. The PCRE2
-        // compile-contract error that follows is an oracle disagreement, not a parse position —
-        // decorating it with a byte offset would invent a locus it does not have.
-        let outcome = parser
-            .parse_full_regex()
-            .map(|_| ())
-            .map_err(|err| {
-                augment_error_with_furthest_position(err.to_string(), parser.furthest_position())
-            })
-            .and_then(|()| validate_regex_compile_contract(&owned_sample).map_err(|err| err.message));
-        if let Some(path) = entry_dump {
-            dump_rule_entry_counts_json(
-                &path,
-                "regex",
-                RegexParser::rule_names(),
-                &[],
-                &parser.rule_call_counts(),
-                outcome.is_ok(),
-            );
-        }
-        if let Some(path) = outcome_dump {
-            // RGX-0078.5.i.1 — store-counter deltas. The worker thread's parser is
-            // freshly constructed with no preload, so the baseline is zero and the
-            // counters ARE the parse's deltas.
-            let store_deltas = {
-                let c = parser.semantic_runtime_state().counters();
-                [
-                    c.rollbacks,
-                    c.facts_emitted,
-                    c.facts_rolled_back,
-                    c.scopes_opened,
-                    c.scopes_closed,
-                    c.predicate_evaluations.get(),
-                    // RGX-0078.5.i.5 (P3c scout) — protocol-exposure counters.
-                    c.rollbacks_unchanged,
-                    c.rollbacks_tournament,
-                    c.rollbacks_tournament_unchanged,
-                    c.rollbacks_nonempty_chain,
-                ]
-            };
-            dump_rule_outcome_counts_json(
-                &path,
-                "regex",
-                RegexParser::rule_names(),
-                &[],
-                &parser.rule_call_counts(),
-                &parser.exercised_rule_entry_counts(),
-                // RGX-0078.5.i.4 — fresh worker parser, zero baseline: the
-                // counters ARE the parse's memo-hit deltas.
-                parser.semantic_runtime_state().memo_hit_counts(),
-                store_deltas,
-                outcome.is_ok(),
-            );
-        }
-        // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
-        // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
-        // arena's drop, hence here rather than in a Drop impl (see NodeArena).
-        node_arena.footprint().report("regex");
-        outcome
-    })
-}
-
-#[cfg(has_generated_regex_parser)]
-fn parse_with_regex_ast_json(sample: &str, grammar_profile: Option<&str>) -> Result<JsonValue, String> {
-    // REGEX-PCRE2-FIDELITY.2 / DEFAULT-PROFILE.2: default = strict `pcre2`; the default comes from
-    // the artifact (`set_grammar_profile(None)` restores the declared `@default_profile`).
-    let profile = normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
-    run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
-        let node_arena = crate::ast_pipeline::NodeArena::new();
-        let mut parser = RegexParser::new(&owned_sample, &node_arena, runtime_logger_box("generated.regex"));
-        parser.set_grammar_profile(profile.as_deref());
-        let parsed = parser.parse_full_regex().map_err(|err| err.to_string())?;
-        validate_regex_compile_contract(&owned_sample).map_err(|err| err.message)?;
-        parse_node_to_json(&parsed)
-    })
-}
-
-/// GRAMMAR-WELLFORMED.H.1 — parse `sample` through the REAL regex parser and return
-/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
-/// `parse_and_cover_systemverilog`: enable the transactional `coverage_stack`, parse, and return the
-/// PARSER's own record of the committed rules on a SUCCESSFUL parse. Runs on the dedicated regex worker
-/// stack (regex can deeply recurse — RGX-0085). PCRE2 compile validation is intentionally NOT applied
-/// here — cert-coverage asks "did the GRAMMAR parse + which rules were exercised", not "is the pattern
-/// PCRE2-valid". REGEX-PCRE2-FIDELITY.2: honors the grammar profile (default = strict `pcre2`; `relaxed`
-/// opt-out) so the witness side parses under the same profile the generator generated for.
-#[cfg(has_generated_regex_parser)]
-pub fn parse_and_cover_regex(
-    sample: &str,
-    grammar_profile: Option<&str>,
-    entry: Option<&str>,
-) -> (bool, std::collections::HashSet<String>) {
-    let profile = normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
-    // GRAMMAR-WELLFORMED.H.12.8.4.3: own the entry into the 'static worker closure; `None` ⇒ canonical.
-    let entry_owned = entry.map(|e| e.to_string());
-    run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
-        let node_arena = crate::ast_pipeline::NodeArena::new();
-        let mut parser = RegexParser::new(&owned_sample, &node_arena, runtime_logger_box("generated.regex"));
-        parser.set_grammar_profile(profile.as_deref());
-        parser.enable_coverage();
-        let outcome = match entry_owned.as_deref() {
-            Some(e) => parser.parse_full_from(e),
-            None => parser.parse_full_regex(),
-        };
-        Ok(match outcome {
-            Ok(_) => (true, parser.exercised_rule_names()),
-            Err(_) => (false, std::collections::HashSet::new()),
-        })
-    })
-    .unwrap_or((false, std::collections::HashSet::new()))
-}
-
-#[cfg(has_generated_rtl_const_expr_parser)]
-fn parse_with_rtl_const_expr(sample: &str) -> bool {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        RtlConstExprParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_const_expr"));
-    parser.parse_full_rtl_const_expr().is_ok()
-}
-
-#[cfg(has_generated_rtl_const_expr_parser)]
-fn parse_with_rtl_const_expr_detail(sample: &str) -> Result<(), String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        RtlConstExprParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_const_expr"));
-    let result = with_rule_entry_count_dump!(
-        "rtl_const_expr",
-        parser,
-        RtlConstExprParser,
-        parser
-            .parse_full_rtl_const_expr()
-            .map(|_| ())
-            .map_err(|err| err.to_string())
-    );
-    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
-    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
-    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
-    node_arena.footprint().report("rtl_const_expr");
-    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
-}
-
-#[cfg(has_generated_rtl_const_expr_parser)]
-fn parse_with_rtl_const_expr_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        RtlConstExprParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_const_expr"));
-    let parsed = parser
-        .parse_full_rtl_const_expr()
-        .map_err(|err| err.to_string())?;
-    parse_node_to_json(&parsed)
-}
-
-/// GRAMMAR-WELLFORMED.H.4 — parse `sample` through the REAL rtl_const_expr parser and return
-/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
-/// `parse_and_cover_json`: enable the transactional `coverage_stack`, parse, and return the PARSER's own
-/// record of the committed rules on a SUCCESSFUL parse. rtl_const_expr has no grammar profile and no deep
-/// recursion, so neither a profile (`_grammar_profile` is unused) nor a dedicated worker stack is needed.
-#[cfg(has_generated_rtl_const_expr_parser)]
-pub fn parse_and_cover_rtl_const_expr(
-    sample: &str,
-    _grammar_profile: Option<&str>,
-    entry: Option<&str>,
-) -> (bool, std::collections::HashSet<String>) {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        RtlConstExprParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_const_expr"));
-    parser.enable_coverage();
-    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
-    let outcome = match entry {
-        Some(e) => parser.parse_full_from(e),
-        None => parser.parse_full_rtl_const_expr(),
-    };
-    match outcome {
-        Ok(_) => (true, parser.exercised_rule_names()),
-        Err(_) => (false, std::collections::HashSet::new()),
-    }
-}
-
-#[cfg(has_generated_rtl_frontend_parser)]
-fn parse_with_rtl_frontend(sample: &str) -> bool {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = RtlFrontendParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_frontend"));
-    parser.parse_full_rtl_frontend_file().is_ok()
-}
-
-#[cfg(has_generated_rtl_frontend_parser)]
-fn parse_with_rtl_frontend_detail(sample: &str) -> Result<(), String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = RtlFrontendParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_frontend"));
-    let result = with_rule_entry_count_dump!(
-        "rtl_frontend",
-        parser,
-        RtlFrontendParser,
-        parser
-            .parse_full_rtl_frontend_file()
-            .map(|_| ())
-            .map_err(|err| err.to_string())
-    );
-    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
-    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
-    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
-    node_arena.footprint().report("rtl_frontend");
-    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
-}
-
-#[cfg(has_generated_rtl_frontend_parser)]
-fn parse_with_rtl_frontend_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = RtlFrontendParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_frontend"));
-    let parsed = parser
-        .parse_full_rtl_frontend_file()
-        .map_err(|err| err.to_string())?;
-    parse_node_to_json(&parsed)
-}
-
-/// GRAMMAR-WELLFORMED.H.6 — parse `sample` through the REAL rtl_frontend parser and return
-/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
-/// `parse_and_cover_systemverilog_preprocessor`: enable the transactional `coverage_stack`, parse, and
-/// return the PARSER's own record of the committed rules on a SUCCESSFUL parse. rtl_frontend has no
-/// grammar profile and its entry (`rtl_frontend_file := trivia design_item* trivia`) is a flat item list,
-/// so neither a profile (`_grammar_profile` is unused) nor a dedicated worker stack is needed.
-#[cfg(has_generated_rtl_frontend_parser)]
-pub fn parse_and_cover_rtl_frontend(
-    sample: &str,
-    _grammar_profile: Option<&str>,
-    entry: Option<&str>,
-) -> (bool, std::collections::HashSet<String>) {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = RtlFrontendParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_frontend"));
-    parser.enable_coverage();
-    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
-    let outcome = match entry {
-        Some(e) => parser.parse_full_from(e),
-        None => parser.parse_full_rtl_frontend_file(),
-    };
-    match outcome {
-        Ok(_) => (true, parser.exercised_rule_names()),
-        Err(_) => (false, std::collections::HashSet::new()),
-    }
-}
-
-#[cfg(has_generated_systemverilog_parser)]
-fn parse_with_systemverilog(sample: &str) -> bool {
-    parse_with_systemverilog_profile(sample, None)
-}
-
-/// SV-EXH-PROOF.3.3.4.b.6.2.22 — helper: spawn the dashboard if the
-/// thread-local flag is set, returning an RAII handle that the caller
-/// holds for the parse duration. Drop tears down the dashboard thread
-/// and restores the cursor. None when the flag is unset (the common
-/// case; zero overhead).
-#[cfg(has_generated_systemverilog_parser)]
-fn maybe_spawn_call_count_dashboard(
-    parser: &SystemverilogParser<'_>,
-) -> Option<crate::ast_pipeline::call_count_dashboard::CallCountDashboard> {
-    let top_n = current_dump_rule_call_counts_top_n()?;
-    Some(crate::ast_pipeline::call_count_dashboard::CallCountDashboard::spawn(
-        parser.rule_call_counts(),
-        SystemverilogParser::rule_names(),
-        current_dump_rule_call_counts_exclude(),
-        top_n,
-        250, // refresh interval in ms
-    ))
-}
-
-#[cfg(has_generated_systemverilog_parser)]
-fn parse_with_systemverilog_profile(sample: &str, grammar_profile: Option<&str>) -> bool {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        SystemverilogParser::new(sample, &node_arena, runtime_logger_box("generated.systemverilog"));
-        parser.set_trace_rules(current_trace_rules());
-    let normalized_profile = normalize_generated_grammar_profile(
-        "systemverilog",
-        grammar_profile,
-    );
-    parser.set_grammar_profile(normalized_profile);
-    if preload_systemverilog_stdlib(&mut parser, normalized_profile).is_err() {
-        return false;
-    }
-    let _dashboard = maybe_spawn_call_count_dashboard(&parser);
-    parser.parse_full_systemverilog_file().is_ok()
-}
-
-/// GRAMMAR-WELLFORMED.G.4 (parser-AGNOSTIC dispatch): verify a witness/sample by parsing it through
-/// the grammar's REAL generated parser, returning `(parsed_ok, rules_exercised)`, or `None` when no
-/// generated parser is registered for `grammar_name` (the gate then skips — it cannot witness-verify
-/// that grammar yet; Phase H registers more). The grammar-name → parser mapping lives HERE (the
-/// registry's job, like the existing per-grammar parse closures), so the PIPELINE (e.g. `main.rs`)
-/// stays parser-agnostic — it calls this with `grammar.grammar_name` and never names a grammar.
-pub fn parse_and_cover(
-    grammar_name: &str,
-    sample: &str,
-    grammar_profile: Option<&str>,
-    entry: Option<&str>,
-) -> Option<(bool, std::collections::HashSet<String>)> {
-    let cover = find_entry(grammar_name)?.parse_and_cover?;
-    Some(cover(sample, grammar_profile, entry))
-}
-
-/// Whether a generated parser with `parse_and_cover` support is registered for `grammar_name`.
-pub fn supports_parse_and_cover(grammar_name: &str) -> bool {
-    find_entry(grammar_name).is_some_and(|entry| entry.parse_and_cover.is_some())
-}
-
-/// GRAMMAR-WELLFORMED.G.4.7: parse `sample` and return WHY it failed (a rich error string with
-/// `furthest_position`), or `Ok(())` if it parsed. `None` if no detail-capable parser is registered
-/// for `grammar_name`. Lets the certificate-coverage gate LABEL its sample-parse failures. The
-/// grammar-name → parser mapping lives HERE so the pipeline stays parser-agnostic.
-///
-/// ⛔ GRAMMAR-WELLFORMED.H.18 — this DELEGATES to `parse_sample_detail_with_profile`, and that is the
-/// whole point. It used to read a separate `parse_detail` field on the registry table, so the same
-/// question ("is there a detail-capable parser for this grammar?") had TWO independently-authored
-/// answers — and they disagreed for **9 of 13** rows: `return_annotation`, `semantic_annotation`,
-/// `builtin_return_annotation`, `builtin_semantic_annotation`, `ebnf`, `json`, `rtl_const_expr`,
-/// `rtl_frontend` and `vhdl` each had a working `parse_with_<g>_detail` reachable through the
-/// dispatch below while the table said `None`, so the certificate-coverage report labelled every one
-/// of their sample-parse failures `"(no detail-capable parser registered)"` — **a false statement**,
-/// and the reason those failures could not be root-caused at all. The field had exactly ONE reader
-/// (this function), so it was deleted rather than filled in: a second table would only diverge again
-/// the next time a grammar was added.
-pub fn parse_error(
-    grammar_name: &str,
-    sample: &str,
-    grammar_profile: Option<&str>,
-) -> Option<Result<(), String>> {
-    parse_sample_detail_with_profile(grammar_name, sample, grammar_profile)
-}
-
-/// GRAMMAR-WELLFORMED.G.3.3 + G.4.6: parse `sample` through the REAL SystemVerilog parser and
-/// return `(parsed_ok, rules_exercised)` — the `parse_and_cover` closure that
-/// `grammar_wellformedness::verify_reachability_witness` needs to independently re-validate a
-/// reachability witness.
-///
-/// Coverage = the parser's OWN transactional record of the rules in the ACCEPTED parse
-/// (`enable_coverage` + `exercised_rule_names`), NOT a walk of the output AST. The earlier
-/// AST-walk (`parse_node_covered_rules`) collapsed to ~one rule on annotated grammars because a
-/// `-> {…}` return annotation folds a rule's whole subtree into the typed carrier
-/// (`ParseContent::Shaped`, serialized as `"Json"`), erasing the
-/// children's rule identities. The transactional `coverage_stack` records rule ENTRIES and rolls
-/// them back with `try_parse` on speculation failure, so the surviving set is sound (committed
-/// successes only, no backtracked attempts — what a call counter would over-count) AND complete
-/// (annotation folding cannot hide an entry). The PARSER testifies to what it parsed — independent
-/// of the generator's own coverage claim ("verified, not trusted").
-#[cfg(has_generated_systemverilog_parser)]
-pub fn parse_and_cover_systemverilog(
-    sample: &str,
-    grammar_profile: Option<&str>,
-    entry: Option<&str>,
-) -> (bool, std::collections::HashSet<String>) {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        SystemverilogParser::new(sample, &node_arena, runtime_logger_box("generated.systemverilog"));
-    let normalized_profile = normalize_generated_grammar_profile("systemverilog", grammar_profile);
-    parser.set_grammar_profile(normalized_profile);
-    if preload_systemverilog_stdlib(&mut parser, normalized_profile).is_err() {
-        return (false, std::collections::HashSet::new());
-    }
-    parser.enable_coverage();
-    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the configured entry so an entry-relative rule
-    // (rooted under the LRM `library_text` / parseable-fragment start symbols) is parsed back from
-    // the SAME start symbol it was generated under. `None` / the canonical entry ⇒ byte-identical to
-    // the hardwired `parse_full_systemverilog_file` path (the default arm of `parse_full_from`).
-    let outcome = match entry {
-        Some(e) => parser.parse_full_from(e),
-        None => parser.parse_full_systemverilog_file(),
-    };
-    match outcome {
-        Ok(_) => (true, parser.exercised_rule_names()),
-        Err(_) => (false, std::collections::HashSet::new()),
-    }
-}
-
-#[cfg(has_generated_systemverilog_parser)]
-fn parse_with_systemverilog_detail_profile(
-    sample: &str,
-    grammar_profile: Option<&str>,
-) -> Result<(), String> {
-    // The registered `ParseDetailFn` (default entry). GRAMMAR-WELLFORMED.H.12.8.4.3.1 added the
-    // `_entry` variant below; `None` here is byte-identical to the legacy single-entry path.
-    parse_with_systemverilog_detail_profile_entry(sample, grammar_profile, None)
-}
-
-/// GRAMMAR-WELLFORMED.H.12.8.4.3.1: SV detail parse from an OPTIONAL alternate entry. `entry=None`
-/// parses from `parse_full_systemverilog_file` (byte-identical to the legacy registered path);
-/// `Some(rule)` parses from `parse_full_from(rule)` so `parseability_probe --entry-rule` can
-/// reproduce / trace an entry-relative rule (rooted under an alternate LRM start symbol such as
-/// `library_text`) in isolation. The `furthest_position` augmentation is preserved either way.
-#[cfg(has_generated_systemverilog_parser)]
-fn parse_with_systemverilog_detail_profile_entry(
-    sample: &str,
-    grammar_profile: Option<&str>,
-    entry: Option<&str>,
-) -> Result<(), String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        SystemverilogParser::new(sample, &node_arena, runtime_logger_box("generated.systemverilog"));
-        parser.set_trace_rules(current_trace_rules());
-    let normalized_profile = normalize_generated_grammar_profile(
-        "systemverilog",
-        grammar_profile,
-    );
-    parser.set_grammar_profile(normalized_profile);
-    preload_systemverilog_stdlib(&mut parser, normalized_profile)?;
-    let _dashboard = maybe_spawn_call_count_dashboard(&parser);
-    // RGX-0078.5.h.1: the baseline inside the macro is captured HERE — after the stdlib
-    // preload — so a dumped entry-count delta measures the requested parse only.
-    let result = with_rule_entry_count_dump!(
-        "systemverilog",
-        parser,
-        SystemverilogParser,
-        match entry {
-            Some(e) => parser.parse_full_from(e).map(|_| ()),
-            None => parser.parse_full_systemverilog_file().map(|_| ()),
-        }
-    );
-    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
-    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
-    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
-    node_arena.footprint().report("systemverilog");
-    result.map_err(|err| augment_error_with_furthest_position(err.to_string(), parser.furthest_position()))
-}
 
 /// SV-EXH-PROOF.3.3.4.b.6.2.25 — on failure, augment a parse error with the furthest byte the
 /// parser reached on ANY branch, including backtracked ones. The surface `position` in the error
@@ -1340,585 +434,8 @@ fn extract_position_from_message(msg: &str) -> usize {
         .unwrap_or(0)
 }
 
-/// `SV-EXH-PROOF.3.3.4.a` MVP-0: SV detail variant honoring per-call library
-/// directories. `library_options.in_dir` makes `@import_from_library` read
-/// from `<dir>/<kind>/<name>.facts.json`; `out_dir` makes
-/// `@export_to_library` write to the same path layout.
-#[cfg(has_generated_systemverilog_parser)]
-fn parse_with_systemverilog_detail_profile_with_library(
-    sample: &str,
-    grammar_profile: Option<&str>,
-    library_options: &LibraryOptions,
-) -> Result<(), String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        SystemverilogParser::new(sample, &node_arena, runtime_logger_box("generated.systemverilog"));
-        parser.set_trace_rules(current_trace_rules());
-    let normalized_profile = normalize_generated_grammar_profile(
-        "systemverilog",
-        grammar_profile,
-    );
-    parser.set_grammar_profile(normalized_profile);
-    parser.set_library_in_dir(library_options.in_dir.clone());
-    parser.set_library_out_dir(library_options.out_dir.clone());
-    preload_systemverilog_stdlib(&mut parser, normalized_profile)?;
-    let _dashboard = maybe_spawn_call_count_dashboard(&parser);
-    // CORPUS-GRAD-ALL.2.0: the library-directory variant is a SV detail path too, and it was the
-    // one place the gap was not even uniform WITHIN SystemVerilog — a `--library-in-dir` run got no
-    // deep locus while the plain run did.
-    let result = parser
-        .parse_full_systemverilog_file()
-        .map(|_| ())
-        .map_err(|err| err.to_string());
-    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
-    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
-    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
-    node_arena.footprint().report("systemverilog(library)");
-    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
-}
-
-// SV-EXH-PROOF.3.3.4.b.6.2.37.2 — H2 auto-load hook for the SV stdlib.
-// Reads `<repo_root>/parser_libs/sv_<profile>_std/package/std.facts.json`
-// (checked in by `.37.1`) and pushes each fact into the parser's
-// semantic_runtime_state BEFORE the parse begins. This makes the LRM §G.2
-// `std::` predefined classes (process / semaphore / mailbox today; can grow)
-// visible to the `.35.1`-gated `has_fact(type_name, X)` checks for the
-// duration of the parse, without requiring user code to declare them.
-//
-// Path resolution: `env!("CARGO_MANIFEST_DIR")` is `rust/`, so its parent
-// is the repo root. Missing stdlib bundle = no-op (single-file fallback,
-// behaviour-equivalent to pre-.37.2). Read errors surface as `Err`.
-#[cfg(has_generated_systemverilog_parser)]
-fn preload_systemverilog_stdlib(
-    parser: &mut SystemverilogParser,
-    normalized_profile: Option<&str>,
-) -> Result<(), String> {
-    let profile_dir = match normalized_profile {
-        Some("sv_2023") => "sv_2023_std",
-        // Default to sv_2017 when no profile / unrecognised — sv_2017 covers
-        // the corpus baseline. Future grammar profiles register their own
-        // bundle here.
-        _ => "sv_2017_std",
-    };
-    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let Some(repo_root) = manifest_dir.parent() else {
-        return Ok(()); // Manifest has no parent? Skip (no place for parser_libs).
-    };
-    let stdlib_path = repo_root.join("parser_libs").join(profile_dir);
-    if !stdlib_path.is_dir() {
-        return Ok(()); // No stdlib bundle for this profile — no-op.
-    }
-    match crate::ast_pipeline::library::read_artifact(&stdlib_path, "package", "std") {
-        Ok(records) => {
-            let state = parser.semantic_runtime_state_mut();
-            for record in records {
-                state.push_fact_record(record);
-            }
-            Ok(())
-        }
-        Err(crate::ast_pipeline::library::LibraryError::NotFound(_)) => Ok(()),
-        Err(other) => Err(format!(
-            "SV stdlib preload failed (path={}): {:?}",
-            stdlib_path.display(),
-            other
-        )),
-    }
-}
-
-#[cfg(has_generated_systemverilog_parser)]
-fn parse_with_systemverilog_ast_json(sample: &str) -> Result<JsonValue, String> {
-    parse_with_systemverilog_ast_json_profile(sample, None)
-}
-
-/// `ENGINE-UNIVERSAL-SERVICES.22` acceptance (b) — DUMP THE AST OF A COVERAGE-ENABLED PARSE.
-///
-/// ⛔ WHY THIS EXISTS. (b) asks whether a file's `accepted: True` under the TOOLBOX 3.4/3.5 dump
-/// and its `pass` under a bare parse are the **same derivation** — *"a verdict agreement is not a
-/// derivation agreement"*. Answering it needs the same artifact from both configurations, and the
-/// AST-dump path could not produce one: `parse_with_systemverilog_ast_json_profile` never calls
-/// `enable_coverage`, so `--parse-dump-ast` always ran with `bare_parse = true`.
-///
-/// ⚠️ MEASURED, NOT ASSUMED: passing `--dump-rule-outcome-counts-json` alongside
-/// `--parse-dump-ast` looks like it should route the parse, because
-/// `set_global_dump_rule_outcome_counts_json` IS applied before dispatch — but the coverage
-/// `enable_coverage()` call lives in the `--parse` detail macro, which this path does not use, and
-/// no counts file is written. An A/B built that way compares bare against bare and agrees for the
-/// wrong reason.
-///
-/// ⇒ this variant enables coverage on the SAME parse whose AST it serializes, so the two arms
-/// differ in exactly one thing.
-#[cfg(has_generated_systemverilog_parser)]
-fn parse_systemverilog_ast_json_with_coverage(
-    sample: &str,
-    grammar_profile: Option<&str>,
-) -> Result<JsonValue, String> {
-    parse_with_systemverilog_ast_json_inner(sample, grammar_profile, true)
-}
-
-#[cfg(has_generated_systemverilog_parser)]
-fn parse_with_systemverilog_ast_json_profile(
-    sample: &str,
-    grammar_profile: Option<&str>,
-) -> Result<JsonValue, String> {
-    // ⛔ `false` keeps this path byte-identical to what it was before `.22`(b): coverage stays off,
-    // `bare_parse` stays true, and the fused graph runs. The new argument adds a caller, never a
-    // behaviour change to the existing one.
-    parse_with_systemverilog_ast_json_inner(sample, grammar_profile, false)
-}
-
-#[cfg(has_generated_systemverilog_parser)]
-fn parse_with_systemverilog_ast_json_inner(
-    sample: &str,
-    grammar_profile: Option<&str>,
-    enable_coverage: bool,
-) -> Result<JsonValue, String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        SystemverilogParser::new(sample, &node_arena, runtime_logger_box("generated.systemverilog"));
-        parser.set_trace_rules(current_trace_rules());
-    let normalized_profile = normalize_generated_grammar_profile(
-        "systemverilog",
-        grammar_profile,
-    );
-    parser.set_grammar_profile(normalized_profile);
-    preload_systemverilog_stdlib(&mut parser, normalized_profile)?;
-    let _dashboard = maybe_spawn_call_count_dashboard(&parser);
-    // ⛔ AFTER the stdlib preload, matching every other `enable_coverage` call site in this file:
-    // the preload is itself a parse, and recording it would put the stdlib's rule entries in the
-    // measured derivation. `enable_coverage` clears the stack, so the ordering is what decides
-    // whether the preload is inside or outside the observation.
-    if enable_coverage {
-        parser.enable_coverage();
-    }
-    let parsed = parser
-        .parse_full_systemverilog_file()
-        .map_err(|err| err.to_string())?;
-    // ⛔⛔ THE ARM MUST PROVE ITSELF (`ENGINE-UNIVERSAL-SERVICES.22` (b)). An A/B whose two arms are
-    // secretly the same configuration agrees for the wrong reason, and this slice hit exactly that
-    // twice: first with `--dump-rule-outcome-counts-json` (parsed but never wired into this path),
-    // then with `PGEN_REPORT_MEMO_STATS=1` as a proposed tell — whose aggregate header is
-    // BYTE-IDENTICAL with and without coverage, differing only in which members of a tie group the
-    // top-30 cutoff prints. Neither was a tell.
-    //
-    // ⇒ the tell is now the coverage recorder's OWN read-back, which is zero by construction when
-    // coverage is off (nothing is ever pushed onto `coverage_stack`) and non-zero when it is on.
-    // It is printed on stderr so an A/B script can assert it, rather than left for a reader to
-    // infer from a flag having been typed.
-    if enable_coverage {
-        eprintln!(
-            "COVERAGE-DUMP-AST: enable_coverage=true exercised_rules={}",
-            parser.exercised_rule_names().len()
-        );
-    }
-    parse_node_to_json(&parsed)
-}
-
-/// SV-AST-SHAPE-FIDELITY.2.4: entry-aware AST-JSON dump for SystemVerilog. Identical to
-/// `parse_with_systemverilog_ast_json_profile` except it parses from an ALTERNATE start symbol via
-/// `parse_full_from(entry)` instead of the canonical `parse_full_systemverilog_file()`. Lets a rule
-/// that is PEG-shadowed / unreachable from `systemverilog_file` (e.g. an expression-position receiver
-/// or an entry-relative LRM start symbol) have its typed AST shape dumped in isolation, so the
-/// `<invalid_sequence_access>` return-annotation corruption class can be checked per-rule.
-#[cfg(has_generated_systemverilog_parser)]
-fn parse_with_systemverilog_ast_json_from_entry(
-    sample: &str,
-    grammar_profile: Option<&str>,
-    entry: &str,
-) -> Result<JsonValue, String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser =
-        SystemverilogParser::new(sample, &node_arena, runtime_logger_box("generated.systemverilog"));
-    parser.set_trace_rules(current_trace_rules());
-    let normalized_profile = normalize_generated_grammar_profile("systemverilog", grammar_profile);
-    parser.set_grammar_profile(normalized_profile);
-    preload_systemverilog_stdlib(&mut parser, normalized_profile)?;
-    let _dashboard = maybe_spawn_call_count_dashboard(&parser);
-    let parsed = parser
-        .parse_full_from(entry)
-        .map_err(|err| err.to_string())?;
-    parse_node_to_json(&parsed)
-}
-
-#[cfg(has_generated_systemverilog_preprocessor_parser)]
-fn parse_with_systemverilog_preprocessor(sample: &str) -> bool {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = SystemverilogPreprocessorParser::new(
-        sample,
-        &node_arena, runtime_logger_box("generated.systemverilog_preprocessor"),
-    );
-    parser.parse_full_systemverilog_preprocessor_file().is_ok()
-}
-
-#[cfg(has_generated_systemverilog_preprocessor_parser)]
-fn parse_with_systemverilog_preprocessor_detail(sample: &str) -> Result<(), String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = SystemverilogPreprocessorParser::new(
-        sample,
-        &node_arena, runtime_logger_box("generated.systemverilog_preprocessor"),
-    );
-    let result = with_rule_entry_count_dump!(
-        "systemverilog_preprocessor",
-        parser,
-        SystemverilogPreprocessorParser,
-        parser
-            .parse_full_systemverilog_preprocessor_file()
-            .map(|_| ())
-            .map_err(|err| err.to_string())
-    );
-    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
-    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
-    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
-    node_arena.footprint().report("systemverilog_preprocessor");
-    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
-}
-
-#[cfg(has_generated_systemverilog_preprocessor_parser)]
-fn parse_with_systemverilog_preprocessor_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = SystemverilogPreprocessorParser::new(
-        sample,
-        &node_arena, runtime_logger_box("generated.systemverilog_preprocessor"),
-    );
-    let parsed = parser
-        .parse_full_systemverilog_preprocessor_file()
-        .map_err(|err| err.to_string())?;
-    parse_node_to_json(&parsed)
-}
-
-/// GRAMMAR-WELLFORMED.H.5 — parse `sample` through the REAL systemverilog_preprocessor parser and return
-/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
-/// `parse_and_cover_json`: enable the transactional `coverage_stack`, parse, and return the PARSER's own
-/// record of the committed rules on a SUCCESSFUL parse. svpp has no grammar profile and its entry
-/// (`systemverilog_preprocessor_file := pp_item*`) is a flat item list, so neither a profile
-/// (`_grammar_profile` is unused) nor a dedicated worker stack is needed.
-#[cfg(has_generated_systemverilog_preprocessor_parser)]
-pub fn parse_and_cover_systemverilog_preprocessor(
-    sample: &str,
-    _grammar_profile: Option<&str>,
-    entry: Option<&str>,
-) -> (bool, std::collections::HashSet<String>) {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = SystemverilogPreprocessorParser::new(
-        sample,
-        &node_arena, runtime_logger_box("generated.systemverilog_preprocessor"),
-    );
-    parser.enable_coverage();
-    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
-    let outcome = match entry {
-        Some(e) => parser.parse_full_from(e),
-        None => parser.parse_full_systemverilog_preprocessor_file(),
-    };
-    match outcome {
-        Ok(_) => (true, parser.exercised_rule_names()),
-        Err(_) => (false, std::collections::HashSet::new()),
-    }
-}
-
-#[cfg(has_generated_vhdl_parser)]
-fn parse_with_vhdl(sample: &str) -> bool {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = VhdlParser::new(sample, &node_arena, runtime_logger_box("generated.vhdl"));
-    parser.parse_full_vhdl_file().is_ok()
-}
-
-#[cfg(has_generated_vhdl_parser)]
-fn parse_with_vhdl_detail(sample: &str) -> Result<(), String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = VhdlParser::new(sample, &node_arena, runtime_logger_box("generated.vhdl"));
-    let result = with_rule_entry_count_dump!(
-        "vhdl",
-        parser,
-        VhdlParser,
-        parser
-            .parse_full_vhdl_file()
-            .map(|_| ())
-            .map_err(|err| err.to_string())
-    );
-    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
-    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
-    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
-    node_arena.footprint().report("vhdl");
-    result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
-}
-
-#[cfg(has_generated_vhdl_parser)]
-fn parse_with_vhdl_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = VhdlParser::new(sample, &node_arena, runtime_logger_box("generated.vhdl"));
-    let parsed = parser
-        .parse_full_vhdl_file()
-        .map_err(|err| err.to_string())?;
-    parse_node_to_json(&parsed)
-}
-
-/// GRAMMAR-WELLFORMED.H.2 — parse `sample` through the REAL vhdl parser and return
-/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
-/// `parse_and_cover_systemverilog_preprocessor`: enable the transactional `coverage_stack`, parse, and
-/// return the PARSER's own record of the committed rules on a SUCCESSFUL parse. vhdl has no grammar
-/// profile and its entry (`vhdl_file := design_unit*`) is a flat item list, so neither a profile
-/// (`_grammar_profile` is unused) nor a dedicated worker stack is needed.
-#[cfg(has_generated_vhdl_parser)]
-pub fn parse_and_cover_vhdl(
-    sample: &str,
-    _grammar_profile: Option<&str>,
-    entry: Option<&str>,
-) -> (bool, std::collections::HashSet<String>) {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = VhdlParser::new(sample, &node_arena, runtime_logger_box("generated.vhdl"));
-    parser.enable_coverage();
-    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
-    let outcome = match entry {
-        Some(e) => parser.parse_full_from(e),
-        None => parser.parse_full_vhdl_file(),
-    };
-    match outcome {
-        Ok(_) => (true, parser.exercised_rule_names()),
-        Err(_) => (false, std::collections::HashSet::new()),
-    }
-}
-
-// ============================================================================
-// PARSE-HARNESS.2 — the scratch-register slot (approach 3).
-//
-// `scratch` is a blessed, throwaway grammar slot whose body is meant to be
-// overwritten freely (`grammars/scratch/scratch.ebnf` + `make focus_scratch`),
-// so an arbitrary grammar becomes a first-class registered parser drivable by
-// the whole `parseability_probe` toolbox. Trust: authoritative BY CONSTRUCTION —
-// this is the real generated parser + real runtime, identical to how every
-// shipped grammar is built and driven; the only trusted surface is this small,
-// one-time wiring, covered by the integration test below.
-//
-// KEY: every dispatch below calls the generated parser's ENTRY-RULE-AGNOSTIC
-// `parse_full()` (or `parse_full_from(entry)` when an alternate entry is asked),
-// so the registration is STABLE no matter what entry rule the probe grammar uses
-// — the registry never needs to know the probe grammar's entry-rule name.
-// ============================================================================
-
-#[cfg(has_generated_scratch_parser)]
-fn parse_with_scratch(sample: &str) -> bool {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = ScratchParser::new(sample, &node_arena, runtime_logger_box("generated.scratch"));
-    parser.set_trace_rules(current_trace_rules());
-    parser.parse_full().is_ok()
-}
-
-/// PARSE-HARNESS.2 — the `ParseDetailFn` for the scratch slot: parse and, on failure, augment the
-/// error with `furthest_position` (the deepest byte any branch reached — the same A2.2/A2.3-grade
-/// reject diagnostic the SV detail path emits). scratch has no grammar profile, so the profile arg is
-/// ignored.
-#[cfg(has_generated_scratch_parser)]
-fn parse_with_scratch_detail(sample: &str, _grammar_profile: Option<&str>) -> Result<(), String> {
-    parse_with_scratch_detail_entry(sample, None)
-}
-
-/// PARSE-HARNESS.2 — scratch detail parse from an OPTIONAL alternate entry (`parseability_probe
-/// --entry-rule`). `entry=None` parses from the grammar's canonical entry via `parse_full()`;
-/// `Some(rule)` parses from `parse_full_from(rule)`. The `furthest_position` augmentation is preserved
-/// either way.
-#[cfg(has_generated_scratch_parser)]
-fn parse_with_scratch_detail_entry(sample: &str, entry: Option<&str>) -> Result<(), String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = ScratchParser::new(sample, &node_arena, runtime_logger_box("generated.scratch"));
-    parser.set_trace_rules(current_trace_rules());
-    let result = with_rule_entry_count_dump!(
-        "scratch",
-        parser,
-        ScratchParser,
-        match entry {
-            Some(e) => parser.parse_full_from(e).map(|_| ()),
-            None => parser.parse_full().map(|_| ()),
-        }
-    );
-    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
-    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
-    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
-    node_arena.footprint().report("scratch");
-    result.map_err(|err| augment_error_with_furthest_position(err.to_string(), parser.furthest_position()))
-}
-
-/// PARSE-HARNESS.2 — parse `sample` through the scratch parser and return `(parsed_ok,
-/// rules_exercised)` for `certificate_coverage` (the witness side), so `--report-certificate-coverage`
-/// works on a synthetic grammar too. Mirrors `parse_and_cover_json`: enable the transactional
-/// `coverage_stack`, parse, return the parser's own record of the committed rules. scratch has no
-/// grammar profile.
-#[cfg(has_generated_scratch_parser)]
-pub fn parse_and_cover_scratch(
-    sample: &str,
-    _grammar_profile: Option<&str>,
-    entry: Option<&str>,
-) -> (bool, std::collections::HashSet<String>) {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = ScratchParser::new(sample, &node_arena, runtime_logger_box("generated.scratch"));
-    parser.enable_coverage();
-    let outcome = match entry {
-        Some(e) => parser.parse_full_from(e),
-        None => parser.parse_full(),
-    };
-    match outcome {
-        Ok(_) => (true, parser.exercised_rule_names()),
-        Err(_) => (false, std::collections::HashSet::new()),
-    }
-}
-
-#[cfg(has_generated_scratch_parser)]
-fn parse_with_scratch_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = ScratchParser::new(sample, &node_arena, runtime_logger_box("generated.scratch"));
-    parser.set_trace_rules(current_trace_rules());
-    let parsed = parser.parse_full().map_err(|err| err.to_string())?;
-    parse_node_to_json(&parsed)
-}
-
-/// PARSE-HARNESS.2 — entry-aware AST-JSON dump for scratch (the `--parse-dump-ast[-pretty]
-/// --entry-rule RULE` surface). Parses from an ALTERNATE start symbol via `parse_full_from(entry)` and
-/// serializes the typed AST, so a probe grammar's non-entry rule can have its AST shape inspected in
-/// isolation (directly useful for the A2.3 shadowing probes).
-#[cfg(has_generated_scratch_parser)]
-fn parse_with_scratch_ast_json_from_entry(sample: &str, entry: &str) -> Result<JsonValue, String> {
-    let node_arena = crate::ast_pipeline::NodeArena::new();
-    let mut parser = ScratchParser::new(sample, &node_arena, runtime_logger_box("generated.scratch"));
-    parser.set_trace_rules(current_trace_rules());
-    let parsed = parser.parse_full_from(entry).map_err(|err| err.to_string())?;
-    parse_node_to_json(&parsed)
-}
-
 fn parse_node_to_json(node: &ParseNode<'_>) -> Result<JsonValue, String> {
     serde_json::to_value(node).map_err(|err| format!("failed to serialize parse tree: {}", err))
-}
-
-static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
-    GeneratedParserRegistryEntry {
-        grammar_name: "return_annotation",
-        parse_sample: parse_with_return_annotation,
-        // GRAMMAR-WELLFORMED.H.15 — wired: the WIRED conjunct of the SVPP-EXPANSION activation gate.
-        parse_and_cover: Some(parse_and_cover_return_annotation),
-    },
-    GeneratedParserRegistryEntry {
-        grammar_name: "semantic_annotation",
-        parse_sample: parse_with_semantic_annotation,
-        // GRAMMAR-WELLFORMED.H.15 — wired (see return_annotation above).
-        parse_and_cover: Some(parse_and_cover_semantic_annotation),
-    },
-    GeneratedParserRegistryEntry {
-        grammar_name: "builtin_return_annotation",
-        parse_sample: parse_with_builtin_return_annotation,
-        parse_and_cover: None,
-    },
-    GeneratedParserRegistryEntry {
-        grammar_name: "builtin_semantic_annotation",
-        parse_sample: parse_with_builtin_semantic_annotation,
-        parse_and_cover: None,
-    },
-    #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
-    GeneratedParserRegistryEntry {
-        grammar_name: "ebnf",
-        parse_sample: parse_with_ebnf,
-        // GRAMMAR-WELLFORMED.H.15 — wired (see return_annotation above).
-        parse_and_cover: Some(parse_and_cover_ebnf),
-    },
-    #[cfg(has_generated_json_parser)]
-    GeneratedParserRegistryEntry {
-        grammar_name: "json",
-        parse_sample: parse_with_json,
-        parse_and_cover: Some(parse_and_cover_json),
-    },
-    #[cfg(has_generated_regex_parser)]
-    GeneratedParserRegistryEntry {
-        grammar_name: "regex",
-        parse_sample: parse_with_regex,
-        parse_and_cover: Some(parse_and_cover_regex),
-    },
-    #[cfg(has_generated_rtl_const_expr_parser)]
-    GeneratedParserRegistryEntry {
-        grammar_name: "rtl_const_expr",
-        parse_sample: parse_with_rtl_const_expr,
-        parse_and_cover: Some(parse_and_cover_rtl_const_expr),
-    },
-    #[cfg(has_generated_rtl_frontend_parser)]
-    GeneratedParserRegistryEntry {
-        grammar_name: "rtl_frontend",
-        parse_sample: parse_with_rtl_frontend,
-        parse_and_cover: Some(parse_and_cover_rtl_frontend),
-    },
-    #[cfg(has_generated_systemverilog_parser)]
-    GeneratedParserRegistryEntry {
-        grammar_name: "systemverilog",
-        parse_sample: parse_with_systemverilog,
-        parse_and_cover: Some(parse_and_cover_systemverilog),
-    },
-    #[cfg(has_generated_systemverilog_preprocessor_parser)]
-    GeneratedParserRegistryEntry {
-        grammar_name: "systemverilog_preprocessor",
-        parse_sample: parse_with_systemverilog_preprocessor,
-        parse_and_cover: Some(parse_and_cover_systemverilog_preprocessor),
-    },
-    #[cfg(has_generated_vhdl_parser)]
-    GeneratedParserRegistryEntry {
-        grammar_name: "vhdl",
-        parse_sample: parse_with_vhdl,
-        parse_and_cover: Some(parse_and_cover_vhdl),
-    },
-    // PARSE-HARNESS.2 — the blessed scratch-register slot. Present only when
-    // `make focus_scratch` has built the artifact (additive, cfg-gated, never
-    // affecting a shipped grammar). Fully toolbox-capable: parse + cert-coverage
-    // witness + labelled detail (`furthest_position`).
-    #[cfg(has_generated_scratch_parser)]
-    GeneratedParserRegistryEntry {
-        grammar_name: "scratch",
-        parse_sample: parse_with_scratch,
-        parse_and_cover: Some(parse_and_cover_scratch),
-    },
-    // Add future grammars here once their generated parser artifacts compile cleanly.
-    // Examples: json, regex, systemverilog, vhdl.
-];
-
-fn find_entry(grammar_name: &str) -> Option<&'static GeneratedParserRegistryEntry> {
-    GENERATED_PARSER_REGISTRY
-        .iter()
-        .find(|entry| entry.grammar_name == grammar_name)
-}
-
-pub fn supports_grammar(grammar_name: &str) -> bool {
-    find_entry(grammar_name).is_some()
-}
-
-pub fn parse_sample(grammar_name: &str, sample: &str) -> Option<bool> {
-    parse_sample_with_profile(grammar_name, sample, None)
-}
-
-pub fn parse_sample_with_profile(
-    grammar_name: &str,
-    sample: &str,
-    grammar_profile: Option<&str>,
-) -> Option<bool> {
-    #[cfg(not(has_generated_systemverilog_parser))]
-    let _ = grammar_profile;
-
-    match grammar_name {
-        #[cfg(has_generated_systemverilog_parser)]
-        "systemverilog" => Some(parse_with_systemverilog_profile(sample, grammar_profile)),
-        _ => find_entry(grammar_name).map(|entry| entry.parse(sample)),
-    }
-}
-
-/// The **post-parse semantic contract** a grammar applies on top of the raw grammar parse, if any.
-///
-/// A few grammars validate more than "did the EBNF grammar parse". Today the only one is `regex`:
-/// after `parse_full_regex` succeeds, `parse_sample`/`parse_sample_ast_json` additionally run
-/// [`validate_regex_compile_contract`] (the PCRE2-fidelity check that rejects e.g. a quantifier on an
-/// anchor, `$+`, which the grammar accepts but PCRE2 rejects — see `parse_with_regex_detail`). This
-/// helper exposes that post-parse layer separately from the parse so a second parser implementation
-/// (the PARSE-HARNESS interpreter) can be certified against `parse_sample` at the SAME layer: the
-/// interpreter reproduces the generated *grammar parse*, and the differential-equivalence gate applies
-/// this contract to the interpreter's verdict, mirroring what a downstream `parse_sample` consumer sees
-/// (PARSE-HARNESS.5.1). Grammars with no post-parse contract return `Ok(())` (the common case), so the
-/// helper is a general, parser-agnostic primitive — a newly-contracted grammar is added here once.
-pub fn post_parse_semantic_contract(grammar_name: &str, sample: &str) -> Result<(), String> {
-    match grammar_name {
-        #[cfg(has_generated_regex_parser)]
-        "regex" => validate_regex_compile_contract(sample).map_err(|err| err.message),
-        _ => Ok(()),
-    }
 }
 
 /// `SV-EXH-PROOF.3.3.4.a` MVP-0: per-call library configuration for grammars
@@ -1937,34 +454,395 @@ impl LibraryOptions {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// `ENGINE-UNIVERSAL-SERVICES.112` slice 2 — THE ONE TEMPLATE, and the table the build derives.
+//
+// Every generated parser exposes the same surface (the generator's `GRAMMAR_NAME` /
+// `GRAMMAR_PROFILES` / `GRAMMAR_ENTRY_RULE`, `grammar_default_profile` /
+// `resolve_grammar_profile_alias`, `new`, `set_grammar_profile`, `set_trace_rules`,
+// `set_library_{in,out}_dir`, `enable_coverage`, `parse_full_from`, `exercised_rule_names`,
+// `furthest_position`, `rule_call_counts`, `rule_names`, `semantic_runtime_state{,_mut}`), so the
+// registry serves every family through ONE code path instantiated per artifact by
+// `generated_parser_row!` — and the LIST of artifacts is written by `build.rs` from the directory
+// (`$OUT_DIR/generated_parser_table.rs`), never typed here. What is genuinely per-family lives in
+// `crate::families::<name>` and is reached only through `FamilyHooks` keyed on the artifact's own
+// `GRAMMAR_NAME`. The engine names no language (the `ENGINE-NEUTRALITY` doctrine reads this file).
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+use crate::families::FamilyHooks;
+
+type DetailFn = fn(&str, Option<&str>, Option<&str>, &LibraryOptions) -> Result<(), String>;
+type AstJsonFn = fn(&str, Option<&str>, Option<&str>, bool) -> Result<JsonValue, String>;
+type CoverFn = fn(&str, Option<&str>, Option<&str>) -> (bool, std::collections::HashSet<String>);
+
+/// One registered generated parser: its grammar's own facts (read from the artifact) and the
+/// template's entry points instantiated for its type.
+#[derive(Clone, Copy)]
+pub struct GeneratedParserRegistryEntry {
+    pub grammar_name: &'static str,
+    /// The grammar's declared profile universe (empty when it declares none).
+    pub profiles: &'static [&'static str],
+    default_profile: fn() -> Option<&'static str>,
+    resolve_alias: fn(&str) -> &str,
+    detail: DetailFn,
+    ast_json: AstJsonFn,
+    /// GRAMMAR-WELLFORMED.H.15 — the witness-verification hook; every derived row carries it.
+    cover: Option<CoverFn>,
+    hooks: &'static FamilyHooks,
+}
+
+impl GeneratedParserRegistryEntry {
+    /// The grammar's declared default profile, if any.
+    pub fn default_profile(&self) -> Option<&'static str> {
+        (self.default_profile)()
+    }
+    /// A requested spelling resolved through the grammar's own alias map (identity when none).
+    pub fn resolve_alias<'a>(&self, requested: &'a str) -> &'a str {
+        (self.resolve_alias)(requested)
+    }
+    fn parse(&self, sample: &str, grammar_profile: Option<&str>) -> bool {
+        (self.detail)(sample, grammar_profile, None, &LibraryOptions::default()).is_ok()
+    }
+}
+
+/// Run `f` inline, or on a dedicated-stack thread when the family asks for one on this input.
+fn run_for_family<T, F>(hooks: &FamilyHooks, sample: &str, f: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce(String) -> Result<T, String> + Send + 'static,
+{
+    match (hooks.dedicated_stack)(sample) {
+        None => f(sample.to_string()),
+        Some(stack_bytes) => {
+            let owned_sample = sample.to_string();
+            let handle = std::thread::Builder::new()
+                .name("pgen-generated-parse".to_string())
+                .stack_size(stack_bytes)
+                .spawn(move || f(owned_sample))
+                .map_err(|err| format!("failed to spawn the generated parser's worker thread: {}", err))?;
+            handle
+                .join()
+                .map_err(|_| "the generated parser's worker thread panicked".to_string())?
+        }
+    }
+}
+
+/// Instantiate the template for one generated parser type: `$module` names the instantiation
+/// module (the artifact's stem), `$ty` is the parser type's full path (without its lifetime), and
+/// `$hooks` the family's hook table (`&crate::families::<name>::HOOKS`, or
+/// `&crate::families::FamilyHooks::NONE`).
+macro_rules! generated_parser_row {
+    ($module:ident, $ty:path, $hooks:expr) => {{
+        #[allow(non_snake_case)]
+        mod $module {
+            use super::*;
+            use $ty as Parser;
+
+            impl<'input> crate::families::ParseTarget for Parser<'input> {
+                fn semantic_runtime_state_mut(&mut self) -> &mut crate::ast_pipeline::SemanticRuntimeState {
+                    Parser::semantic_runtime_state_mut(self)
+                }
+            }
+
+            pub(super) const fn grammar_name() -> &'static str {
+                <Parser<'static>>::GRAMMAR_NAME
+            }
+            pub(super) const fn grammar_profiles() -> &'static [&'static str] {
+                <Parser<'static>>::GRAMMAR_PROFILES
+            }
+            pub(super) fn default_profile() -> Option<&'static str> {
+                Parser::grammar_default_profile()
+            }
+            pub(super) fn resolve_alias(requested: &str) -> &str {
+                Parser::resolve_grammar_profile_alias(requested)
+            }
+
+            fn resolved_profile(requested: Option<&str>) -> Option<String> {
+                match requested.map(str::trim).filter(|p| !p.is_empty()) {
+                    Some(spelling) => Some(Parser::resolve_grammar_profile_alias(spelling).to_string()),
+                    None => Parser::grammar_default_profile().map(|p| p.to_string()),
+                }
+            }
+
+            pub(super) fn detail(
+                sample: &str,
+                grammar_profile: Option<&str>,
+                entry: Option<&str>,
+                library_options: &LibraryOptions,
+            ) -> Result<(), String> {
+                let hooks: &'static FamilyHooks = $hooks;
+                (hooks.pre_check)(sample)?;
+                let profile = resolved_profile(grammar_profile);
+                let entry = entry.map(|e| e.to_string());
+                let library = library_options.clone();
+                let label = if library.is_empty() {
+                    <Parser<'static>>::GRAMMAR_NAME.to_string()
+                } else {
+                    format!("{}(library)", <Parser<'static>>::GRAMMAR_NAME)
+                };
+                run_for_family(hooks, sample, move |owned_sample| {
+                    let node_arena = crate::ast_pipeline::NodeArena::new();
+                    let mut parser = Parser::new(
+                        &owned_sample,
+                        &node_arena,
+                        runtime_logger_box(format!("generated.{}", <Parser<'static>>::GRAMMAR_NAME)),
+                    );
+                    parser.set_trace_rules(current_trace_rules());
+                    parser.set_grammar_profile(profile.as_deref());
+                    parser.set_library_in_dir(library.in_dir.clone());
+                    parser.set_library_out_dir(library.out_dir.clone());
+                    (hooks.pre_parse)(&mut parser, profile.as_deref())?;
+                    let _dashboard = current_dump_rule_call_counts_top_n().map(|top_n| {
+                        crate::ast_pipeline::call_count_dashboard::CallCountDashboard::spawn(
+                            parser.rule_call_counts(),
+                            Parser::rule_names(),
+                            current_dump_rule_call_counts_exclude(),
+                            top_n,
+                            250,
+                        )
+                    });
+                    let entry_rule = entry.as_deref().unwrap_or(<Parser<'static>>::GRAMMAR_ENTRY_RULE);
+                    let result = with_rule_entry_count_dump!(
+                        <Parser<'static>>::GRAMMAR_NAME,
+                        parser,
+                        Parser,
+                        parser.parse_full_from(entry_rule).map(|_| ())
+                    );
+                    // ENGINE-UNIVERSAL-SERVICES.67(b) — the arena leg of the parse footprint; must
+                    // precede the arena's drop.
+                    node_arena.footprint().report(&label);
+                    let result = result.map_err(|err| {
+                        augment_error_with_furthest_position(err.to_string(), parser.furthest_position())
+                    });
+                    result.and_then(|()| (hooks.post_parse)(&owned_sample))
+                })
+            }
+
+            pub(super) fn ast_json(
+                sample: &str,
+                grammar_profile: Option<&str>,
+                entry: Option<&str>,
+                enable_coverage: bool,
+            ) -> Result<JsonValue, String> {
+                let hooks: &'static FamilyHooks = $hooks;
+                (hooks.pre_check)(sample)?;
+                let profile = resolved_profile(grammar_profile);
+                let entry = entry.map(|e| e.to_string());
+                run_for_family(hooks, sample, move |owned_sample| {
+                    let node_arena = crate::ast_pipeline::NodeArena::new();
+                    let mut parser = Parser::new(
+                        &owned_sample,
+                        &node_arena,
+                        runtime_logger_box(format!("generated.{}", <Parser<'static>>::GRAMMAR_NAME)),
+                    );
+                    parser.set_trace_rules(current_trace_rules());
+                    parser.set_grammar_profile(profile.as_deref());
+                    (hooks.pre_parse)(&mut parser, profile.as_deref())?;
+                    let _dashboard = current_dump_rule_call_counts_top_n().map(|top_n| {
+                        crate::ast_pipeline::call_count_dashboard::CallCountDashboard::spawn(
+                            parser.rule_call_counts(),
+                            Parser::rule_names(),
+                            current_dump_rule_call_counts_exclude(),
+                            top_n,
+                            250,
+                        )
+                    });
+                    if enable_coverage {
+                        parser.enable_coverage();
+                    }
+                    let entry_rule = entry.as_deref().unwrap_or(<Parser<'static>>::GRAMMAR_ENTRY_RULE);
+                    let parsed = parser.parse_full_from(entry_rule).map_err(|err| err.to_string())?;
+                    (hooks.post_parse)(&owned_sample)?;
+                    if enable_coverage {
+                        eprintln!(
+                            "COVERAGE-DUMP-AST: enable_coverage=true exercised_rules={}",
+                            parser.exercised_rule_names().len()
+                        );
+                    }
+                    parse_node_to_json(&parsed)
+                })
+            }
+
+            pub(super) fn cover(
+                sample: &str,
+                grammar_profile: Option<&str>,
+                entry: Option<&str>,
+            ) -> (bool, std::collections::HashSet<String>) {
+                let hooks: &'static FamilyHooks = $hooks;
+                if (hooks.pre_check)(sample).is_err() {
+                    return (false, std::collections::HashSet::new());
+                }
+                let profile = resolved_profile(grammar_profile);
+                let entry = entry.map(|e| e.to_string());
+                run_for_family(hooks, sample, move |owned_sample| {
+                    let node_arena = crate::ast_pipeline::NodeArena::new();
+                    let mut parser = Parser::new(
+                        &owned_sample,
+                        &node_arena,
+                        runtime_logger_box(format!("generated.{}", <Parser<'static>>::GRAMMAR_NAME)),
+                    );
+                    parser.set_grammar_profile(profile.as_deref());
+                    if (hooks.pre_parse)(&mut parser, profile.as_deref()).is_err() {
+                        return Ok((false, std::collections::HashSet::new()));
+                    }
+                    parser.enable_coverage();
+                    let entry_rule = entry.as_deref().unwrap_or(<Parser<'static>>::GRAMMAR_ENTRY_RULE);
+                    Ok(match parser.parse_full_from(entry_rule) {
+                        Ok(_) => (true, parser.exercised_rule_names()),
+                        Err(_) => (false, std::collections::HashSet::new()),
+                    })
+                })
+                .unwrap_or((false, std::collections::HashSet::new()))
+            }
+        }
+        GeneratedParserRegistryEntry {
+            grammar_name: $module::grammar_name(),
+            profiles: $module::grammar_profiles(),
+            default_profile: $module::default_profile,
+            resolve_alias: $module::resolve_alias,
+            detail: $module::detail,
+            ast_json: $module::ast_json,
+            cover: Some($module::cover),
+            hooks: $hooks,
+        }
+    }};
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// THE TABLE — the engine's two meta languages (the annotation pair, and their `builtin_*` subset
+// aliases) plus every artifact the build found, in the order build.rs wrote them.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// `builtin_semantic_annotation` — NOT an alias of the generated semantic_annotation parser: it is
+// the engine's hand-written BOOTSTRAP surface for its own annotation language (permissive,
+// marker-based — the contract the annotation pair is seeded through), so it keeps its own row.
+// `builtin_return_annotation` IS a strict subset of return_annotation and aliases that row.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+fn parse_with_builtin_semantic_annotation_detail(sample: &str) -> Result<(), String> {
+    let logger = runtime_logger("bootstrap.semantic_annotation");
+    UnifiedSemanticAST::parse_bootstrap(sample, &logger)
+        .map(|_| ())
+        .map_err(|err| err.to_string())
+}
+
+fn parse_with_builtin_semantic_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let logger = runtime_logger("bootstrap.semantic_annotation");
+    let parsed =
+        UnifiedSemanticAST::parse_bootstrap(sample, &logger).map_err(|err| err.to_string())?;
+    serde_json::to_value(parsed)
+        .map_err(|err| format!("failed to serialize bootstrap semantic AST: {}", err))
+}
+
+fn builtin_semantic_detail(sample: &str, _profile: Option<&str>, _entry: Option<&str>, _library: &LibraryOptions) -> Result<(), String> {
+    parse_with_builtin_semantic_annotation_detail(sample)
+}
+fn builtin_semantic_ast_json(sample: &str, _profile: Option<&str>, _entry: Option<&str>, _coverage: bool) -> Result<JsonValue, String> {
+    parse_with_builtin_semantic_annotation_ast_json(sample)
+}
+fn no_default_profile() -> Option<&'static str> {
+    None
+}
+fn identity_alias(requested: &str) -> &str {
+    requested
+}
+
+fn registry() -> &'static [GeneratedParserRegistryEntry] {
+    static TABLE: std::sync::OnceLock<Vec<GeneratedParserRegistryEntry>> = std::sync::OnceLock::new();
+    TABLE.get_or_init(|| {
+        let mut rows = derived_rows();
+        // The built-in annotation grammars: `builtin_return_annotation` is a strict subset of the
+        // generated return_annotation parser (build.rs lists the pair like any other artifact) and
+        // aliases its row without a witness-verification hook; `builtin_semantic_annotation` is the
+        // engine's bootstrap surface and carries its own row (above). A build without the pair does
+        // not get here: build.rs refuses it with the remedy.
+        if let Some(row) = rows.iter().find(|row| row.grammar_name == "return_annotation").copied() {
+            rows.push(GeneratedParserRegistryEntry { grammar_name: "builtin_return_annotation", cover: None, ..row });
+        }
+        rows.push(GeneratedParserRegistryEntry {
+            grammar_name: "builtin_semantic_annotation",
+            profiles: &[],
+            default_profile: no_default_profile,
+            resolve_alias: identity_alias,
+            detail: builtin_semantic_detail,
+            ast_json: builtin_semantic_ast_json,
+            cover: None,
+            hooks: &crate::families::FamilyHooks::NONE,
+        });
+        rows
+    })
+}
+
+// The rows build.rs derived from `../generated` — `fn derived_rows()`, one `generated_parser_row!`
+// per artifact under its own cfg, written into `$OUT_DIR/generated_parser_table.rs`.
+include!(concat!(env!("OUT_DIR"), "/generated_parser_table.rs"));
+
+fn find_entry(grammar_name: &str) -> Option<&'static GeneratedParserRegistryEntry> {
+    registry().iter().find(|entry| entry.grammar_name == grammar_name)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// THE PUBLIC SURFACE — every signature as before; every answer now comes from the table.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+pub fn supports_grammar(grammar_name: &str) -> bool {
+    find_entry(grammar_name).is_some()
+}
+
+pub fn registered_grammars() -> Vec<&'static str> {
+    registry().iter().map(|entry| entry.grammar_name).collect()
+}
+
+/// The grammar's declared profile universe (empty for a grammar that declares none, `None` for an
+/// unregistered grammar) — read from the artifact, never typed.
+pub fn registered_profiles(grammar_name: &str) -> Option<&'static [&'static str]> {
+    find_entry(grammar_name).map(|entry| entry.profiles)
+}
+
+/// `DEFAULT-PROFILE.2` / `PROFILE-ALIAS.2`: the profile a request resolves to — the requested
+/// spelling through the grammar's own alias map, or the grammar's declared default when nothing
+/// (or an empty string) was requested. The registry holds NO profile knowledge of its own.
+pub fn active_grammar_profile(grammar_name: &str, grammar_profile: Option<&str>) -> Option<String> {
+    let entry = find_entry(grammar_name)?;
+    match grammar_profile.map(str::trim).filter(|p| !p.is_empty()) {
+        Some(spelling) => Some(entry.resolve_alias(spelling).to_string()),
+        None => entry.default_profile().map(|p| p.to_string()),
+    }
+}
+
+pub fn parse_sample(grammar_name: &str, sample: &str) -> Option<bool> {
+    parse_sample_with_profile(grammar_name, sample, None)
+}
+
+pub fn parse_sample_with_profile(
+    grammar_name: &str,
+    sample: &str,
+    grammar_profile: Option<&str>,
+) -> Option<bool> {
+    find_entry(grammar_name).map(|entry| entry.parse(sample, grammar_profile))
+}
+
+/// The family's post-parse contract on an ACCEPTED sample (the regex family's PCRE2 compile
+/// contract); `Ok(())` for a family that declares none or an unregistered grammar.
+pub fn post_parse_semantic_contract(grammar_name: &str, sample: &str) -> Result<(), String> {
+    match find_entry(grammar_name) {
+        Some(entry) => (entry.hooks.post_parse)(sample),
+        None => Ok(()),
+    }
+}
+
 pub fn parse_sample_detail(grammar_name: &str, sample: &str) -> Option<Result<(), String>> {
     parse_sample_detail_with_profile(grammar_name, sample, None)
 }
 
-/// `SV-EXH-PROOF.3.3.4.a` MVP-0: library-aware detail variant. Falls through
-/// to `parse_sample_detail_with_profile` when `library_options` is empty so
-/// existing call sites are unaffected. When set, grammars whose generated
-/// parser supports library options (SV today; others as they adopt the
-/// annotations) honor them; other grammars silently ignore (their parsers
-/// have no library directives so the options would be no-ops anyway).
 pub fn parse_sample_detail_with_options(
     grammar_name: &str,
     sample: &str,
     grammar_profile: Option<&str>,
     library_options: &LibraryOptions,
 ) -> Option<Result<(), String>> {
-    if library_options.is_empty() {
-        return parse_sample_detail_with_profile(grammar_name, sample, grammar_profile);
-    }
-    match grammar_name {
-        #[cfg(has_generated_systemverilog_parser)]
-        "systemverilog" => Some(parse_with_systemverilog_detail_profile_with_library(
-            sample,
-            grammar_profile,
-            library_options,
-        )),
-        _ => parse_sample_detail_with_profile(grammar_name, sample, grammar_profile),
-    }
+    find_entry(grammar_name).map(|entry| (entry.detail)(sample, grammar_profile, None, library_options))
 }
 
 pub fn parse_sample_detail_with_profile(
@@ -1972,134 +850,34 @@ pub fn parse_sample_detail_with_profile(
     sample: &str,
     grammar_profile: Option<&str>,
 ) -> Option<Result<(), String>> {
-    #[cfg(not(has_generated_systemverilog_parser))]
-    let _ = grammar_profile;
-
-    match grammar_name {
-        "return_annotation" => Some(parse_with_return_annotation_detail(sample)),
-        "semantic_annotation" => Some(parse_with_semantic_annotation_detail(sample)),
-        "builtin_return_annotation" => Some(parse_with_builtin_return_annotation_detail(sample)),
-        "builtin_semantic_annotation" => {
-            Some(parse_with_builtin_semantic_annotation_detail(sample))
-        }
-        #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
-        "ebnf" => Some(parse_with_ebnf_detail(sample)),
-        #[cfg(has_generated_json_parser)]
-        "json" => Some(parse_with_json_detail(sample)),
-        #[cfg(has_generated_regex_parser)]
-        "regex" => Some(parse_with_regex_detail(sample, grammar_profile)),
-        #[cfg(has_generated_rtl_const_expr_parser)]
-        "rtl_const_expr" => Some(parse_with_rtl_const_expr_detail(sample)),
-        #[cfg(has_generated_rtl_frontend_parser)]
-        "rtl_frontend" => Some(parse_with_rtl_frontend_detail(sample)),
-        #[cfg(has_generated_systemverilog_parser)]
-        "systemverilog" => Some(parse_with_systemverilog_detail_profile(
-            sample,
-            grammar_profile,
-        )),
-        #[cfg(has_generated_systemverilog_preprocessor_parser)]
-        "systemverilog_preprocessor" => Some(parse_with_systemverilog_preprocessor_detail(sample)),
-        #[cfg(has_generated_vhdl_parser)]
-        "vhdl" => Some(parse_with_vhdl_detail(sample)),
-        #[cfg(has_generated_scratch_parser)]
-        "scratch" => Some(parse_with_scratch_detail(sample, grammar_profile)),
-        _ => None,
-    }
+    parse_sample_detail_with_options(grammar_name, sample, grammar_profile, &LibraryOptions::default())
 }
 
-/// GRAMMAR-WELLFORMED.H.12.8.4.3.1: entry-aware detail parse for `parseability_probe --entry-rule` —
-/// parse `sample` from an ALTERNATE start symbol via the generated parser's `parse_full_from(entry)`
-/// (landed in -0141), returning the rich error (SV augments `furthest_position`). Parser-agnostic
-/// dispatch (the per-grammar knowledge lives here, like the other registry detail fns). Returns `None`
-/// for grammars whose generated parser predates `parse_full_from` (the annotation / `ebnf`
-/// meta-grammars) — the probe then reports "no detail-capable parser registered".
+/// GRAMMAR-WELLFORMED.H.12.8.4.3.1: entry-aware detail parse (`parseability_probe --entry-rule`) —
+/// every registered parser answers it through `parse_full_from`.
 pub fn parse_sample_detail_from_entry(
     grammar_name: &str,
     sample: &str,
     grammar_profile: Option<&str>,
     entry: &str,
 ) -> Option<Result<(), String>> {
-    #[cfg(not(any(
-        has_generated_systemverilog_parser,
-        has_generated_json_parser,
-        has_generated_regex_parser,
-        has_generated_rtl_const_expr_parser,
-        has_generated_rtl_frontend_parser,
-        has_generated_systemverilog_preprocessor_parser,
-        has_generated_vhdl_parser,
-        has_generated_scratch_parser
-    )))]
-    let _ = (sample, grammar_profile, entry);
-
-    match grammar_name {
-        #[cfg(has_generated_systemverilog_parser)]
-        "systemverilog" => Some(parse_with_systemverilog_detail_profile_entry(
-            sample,
-            grammar_profile,
-            Some(entry),
-        )),
-        #[cfg(has_generated_json_parser)]
-        "json" => {
-            let node_arena = crate::ast_pipeline::NodeArena::new();
-            let mut parser = JsonParser::new(sample, &node_arena, runtime_logger_box("generated.json"));
-            Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
-        }
-        #[cfg(has_generated_regex_parser)]
-        "regex" => {
-            // Runs on the dedicated worker stack (regex can deeply recurse — RGX-0085).
-            let profile =
-                normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
-            let entry_owned = entry.to_string();
-            Some(run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
-                let node_arena = crate::ast_pipeline::NodeArena::new();
-                let mut parser =
-                    RegexParser::new(&owned_sample, &node_arena, runtime_logger_box("generated.regex"));
-                parser.set_grammar_profile(profile.as_deref());
-                parser
-                    .parse_full_from(&entry_owned)
-                    .map(|_| ())
-                    .map_err(|err| err.to_string())
-            }))
-        }
-        #[cfg(has_generated_rtl_const_expr_parser)]
-        "rtl_const_expr" => {
-            let node_arena = crate::ast_pipeline::NodeArena::new();
-            let mut parser =
-                RtlConstExprParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_const_expr"));
-            Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
-        }
-        #[cfg(has_generated_rtl_frontend_parser)]
-        "rtl_frontend" => {
-            let node_arena = crate::ast_pipeline::NodeArena::new();
-            let mut parser =
-                RtlFrontendParser::new(sample, &node_arena, runtime_logger_box("generated.rtl_frontend"));
-            Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
-        }
-        #[cfg(has_generated_systemverilog_preprocessor_parser)]
-        "systemverilog_preprocessor" => {
-            let node_arena = crate::ast_pipeline::NodeArena::new();
-            let mut parser = SystemverilogPreprocessorParser::new(
-                sample,
-                &node_arena, runtime_logger_box("generated.systemverilog_preprocessor"),
-            );
-            Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
-        }
-        #[cfg(has_generated_vhdl_parser)]
-        "vhdl" => {
-            let node_arena = crate::ast_pipeline::NodeArena::new();
-            let mut parser = VhdlParser::new(sample, &node_arena, runtime_logger_box("generated.vhdl"));
-            Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
-        }
-        #[cfg(has_generated_scratch_parser)]
-        "scratch" => Some(parse_with_scratch_detail_entry(sample, Some(entry))),
-        _ => None,
-    }
+    find_entry(grammar_name)
+        .map(|row| (row.detail)(sample, grammar_profile, Some(entry), &LibraryOptions::default()))
 }
 
-pub fn parse_sample_ast_json(
+/// GRAMMAR-WELLFORMED.G.4.7: parse `sample` and return WHY it failed (a rich error string with
+/// `furthest_position`), or `Ok(())` if it parsed; `None` for an unregistered grammar. Delegates
+/// to `parse_sample_detail_with_profile` (`H.18`: ONE answer to "is there a detail-capable
+/// parser").
+pub fn parse_error(
     grammar_name: &str,
     sample: &str,
-) -> Option<Result<JsonValue, String>> {
+    grammar_profile: Option<&str>,
+) -> Option<Result<(), String>> {
+    parse_sample_detail_with_profile(grammar_name, sample, grammar_profile)
+}
+
+pub fn parse_sample_ast_json(grammar_name: &str, sample: &str) -> Option<Result<JsonValue, String>> {
     parse_sample_ast_json_with_profile(grammar_name, sample, None)
 }
 
@@ -2108,108 +886,43 @@ pub fn parse_sample_ast_json_with_profile(
     sample: &str,
     grammar_profile: Option<&str>,
 ) -> Option<Result<JsonValue, String>> {
-    #[cfg(not(has_generated_systemverilog_parser))]
-    let _ = grammar_profile;
-
-    match grammar_name {
-        "return_annotation" => Some(parse_with_return_annotation_ast_json(sample)),
-        "semantic_annotation" => Some(parse_with_semantic_annotation_ast_json(sample)),
-        "builtin_return_annotation" => Some(parse_with_builtin_return_annotation_ast_json(sample)),
-        "builtin_semantic_annotation" => {
-            Some(parse_with_builtin_semantic_annotation_ast_json(sample))
-        }
-        #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
-        "ebnf" => Some(parse_with_ebnf_ast_json(sample)),
-        #[cfg(has_generated_json_parser)]
-        "json" => Some(parse_with_json_ast_json(sample)),
-        #[cfg(has_generated_regex_parser)]
-        "regex" => Some(parse_with_regex_ast_json(sample, grammar_profile)),
-        #[cfg(has_generated_rtl_const_expr_parser)]
-        "rtl_const_expr" => Some(parse_with_rtl_const_expr_ast_json(sample)),
-        #[cfg(has_generated_rtl_frontend_parser)]
-        "rtl_frontend" => Some(parse_with_rtl_frontend_ast_json(sample)),
-        #[cfg(has_generated_systemverilog_parser)]
-        "systemverilog" => Some(parse_with_systemverilog_ast_json_profile(
-            sample,
-            grammar_profile,
-        )),
-        #[cfg(has_generated_systemverilog_preprocessor_parser)]
-        "systemverilog_preprocessor" => {
-            Some(parse_with_systemverilog_preprocessor_ast_json(sample))
-        }
-        #[cfg(has_generated_vhdl_parser)]
-        "vhdl" => Some(parse_with_vhdl_ast_json(sample)),
-        #[cfg(has_generated_scratch_parser)]
-        "scratch" => Some(parse_with_scratch_ast_json(sample)),
-        _ => None,
-    }
+    find_entry(grammar_name).map(|entry| (entry.ast_json)(sample, grammar_profile, None, false))
 }
 
-/// `ENGINE-UNIVERSAL-SERVICES.22` (b) — AST-JSON dump of a COVERAGE-ENABLED parse.
-///
-/// The `parseability_probe --parse-dump-ast --dump-ast-with-coverage` surface. Same shape as
-/// `parse_sample_ast_json_from_entry`: `None` for a grammar whose coverage-enabled variant is not
-/// wired (currently `systemverilog` only), so the caller can REFUSE rather than fall back to a
-/// bare dump — an A/B whose two arms are secretly the same configuration agrees for the wrong
-/// reason, which is the exact trap (b) exists to avoid.
-///
-/// ⛔ Every `has_generated_*` decision stays in this file. A caller cfg-branching in tail-expression
-/// position needs an attribute on an expression, which is unstable; keeping the dispatch here is
-/// what makes the probe's arm a plain call.
 pub fn parse_sample_ast_json_with_coverage(
     grammar_name: &str,
     sample: &str,
     grammar_profile: Option<&str>,
 ) -> Option<Result<JsonValue, String>> {
-    #[cfg(not(has_generated_systemverilog_parser))]
-    let _ = (sample, grammar_profile);
-
-    match grammar_name {
-        #[cfg(has_generated_systemverilog_parser)]
-        "systemverilog" => Some(parse_systemverilog_ast_json_with_coverage(
-            sample,
-            grammar_profile,
-        )),
-        _ => None,
-    }
+    find_entry(grammar_name).map(|entry| (entry.ast_json)(sample, grammar_profile, None, true))
 }
 
-/// SV-AST-SHAPE-FIDELITY.2.4: entry-aware AST-JSON dump. Parse `sample` from an ALTERNATE start
-/// symbol via the generated parser's `parse_full_from(entry)` and serialize the typed AST, so an
-/// entry-relative rule that is PEG-shadowed / unreachable from the canonical entry can have its AST
-/// shape dumped in isolation (the `parseability_probe --parse-dump-ast[-pretty] --entry-rule RULE`
-/// surface). `None` for a grammar whose entry-aware AST-JSON variant is not (yet) wired — currently
-/// `systemverilog` only; other families can be added on demand by mirroring their
-/// `parse_with_<g>_ast_json` function with `parse_full_from(entry)`.
 pub fn parse_sample_ast_json_from_entry(
     grammar_name: &str,
     sample: &str,
     grammar_profile: Option<&str>,
     entry: &str,
 ) -> Option<Result<JsonValue, String>> {
-    match grammar_name {
-        #[cfg(has_generated_systemverilog_parser)]
-        "systemverilog" => Some(parse_with_systemverilog_ast_json_from_entry(
-            sample,
-            grammar_profile,
-            entry,
-        )),
-        // PARSE-HARNESS.2 — entry-aware AST dump for the scratch slot (probe a non-entry rule in
-        // isolation; directly useful for the A2.3 shadowing probes). scratch ignores the profile.
-        #[cfg(has_generated_scratch_parser)]
-        "scratch" => Some(parse_with_scratch_ast_json_from_entry(sample, entry)),
-        _ => {
-            let _ = (sample, grammar_profile, entry);
-            None
-        }
-    }
+    find_entry(grammar_name).map(|row| (row.ast_json)(sample, grammar_profile, Some(entry), false))
 }
 
-pub fn registered_grammars() -> Vec<&'static str> {
-    GENERATED_PARSER_REGISTRY
-        .iter()
-        .map(|entry| entry.grammar_name)
-        .collect()
+/// GRAMMAR-WELLFORMED.G.4 (parser-AGNOSTIC dispatch): verify a witness / sample through the
+/// grammar's REAL generated parser, returning `(parsed_ok, rules_exercised)` — the parser's OWN
+/// transactional record of the committed rules — or `None` when no witness-capable parser is
+/// registered for `grammar_name`.
+pub fn parse_and_cover(
+    grammar_name: &str,
+    sample: &str,
+    grammar_profile: Option<&str>,
+    entry: Option<&str>,
+) -> Option<(bool, std::collections::HashSet<String>)> {
+    let cover = find_entry(grammar_name)?.cover?;
+    Some(cover(sample, grammar_profile, entry))
+}
+
+/// Whether a generated parser with `parse_and_cover` support is registered for `grammar_name`.
+pub fn supports_parse_and_cover(grammar_name: &str) -> bool {
+    find_entry(grammar_name).is_some_and(|entry| entry.cover.is_some())
 }
 
 #[cfg(test)]
@@ -2245,50 +958,40 @@ mod tests {
     /// decision instead of silently widening the blind spot.
     #[test]
     fn parse_paths_all_report_footprint() {
+        // `ENGINE-UNIVERSAL-SERVICES.112` slice 2: the registry serves every family through ONE
+        // template, so the census scans the template's three lanes instead of thirteen hand-copied
+        // helper sets — the property is unchanged: the DETAIL lane (the one an operator's
+        // `PGEN_REPORT_PARSE_FOOTPRINT` reads) reports its arena, and the lanes that do not are
+        // COUNTED rather than ignored.
         let src = include_str!("parser_registry.rs");
+        let template_start = src.find("macro_rules! generated_parser_row").expect("the template exists");
+        let template = &src[template_start..];
         let mut detail_missing: Vec<&str> = Vec::new();
         let mut detail_ok = 0usize;
         let mut unwired_other = 0usize;
-        let mut cursor = 0usize;
-        while let Some(rel) = src[cursor..].find("\nfn parse_with_") {
-            let start = cursor + rel + 1;
-            let name_end = src[start..].find('(').map(|i| start + i).unwrap_or(src.len());
-            let name = src[start + 3..name_end].trim();
-            let end = src[start..]
-                .find("\n}\n")
-                .map(|i| start + i)
-                .unwrap_or(src.len());
-            let body = &src[start..end];
-            if body.contains("NodeArena::new()") {
-                let reports = body.contains(".footprint().report(");
-                if name.contains("_detail") {
-                    if reports {
-                        detail_ok += 1;
-                    } else {
-                        detail_missing.push(name);
-                    }
-                } else if !reports {
-                    unwired_other += 1;
-                }
+        for lane in ["detail", "ast_json", "cover"] {
+            let head = format!("pub(super) fn {lane}(");
+            let start = template.find(&head).unwrap_or_else(|| panic!("the template has a `{lane}` lane"));
+            let end = template[start..].find("\n            }\n").map(|i| start + i).unwrap_or(template.len());
+            let body = &template[start..end];
+            assert!(body.contains("NodeArena::new()"), "the `{lane}` lane owns an arena");
+            let reports = body.contains(".footprint().report(");
+            if lane == "detail" {
+                if reports { detail_ok += 1; } else { detail_missing.push(lane); }
+            } else if !reports {
+                unwired_other += 1;
             }
-            cursor = end;
         }
         assert!(
             detail_missing.is_empty(),
-            "these DETAIL parse paths construct a NodeArena but never report its footprint, \
-             so PGEN_REPORT_PARSE_FOOTPRINT is silently blind on them: {detail_missing:?}"
+            "the DETAIL lane constructs a NodeArena but never reports its footprint, so \
+             PGEN_REPORT_PARSE_FOOTPRINT is silently blind on it: {detail_missing:?}"
         );
-        // A census that silently shrinks is the failure mode it exists to prevent, so the
-        // populations are pinned in BOTH directions rather than only the interesting one.
+        assert_eq!(detail_ok, 1, "exactly one detail lane, and it reports");
         assert_eq!(
-            detail_ok, 12,
-            "the wired detail-lane population moved from 12 to {detail_ok}; if a family was \
-             added or removed, update this pin deliberately"
-        );
-        assert_eq!(
-            unwired_other, 23,
-            "the DECLARED gap (bool + _ast_json lanes with no footprint report) moved from \
-             23 to {unwired_other}; a new unwired parse lane must be a decision, not a drift"
+            unwired_other, 2,
+            "the DECLARED gap (the ast_json and cover lanes carry no footprint report) moved from 2 \
+             to {unwired_other}; a new unwired parse lane must be a decision, not a drift"
         );
     }
 
@@ -4015,7 +2718,7 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
     #[cfg(has_generated_regex_parser)]
     #[test]
     fn regex_parse_and_cover_replays_coverage_on_memo_hits() {
-        let (parsed, covered) = super::parse_and_cover_regex("\\Q\\A\\E*", None, None);
+        let (parsed, covered) = super::parse_and_cover("regex", "\\Q\\A\\E*", None, None).expect("the regex parser is registered");
         assert!(parsed, "\\Q\\A\\E* must parse");
         for rule in [
             "quoted_literal_char",
@@ -4034,7 +2737,7 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         // parses `quoted_class_range_atom → quoted_class_literal_char` at the
         // `\A` position, fails on the missing `-`, and rolls back; the
         // `quoted_class_literal` alternative then memo-hits at that position.
-        let (parsed, covered) = super::parse_and_cover_regex("[]\\Q\\A\\E]", None, None);
+        let (parsed, covered) = super::parse_and_cover("regex", "[]\\Q\\A\\E]", None, None).expect("the regex parser is registered");
         assert!(parsed, "[]\\Q\\A\\E] must parse");
         assert!(
             covered.contains("quoted_class_literal_escaped_char"),

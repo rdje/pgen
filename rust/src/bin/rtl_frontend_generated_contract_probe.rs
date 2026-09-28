@@ -40,9 +40,9 @@ struct RtlFrontendGeneratedSample {
 /// are truncated) and complete (annotation folding cannot hide a rule entry).
 #[cfg(has_generated_rtl_frontend_parser)]
 fn cover_sample(sample: &str) -> Option<(bool, HashSet<String>)> {
-    Some(pgen::parser_registry::parse_and_cover_rtl_frontend(
+    pgen::parser_registry::parse_and_cover("rtl_frontend", 
         sample, None, None,
-    ))
+    )
 }
 
 #[cfg(not(has_generated_rtl_frontend_parser))]

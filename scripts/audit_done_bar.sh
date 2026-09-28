@@ -448,16 +448,31 @@ control("C7 regex_corpus_bundle_contract_gate runs",
 #          A control that cannot fail is the vacuous floor LANG-CAPABILITY-AUDIT.10.9 had to
 #          repair; it is replaced rather than reworded.
 #      What actually needs guarding is the ADMISSION RULE — which grammars are families — because
-#      that is now a hand-maintained adjudication. So pin it against rust/src/parser_registry.rs,
-#      an INDEPENDENT tracked source the register cannot edit: a grammar is a family iff PGEN ships
-#      a registered generated parser for it, the sole exception being the two bootstrap contracts,
-#      which are registered only to break the annotation-parser cycle and are EXCLUDED BY NAME from
-#      parse_harness_equivalence_gate. Adding a disposition for a grammar that really does ship a
-#      parser — the convenient way to silence the new refusal — fires this control.
+#      that is now a hand-maintained adjudication. So pin it against an INDEPENDENT tracked source
+#      the register cannot edit: a grammar is a family iff PGEN ships a registered generated parser
+#      for it, the sole exception being the two bootstrap contracts, which are registered only to
+#      break the annotation-parser cycle and are EXCLUDED BY NAME from parse_harness_equivalence_gate.
+#      Adding a disposition for a grammar that really does ship a parser — the convenient way to
+#      silence the new refusal — fires this control.
+#      ⛔ THE SOURCE MOVED ONCE (ENGINE-UNIVERSAL-SERVICES.112 slice 2, 2026-09-28): this control used
+#      to grep rust/src/parser_registry.rs for its typed `grammar_name: "…"` rows. The registry is
+#      DERIVED now — build.rs lists generated/*_parser.rs and the engine names no language — so the
+#      tracked source that says which parsers are registered is the reproducibility baseline
+#      (rust/test_data/grammar_quality/generated_reproducibility_v0.json), whose `artifacts` map is
+#      re-derived from that same generated tree by GENERATED-REPRODUCIBILITY on every commit; the two
+#      bootstrap rows are still literal in the registry source and are read from there. Measured on
+#      the first derived tree: the grep found NOTHING and this control refused (MISCALIBRATED, rc 3),
+#      which is the correct behaviour of a control whose ground truth moved from under it.
 REGISTRY_SRC = os.path.join(ROOT, "rust", "src", "parser_registry.rs")
+REPRO_BASELINE = os.path.join(ROOT, "rust", "test_data", "grammar_quality", "generated_reproducibility_v0.json")
 registered = set()
+if os.path.isfile(REPRO_BASELINE):
+    try:
+        registered |= set(json.load(open(REPRO_BASELINE, encoding="utf-8")).get("artifacts", {}).keys()) & GRAMMARS
+    except (ValueError, OSError):
+        pass
 if os.path.isfile(REGISTRY_SRC):
-    registered = set(re.findall(r'grammar_name:\s*"([a-z0-9_]+)"', read(REGISTRY_SRC))) & GRAMMARS
+    registered |= set(re.findall(r'grammar_name:\s*"([a-z0-9_]+)"', read(REGISTRY_SRC))) & GRAMMARS
 control("C8 registry is readable at all", bool(registered), True)
 
 BOOTSTRAP = {"builtin_return_annotation", "builtin_semantic_annotation"}

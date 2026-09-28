@@ -84,56 +84,19 @@ pub mod ebnf_generated_parser {
     include!(env!("PGEN_EBNF_PARSER_PATH_RESOLVED"));
 }
 
-// Generated parsers from EBNF grammars
+// Generated parsers from EBNF grammars — the module list is DERIVED by build.rs from
+// `../generated` (`ENGINE-UNIVERSAL-SERVICES.112` slice 2): one `pub mod <name>` per artifact,
+// each gated on its own `has_generated_<name>_parser` cfg (the annotation pair keeps its
+// backward-compat snake_case type aliases inside its modules, written by build.rs).
 #[cfg(feature = "generated_parsers")]
 pub mod generated_parsers {
-    pub mod return_annotation {
-        include!("../../generated/return_annotation_parser.rs");
-        // Backward-compat alias for previously generated snake_case parser type.
-        #[allow(non_camel_case_types)]
-        pub type Return_annotationParser<'input> = ReturnAnnotationParser<'input>;
-    }
-    pub mod semantic_annotation {
-        include!("../../generated/semantic_annotation_parser.rs");
-        // Backward-compat alias for previously generated snake_case parser type.
-        #[allow(non_camel_case_types)]
-        pub type Semantic_annotationParser<'input> = SemanticAnnotationParser<'input>;
-    }
-    #[cfg(has_generated_systemverilog_parser)]
-    pub mod systemverilog {
-        include!(env!("PGEN_SYSTEMVERILOG_PARSER_PATH_RESOLVED"));
-    }
-    #[cfg(has_generated_json_parser)]
-    pub mod json {
-        include!(env!("PGEN_JSON_PARSER_PATH_RESOLVED"));
-    }
-    #[cfg(has_generated_regex_parser)]
-    pub mod regex {
-        include!(env!("PGEN_REGEX_PARSER_PATH_RESOLVED"));
-    }
-    #[cfg(has_generated_systemverilog_preprocessor_parser)]
-    pub mod systemverilog_preprocessor {
-        include!(env!("PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH_RESOLVED"));
-    }
-    #[cfg(has_generated_vhdl_parser)]
-    pub mod vhdl {
-        include!(env!("PGEN_VHDL_PARSER_PATH_RESOLVED"));
-    }
-    #[cfg(has_generated_rtl_const_expr_parser)]
-    pub mod rtl_const_expr {
-        include!(env!("PGEN_RTL_CONST_EXPR_PARSER_PATH_RESOLVED"));
-    }
-    #[cfg(has_generated_rtl_frontend_parser)]
-    pub mod rtl_frontend {
-        include!(env!("PGEN_RTL_FRONTEND_PARSER_PATH_RESOLVED"));
-    }
-    // PARSE-HARNESS.2 — the blessed scratch-register slot (arbitrary-grammar probe).
-    // Present only when `make focus_scratch` has built the artifact.
-    #[cfg(has_generated_scratch_parser)]
-    pub mod scratch {
-        include!(env!("PGEN_SCRATCH_PARSER_PATH_RESOLVED"));
-    }
+    include!(concat!(env!("OUT_DIR"), "/generated_parser_modules.rs"));
 }
+
+/// `ENGINE-UNIVERSAL-SERVICES.112` slice 2 — the per-family hook modules (the only place under
+/// `rust/src` where a language's name may appear, one module per family, each naming its own).
+#[cfg(feature = "generated_parsers")]
+pub mod families;
 
 #[cfg(feature = "generated_parsers")]
 pub mod parser_registry;

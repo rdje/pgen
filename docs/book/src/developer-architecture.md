@@ -245,12 +245,13 @@ words of the languages it parses:
   vocabulary in production code. Test modules and comments may name families freely: they are fixtures and
   prose, not behaviour. The allow-list is empty by design.
 - **The non-engine classes are a closed population under a ratchet.** A *per-family* component (the
-  SystemVerilog preprocessor and its keyword tables) may name its own family only; the *registry* (the
+  SystemVerilog preprocessor and its keyword tables, the family hook modules under `rust/src/families/`, a
+  family's own contract probe) may name its own family only — its name, its profiles, its rules; the *registry* (the
   build-derived list of generated parsers), the *api* (the embedding surface), the *bin* (operator tools) and
   the *harness* (test suites) files each carry a ceiling of production-code tokens that only falls — a rise
   fails the commit, a fall is promoted deliberately, and every non-zero ceiling names the leaf that owes its
   zero (`ENGINE-UNIVERSAL-SERVICES.112` for the API's enumeration, `.113` for the preprocessor's relocation).
-- **Ten self-test arms run before the tree is read**, so a guard that has stopped refusing is caught by its own
+- **Eleven self-test arms run before the tree is read**, so a guard that has stopped refusing is caught by its own
   run.
 
 How to read a breach: `ENGINE source <file>:<line> names the <kind> <token> of a language grammar in production

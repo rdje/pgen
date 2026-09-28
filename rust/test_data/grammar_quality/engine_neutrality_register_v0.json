@@ -23,65 +23,251 @@
     "json": "meta"
   },
   "_grammar_classes_note": "language = a parser PGEN builds for users (its name, @profiles, kw_* tokens and multi-word rule names are forbidden in the engine); meta = the engine's own languages (the EBNF meta-grammar, the two annotation languages, the example grammars regex and json whose words — `regex`, `number`, `quoted_string` — are engine vocabulary by construction).",
-  "meta_token_types": ["quoted_string", "number", "regex", "include_dir", "include_file", "probability", "string_literal", "identifier"],
+  "meta_token_types": [
+    "quoted_string",
+    "number",
+    "regex",
+    "include_dir",
+    "include_file",
+    "probability",
+    "string_literal",
+    "identifier"
+  ],
   "file_classes": {
     "per-family": [
-      {"path": "rust/src/sv_preprocessor.rs", "family": "systemverilog"},
-      {"path": "rust/src/sv_keyword_versions.rs", "family": "systemverilog"}
+      {
+        "path": "rust/src/sv_preprocessor.rs",
+        "family": "systemverilog"
+      },
+      {
+        "path": "rust/src/sv_keyword_versions.rs",
+        "family": "systemverilog"
+      },
+      {
+        "path": "rust/src/families/systemverilog.rs",
+        "family": "systemverilog"
+      },
+      {
+        "path": "rust/src/families/regex.rs",
+        "family": "regex"
+      },
+      {
+        "path": "rust/src/bin/rtl_frontend_generated_contract_probe.rs",
+        "family": "rtl_frontend"
+      }
     ],
-    "registry": ["rust/src/lib.rs", "rust/build.rs", "rust/src/parser_registry.rs"],
-    "api": ["rust/src/embedding_api.rs"],
+    "registry": [
+      "rust/src/lib.rs",
+      "rust/build.rs",
+      "rust/src/parser_registry.rs"
+    ],
+    "api": [
+      "rust/src/embedding_api.rs"
+    ],
     "bin": [
       "rust/src/main.rs",
-      "rust/src/bin/arena_chunk_oracle_probe.rs", "rust/src/bin/coverage_gap_triage.rs", "rust/src/bin/dump_declared_annotation_inventory.rs",
-      "rust/src/bin/ebnf_dual_run_diff.rs", "rust/src/bin/generated_parse_probe.rs", "rust/src/bin/parse_alloc_census_probe.rs",
-      "rust/src/bin/parseability_probe.rs", "rust/src/bin/perf_bench.rs", "rust/src/bin/pgen.rs", "rust/src/bin/pgen_ast.rs",
-      "rust/src/bin/regex_alloc_census_probe.rs", "rust/src/bin/regex_construction_census_probe.rs", "rust/src/bin/regex_corpus_probe.rs",
-      "rust/src/bin/regex_perf_probe.rs", "rust/src/bin/regex_perf_probe_embedding_api.rs", "rust/src/bin/regex_validation_microbench.rs",
-      "rust/src/bin/return_annotation_generated_audit.rs", "rust/src/bin/rtl_frontend_generated_contract_probe.rs", "rust/src/bin/test_runner.rs"
+      "rust/src/bin/arena_chunk_oracle_probe.rs",
+      "rust/src/bin/coverage_gap_triage.rs",
+      "rust/src/bin/dump_declared_annotation_inventory.rs",
+      "rust/src/bin/ebnf_dual_run_diff.rs",
+      "rust/src/bin/generated_parse_probe.rs",
+      "rust/src/bin/parse_alloc_census_probe.rs",
+      "rust/src/bin/parseability_probe.rs",
+      "rust/src/bin/perf_bench.rs",
+      "rust/src/bin/pgen.rs",
+      "rust/src/bin/pgen_ast.rs",
+      "rust/src/bin/regex_alloc_census_probe.rs",
+      "rust/src/bin/regex_construction_census_probe.rs",
+      "rust/src/bin/regex_corpus_probe.rs",
+      "rust/src/bin/regex_perf_probe.rs",
+      "rust/src/bin/regex_perf_probe_embedding_api.rs",
+      "rust/src/bin/regex_validation_microbench.rs",
+      "rust/src/bin/return_annotation_generated_audit.rs",
+      "rust/src/bin/test_runner.rs"
     ],
     "harness": [
-      "rust/src/parse_harness.rs", "rust/src/parse_harness_combinator_suite.rs", "rust/src/parse_harness_equivalence.rs",
-      "rust/src/parse_harness_interpreter.rs", "rust/src/parse_harness_semantic_suite.rs", "rust/src/ast_shape_contract.rs",
-      "rust/src/ast_pipeline/fusibility_census.rs", "rust/src/test_runner/round_trip_tests.rs"
+      "rust/src/parse_harness.rs",
+      "rust/src/parse_harness_combinator_suite.rs",
+      "rust/src/parse_harness_equivalence.rs",
+      "rust/src/parse_harness_interpreter.rs",
+      "rust/src/parse_harness_semantic_suite.rs",
+      "rust/src/ast_shape_contract.rs",
+      "rust/src/ast_pipeline/fusibility_census.rs",
+      "rust/src/test_runner/round_trip_tests.rs"
     ]
   },
-  "_file_classes_note": "per-family: a language-specific COMPONENT (it may name its own family, no other) — owed to its own crate behind a neutral stage interface; registry: the enumeration of registered generated parsers (derived by build.rs from generated/); api: the shipped embedding surface — its family / profile enumeration is owed to derivation from the registry and the generated parsers' declared profiles; bin: operator tools (build / measure / debug), not shipped to users; harness: test suites and censuses that name families as fixtures. Everything else is the ENGINE.",
+  "_file_classes_note": "per-family: a language-specific COMPONENT (it may name its own family — its name, its profiles, its rules — and nothing of another's) — owed to its own crate behind a neutral stage interface; registry: the enumeration of registered generated parsers (derived by build.rs from generated/); api: the shipped embedding surface — its family / profile enumeration is owed to derivation from the registry and the generated parsers' declared profiles; bin: operator tools (build / measure / debug), not shipped to users; harness: test suites and censuses that name families as fixtures. Everything else is the ENGINE.",
   "ceilings": {
-    "rust/src/embedding_api.rs": {"ceiling": 37, "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.112", "why_non_zero": "GrammarFamily / GrammarProfile enums and the contract's hand-typed family and profile lists — to be derived from the registry and each generated parser's declared @profiles / @profile_alias (a versioned embedding-API change; Nexsim consumes 1.3.6 / schema 2)"},
-    "rust/src/parser_registry.rs": {"ceiling": 80, "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.112", "why_non_zero": "the registered parsers by name — the derived enumeration; the tokens are the registry's rows, to be generated from build.rs's cfg list rather than typed"},
-    "rust/src/lib.rs": {"ceiling": 5, "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.112", "why_non_zero": "the cfg-gated `pub mod <family>` includes of the generated parsers — the registry's include list"},
-    "rust/build.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/main.rs": {"ceiling": 1, "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113", "why_non_zero": "the `--preprocess-systemverilog` flag family of the operator CLI — to become `--preprocess <family>` resolved through a registered preprocessing stage"},
-    "rust/src/bin/parseability_probe.rs": {"ceiling": 13, "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113", "why_non_zero": "the probe's SystemVerilog preprocess flags and the family-specific dump paths"},
-    "rust/src/bin/rtl_frontend_generated_contract_probe.rs": {"ceiling": 15, "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113", "why_non_zero": "a per-family contract probe living under the universal bin/ — to move beside its family's contract artifacts"},
-    "rust/src/parse_harness_equivalence.rs": {"ceiling": 20, "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113", "why_non_zero": "the equivalence harness's fixture table of families — a table the registry should feed"},
-    "rust/src/sv_keyword_versions.rs": {"ceiling": 6, "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113", "why_non_zero": "the IEEE 1800 §22.14 per-version keyword tables name the SV profiles — a per-family component owed to its own crate"},
-    "rust/src/sv_preprocessor.rs": {"ceiling": 0, "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113", "why_non_zero": ""},
-    "rust/src/parse_harness.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/parse_harness_combinator_suite.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/parse_harness_interpreter.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/parse_harness_semantic_suite.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/ast_shape_contract.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/ast_pipeline/fusibility_census.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/test_runner/round_trip_tests.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/arena_chunk_oracle_probe.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/coverage_gap_triage.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/dump_declared_annotation_inventory.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/ebnf_dual_run_diff.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/generated_parse_probe.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/parse_alloc_census_probe.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/perf_bench.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/pgen.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/pgen_ast.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/regex_alloc_census_probe.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/regex_construction_census_probe.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/regex_corpus_probe.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/regex_perf_probe.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/regex_perf_probe_embedding_api.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/regex_validation_microbench.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/return_annotation_generated_audit.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""},
-    "rust/src/bin/test_runner.rs": {"ceiling": 0, "owner_leaf": "", "why_non_zero": ""}
+    "rust/src/embedding_api.rs": {
+      "ceiling": 37,
+      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.112",
+      "why_non_zero": "GrammarFamily / GrammarProfile enums and the contract's hand-typed family and profile lists — to be derived from the registry and each generated parser's declared @profiles / @profile_alias (a versioned embedding-API change; Nexsim consumes 1.3.6 / schema 2)"
+    },
+    "rust/src/parser_registry.rs": {
+      "ceiling": 0,
+      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.112",
+      "why_non_zero": "the registered parsers by name — the derived enumeration; the tokens are the registry's rows, to be generated from build.rs's cfg list rather than typed"
+    },
+    "rust/src/lib.rs": {
+      "ceiling": 0,
+      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.112",
+      "why_non_zero": "the cfg-gated `pub mod <family>` includes of the generated parsers — the registry's include list"
+    },
+    "rust/build.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/main.rs": {
+      "ceiling": 1,
+      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113",
+      "why_non_zero": "the `--preprocess-systemverilog` flag family of the operator CLI — to become `--preprocess <family>` resolved through a registered preprocessing stage"
+    },
+    "rust/src/bin/parseability_probe.rs": {
+      "ceiling": 13,
+      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113",
+      "why_non_zero": "the probe's SystemVerilog preprocess flags and the family-specific dump paths"
+    },
+    "rust/src/bin/rtl_frontend_generated_contract_probe.rs": {
+      "ceiling": 0,
+      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113",
+      "why_non_zero": "a per-family contract probe living under the universal bin/ — to move beside its family's contract artifacts"
+    },
+    "rust/src/parse_harness_equivalence.rs": {
+      "ceiling": 20,
+      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113",
+      "why_non_zero": "the equivalence harness's fixture table of families — a table the registry should feed"
+    },
+    "rust/src/sv_keyword_versions.rs": {
+      "ceiling": 0,
+      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113",
+      "why_non_zero": "the IEEE 1800 §22.14 per-version keyword tables name the SV profiles — a per-family component owed to its own crate"
+    },
+    "rust/src/sv_preprocessor.rs": {
+      "ceiling": 0,
+      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113",
+      "why_non_zero": ""
+    },
+    "rust/src/parse_harness.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/parse_harness_combinator_suite.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/parse_harness_interpreter.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/parse_harness_semantic_suite.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/ast_shape_contract.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/ast_pipeline/fusibility_census.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/test_runner/round_trip_tests.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/arena_chunk_oracle_probe.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/coverage_gap_triage.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/dump_declared_annotation_inventory.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/ebnf_dual_run_diff.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/generated_parse_probe.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/parse_alloc_census_probe.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/perf_bench.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/pgen.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/pgen_ast.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/regex_alloc_census_probe.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/regex_construction_census_probe.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/regex_corpus_probe.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/regex_perf_probe.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/regex_perf_probe_embedding_api.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/regex_validation_microbench.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/return_annotation_generated_audit.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    },
+    "rust/src/bin/test_runner.rs": {
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
+    }
   },
   "_ceilings_note": "production-code language tokens per classed file, measured 2026-09-28 on 7ac640e94 by `--census`; a rise FAILS, a fall is promoted with `--rebaseline`; every non-zero ceiling names the leaf that owes its zero — the doctrine's end state is every ceiling at 0.",
   "engine_allow": [],

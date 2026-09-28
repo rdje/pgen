@@ -6,185 +6,168 @@ use std::path::{Path, PathBuf};
 use sha2::{Digest, Sha256};
 
 fn main() {
-    println!("cargo:rustc-check-cfg=cfg(has_generated_ebnf_parser)");
-    println!("cargo:rustc-check-cfg=cfg(has_generated_systemverilog_parser)");
-    println!("cargo:rustc-check-cfg=cfg(has_generated_systemverilog_preprocessor_parser)");
-    println!("cargo:rustc-check-cfg=cfg(has_generated_vhdl_parser)");
-    println!("cargo:rustc-check-cfg=cfg(has_generated_json_parser)");
-    println!("cargo:rustc-check-cfg=cfg(has_generated_regex_parser)");
-    println!("cargo:rustc-check-cfg=cfg(has_generated_rtl_const_expr_parser)");
-    println!("cargo:rustc-check-cfg=cfg(has_generated_rtl_frontend_parser)");
-    // PARSE-HARNESS.2 — the blessed scratch-register slot.
-    println!("cargo:rustc-check-cfg=cfg(has_generated_scratch_parser)");
-    println!("cargo:rerun-if-env-changed=PGEN_EBNF_PARSER_PATH");
-    println!("cargo:rerun-if-env-changed=PGEN_JSON_PARSER_PATH");
-    println!("cargo:rerun-if-env-changed=PGEN_REGEX_PARSER_PATH");
-    println!("cargo:rerun-if-env-changed=PGEN_SYSTEMVERILOG_PARSER_PATH");
-    println!("cargo:rerun-if-env-changed=PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH");
-    println!("cargo:rerun-if-env-changed=PGEN_VHDL_PARSER_PATH");
-    println!("cargo:rerun-if-env-changed=PGEN_RTL_CONST_EXPR_PARSER_PATH");
-    println!("cargo:rerun-if-env-changed=PGEN_RTL_FRONTEND_PARSER_PATH");
-    println!("cargo:rerun-if-env-changed=PGEN_SCRATCH_PARSER_PATH");
-
+    // `ENGINE-UNIVERSAL-SERVICES.112` slice 2 — THE PARSER LIST IS DERIVED, NEVER TYPED. Every
+    // `../generated/<name>_parser.rs` (plus any `PGEN_<NAME>_PARSER_PATH` override) is a registered
+    // parser: this script emits its `has_generated_<name>_parser` cfg, its resolved include path,
+    // its build-time fingerprint (`.24` (ii′)), and writes three files into OUT_DIR that the crate
+    // includes — the module list (`lib.rs`), the registry table (`parser_registry.rs`) and the
+    // family-hook module list (`families/mod.rs`). Nothing under `rust/src` names a language's
+    // artifact any more (the `ENGINE-NEUTRALITY` doctrine reads for it); the two meta parsers the
+    // engine cannot compile without (the annotation pair) are the only names this file spells,
+    // and they are the engine's own languages.
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into()));
     let source_dir = manifest_dir.join("src");
     let bin_source_dir = source_dir.join("bin");
+    let generated_dir = resolve_path(&manifest_dir, "../generated");
+    let families_dir = source_dir.join("families");
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("cargo sets OUT_DIR"));
+    println!("cargo:rerun-if-changed={}", generated_dir.to_string_lossy());
+    println!("cargo:rerun-if-changed={}", families_dir.to_string_lossy());
+
+    // The ebnf seed (`generated/ebnf.rs`) — the meta-grammar's own parser, compiled in under the
+    // `ebnf_dual_run` feature. Its `include!()` site is gated on `has_generated_ebnf_parser`.
+    println!("cargo:rustc-check-cfg=cfg(has_generated_ebnf_parser)");
+    println!("cargo:rerun-if-env-changed=PGEN_EBNF_PARSER_PATH");
     let ebnf_configured_path =
         env::var("PGEN_EBNF_PARSER_PATH").unwrap_or_else(|_| "../generated/ebnf.rs".to_string());
-    let json_configured_path = env::var("PGEN_JSON_PARSER_PATH")
-        .unwrap_or_else(|_| "../generated/json_parser.rs".to_string());
-    let regex_configured_path = env::var("PGEN_REGEX_PARSER_PATH")
-        .unwrap_or_else(|_| "../generated/regex_parser.rs".to_string());
-    let systemverilog_configured_path = env::var("PGEN_SYSTEMVERILOG_PARSER_PATH")
-        .unwrap_or_else(|_| "../generated/systemverilog_parser.rs".to_string());
-    let systemverilog_preprocessor_configured_path =
-        env::var("PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH")
-            .unwrap_or_else(|_| "../generated/systemverilog_preprocessor_parser.rs".to_string());
-    let vhdl_configured_path = env::var("PGEN_VHDL_PARSER_PATH")
-        .unwrap_or_else(|_| "../generated/vhdl_parser.rs".to_string());
-    let rtl_const_expr_configured_path = env::var("PGEN_RTL_CONST_EXPR_PARSER_PATH")
-        .unwrap_or_else(|_| "../generated/rtl_const_expr_parser.rs".to_string());
-    let rtl_frontend_configured_path = env::var("PGEN_RTL_FRONTEND_PARSER_PATH")
-        .unwrap_or_else(|_| "../generated/rtl_frontend_parser.rs".to_string());
-    let scratch_configured_path = env::var("PGEN_SCRATCH_PARSER_PATH")
-        .unwrap_or_else(|_| "../generated/scratch_parser.rs".to_string());
-
     let ebnf_resolved = resolve_path(&manifest_dir, &ebnf_configured_path);
     println!("cargo:rerun-if-changed={}", ebnf_resolved.to_string_lossy());
-    let json_resolved = resolve_path(&manifest_dir, &json_configured_path);
-    println!("cargo:rerun-if-changed={}", json_resolved.to_string_lossy());
-    let regex_resolved = resolve_path(&manifest_dir, &regex_configured_path);
-    println!(
-        "cargo:rerun-if-changed={}",
-        regex_resolved.to_string_lossy()
-    );
-    let systemverilog_resolved = resolve_path(&manifest_dir, &systemverilog_configured_path);
-    println!(
-        "cargo:rerun-if-changed={}",
-        systemverilog_resolved.to_string_lossy()
-    );
-    let systemverilog_preprocessor_resolved =
-        resolve_path(&manifest_dir, &systemverilog_preprocessor_configured_path);
-    println!(
-        "cargo:rerun-if-changed={}",
-        systemverilog_preprocessor_resolved.to_string_lossy()
-    );
-    let vhdl_resolved = resolve_path(&manifest_dir, &vhdl_configured_path);
-    println!("cargo:rerun-if-changed={}", vhdl_resolved.to_string_lossy());
-    let rtl_const_expr_resolved = resolve_path(&manifest_dir, &rtl_const_expr_configured_path);
-    println!(
-        "cargo:rerun-if-changed={}",
-        rtl_const_expr_resolved.to_string_lossy()
-    );
-    let rtl_frontend_resolved = resolve_path(&manifest_dir, &rtl_frontend_configured_path);
-    println!(
-        "cargo:rerun-if-changed={}",
-        rtl_frontend_resolved.to_string_lossy()
-    );
-    let scratch_resolved = resolve_path(&manifest_dir, &scratch_configured_path);
-    println!(
-        "cargo:rerun-if-changed={}",
-        scratch_resolved.to_string_lossy()
-    );
-    // The EBNF generated parser is treated like any other generated parser:
-    // its `include!()` site is gated on the `has_generated_ebnf_parser`
-    // cfg flag, which is set only when `generated/ebnf.rs` exists on disk.
-    // This breaks the cold-clone chicken-and-egg where the binary that
-    // GENERATES `generated/ebnf.rs` also needs to compile against it.
     if ebnf_resolved.is_file() {
         println!("cargo:rustc-cfg=has_generated_ebnf_parser");
         println!(
             "cargo:rustc-env=PGEN_EBNF_PARSER_PATH_RESOLVED={}",
             relativize_for_include(&source_dir, &ebnf_resolved).display()
         );
+        emit_parser_fingerprint("PGEN_EBNF_PARSER_SHA256", &ebnf_resolved);
+        // The dual-run diff binary includes the seed from `src/bin/` (a different include base).
         println!(
             "cargo:rustc-env=PGEN_EBNF_PARSER_PATH_RESOLVED_BIN={}",
             relativize_for_include(&bin_source_dir, &ebnf_resolved).display()
         );
-        emit_parser_fingerprint("PGEN_EBNF_PARSER_SHA256", &ebnf_resolved);
     }
 
-    if json_resolved.is_file() {
-        println!("cargo:rustc-cfg=has_generated_json_parser");
-        println!(
-            "cargo:rustc-env=PGEN_JSON_PARSER_PATH_RESOLVED={}",
-            relativize_for_include(&source_dir, &json_resolved).display()
-        );
-        emit_parser_fingerprint("PGEN_JSON_PARSER_SHA256", &json_resolved);
+    // The derived list: directory stems ∪ override names, sorted; each name is the artifact's
+    // registered spelling (the generator writes `<name>_parser.rs` from it).
+    let mut names: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    if let Ok(entries) = std::fs::read_dir(&generated_dir) {
+        for entry in entries.flatten() {
+            let file_name = entry.file_name().to_string_lossy().to_string();
+            if let Some(stem) = file_name.strip_suffix("_parser.rs") {
+                if !stem.is_empty() {
+                    names.insert(stem.to_string());
+                }
+            }
+        }
+    }
+    for (key, _) in env::vars() {
+        if let Some(middle) = key.strip_prefix("PGEN_").and_then(|k| k.strip_suffix("_PARSER_PATH")) {
+            if middle != "EBNF" && !middle.is_empty() {
+                names.insert(middle.to_ascii_lowercase());
+            }
+        }
+    }
+    // The two meta parsers every build needs: their absence is a build error with the remedy,
+    // never a silent cfg-off (a clean checkout must run `make regenerate_generated_parsers`).
+    for required in ["return_annotation", "semantic_annotation"] {
+        if !names.contains(required) {
+            panic!(
+                "generated/{}_parser.rs is missing — run `make -C rust SHELL=/bin/bash regenerate_generated_parsers` first",
+                required
+            );
+        }
+    }
+    // Family hook modules: `src/families/<name>.rs` present ⇒ that family's `HOOKS`.
+    let mut hook_families: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    if let Ok(entries) = std::fs::read_dir(&families_dir) {
+        for entry in entries.flatten() {
+            let file_name = entry.file_name().to_string_lossy().to_string();
+            if let Some(stem) = file_name.strip_suffix(".rs") {
+                if stem != "mod" {
+                    hook_families.insert(stem.to_string());
+                }
+            }
+        }
+    }
+    for family in &hook_families {
+        println!("cargo:rustc-check-cfg=cfg(has_generated_{}_parser)", family);
     }
 
-    if regex_resolved.is_file() {
-        println!("cargo:rustc-cfg=has_generated_regex_parser");
-        println!(
-            "cargo:rustc-env=PGEN_REGEX_PARSER_PATH_RESOLVED={}",
-            relativize_for_include(&source_dir, &regex_resolved).display()
-        );
-        emit_parser_fingerprint("PGEN_REGEX_PARSER_SHA256", &regex_resolved);
+    let mut modules = String::new();
+    let mut table = String::new();
+    let mut hook_modules = String::new();
+    modules.push_str("// DERIVED by build.rs from ../generated — never edited, never tracked.\n");
+    table.push_str("// DERIVED by build.rs from ../generated — never edited, never tracked.\n");
+    table.push_str("fn derived_rows() -> Vec<GeneratedParserRegistryEntry> {\n    #[allow(unused_mut)]\n    let mut rows: Vec<GeneratedParserRegistryEntry> = Vec::new();\n");
+    hook_modules.push_str("// DERIVED by build.rs from src/families — never edited, never tracked.\n");
+    for name in &names {
+        let upper = name.to_ascii_uppercase();
+        let env_key = format!("PGEN_{}_PARSER_PATH", upper);
+        println!("cargo:rerun-if-env-changed={}", env_key);
+        let configured = env::var(&env_key).unwrap_or_else(|_| format!("../generated/{}_parser.rs", name));
+        let resolved = resolve_path(&manifest_dir, &configured);
+        println!("cargo:rerun-if-changed={}", resolved.to_string_lossy());
+        println!("cargo:rustc-check-cfg=cfg(has_generated_{}_parser)", name);
+        if !resolved.is_file() {
+            continue;
+        }
+        let cfg = format!("has_generated_{}_parser", name);
+        println!("cargo:rustc-cfg={}", cfg);
+        println!("cargo:rustc-env=PGEN_{}_PARSER_PATH_RESOLVED={}", upper, resolved.display());
+        emit_parser_fingerprint(&format!("PGEN_{}_PARSER_SHA256", upper), &resolved);
+        let type_name = format!("{}Parser", snake_to_pascal(name));
+        // The module list (absolute include paths: the file lives in OUT_DIR).
+        // The annotation pair keeps its backward-compat snake_case type alias inside its module
+        // (`Return_annotationParser` / `Semantic_annotationParser`, used by path across the crate).
+        let compat_alias = match name.as_str() {
+            "return_annotation" => "    #[allow(non_camel_case_types)]\n    pub type Return_annotationParser<'input> = ReturnAnnotationParser<'input>;\n",
+            "semantic_annotation" => "    #[allow(non_camel_case_types)]\n    pub type Semantic_annotationParser<'input> = SemanticAnnotationParser<'input>;\n",
+            _ => "",
+        };
+        modules.push_str(&format!(
+            "#[cfg({cfg})]\npub mod {name} {{\n    include!({path:?});\n{alias}}}\n",
+            cfg = cfg, name = name, path = resolved.display().to_string(), alias = compat_alias
+        ));
+        // The registry row.
+        let hooks = if hook_families.contains(name) {
+            format!("&crate::families::{}::HOOKS", name)
+        } else {
+            "&crate::families::FamilyHooks::NONE".to_string()
+        };
+        table.push_str(&format!(
+            "    #[cfg({cfg})]\n    {{\n        rows.push(generated_parser_row!({name}, crate::generated_parsers::{name}::{ty}, {hooks}));\n    }}\n",
+            cfg = cfg, name = name, ty = type_name, hooks = hooks
+        ));
     }
+    // The ebnf seed's row — the meta-grammar's parser, under the `ebnf_dual_run` feature.
+    if ebnf_resolved.is_file() {
+        table.push_str("    #[cfg(all(feature = \"ebnf_dual_run\", has_generated_ebnf_parser))]\n    {\n        rows.push(generated_parser_row!(ebnf, crate::ebnf_generated_parser::EbnfParser, &crate::families::FamilyHooks::NONE));\n    }\n");
+    }
+    table.push_str("    rows\n}\n");
+    for family in &hook_families {
+        hook_modules.push_str(&format!(
+            "#[cfg(has_generated_{f}_parser)]\n#[path = {p:?}]\npub mod {f};\n",
+            f = family, p = families_dir.join(format!("{}.rs", family)).display().to_string()
+        ));
+    }
+    std::fs::write(out_dir.join("generated_parser_modules.rs"), modules).expect("write generated_parser_modules.rs");
+    std::fs::write(out_dir.join("generated_parser_table.rs"), table).expect("write generated_parser_table.rs");
+    std::fs::write(out_dir.join("family_hook_modules.rs"), hook_modules).expect("write family_hook_modules.rs");
+}
 
-    if systemverilog_resolved.is_file() {
-        println!("cargo:rustc-cfg=has_generated_systemverilog_parser");
-        println!(
-            "cargo:rustc-env=PGEN_SYSTEMVERILOG_PARSER_PATH_RESOLVED={}",
-            relativize_for_include(&source_dir, &systemverilog_resolved).display()
-        );
-        emit_parser_fingerprint("PGEN_SYSTEMVERILOG_PARSER_SHA256", &systemverilog_resolved);
+/// The generator's own type-name rule (`snake_to_pascal(<name>) + "Parser"`), re-implemented
+/// here for the IDENTIFIER only — the registered spelling itself is read from the artifact's
+/// `GRAMMAR_NAME` at run time and asserted equal to the file stem by a registry test
+/// (`ENGINE-UNIVERSAL-SERVICES.31` (e): never re-derive the spelling).
+fn snake_to_pascal(name: &str) -> String {
+    let mut out = String::new();
+    for part in name.split('_') {
+        let mut chars = part.chars();
+        if let Some(first) = chars.next() {
+            out.push(first.to_ascii_uppercase());
+            out.push_str(chars.as_str());
+        }
     }
-
-    if systemverilog_preprocessor_resolved.is_file() {
-        println!("cargo:rustc-cfg=has_generated_systemverilog_preprocessor_parser");
-        println!(
-            "cargo:rustc-env=PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH_RESOLVED={}",
-            relativize_for_include(&source_dir, &systemverilog_preprocessor_resolved).display()
-        );
-        emit_parser_fingerprint(
-            "PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_SHA256",
-            &systemverilog_preprocessor_resolved,
-        );
-    }
-
-    if vhdl_resolved.is_file() {
-        println!("cargo:rustc-cfg=has_generated_vhdl_parser");
-        println!(
-            "cargo:rustc-env=PGEN_VHDL_PARSER_PATH_RESOLVED={}",
-            relativize_for_include(&source_dir, &vhdl_resolved).display()
-        );
-        emit_parser_fingerprint("PGEN_VHDL_PARSER_SHA256", &vhdl_resolved);
-    }
-
-    if rtl_const_expr_resolved.is_file() {
-        println!("cargo:rustc-cfg=has_generated_rtl_const_expr_parser");
-        println!(
-            "cargo:rustc-env=PGEN_RTL_CONST_EXPR_PARSER_PATH_RESOLVED={}",
-            relativize_for_include(&source_dir, &rtl_const_expr_resolved).display()
-        );
-        emit_parser_fingerprint(
-            "PGEN_RTL_CONST_EXPR_PARSER_SHA256",
-            &rtl_const_expr_resolved,
-        );
-    }
-
-    if rtl_frontend_resolved.is_file() {
-        println!("cargo:rustc-cfg=has_generated_rtl_frontend_parser");
-        println!(
-            "cargo:rustc-env=PGEN_RTL_FRONTEND_PARSER_PATH_RESOLVED={}",
-            relativize_for_include(&source_dir, &rtl_frontend_resolved).display()
-        );
-        emit_parser_fingerprint("PGEN_RTL_FRONTEND_PARSER_SHA256", &rtl_frontend_resolved);
-    }
-
-    // PARSE-HARNESS.2 — the scratch-register slot is gated exactly like the other
-    // generated parsers: the cfg + include path are set ONLY when the artifact exists
-    // (`make focus_scratch`). With no artifact, the slot is simply absent (additive,
-    // never affecting a shipped grammar), so a clean checkout compiles unchanged.
-    if scratch_resolved.is_file() {
-        println!("cargo:rustc-cfg=has_generated_scratch_parser");
-        println!(
-            "cargo:rustc-env=PGEN_SCRATCH_PARSER_PATH_RESOLVED={}",
-            relativize_for_include(&source_dir, &scratch_resolved).display()
-        );
-        emit_parser_fingerprint("PGEN_SCRATCH_PARSER_SHA256", &scratch_resolved);
-    }
+    out
 }
 
 /// `ENGINE-UNIVERSAL-SERVICES.24` (ii′) — publish the sha256 of the generated parser THIS BUILD

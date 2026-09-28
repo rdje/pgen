@@ -2391,7 +2391,40 @@ impl AstBasedGenerator {
         let registered_grammar_name = self.registered_grammar_name().to_string();
         let grammar_profile_universe = self.grammar_profile_universe();
         let grammar_entry_rule = entry_rule.to_string();
+        // `ENGINE-UNIVERSAL-SERVICES.112` slice 2: the two profile accessors every parser answers the
+        // same way, so the registry's ONE template needs no per-family arm — a grammar without a
+        // `@default_profile` answers `None`, one without `@profile_alias` resolves every spelling
+        // to itself. The declaring cases keep their byte-identical surfaces below and only gain
+        // the `grammar_default_profile` wrapper.
+        let grammar_default_profile_accessor = match self.default_grammar_profile() {
+            Some(_) => quote! {
+                /// `ENGINE-UNIVERSAL-SERVICES.112`: the grammar-declared default profile, uniform.
+                pub fn grammar_default_profile() -> Option<&'static str> {
+                    Some(Self::DEFAULT_GRAMMAR_PROFILE)
+                }
+            },
+            None => quote! {
+                /// `ENGINE-UNIVERSAL-SERVICES.112`: this grammar declares no `@default_profile`.
+                pub fn grammar_default_profile() -> Option<&'static str> {
+                    None
+                }
+            },
+        };
+        let grammar_alias_identity_accessor = match self.grammar_profile_aliases() {
+            Some(_) => quote! {},
+            None => quote! {
+                /// `ENGINE-UNIVERSAL-SERVICES.112`: this grammar declares no `@profile_alias`, so
+                /// every requested spelling resolves to itself.
+                pub fn resolve_grammar_profile_alias(profile: &str) -> &str {
+                    profile
+                }
+            },
+        };
         let grammar_identity_surface = quote! {
+            #grammar_default_profile_accessor
+
+            #grammar_alias_identity_accessor
+
             /// `ENGINE-UNIVERSAL-SERVICES.112`: the grammar's registered name — the spelling
             /// `--parse <grammar>` takes and the registry keys on.
             pub const GRAMMAR_NAME: &'static str = #registered_grammar_name;
@@ -12843,6 +12876,33 @@ mod semantic_usage_tests {
             "generated parser should carry its canonical entry rule, got: {}",
             rendered
         );
+        // slice 2: the uniform accessors — no default profile, no aliases ⇒ None / identity.
+        assert!(
+            rendered.contains("pub fn grammar_default_profile() -> Option<&'static str> {\n        None"),
+            "a grammar without @default_profile answers None, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("pub fn resolve_grammar_profile_alias(profile: &str) -> &str {\n        profile"),
+            "a grammar without @profile_alias resolves every spelling to itself, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn generated_parser_uniform_accessors_wrap_the_declared_default_profile() {
+        let rendered = default_profile_rendered_parser();
+        assert!(
+            rendered.contains("pub fn grammar_default_profile() -> Option<&'static str> {\n        Some(Self::DEFAULT_GRAMMAR_PROFILE)"),
+            "a grammar with @default_profile answers Some(DEFAULT_GRAMMAR_PROFILE), got: {}",
+            rendered
+        );
+        assert_eq!(
+            rendered.matches("pub fn resolve_grammar_profile_alias(").count(),
+            1,
+            "exactly one alias resolver (the identity one, since this grammar declares no aliases), got: {}",
+            rendered
+        );
     }
 
     #[test]
@@ -14116,16 +14176,25 @@ mod semantic_usage_tests {
 
     #[test]
     fn generated_parser_without_profile_alias_directive_emits_no_alias_surface() {
-        // Byte-identity leg for non-bearing grammars: no constant, no resolver.
+        // Non-bearing grammars: no alias constant and no map-backed resolver. Since
+        // `ENGINE-UNIVERSAL-SERVICES.112` slice 2 every parser carries the UNIFORM resolver, so a
+        // non-bearing grammar emits the IDENTITY one (every spelling resolves to itself), never the
+        // map-backed one — that is what the registry's single template dispatches on.
         let rendered = profile_guard_rendered_parser();
         assert!(
             !rendered.contains("GRAMMAR_PROFILE_ALIASES"),
             "a grammar without @profile_alias must not emit the alias constant, got: {}",
             rendered
         );
+        assert_eq!(
+            rendered.matches("pub fn resolve_grammar_profile_alias(").count(),
+            1,
+            "a grammar without @profile_alias emits exactly one resolver (the identity one), got: {}",
+            rendered
+        );
         assert!(
-            !rendered.contains("resolve_grammar_profile_alias"),
-            "a grammar without @profile_alias must not emit the resolver, got: {}",
+            rendered.contains("pub fn resolve_grammar_profile_alias(profile: &str) -> &str {\n        profile"),
+            "a grammar without @profile_alias must emit the identity resolver, got: {}",
             rendered
         );
         let default_rendered = default_profile_rendered_parser();
