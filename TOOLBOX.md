@@ -802,6 +802,43 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 
 ---
 
+### 1.10 The ENGINE-NEUTRALITY census — does the engine know a language's name?
+- **WHAT:** `scripts/check_engine_neutrality.sh` (the standing gate, doctrine `ENGINE-NEUTRALITY`) and
+  its `--census` mode (the instrument). The forbidden vocabulary is DERIVED on every run from
+  `grammars/*.ebnf` classed by `rust/test_data/grammar_quality/engine_neutrality_register_v0.json` as
+  `language` or `meta` — a language grammar's name, its `@profiles` values, its `kw_*_<hash>` tokens and
+  its multi-word rule names, minus every name a meta grammar (the EBNF meta-grammar, the annotation
+  languages, the example grammars) defines. Every `rust/src` source the register does not class as a
+  per-family component, the registry, the embedding API, an operator binary or a harness is the ENGINE,
+  and it may carry none of that vocabulary in PRODUCTION code (`#[cfg(test)]` / `mod tests` and comments
+  are exempt: fixtures and prose, not behaviour). The non-engine classes sit under per-file ceilings that
+  only FALL, each non-zero one naming the leaf that owes its zero. `ENGINE-UNIVERSAL-SERVICES.4`.
+- **WHEN:** ⛔ before ANY edit under `rust/src` that names a grammar, a profile, a keyword or a rule —
+  a help string, an example, an enum, a match arm, a flag. And the first thing to read when asking
+  *"is this fact the engine's to know, or the grammar's?"*: a hit in the engine means the fact belongs
+  in the EBNF or in a per-family component.
+- **WHY IT EXISTS:** the director's 2026-09-28 order — the boundary that opened
+  `ENGINE-UNIVERSAL-SERVICES` had been violated silently because nothing read for it: on `7ac640e94`
+  the engine's behaviour was neutral and its example text was not (six tokens in three universal help
+  / lint strings), the embedding API typed a family's profiles by hand and the SystemVerilog
+  preprocessor lived inside the engine crate. Every doctrine was green.
+- **HOW:**
+  ```bash
+  bash scripts/check_engine_neutrality.sh              # the gate: self-test first, then the tree, ~1 s
+  bash scripts/check_engine_neutrality.sh --census     # every hit by class / position / kind
+  bash scripts/check_engine_neutrality.sh --self-test  # the ten arms alone
+  bash scripts/check_engine_neutrality.sh --rebaseline # promote a FALL of a classed file's ceiling
+  ```
+- **OUTPUT / READ:** `engine-neutrality: OK (engine: 0 language tokens in production code over N files; …)`
+  is the only green; `ENGINE source <file>:<line> names the <kind> <token> of a language grammar in
+  production code` is a breach (move the fact, never allow-list it — the allow-list is empty by
+  design); `<file> ROSE a → b` is a classed file that gained language knowledge it had been shedding;
+  `engine-neutrality census: families=… profiles=[…] rules=… files=…` heads the census, followed by
+  the per-(class, position, kind) counts. A `--rebaseline` that would RAISE a ceiling is refused.
+- **ROUTING:** a breach in a `per-family` / `registry` / `api` / `bin` / `harness` file is that class's
+  ceiling, owned by the leaf on its register row (`.112` the embedding API, `.113` the preprocessor); a
+  breach in an unclassed file is the engine's and is fixed in the commit that made it.
+
 ## 2. Trace — watch the parser explain itself (`parseability_probe`)
 
 ### 2.1 Trace verbosity

@@ -713,7 +713,7 @@ fn declared_profile_universe(annotations: &Annotations) -> Result<BTreeSet<Strin
 pub(crate) fn parse_profile_alias_payload(
     ast: &UnifiedSemanticAST,
 ) -> Result<Vec<(String, String)>, String> {
-    const USAGE: &str = "Directive '@profile_alias' expects an object of alias → canonical-profile pairs, e.g. `{ \"2017\": sv_2017, \"ieee1800-2017\": sv_2017 }`.";
+    const USAGE: &str = "Directive '@profile_alias' expects an object of alias → canonical-profile pairs, e.g. `{ \"short\": edition_a, \"standard-name\": edition_a }` (aliases for a profile the grammar declares).";
     let payload = ast
         .structured_value()
         .ok_or_else(|| format!("{USAGE} (payload is not a structured value)"))?;

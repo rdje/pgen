@@ -220,6 +220,48 @@ changes nothing about how the parser parses.
 
 PGEN still carries history from earlier bootstrap phases, but the active direction is explicit: Rust-first, EBNF-backed, proof-first generation.
 
+## The responsibility boundary and its guard
+
+PGEN's engine serves every EBNF identically. The rule that keeps it so has a testable form
+(`ENGINE-UNIVERSAL-SERVICES`, the frame): **a concern belongs to the engine iff it is objectively shared by all
+EBNFs — a property of parsing, not of the language parsed; it belongs to the grammar iff it is a fact about one
+language.** Both directions can be violated silently: a grammar can hand-compile around an engine gap (the
+founding case — three SystemVerilog rules hand-flattened around left recursion while the linter reported the
+gap as "handled by PGEN"), and the engine can absorb a language's words (a help string whose example is
+`sv_2017`, an API that types a family's profiles by hand). Every gate stays green either way, which is why the
+boundary is a doctrine and not a convention.
+
+**`ENGINE-NEUTRALITY`** (`scripts/check_engine_neutrality.sh`, ~1 s on every commit) reads the engine for the
+words of the languages it parses:
+
+- **The forbidden vocabulary is derived, never typed.** On every run the grammars under `grammars/` are classed
+  by `rust/test_data/grammar_quality/engine_neutrality_register_v0.json` as *language* (a parser built for users:
+  SystemVerilog, its preprocessor, the LRM-extracted twins, VHDL, the RTL grammars) or *meta* (the engine's own
+  languages: the EBNF meta-grammar, the semantic- and return-annotation languages, the example grammars). A
+  language grammar's name, its `@profiles` values, its `kw_*` keyword tokens and its multi-word rule names are
+  forbidden in the engine; a meta grammar's words are engine vocabulary by construction and are subtracted —
+  `quoted_string` and `string_literal` are the EBNF frontend's own token types, not leaks.
+- **The engine is every `rust/src` source the register does not class otherwise**, and it may carry none of the
+  vocabulary in production code. Test modules and comments may name families freely: they are fixtures and
+  prose, not behaviour. The allow-list is empty by design.
+- **The non-engine classes are a closed population under a ratchet.** A *per-family* component (the
+  SystemVerilog preprocessor and its keyword tables) may name its own family only; the *registry* (the
+  build-derived list of generated parsers), the *api* (the embedding surface), the *bin* (operator tools) and
+  the *harness* (test suites) files each carry a ceiling of production-code tokens that only falls — a rise
+  fails the commit, a fall is promoted deliberately, and every non-zero ceiling names the leaf that owes its
+  zero (`ENGINE-UNIVERSAL-SERVICES.112` for the API's enumeration, `.113` for the preprocessor's relocation).
+- **Ten self-test arms run before the tree is read**, so a guard that has stopped refusing is caught by its own
+  run.
+
+How to read a breach: `ENGINE source <file>:<line> names the <kind> <token> of a language grammar in production
+code` means the fact belongs in a grammar or in a per-family component, not in the engine; `<file> ROSE a → b`
+means a classed file gained language knowledge it had been shedding. The full census, every hit by class,
+position and kind, is `bash scripts/check_engine_neutrality.sh --census`.
+
+The grammar-side direction — a grammar carrying what the engine should provide — is held by the earned
+left-recursion verdict of `--lint-grammar` and `LR-ELIMINATION-RATCHET`, and owed a census of its own
+(`ENGINE-UNIVERSAL-SERVICES.2`).
+
 ## Front-End Workbench Direction
 
 One increasingly important architectural direction is that PGEN should become a front-end workbench, not only a parser emitter.

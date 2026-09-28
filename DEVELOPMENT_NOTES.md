@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-28 — ENGINE-UNIVERSAL-SERVICES.4 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0164`): the engine may not know a language's name, and the list of names it may not know is not written down
+
+- **The first census was wrong in the direction that matters.** Counting every grammar's rule names as forbidden flagged `quoted_string`, `string_literal`, `number` — the EBNF frontend's own token types, defined by the meta-grammar the engine exists to read. A neutrality guard that cannot tell the engine's own language from the languages it parses would either fail forever or be allow-listed into silence. The register's `language` / `meta` class per grammar is the fix, and it is two-sided: an unclassed grammar fails, a class row naming no grammar fails.
+- **Position is the discriminator, not the token.** The same `sv_2017` is a fixture in a `#[cfg(test)]` module, prose in a comment, and a breach in a help string. 1 240 test hits and 530 comment hits were all legitimate; six production-code hits were not. A guard keyed on the token alone would have been 99.7 % noise.
+- **Example text is behaviour a user sees.** The engine's runtime was neutral; its `@profiles` help said `'["sv_2017", "sv_2023"]'`. Three strings, six tokens, fixed in message text — and the reason the gate reads production code and not only identifiers.
+- **A ceiling that names its owner is a plan; one that does not is a permission.** Every non-zero ceiling in the register carries the leaf that takes it to zero (`.112` the API's enumeration, `.113` the preprocessor's crate); `--rebaseline` promotes a fall and refuses a rise. The allow-list is empty because nothing in the engine has a reason to know a language.
+
 ## 2026-09-28 — ENGINE-UNIVERSAL-SERVICES.111 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0163`, release 1.0.246): an epoch that counts events evicts the innocent; an epoch that names content comes back with it
 
 - **The memo's validity question is "is the store what I saw", not "has anything happened".** A rollback that discards a fact is an event, but the store it leaves is the checkpoint's exact content — the entries that consulted that content are still right. Naming contents (a fresh id per mutation, the checkpoint's id restored on rollback) answers the real question in O(1) and keeps the anchors that matter: a mutation still evicts.

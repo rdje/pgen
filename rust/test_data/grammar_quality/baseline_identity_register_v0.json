@@ -149,6 +149,11 @@
       "reason": "A shrink-only exemption list plus one policy floor (workflow_regeneration_timeout_floor_minutes=30). Both are decisions, not measurements."
     },
     {
+      "entry": "engine_neutrality_register_v0.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "Dispositions plus a shrink-only budget, on the flow_integrity_register_v0.json / gate_reachability_register_v0.json model: the grammar classes (language / meta), the file classes (per-family / registry / api / bin / harness) and the EMPTY engine allow-list are human decisions, and the per-file ceilings are a RATCHET's budget, not an expectation -- scripts/check_engine_neutrality.sh re-measures every classed file against the live tree on every run, refuses a rise and reports a fall for deliberate promotion (--rebaseline), so a ceiling cannot go stale in the passing direction. The vocabulary it guards (families, profiles, kw_* tokens, multi-word rule names) is DERIVED from grammars/*.ebnf at run time and never stored here; an identity block would guard nothing this gate does not already re-derive."
+    },
+    {
       "entry": "systemverilog_core_v0_contract.json",
       "disposition": "not-a-derived-baseline",
       "reason": "⚠️ AN ADJUDICATION THAT CORRECTS THE MECHANICAL CENSUS. SV-CORPUS-GRAD.13c.2x's key-name sweep counted 14 'derived' fields here; read, all 22 numeric leaves are RUN CONFIGURATION or POLICY BUDGETS -- sample_count, seed_base, max_depth, max_repeat, target_max_attempts, ms and byte ceilings, min_pass_ratio. None is a function of the tree: they are what the run is TOLD to do. That census declared itself a mechanical FLOOR needing per-row adjudication; this is that adjudication."

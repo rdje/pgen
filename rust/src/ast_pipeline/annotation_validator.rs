@@ -849,7 +849,7 @@ impl AnnotationValidator {
                         kind: AnnotationKind::Semantic,
                         rule_name: rule_name.to_string(),
                         annotation_index: Some(annotation_index),
-                        message: "Directive '@profiles' expects one or more profile names, for example '[\"sv_2017\", \"sv_2023\"]'.".to_string(),
+                        message: "Directive '@profiles' expects one or more profile names, for example '[\"edition_a\", \"edition_b\"]' (the names a grammar declares for its dialects).".to_string(),
                         annotation: Some(raw_annotation),
                     });
                 }

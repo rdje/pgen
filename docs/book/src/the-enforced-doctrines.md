@@ -119,9 +119,9 @@ Steps 4 and 5 are enforced, not suggested. That is the whole point.
 
 <!-- BEGIN DERIVED: scripts/report_doctrines.sh --markdown -->
 
-**43 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **8**, oracle + structural **1**, structural **20**, structural + oracle **5**.
+**44 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **8**, oracle + structural **1**, structural **21**, structural + oracle **5**.
 
-**Depth, derived:** median **1926** bytes per description, thinnest **501** (`SV-RELEASE-DISTANCE-CURRENCY`) — every one of the 43 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
+**Depth, derived:** median **1983** bytes per description, thinnest **501** (`SV-RELEASE-DISTANCE-CURRENCY`) — every one of the 44 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
 
 Rows are in **registration order**, oldest first — so the bottom of this table is what the repository learned most recently.
 
@@ -147,29 +147,30 @@ Rows are in **registration order**, oldest first — so the bottom of this table
 | 18 | [`SV-CORPUS-DENOMINATOR`](#sv-corpus-denominator) | evidence | `scripts/check_sv_corpus_denominator.sh` |
 | 19 | [`PARSE-COST-RATCHET`](#parse-cost-ratchet) | structural + oracle | `scripts/check_parse_cost_ratchet.sh` |
 | 20 | [`SV-RULE-FIRE-PARTITION`](#sv-rule-fire-partition) | artifact-consistency + oracle | `scripts/check_sv_rule_fire_partition.sh` |
-| 21 | [`SCRATCH-SLOT-HEADER`](#scratch-slot-header) | structural | `scripts/check_scratch_slot_header.sh` |
-| 22 | [`GENERATED-REPRODUCIBILITY`](#generated-reproducibility) | structural + oracle | `scripts/check_generated_reproducibility.sh` |
-| 23 | [`README-STABILITY`](#readme-stability) | structural | `scripts/check_readme_stability.sh` |
-| 24 | [`SV-CONTRACT-CURRENCY`](#sv-contract-currency) | structural + oracle | `scripts/check_sv_contract_currency.sh` |
-| 25 | [`SV-RELEASE-DISTANCE-CURRENCY`](#sv-release-distance-currency) | structural | `scripts/check_sv_release_distance.sh` |
-| 26 | [`LOOKAHEAD-SLOT-TEMPLATES`](#lookahead-slot-templates) | structural | `scripts/check_lookahead_slot_templates.sh` |
-| 27 | [`GRAMMAR-CERT-CURRENCY`](#grammar-cert-currency) | structural + oracle | `scripts/check_grammar_certification.sh` |
-| 28 | [`BASELINE-IDENTITY`](#baseline-identity) | structural | `scripts/check_baseline_identity.sh` |
-| 29 | [`CORPUS-KEY-INTEGRITY`](#corpus-key-integrity) | structural | `scripts/check_corpus_key_integrity.sh` |
-| 30 | [`SAMPLE-PROFILE-PARITY`](#sample-profile-parity) | oracle | `scripts/check_sample_profile_parity.sh` |
-| 31 | [`LR-ELIMINATION-RATCHET`](#lr-elimination-ratchet) | oracle | `scripts/check_lr_elimination_ratchet.sh` |
-| 32 | [`GAP-CLAIM-CENSUS`](#gap-claim-census) | evidence | `scripts/check_gap_claims.sh` |
-| 33 | [`TABLE-ARITY-RATCHET`](#table-arity-ratchet) | oracle | `scripts/check_table_arity.sh` |
-| 34 | [`FAMILY-STATUS-CURRENCY`](#family-status-currency) | oracle | `scripts/check_family_status.sh` |
-| 35 | [`CORPUS-CENSUS-CURRENCY`](#corpus-census-currency) | evidence + structural | `scripts/check_corpus_census.sh` |
-| 36 | [`LRM-CLAUSE-CITATION`](#lrm-clause-citation) | oracle + structural | `scripts/check_lrm_clause_citation.sh` |
-| 37 | [`IDENTITY-CARRIER-CURRENCY`](#identity-carrier-currency) | structural | `scripts/check_identity_carriers.sh` |
-| 38 | [`SV-STORE-GATE-BANK`](#sv-store-gate-bank) | oracle | `scripts/check_sv_store_gate_bank.sh` |
-| 39 | [`EBNF-ALTERNATIVE-PARITY`](#ebnf-alternative-parity) | structural + oracle | `scripts/check_ebnf_alternative_parity.sh` |
-| 40 | [`SV-RESERVED-WORDS`](#sv-reserved-words) | oracle | `scripts/check_sv_reserved_words.sh` |
-| 41 | [`SV-KEYWORD-VERSIONS`](#sv-keyword-versions) | oracle | `scripts/check_sv_keyword_versions.sh` |
-| 42 | [`DATA-LOCALITY`](#data-locality) | structural | `scripts/check_data_locality.sh` |
-| 43 | [`PIPELINE-LANE-CURRENCY`](#pipeline-lane-currency) | structural | `scripts/check_pipeline_lane_currency.sh` |
+| 21 | [`ENGINE-NEUTRALITY`](#engine-neutrality) | structural | `scripts/check_engine_neutrality.sh` |
+| 22 | [`SCRATCH-SLOT-HEADER`](#scratch-slot-header) | structural | `scripts/check_scratch_slot_header.sh` |
+| 23 | [`GENERATED-REPRODUCIBILITY`](#generated-reproducibility) | structural + oracle | `scripts/check_generated_reproducibility.sh` |
+| 24 | [`README-STABILITY`](#readme-stability) | structural | `scripts/check_readme_stability.sh` |
+| 25 | [`SV-CONTRACT-CURRENCY`](#sv-contract-currency) | structural + oracle | `scripts/check_sv_contract_currency.sh` |
+| 26 | [`SV-RELEASE-DISTANCE-CURRENCY`](#sv-release-distance-currency) | structural | `scripts/check_sv_release_distance.sh` |
+| 27 | [`LOOKAHEAD-SLOT-TEMPLATES`](#lookahead-slot-templates) | structural | `scripts/check_lookahead_slot_templates.sh` |
+| 28 | [`GRAMMAR-CERT-CURRENCY`](#grammar-cert-currency) | structural + oracle | `scripts/check_grammar_certification.sh` |
+| 29 | [`BASELINE-IDENTITY`](#baseline-identity) | structural | `scripts/check_baseline_identity.sh` |
+| 30 | [`CORPUS-KEY-INTEGRITY`](#corpus-key-integrity) | structural | `scripts/check_corpus_key_integrity.sh` |
+| 31 | [`SAMPLE-PROFILE-PARITY`](#sample-profile-parity) | oracle | `scripts/check_sample_profile_parity.sh` |
+| 32 | [`LR-ELIMINATION-RATCHET`](#lr-elimination-ratchet) | oracle | `scripts/check_lr_elimination_ratchet.sh` |
+| 33 | [`GAP-CLAIM-CENSUS`](#gap-claim-census) | evidence | `scripts/check_gap_claims.sh` |
+| 34 | [`TABLE-ARITY-RATCHET`](#table-arity-ratchet) | oracle | `scripts/check_table_arity.sh` |
+| 35 | [`FAMILY-STATUS-CURRENCY`](#family-status-currency) | oracle | `scripts/check_family_status.sh` |
+| 36 | [`CORPUS-CENSUS-CURRENCY`](#corpus-census-currency) | evidence + structural | `scripts/check_corpus_census.sh` |
+| 37 | [`LRM-CLAUSE-CITATION`](#lrm-clause-citation) | oracle + structural | `scripts/check_lrm_clause_citation.sh` |
+| 38 | [`IDENTITY-CARRIER-CURRENCY`](#identity-carrier-currency) | structural | `scripts/check_identity_carriers.sh` |
+| 39 | [`SV-STORE-GATE-BANK`](#sv-store-gate-bank) | oracle | `scripts/check_sv_store_gate_bank.sh` |
+| 40 | [`EBNF-ALTERNATIVE-PARITY`](#ebnf-alternative-parity) | structural + oracle | `scripts/check_ebnf_alternative_parity.sh` |
+| 41 | [`SV-RESERVED-WORDS`](#sv-reserved-words) | oracle | `scripts/check_sv_reserved_words.sh` |
+| 42 | [`SV-KEYWORD-VERSIONS`](#sv-keyword-versions) | oracle | `scripts/check_sv_keyword_versions.sh` |
+| 43 | [`DATA-LOCALITY`](#data-locality) | structural | `scripts/check_data_locality.sh` |
+| 44 | [`PIPELINE-LANE-CURRENCY`](#pipeline-lane-currency) | structural | `scripts/check_pipeline_lane_currency.sh` |
 
 ### `MEMORY-ARCH`
 
@@ -290,6 +291,12 @@ the SystemVerilog parser's **parse cost** is measured, and cannot rise unwatched
 *artifact-consistency + oracle* · enforced by `scripts/check_sv_rule_fire_partition.sh`
 
 the SV rules that **never fired on the corpus** are CLASSIFIED, and the classification is CONSUMED. `stimuli/sv/characterization/rule_coverage_sv_2017.tsv` has recorded, per rule, how many accepted corpus files ever caused it to fire — and **nothing read it**. `SV-CORPUS-GRAD.13c.2u` opened on its headline, *"104 grammar rules have NEVER fired on 16 336 real files"*, as the highest-yield rejects-valid hunt on the board. ⛔ Measured, that headline was wrong in BOTH directions: the 104 was stale (**137** today — the grammar gained 135 rules), and a large part of the list cannot fire for a reason that is **not a defect at all**, because PGEN's own left-recursion eliminator AUTHORS rules (`X_lr_base`/`_lr_suffix`/`_lr_seed_*`) and REPLACES the body of the rule it eliminates. ⭐ Demonstrated rather than argued: `casting_type` is listed as never-fired, yet on a file that ACCEPTS through `8'(1)` its nineteen `casting_type_lr_*` replacements fire and `casting_type` itself never appears in the entry counts. ⇒ an UNCLASSIFIED tracked number is worse than an unread one: it reads as a defect surface and sends the next reader hunting phantoms. The partition (`stimuli/sv/rule_fire_partition.py`) joins the corpus census with the CERTIFICATE-COVERAGE witness pass and splits every never-fired rule into `lr_synthetic` / `lr_eliminated_original` / `unreachable_from_entry` (a verified PROOF) / `coverage_gap` (witnessed ⇒ it CAN fire) / `unwitnessed`, and binds the REAL contradiction — corpus-`covered` ∩ certificate `proof`, a proof of unreachability refuted by a rule that COMMITS in an accepted real-world file. ⛔ That check was recorded as IMPOSSIBLE by `.13c.2u` because the report published `proof=<n>` and never the names; `.13c.2u.2` printed them under the existing env gate (read-only, headline byte-identical) and the check immediately reclassified **18** proven-unreachable rules the partition had been calling `coverage_gap` — an absent list is not an empty one; this tier holds the tracked partition consistent with the coverage artifact it derives from, requires a hand adjudication — with a measured LRM construct and an **ARM** check, since `.13c.2q` proved a verdict alone cannot see a construct parsing through the wrong production — for every `unwitnessed` rule, and keeps that class at zero. ⛔ It deliberately does NOT re-derive: that needs a ~3 min corpus census plus a ~5 min certificate pass (`make -C rust sv_rule_fire_partition`), and a cheap check claiming to have proved an expensive property is the same defect this doctrine exists for. ⭐ Its refusal arms are proven by `docs/tasks/artifacts/sv_corpus_grad/rule_fire_partition/probe.sh` (**7/7**, incl. the CONTROL that must stay green) — ⚠️ and the instrument's FIRST control was wrong in the refusing direction: it called a corpus-covered, generator-hard rule a contradiction and went red on a correct tree, which is recorded because a guard that refuses correct trees teaches people to bypass it
+
+### `ENGINE-NEUTRALITY`
+
+*structural* · enforced by `scripts/check_engine_neutrality.sh`
+
+the ENGINE — every `rust/src` source the register does not class otherwise — is EBNF-, grammar- and parser-**neutral**: it names no LANGUAGE grammar's family, profile, `kw_*` token or multi-word rule in production code. ⛔ **The forbidden vocabulary is DERIVED, never typed**: on every run the grammars under `grammars/*.ebnf` are classed by `rust/test_data/grammar_quality/engine_neutrality_register_v0.json` as `language` (a parser PGEN builds for users) or `meta` (the engine's own languages — the EBNF meta-grammar, the annotation languages, the example grammars — whose words are engine vocabulary by construction and are subtracted, which is why `quoted_string` and `string_literal` are not leaks); a grammar with no class row FAILS and a row naming no grammar FAILS. **Positions matter**: `#[cfg(test)]` modules and comments may name families freely — they are fixtures and prose, not behaviour. **The non-engine classes are a closed population under a ratchet**: `per-family` components may name their OWN family only, `registry` / `api` / `bin` / `harness` files carry a per-file ceiling of production-code tokens that only FALLS (a rise fails, a fall is promoted with `--rebaseline`), every non-zero ceiling names the leaf that owes its zero, and a classed file that does not exist fails. The engine allow-list is EMPTY by design; a row without `reason` and `owner_leaf` is refused. **Ten self-test arms** (a neutral engine file GREEN; a language name or a profile in a help string RED; the same token in a test module or a comment GREEN; a component naming another family RED; a ceiling rise RED; an unclassed grammar RED; a dead file row RED; an ownerless allow row RED) run FIRST inside every gate run. Founding measurement (`ENGINE-UNIVERSAL-SERVICES.4`, 2026-09-28, on `7ac640e94`): the engine's behaviour was neutral but its example text was not — six tokens in three universal help / lint strings, fixed in the doctrine's own commit; the embedding API typed 37 family / profile tokens by hand (`.112`) and the SystemVerilog preprocessor lived inside the engine crate (`.113`), both ratcheted here until their leaves take them to zero. The director's frame (2026-08-11): a concern belongs to the engine iff it is objectively shared by all EBNFs; to the grammar iff it is a fact about one language.
 
 ### `SCRATCH-SLOT-HEADER`
 
