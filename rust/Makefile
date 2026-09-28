@@ -1090,7 +1090,23 @@ regenerate_generated_parsers:
 	@set -e; for grammar in $(GENERATED_PARSER_FAMILIES); do \
 		$(MAKE) "focus_$$grammar"; \
 	done
-	@echo "✅ generated/ regenerated: annotation pair + $(words $(GENERATED_PARSER_FAMILIES)) grammar families."
+	$(MAKE) reseed_ebnf
+	$(MAKE) focus_scratch
+	@echo "✅ generated/ regenerated: annotation pair + $(words $(GENERATED_PARSER_FAMILIES)) grammar families + the ebnf seed + the scratch slot."
+
+# ENGINE-UNIVERSAL-SERVICES.112 (slice 1, 2026-09-28): the seed is REGENERATED, not only seeded-when-missing.
+# `regex_parser_bootstrap` seeds generated/ebnf.rs only when the file is absent (its cold-clone job), so a
+# GENERATOR change regenerated through the families alone left the seed on the previous emitter while the
+# reproducibility gate re-derives it on every run — measured: eleven artifacts gained the identity surface
+# and the seed did not, until these two steps (the seed's own B + C, with the ast_pipeline already built)
+# were run by hand. `regenerate_generated_parsers` now runs them, and `focus_scratch` — the blessed slot
+# is in the reproducibility gate's family set but not in GENERATED_PARSER_FAMILIES.
+.PHONY: reseed_ebnf
+reseed_ebnf:
+	@echo "🌱 Re-seeding generated/ebnf.rs from grammars/ebnf.ebnf with the current generator..."
+	$(RUST_AST_PIPELINE) $(GRAMMARS_DIR)/ebnf.ebnf --emit-raw-ast-json $(GENERATED_DIR)/ebnf.json
+	$(RUST_AST_PIPELINE) $(GENERATOR_FLAGS_BOOTSTRAP) $(GENERATED_DIR)/ebnf.json -o $(GENERATED_DIR)/ebnf.rs
+	@echo "🌱 generated/ebnf.rs re-seeded."
 
 .PHONY: regex_tests
 regex_tests: regex_parser

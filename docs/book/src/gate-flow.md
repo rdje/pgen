@@ -345,6 +345,12 @@ make -C rust SHELL=/bin/bash generated_reproducibility_gate      # tier 2, ~57 s
 make -C rust SHELL=/bin/bash generated_reproducibility_rebaseline
 ```
 
+Since `ENGINE-UNIVERSAL-SERVICES.112` (slice 1, 2026-09-28) `regenerate_generated_parsers` also
+re-seeds `generated/ebnf.rs` (`make -C rust reseed_ebnf`, the seed's own two steps with the
+built `ast_pipeline`) and rebuilds the scratch slot (`focus_scratch`), so a **generator** change
+reaches every artifact tier 2 re-derives — before that the seed was produced only when the file
+was missing, and a regenerated tree read as a seed that did not re-derive.
+
 **Tier 1** re-hashes the three things each artifact is a function of — the
 artifact, its input JSON, and a digest over the tracked emission sources *plus the
 recipe that invokes them*. If none moved, the artifacts cannot have become stale;

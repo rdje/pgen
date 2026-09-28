@@ -9,7 +9,7 @@ use crate::ast_pipeline::{
     SemanticRuntimeValue, SemanticScopeKind, SemanticTokenClass, SemanticValueConstraints,
     TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue,
     ast_return_transform::AstReturnTransformer, compile_default_profile,
-    compile_layout_sensitivity, compile_profile_aliases,
+    compile_layout_sensitivity, compile_profile_aliases, compile_profile_universe,
     compile_semantic_runtime_annotations,
     parse_canonical_transform_expression,
     parse_semantic_bool, parse_semantic_charset,
@@ -2181,6 +2181,19 @@ impl AstBasedGenerator {
             .and_then(|annotations| compile_default_profile(annotations).ok().flatten())
     }
 
+    /// `ENGINE-UNIVERSAL-SERVICES.112`: the grammar's declared profile universe (every
+    /// `@profiles:` value, sorted; empty for an unprofiled grammar), emitted as the parser's
+    /// `GRAMMAR_PROFILES` const beside `GRAMMAR_NAME` — the artifact carries the family's own
+    /// facts, so the registry and the embedding API DERIVE them and never type them. A
+    /// malformed payload is not swallowed here: the same compile aborts generation with the
+    /// precise error in `generate_compiled_semantic_runtime_annotations_tokens`.
+    fn grammar_profile_universe(&self) -> Vec<String> {
+        self.annotations
+            .as_ref()
+            .and_then(|annotations| compile_profile_universe(annotations).ok())
+            .unwrap_or_default()
+    }
+
     /// `PROFILE-ALIAS.2`: the grammar's declared request-spelling alias map —
     /// the grammar-level `@profile_alias:` directive(s) compiled from
     /// `self.annotations` (`None` when absent: requested profiles pass
@@ -2369,6 +2382,30 @@ impl AstBasedGenerator {
                     self.grammar_profile = profile.map(|value| value.to_string());
                 }
             },
+        };
+        // `ENGINE-UNIVERSAL-SERVICES.112`: every generated parser carries its grammar's REGISTERED
+        // name and its declared profile universe as consts, so the registry and the embedding API
+        // read a family's facts from the artifact and never type them (the director, 2026-09-28:
+        // grammar-specific knowledge belongs in the EBNF and nowhere else). Emitted for EVERY
+        // grammar — an unprofiled one carries an empty universe — beside the profile surface above.
+        let registered_grammar_name = self.registered_grammar_name().to_string();
+        let grammar_profile_universe = self.grammar_profile_universe();
+        let grammar_entry_rule = entry_rule.to_string();
+        let grammar_identity_surface = quote! {
+            /// `ENGINE-UNIVERSAL-SERVICES.112`: the grammar's registered name — the spelling
+            /// `--parse <grammar>` takes and the registry keys on.
+            pub const GRAMMAR_NAME: &'static str = #registered_grammar_name;
+
+            /// `ENGINE-UNIVERSAL-SERVICES.112`: the grammar's canonical ENTRY rule — the rule
+            /// `parse_full_<entry>` parses and `parse_full_from(GRAMMAR_ENTRY_RULE)` reproduces,
+            /// so a consumer can run any registered parser from its declared entry without
+            /// knowing the entry's name.
+            pub const GRAMMAR_ENTRY_RULE: &'static str = #grammar_entry_rule;
+
+            /// `ENGINE-UNIVERSAL-SERVICES.112`: the grammar's declared profile universe — every
+            /// `@profiles:` value it carries, sorted (empty when the grammar declares none). The
+            /// set `set_grammar_profile` may be asked for; aliases resolve INTO it.
+            pub const GRAMMAR_PROFILES: &'static [&'static str] = &[#(#grammar_profile_universe),*];
         };
 
         // GRAMMAR-WELLFORMED.H.12.8.4.3: entry-aware full parse. Compute one dispatch
@@ -2751,6 +2788,8 @@ impl AstBasedGenerator {
                     ))
                 }
             }
+
+            #grammar_identity_surface
 
             #grammar_profile_surface
 
@@ -12775,6 +12814,56 @@ mod semantic_usage_tests {
                     .expect("parser generation should succeed")
             })
             .as_str()
+    }
+
+    // `ENGINE-UNIVERSAL-SERVICES.112`: every generated parser carries its grammar's registered
+    // name and its declared profile universe, so the registry and the embedding API read a
+    // family's facts from the artifact and never type them.
+    #[test]
+    fn generated_parser_identity_surface_carries_registered_name_and_profile_universe() {
+        let rendered = profile_guard_rendered_parser();
+        let generator = profile_guard_generator();
+        assert!(
+            rendered.contains(&format!(
+                "pub const GRAMMAR_NAME: &'static str = \"{}\";",
+                generator.registered_grammar_name()
+            )),
+            "generated parser should carry its registered grammar name, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains(
+                "pub const GRAMMAR_PROFILES: &'static [&'static str] = &[\"sv_2017\", \"sv_2023\"];"
+            ),
+            "generated parser should carry the sorted declared profile universe, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("pub const GRAMMAR_ENTRY_RULE: &'static str = \"package_declaration\";"),
+            "generated parser should carry its canonical entry rule, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn generated_parser_identity_surface_is_empty_for_an_unprofiled_grammar() {
+        let generator = generator_with_named_semantic("entry", vec![]);
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("entry".to_string(), token("quoted_string", "x"));
+        let rule_order = vec!["entry".to_string()];
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "identity_surface_unprofiled.rs")
+            .expect("parser generation should succeed");
+        assert!(
+            rendered.contains("pub const GRAMMAR_PROFILES: &'static [&'static str] = &[];"),
+            "an unprofiled grammar should carry an EMPTY profile universe, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("pub const GRAMMAR_NAME: &'static str = \""),
+            "every generated parser should carry GRAMMAR_NAME, got: {}",
+            rendered
+        );
     }
 
     fn or_rule() -> ASTNode {

@@ -671,6 +671,15 @@ pub fn compile_profile_aliases(
 /// every `@profiles` list payload (rule- and branch-level) plus the
 /// `@default_profile` payload. Used by [`compile_profile_aliases`] to
 /// validate alias targets and keys.
+/// `ENGINE-UNIVERSAL-SERVICES.112`: the grammar's declared PROFILE UNIVERSE — every value any
+/// `@profiles:` directive in the grammar names, lowercased and sorted — as the generator emits it
+/// into the parser (`GRAMMAR_PROFILES`), so a consumer reads a family's dialects from the artifact
+/// the grammar produced and never types them. The same set `compile_profile_aliases` validates
+/// alias targets against; an unprofiled grammar yields an empty list.
+pub fn compile_profile_universe(annotations: &Annotations) -> Result<Vec<String>, String> {
+    Ok(declared_profile_universe(annotations)?.into_iter().collect())
+}
+
 fn declared_profile_universe(annotations: &Annotations) -> Result<BTreeSet<String>, String> {
     use super::semantic_directive_registry::{
         parse_semantic_string_list, semantic_directive_name_payload,

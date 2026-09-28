@@ -47,6 +47,16 @@ every entry point. The embedding API's typed `GrammarProfile` enum keeps its own
 of the typed contract, and a drift-gate test asserts they resolve every grammar-declared alias to
 the declared canonical profile — the two surfaces cannot silently diverge.
 
+Since `ENGINE-UNIVERSAL-SERVICES.112` (slice 1, 2026-09-28), every generated parser also carries its
+**identity surface**: `GRAMMAR_NAME` (the registered spelling `--parse <grammar>` takes),
+`GRAMMAR_PROFILES` (every `@profiles:` value the grammar declares, sorted — empty for an unprofiled
+grammar) and `GRAMMAR_ENTRY_RULE` (the canonical entry that `parse_full_from` reproduces), beside the
+`DEFAULT_GRAMMAR_PROFILE` and `GRAMMAR_PROFILE_ALIASES` it already carried. These consts are the
+source the registry and this API derive a family's facts from: the typed `GrammarFamily` /
+`GrammarProfile` enumeration above is being retired in the leaf's remaining slices (a versioned
+change to 2.0.0), because the engine may not know a language's name — see *The responsibility
+boundary and its guard* in the developer-architecture chapter.
+
 ### Reading source files — `pgen::source_text`
 
 The embedding API parses a `&str`; **turning a file into that `&str` is the host's job**, and it is
