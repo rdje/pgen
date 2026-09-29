@@ -87,11 +87,6 @@ fn generated_source_label_value(registered_grammar_name: &str) -> String {
     format!("{registered_grammar_name} input byte")
 }
 
-macro_rules! eprintln {
-    ($($arg:tt)*) => {
-        crate::pgen_trace_debug!($($arg)*)
-    };
-}
 
 /// The per-introducer comment-arm suppression decision for the two layout skippers
 /// (`consume_layout_for_terminal` / `consume_layout_for_regex`).
@@ -559,13 +554,13 @@ impl AstBasedGenerator {
                 .filter(|(_, d)| d.eligible && !d.decided)
                 .map(|(rule, _)| rule)
                 .collect();
-            eprintln!(
+            crate::pgen_trace_debug!(
                 "        P1a inline-emission plan: {} rule(s) inlined at call sites, {} eligible over budget",
                 decided.len(),
                 over_budget.len(),
             );
             if !over_budget.is_empty() {
-                eprintln!("        over-budget (stay method calls): {:?}", over_budget);
+                crate::pgen_trace_debug!("        over-budget (stay method calls): {:?}", over_budget);
             }
             if decided.is_empty() {
                 None
@@ -671,33 +666,33 @@ impl AstBasedGenerator {
         rule_order: &[String],
         filename: &str,
     ) -> Result<String> {
-        eprintln!("\n{}", "=".repeat(80));
-        eprintln!("🚀  AST-BASED PARSER GENERATION STARTED");
-        eprintln!("{}", "=".repeat(80));
-        eprintln!(
+        crate::pgen_trace_debug!("\n{}", "=".repeat(80));
+        crate::pgen_trace_debug!("🚀  AST-BASED PARSER GENERATION STARTED");
+        crate::pgen_trace_debug!("{}", "=".repeat(80));
+        crate::pgen_trace_debug!(
             "📊  Grammar: '{}' with {} rules",
             self.grammar_name,
             rule_order.len()
         );
-        eprintln!("🎯  Target: {}", filename);
-        eprintln!("📂  File: {}:{}", file!(), line!());
-        eprintln!();
+        crate::pgen_trace_debug!("🎯  Target: {}", filename);
+        crate::pgen_trace_debug!("📂  File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!();
 
         // GLUED-DIRECTIVE: refuse a glued rule that spells a literal terminal before any code exists.
         self.refuse_glued_rules_with_literal_atoms(grammar_tree)?;
 
         let parser_tokens = self.generate_parser_tokens(grammar_tree, rule_order, filename)?;
 
-        eprintln!();
-        eprintln!(
+        crate::pgen_trace_debug!();
+        crate::pgen_trace_debug!(
             "✅  TokenStream generation complete ({} tokens)",
             parser_tokens.to_string().len()
         );
-        eprintln!("📂  File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!("📂  File: {}:{}", file!(), line!());
 
-        eprintln!();
+        crate::pgen_trace_debug!();
         // Convert TokenStream to formatted string using prettyplease
-        eprintln!("🎨  Converting TokenStream to formatted Rust code...");
+        crate::pgen_trace_debug!("🎨  Converting TokenStream to formatted Rust code...");
         let syntax_tree: syn::File = match syn::parse2(parser_tokens.clone()) {
             Ok(file) => file,
             Err(err) => {
@@ -726,12 +721,12 @@ impl AstBasedGenerator {
             }
         };
         let formatted_code = prettyplease::unparse(&syntax_tree);
-        eprintln!(
+        crate::pgen_trace_debug!(
             "✨  Code formatting complete ({} characters)",
             formatted_code.len()
         );
-        eprintln!("📂  File: {}:{}", file!(), line!());
-        eprintln!();
+        crate::pgen_trace_debug!("📂  File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!();
         Ok(formatted_code)
     }
 
@@ -767,11 +762,11 @@ impl AstBasedGenerator {
             })
             .collect();
 
-        eprintln!(
+        crate::pgen_trace_debug!(
             "   🔧  Starting parser code generation for {} rules using AST-based approach",
             rule_order.len()
         );
-        eprintln!("        File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!("        File: {}:{}", file!(), line!());
 
         // Determine entry rule
         let entry_rule = self
@@ -781,8 +776,8 @@ impl AstBasedGenerator {
             .or_else(|| rule_order.first().cloned())
             .ok_or_else(|| anyhow::anyhow!("No entry rule found"))?;
 
-        eprintln!("        Entry rule determined: '{}'", entry_rule);
-        eprintln!("        File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!("        Entry rule determined: '{}'", entry_rule);
+        crate::pgen_trace_debug!("        File: {}:{}", file!(), line!());
 
         // RGX-0078.5.i.4 (P1a) — compute the inline-emission decision set ONCE
         // per generation from the SHARED census decision function, so the
@@ -810,14 +805,14 @@ impl AstBasedGenerator {
                 + &self.grammar_name[1..]
         );
 
-        eprintln!("        Generated parser struct name: '{}'", parser_name);
-        eprintln!("        File: {}:{}", file!(), line!());
-        eprintln!();
+        crate::pgen_trace_debug!("        Generated parser struct name: '{}'", parser_name);
+        crate::pgen_trace_debug!("        File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!();
 
         // Generate imports
         let imports = self.generate_imports();
-        eprintln!("        Generated import statements");
-        eprintln!("        File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!("        Generated import statements");
+        crate::pgen_trace_debug!("        File: {}:{}", file!(), line!());
 
         // ENGINE-UNIVERSAL-SERVICES.31 (b)/(c)/(e) — the diagnostic label, emitted ONCE, and
         // naming what the `Logger`'s position argument is an offset INTO.
@@ -831,13 +826,13 @@ impl AstBasedGenerator {
 
         // Generate types
         let types = self.generate_types();
-        eprintln!("        Generated type definitions");
-        eprintln!("        File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!("        Generated type definitions");
+        crate::pgen_trace_debug!("        File: {}:{}", file!(), line!());
 
         // Generate parser struct
         let parser_struct = self.generate_parser_struct(&parser_name);
-        eprintln!("        Generated parser struct definition");
-        eprintln!("        File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!("        Generated parser struct definition");
+        crate::pgen_trace_debug!("        File: {}:{}", file!(), line!());
 
         // Generate parser implementation
         let parser_impl = self.generate_parser_impl(
@@ -847,8 +842,8 @@ impl AstBasedGenerator {
             &entry_rule,
             filename,
         )?;
-        eprintln!("        Generated parser implementation with all rule methods");
-        eprintln!("        File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!("        Generated parser implementation with all rule methods");
+        crate::pgen_trace_debug!("        File: {}:{}", file!(), line!());
 
         // RGX-0078.5.i.7 (D2-A) — the FUSED cascade graph: one compact
         // `cascade_<rule>` fn per plan rule (sub-roots + internal), entered on the
@@ -866,9 +861,9 @@ impl AstBasedGenerator {
 
         // Generate tests
         let tests = generate_tests(&parser_name);
-        eprintln!("        Generated test module");
-        eprintln!("        File: {}:{}", file!(), line!());
-        eprintln!();
+        crate::pgen_trace_debug!("        Generated test module");
+        crate::pgen_trace_debug!("        File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!();
 
         // Phase 2 M1: parallel typed parser impl, only emitted when --emit-typed-entry-skeleton is set.
         let typed_parser_impl = if self.emit_typed_entry_skeleton {
@@ -891,11 +886,11 @@ impl AstBasedGenerator {
             #tests
         };
 
-        eprintln!(
+        crate::pgen_trace_debug!(
             "        Combined all components into final TokenStream ({} chars)",
             result.to_string().len()
         );
-        eprintln!("        File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!("        File: {}:{}", file!(), line!());
         Ok(result)
     }
 
@@ -1357,13 +1352,13 @@ impl AstBasedGenerator {
         let parse_method = self.generate_parse_method(entry_rule, grammar_tree, rule_order);
 
         // Generate rule methods
-        eprintln!("\n{}", "-".repeat(60));
-        eprintln!("RULE METHOD GENERATION");
-        eprintln!("{}", "-".repeat(60));
+        crate::pgen_trace_debug!("\n{}", "-".repeat(60));
+        crate::pgen_trace_debug!("RULE METHOD GENERATION");
+        crate::pgen_trace_debug!("{}", "-".repeat(60));
         let recursive_rules = Self::compute_recursive_rules(grammar_tree);
         let mut rule_methods = Vec::new();
         for rule_name in rule_order {
-            eprintln!("   📋  Rule: {} - File: {}:{}", rule_name, file!(), line!());
+            crate::pgen_trace_debug!("   📋  Rule: {} - File: {}:{}", rule_name, file!(), line!());
             if let Some(ast_node) = grammar_tree.get(rule_name) {
                 let is_recursive = recursive_rules.contains(rule_name.as_str());
                 let method = self.generate_rule_method_with_recursion(
@@ -1374,22 +1369,22 @@ impl AstBasedGenerator {
                     is_recursive,
                 )?;
                 rule_methods.push(method);
-                eprintln!("        ✓   Completed - File: {}:{}", file!(), line!());
-                eprintln!();
-                eprintln!();
+                crate::pgen_trace_debug!("        ✓   Completed - File: {}:{}", file!(), line!());
+                crate::pgen_trace_debug!();
+                crate::pgen_trace_debug!();
             }
         }
         let unresolved_reference_methods =
             self.generate_unresolved_reference_methods(grammar_tree, rule_order);
         if !unresolved_reference_methods.is_empty() {
-            eprintln!(
+            crate::pgen_trace_debug!(
                 "Generated {} unresolved reference fallback method(s) - File: {}:{}",
                 unresolved_reference_methods.len(),
                 file!(),
                 line!()
             );
         }
-        eprintln!(
+        crate::pgen_trace_debug!(
             "All rule methods generated ({}) - File: {}:{}",
             rule_methods.len(),
             file!(),
@@ -4317,20 +4312,20 @@ impl AstBasedGenerator {
         let method_name = format_ident!("parse_{}", rule_name);
         let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
 
-        eprintln!(
+        crate::pgen_trace_debug!(
             "        ↳   Entering rule processing block - File: {}:{}",
             file!(),
             line!()
         );
 
-        eprintln!();
+        crate::pgen_trace_debug!();
         // RGX-0078.5.i.4 (P1a) — the body is factored into
         // `generate_rule_body_inner` so an inlined call site emits the IDENTICAL
         // body this method carries (identical-by-construction, no drift).
         let rule_body_inner = self.generate_rule_body_inner(rule_name, ast_node, filename)?;
 
-        eprintln!();
-        eprintln!(
+        crate::pgen_trace_debug!();
+        crate::pgen_trace_debug!(
             "            File: {}:{}: Exiting rule processing block",
             file!(),
             line!()
@@ -4633,7 +4628,7 @@ impl AstBasedGenerator {
         rule_name: &str,
         filename: &str,
     ) -> Result<TokenStream> {
-        eprintln!(
+        crate::pgen_trace_debug!(
             "   🔍  Generating parsing logic for rule '{}' with AST node type: {:?} - File: {}:{}",
             rule_name,
             ast_node,
@@ -4643,7 +4638,7 @@ impl AstBasedGenerator {
 
         match ast_node {
             ASTNode::Or { alternatives } => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "        Processing OR node with {} alternatives - File: {}:{}",
                     alternatives.len(),
                     file!(),
@@ -4656,7 +4651,7 @@ impl AstBasedGenerator {
                 self.generate_or_logic(alternatives, rule_name, filename, false)
             }
             ASTNode::Sequence { elements } => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "        Processing sequence node with {} elements - File: {}:{}",
                     elements.len(),
                     file!(),
@@ -4665,7 +4660,7 @@ impl AstBasedGenerator {
                 self.generate_sequence_logic(elements, rule_name, filename)
             }
             ASTNode::Atom { value } => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "        Processing atom node - File: {}:{}",
                     file!(),
                     line!()
@@ -4676,7 +4671,7 @@ impl AstBasedGenerator {
                 element,
                 quantifier,
             } => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "        Processing quantified node with '{}' quantifier - File: {}:{}",
                     quantifier,
                     file!(),
@@ -4685,7 +4680,7 @@ impl AstBasedGenerator {
                 self.generate_quantified_logic(element, quantifier, rule_name, filename)
             }
             ASTNode::Lookahead { element, positive } => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "        Processing {} lookahead node - File: {}:{}",
                     if *positive { "positive" } else { "negative" },
                     file!(),
@@ -4853,7 +4848,7 @@ impl AstBasedGenerator {
         if branch_count == 1 {
             // Single branch - simpler logic without try_parse
             let branch = &alternatives[0];
-            eprintln!();
+            crate::pgen_trace_debug!();
             let branch_logic = self.generate_node_parsing_logic(branch, rule_name, filename)?;
 
             // Resolve the branch's annotation: explicit declaration if
@@ -5227,7 +5222,7 @@ impl AstBasedGenerator {
                 let mut dispatch_arms = Vec::new();
                 for idx in 0..branch_count {
                     let alternative = &alternatives[idx];
-                    eprintln!();
+                    crate::pgen_trace_debug!();
                     let branch_logic =
                         self.generate_node_parsing_logic(alternative, rule_name, filename)?;
                     let explicit_annotation: Option<BranchAnnotation> = self
@@ -5326,7 +5321,7 @@ impl AstBasedGenerator {
 
             for idx in 0..branch_count {
                 let alternative = &alternatives[idx];
-                eprintln!();
+                crate::pgen_trace_debug!();
                 let branch_logic =
                     self.generate_node_parsing_logic(alternative, rule_name, filename)?;
 
@@ -6164,7 +6159,7 @@ impl AstBasedGenerator {
                 quantifier,
             } if quantifier == "?" => {
                 // Optional element
-                eprintln!();
+                crate::pgen_trace_debug!();
                 let inner_logic = self.generate_node_parsing_logic(element, rule_name, filename)?;
                 let attempt = quote! {
                     if let Some(content) = parser.try_parse(|p| {
@@ -6204,7 +6199,7 @@ impl AstBasedGenerator {
                 }
             }
             _ => {
-                eprintln!();
+                crate::pgen_trace_debug!();
                 let inner_logic = self.generate_node_parsing_logic(element, rule_name, filename)?;
                 quote! {
                     {
@@ -6276,7 +6271,7 @@ impl AstBasedGenerator {
         rule_name: &str,
         filename: &str,
     ) -> Result<TokenStream> {
-        eprintln!(
+        crate::pgen_trace_debug!(
             "        Processing atom value: {:?} - File: {}:{}",
             value,
             file!(),
@@ -6298,7 +6293,7 @@ impl AstBasedGenerator {
                     ""
                 };
 
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "        Token type: '{}', value: '{}' - File: {}:{}",
                     token_type_str,
                     token_value_str,
@@ -6308,7 +6303,7 @@ impl AstBasedGenerator {
 
                 match token_type_str {
                     "quoted_string" => {
-                        eprintln!(
+                        crate::pgen_trace_debug!(
                             "        Generating string terminal matcher for '{}' - File: {}:{}",
                             token_value_str,
                             file!(),
@@ -6346,7 +6341,7 @@ impl AstBasedGenerator {
                         // plan; no plan (unit tests / analysis failure) ⇒ the
                         // method call below, byte-identical to pre-P1a.
                         if self.inline_decided(token_value_str) {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "        Inlining rule reference '{}' (P1a) - File: {}:{}",
                                 token_value_str,
                                 file!(),
@@ -6369,7 +6364,7 @@ impl AstBasedGenerator {
                                 let result = ParseContent::Alternative(parser.arena.alloc(__pgen_alt_child))
                             });
                         }
-                        eprintln!(
+                        crate::pgen_trace_debug!(
                             "        Generating rule reference call to '{}' - File: {}:{}",
                             token_value_str,
                             file!(),
@@ -6396,7 +6391,7 @@ impl AstBasedGenerator {
                         })
                     }
                     "regex" => {
-                        eprintln!(
+                        crate::pgen_trace_debug!(
                             "        Generating regex matcher for pattern '{}' - File: {}:{}",
                             token_value_str,
                             file!(),
@@ -6519,7 +6514,7 @@ impl AstBasedGenerator {
                         })
                     }
                     "number" | "probability" | "include_dir" | "include_file" | "rule" => {
-                        eprintln!(
+                        crate::pgen_trace_debug!(
                             "        Generating literal matcher for token type '{}' value '{}' - File: {}:{}",
                             token_type_str,
                             token_value_str,
@@ -6556,7 +6551,7 @@ impl AstBasedGenerator {
         // ENGINE-UNIVERSAL-SERVICES.31 (b)/(c) — the `Logger::log_*` `file` argument is the ONE
         // emitted module constant, not a fresh copy of the `-o` path at every site.
         let file_label = source_label_ident();
-        eprintln!();
+        crate::pgen_trace_debug!();
         let element_logic = self.generate_node_parsing_logic(element, rule_name, filename)?;
         // Optional semantic guard for line-delimited declaration grammars.
         // Example usage in a grammar:
@@ -6899,7 +6894,7 @@ impl AstBasedGenerator {
         rule_name: &str,
         captured_vars: &[String],
     ) -> Result<TokenStream> {
-        eprintln!(
+        crate::pgen_trace_debug!(
             "DEBUG: generate_return_transform called for rule '{}', parsed_ast is {}",
             rule_name,
             if annotation.parsed_ast.is_some() {
@@ -6920,7 +6915,7 @@ impl AstBasedGenerator {
                  Raw annotation: {} */",
                 annotation.annotation_content, rule_name, annotation.annotation_content
             );
-            eprintln!(
+            crate::pgen_trace_debug!(
                 "DEBUG: Adding warning comment for rule '{}' with annotation '{}'",
                 rule_name, annotation.annotation_content
             );

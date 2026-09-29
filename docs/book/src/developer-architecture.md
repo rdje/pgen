@@ -315,6 +315,25 @@ PGEN keeps two orthogonal axes for messages, and they must never be confused:
   unconditionally, to stderr — via `pgen_warn!` / `pgen_error!` / `pgen_fatal!` and
   `emit_diagnostic`. **A warning/error/fatal is NEVER gated by a verbosity level**, because
   a severity message hidden behind verbosity is a silent failure.
+- ⚠️ **And a bare `eprintln!` means stderr in every engine file** — since
+  `ENGINE-UNIVERSAL-SERVICES.72` (2026-09-29). Until then two files (`ast_pipeline/mod.rs`
+  and `ast_pipeline/ast_based_generator.rs`) shadowed the std macro with a local
+  `macro_rules! eprintln` that routed into the debug-gated trace, so 242 diagnostics in them
+  never reached stderr at all (a first census read 247: it had counted five `eprintln!` tokens inside
+  the generator's `quote!` templates, which are emitted text of the generated parsers and were never
+  shadowed) and 31 of those carried a severity marker: a rule dropped from the
+  grammar tree, an annotation silently discarded, a malformed envelope element, an unbalanced
+  group, an unknown operator. The shadow is deleted; 28 of the 31 now go through
+  `pgen_warn!` / `pgen_error!` (two of them once per process, under a `std::sync::Once`, because
+  they would otherwise fire per annotation in a feature-less build), three stay traces on measured
+  grounds — one normal-flow line, and two advisory notices that the annotation backend cannot
+  validate a free-form `@transform:` / `@generate:` payload, which fire 8 + 3 times on the shipped
+  regex and return-annotation grammars for annotations the engine keeps — and every other former
+  call site spells `pgen_trace_debug!`: the gating is visible where the call is, not four thousand
+  lines away. Measured on the rebuilt generator over all ten shipped grammar envelopes: zero
+  always-on lines; a grammar with an unbalanced group prints two `[PGEN][WARN]` lines with no
+  trace flag set. The census that sized it
+  (`docs/tasks/artifacts/eus72/eprintln_shadow_census.py`) reads `shadowed=0`.
 
 This separation is a hard rule (a masked error once hid the dominant cause of the
 SystemVerilog stimuli-coverage residual for an entire campaign). It is enforced by

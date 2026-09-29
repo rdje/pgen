@@ -25,7 +25,16 @@ attributes only what that statement contains.
 a deliberately verbose debug DUMP is correctly gated. This census finds CANDIDATES; the
 adjudication of intent is human and belongs in the leaf, not here.
 
-Usage:  python3 docs/tasks/artifacts/eus72/eprintln_shadow_census.py [--list]
+⛔⛔ CORRECTED AGAIN BY THE FIX ITSELF (`.72`, 2026-09-29), TWICE: (1) the macro's LINE NUMBER was a
+hand-carried copy (`FILES` held 532 / 90) — the macro is now located by TEXT, and a file without one
+reports the shadow ABSENT, so every bare call there is stderr; (2) a bare `eprintln!` INSIDE a
+`quote!` / `quote_spanned!` template is EMITTED TEXT, not a call — it becomes a token of the generated
+parser, where `eprintln!` is std's — so it was never shadowed. The first census counted five such
+template tokens in the generator as suppressed calls (247 read where 242 is right), and the fix's first
+cut rewrote them, which changed every generated artifact by exactly 127 bytes; the reproducibility
+verify caught it. Template tokens are now counted on their own line and never as shadowed.
+
+Usage:  python3 docs/tasks/artifacts/eus72/eprintln_shadow_census.py [--list] [--rev GIT_REV]
 Exit:   0 always — this is a census, not a gate.
 """
 from __future__ import annotations
@@ -40,9 +49,37 @@ import sys
 # site here because the macro sits near the top; in a file where it sat near the bottom the
 # same bug would have inverted the answer.
 FILES = [
-    ("rust/src/ast_pipeline/mod.rs", 532),
-    ("rust/src/ast_pipeline/ast_based_generator.rs", 90),
+    "rust/src/ast_pipeline/mod.rs",
+    "rust/src/ast_pipeline/ast_based_generator.rs",
 ]
+SHADOW_DEF = re.compile(r"^macro_rules! eprintln \{", re.M)
+QUOTE_OPEN = re.compile(r"\bquote(?:_spanned)?!\s*[\{\(]")
+
+
+def inside_quote_template(src: str, pos: int) -> bool:
+    """Is `pos` inside an unclosed `quote!{…}` / `quote!(…)` block? Such text is EMITTED, never called."""
+    for m in QUOTE_OPEN.finditer(src):
+        if m.end() > pos:
+            break
+        opener = src[m.end() - 1]
+        closer = {"{": "}", "(": ")"}[opener]
+        depth, i = 1, m.end()
+        while i < pos and depth:
+            if src[i] == opener:
+                depth += 1
+            elif src[i] == closer:
+                depth -= 1
+            i += 1
+        if depth > 0:
+            return True
+    return False
+
+
+def read_source(path: str, rev: str | None) -> str:
+    if rev is None:
+        return open(path).read()
+    import subprocess
+    return subprocess.run(["git", "show", f"{rev}:{path}"], capture_output=True, text=True, check=True).stdout
 SEVERITY = re.compile(r"WARNING|ERROR|FAILED|FAILURE|⚠|❌|🛑|⛔")
 CALL = re.compile(r"(?<![:\w])eprintln!\s*[(\[{]")
 # ⛔ SEPARATE PATTERN, because the one above CANNOT match a qualified call: its
@@ -81,10 +118,13 @@ def statement_at(src: str, open_idx: int) -> str:
 
 def main() -> int:
     show = "--list" in sys.argv
+    rev = sys.argv[sys.argv.index("--rev") + 1] if "--rev" in sys.argv else None
     grand_shadowed = grand_sev = 0
-    for path, macro_line in FILES:
-        src = open(path).read()
-        shadowed = severity_hits = before_shadow = 0
+    for path in FILES:
+        src = read_source(path, rev)
+        shadow = SHADOW_DEF.search(src)
+        macro_line = src.count("\n", 0, shadow.start()) + 1 if shadow else None
+        shadowed = severity_hits = before_shadow = template_tokens = 0
         std_qualified = len(
             [
                 m
@@ -101,8 +141,11 @@ def main() -> int:
                 continue
             if "macro_rules" in src[line_start : line_start + 60]:
                 continue
-            if src.count("\n", 0, start) + 1 < macro_line:
-                before_shadow += 1        # above the definition => real stderr
+            if inside_quote_template(src, start):
+                template_tokens += 1      # emitted text of a generated parser, never a call here
+                continue
+            if macro_line is None or src.count("\n", 0, start) + 1 < macro_line:
+                before_shadow += 1        # no shadow, or above the definition => real stderr
                 continue
             shadowed += 1
             body = statement_at(src, m.end() - 1)
@@ -111,9 +154,11 @@ def main() -> int:
                 rows.append((src.count("\n", 0, start) + 1, body.replace("\n", " ")[:96]))
         grand_shadowed += shadowed
         grand_sev += severity_hits
-        print(f"{path}")
+        print(f"{path}{'' if rev is None else f' @ {rev}'}")
+        print(f"  shadow macro                                  : {'line ' + str(macro_line) if macro_line else 'ABSENT'}")
         print(f"  std::eprintln!  (reaches stderr)              : {std_qualified}")
-        print(f"  bare eprintln! ABOVE the macro (real stderr)  : {before_shadow}")
+        print(f"  bare eprintln! NOT shadowed (real stderr)     : {before_shadow}")
+        print(f"  eprintln! tokens inside quote! templates      : {template_tokens}  (emitted text, never calls)")
         print(f"  bare eprintln!  (SHADOWED -> debug-gated)     : {shadowed}")
         print(f"  ...of which the STATEMENT carries a severity  : {severity_hits}")
         if show:

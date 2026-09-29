@@ -530,11 +530,6 @@ macro_rules! pgen_trace_debug {
     };
 }
 
-macro_rules! eprintln {
-    ($($arg:tt)*) => {
-        crate::pgen_trace_debug!($($arg)*)
-    };
-}
 
 // Shared Logger trait that both binaries can access
 pub trait Logger: std::fmt::Debug {
@@ -1520,14 +1515,16 @@ impl NodeArenaFootprint {
             return;
         }
         let mb = |b: usize| b as f64 / (1024.0 * 1024.0);
-        // ⛔⛔ `std::eprintln!` IS LOAD-BEARING AND MUST NOT BE SIMPLIFIED TO
-        // `eprintln!`. This module SHADOWS the std macro at `mod.rs`'s
-        // `macro_rules! eprintln` -> `pgen_trace_debug!`, so a bare `eprintln!`
-        // here is not stderr at all: it is a trace record that only materialises
-        // at `PGEN_TRACE_VERBOSITY=debug` and is DROPPED silently otherwise.
-        // Measured: the first cut of this instrument printed nothing on any
-        // family while `enabled=true raw=Ok("1")` — the env check had been
-        // correct all along and the OUTPUT was being routed away.
+        // ⛔ `std::eprintln!` here is deliberate: this instrument's report must reach
+        // stderr unconditionally. HISTORY (`ENGINE-UNIVERSAL-SERVICES.67`(b) → `.72`):
+        // until 2026-09-29 this module SHADOWED the std macro (`macro_rules! eprintln`
+        // -> `pgen_trace_debug!`), so a bare `eprintln!` was a trace record that only
+        // materialised at `PGEN_TRACE_VERBOSITY=debug` and was DROPPED silently
+        // otherwise — the first cut of this instrument printed nothing on any family
+        // while `enabled=true raw=Ok("1")`. `.72` removed the shadow: every former call
+        // site now spells `pgen_trace_debug!` and the severity-bearing ones use
+        // `pgen_warn!` / `pgen_error!`, so a bare `eprintln!` is stderr again. The
+        // qualified spelling stays as the record of why.
         // ⛔ The owned leg is printed as "NOT MEASURED", never as 0, when the
         // accumulators were never armed — `None` and `Some(0)` are different
         // facts (`ENGINE-UNIVERSAL-SERVICES.67`(b)).
@@ -4009,23 +4006,23 @@ impl RustASTPipeline {
         &self,
         raw_ast_data: &[serde_json::Value],
     ) -> Result<(HashMap<String, ASTNode>, Vec<String>, Option<Annotations>)> {
-        eprintln!("\n{}", "=".repeat(80));
-        eprintln!("🔄  AST PIPELINE TRANSFORMATION STARTED");
-        eprintln!("{}", "=".repeat(80));
-        eprintln!(
+        crate::pgen_trace_debug!("\n{}", "=".repeat(80));
+        crate::pgen_trace_debug!("🔄  AST PIPELINE TRANSFORMATION STARTED");
+        crate::pgen_trace_debug!("{}", "=".repeat(80));
+        crate::pgen_trace_debug!(
             "📊  Processing {} raw AST elements into structured grammar",
             raw_ast_data.len()
         );
-        eprintln!("📂  File: {}:{}", file!(), line!());
-        eprintln!();
+        crate::pgen_trace_debug!("📂  File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!();
 
         let mut grammar_tree = HashMap::new();
         let mut rule_order = Vec::new();
         let mut annotations = Annotations::default();
 
         for (rule_idx, rule_data) in raw_ast_data.iter().enumerate() {
-            eprintln!("   📋  Rule {}/{}", rule_idx + 1, raw_ast_data.len());
-            eprintln!(
+            crate::pgen_trace_debug!("   📋  Rule {}/{}", rule_idx + 1, raw_ast_data.len());
+            crate::pgen_trace_debug!(
                 "       Raw JSON: {}",
                 rule_data.to_string().chars().take(80).collect::<String>()
                     + if rule_data.to_string().len() > 80 {
@@ -4034,42 +4031,42 @@ impl RustASTPipeline {
                         ""
                     }
             );
-            eprintln!("       File: {}:{}", file!(), line!());
+            crate::pgen_trace_debug!("       File: {}:{}", file!(), line!());
 
             if let Some(rule_array) = rule_data.as_array() {
                 if rule_array.is_empty() {
-                    eprintln!("       ⚠️   WARNING: Skipping empty rule array");
-                    eprintln!("       File: {}:{}", file!(), line!());
-                    eprintln!();
+                    crate::pgen_warn!("Skipping empty rule array");
+                    crate::pgen_trace_debug!("       File: {}:{}", file!(), line!());
+                    crate::pgen_trace_debug!();
                     continue;
                 }
 
                 // First element should be ["rule", "rule_name"]
                 if let Some(first_elem) = rule_array.first() {
                     if let Some(rule_name) = self.extract_rule_name(first_elem) {
-                        eprintln!("       ✅  Rule declaration found: '{}' ", rule_name);
-                        eprintln!("       File: {}:{}", file!(), line!());
+                        crate::pgen_trace_debug!("       ✅  Rule declaration found: '{}' ", rule_name);
+                        crate::pgen_trace_debug!("       File: {}:{}", file!(), line!());
                         if !rule_order.contains(&rule_name) {
                             rule_order.push(rule_name.clone());
                         }
 
                         // Parse the rule content (everything after the rule declaration)
                         let rule_content = &rule_array[1..];
-                        eprintln!(
+                        crate::pgen_trace_debug!(
                             "       🔍  Parsing {} content elements for rule '{}'",
                             rule_content.len(),
                             rule_name
                         );
-                        eprintln!("       File: {}:{}", file!(), line!());
+                        crate::pgen_trace_debug!("       File: {}:{}", file!(), line!());
 
                         let parsed_rule = self.parse_rule_content(rule_content)?;
 
-                        eprintln!(
+                        crate::pgen_trace_debug!(
                             "       🎯  Rule '{}' successfully transformed to AST",
                             rule_name
                         );
-                        eprintln!("       Result: {:?}", parsed_rule.ast_node);
-                        eprintln!("       File: {}:{}", file!(), line!());
+                        crate::pgen_trace_debug!("       Result: {:?}", parsed_rule.ast_node);
+                        crate::pgen_trace_debug!("       File: {}:{}", file!(), line!());
                         if self.config.preserve_annotations {
                             if parsed_rule
                                 .branch_return_annotations
@@ -4136,26 +4133,26 @@ impl RustASTPipeline {
                         } else {
                             grammar_tree.insert(rule_name, parsed_rule.ast_node);
                         }
-                        eprintln!();
+                        crate::pgen_trace_debug!();
                     } else {
-                        eprintln!("       ❌  ERROR: Failed to extract rule name from element");
-                        eprintln!("       Element: {:?}", first_elem);
-                        eprintln!("       File: {}:{}", file!(), line!());
-                        eprintln!();
+                        crate::pgen_error!("Failed to extract rule name from element");
+                        crate::pgen_trace_debug!("       Element: {:?}", first_elem);
+                        crate::pgen_trace_debug!("       File: {}:{}", file!(), line!());
+                        crate::pgen_trace_debug!();
                     }
                 } else {
-                    eprintln!("       ❌  ERROR: Rule array has no first element");
-                    eprintln!("       File: {}:{}", file!(), line!());
-                    eprintln!();
+                    crate::pgen_error!("Rule array has no first element");
+                    crate::pgen_trace_debug!("       File: {}:{}", file!(), line!());
+                    crate::pgen_trace_debug!();
                 }
             } else {
-                eprintln!("       ❌  ERROR: Rule data is not an array");
-                eprintln!(
+                crate::pgen_error!("Rule data is not an array");
+                crate::pgen_trace_debug!(
                     "       Data type: {}",
                     std::any::type_name::<serde_json::Value>()
                 );
-                eprintln!("       File: {}:{}", file!(), line!());
-                eprintln!();
+                crate::pgen_trace_debug!("       File: {}:{}", file!(), line!());
+                crate::pgen_trace_debug!();
             }
         }
 
@@ -4168,19 +4165,19 @@ impl RustASTPipeline {
                 Some(&mut annotations),
             )
         } else {
-            eprintln!(
+            crate::pgen_trace_debug!(
                 "[mod.rs][transform_from_raw_ast()] ⏭️  Left-recursion elimination disabled by configuration"
             );
             LeftRecursionEliminationOutcome::default()
         };
         *self.left_recursion_elimination.borrow_mut() = elimination_outcome;
 
-        eprintln!("🎉  TRANSFORMATION COMPLETE");
-        eprintln!("📊  Generated grammar with {} rules", grammar_tree.len());
-        eprintln!("📋  Rule execution order: {:?}", rule_order);
-        eprintln!("📂  File: {}:{}", file!(), line!());
-        eprintln!("{}", "=".repeat(80));
-        eprintln!();
+        crate::pgen_trace_debug!("🎉  TRANSFORMATION COMPLETE");
+        crate::pgen_trace_debug!("📊  Generated grammar with {} rules", grammar_tree.len());
+        crate::pgen_trace_debug!("📋  Rule execution order: {:?}", rule_order);
+        crate::pgen_trace_debug!("📂  File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!("{}", "=".repeat(80));
+        crate::pgen_trace_debug!();
 
         let annotations = if self.config.preserve_annotations
             && (!annotations.branch_return_annotations.is_empty()
@@ -4211,7 +4208,7 @@ impl RustASTPipeline {
         rule_order: &mut Vec<String>,
         mut annotations: Option<&mut Annotations>,
     ) -> LeftRecursionEliminationOutcome {
-        eprintln!(
+        crate::pgen_trace_debug!(
             "[mod.rs][eliminate_left_recursive_patterns()] 🔧 Starting left-recursion elimination pass"
         );
         // Take a snapshot of the user's grammar-author-written branch return
@@ -4239,7 +4236,7 @@ impl RustASTPipeline {
             annotations.as_deref_mut(),
         );
         if !normalized_direct.is_empty() {
-            eprintln!(
+            crate::pgen_trace_debug!(
                 "[mod.rs][eliminate_left_recursive_patterns()] 🔁 Normalized {} DIRECTLY left-recursive alternative(s) into the wrapper shape",
                 normalized_direct.len()
             );
@@ -4261,7 +4258,7 @@ impl RustASTPipeline {
                 continue;
             };
 
-            eprintln!(
+            crate::pgen_trace_debug!(
                 "[mod.rs][eliminate_left_recursive_patterns()] ✅ Rewriting left-recursive chain for rule '{}' via helper '{}' ({} wrapper rules)",
                 plan.base_rule,
                 plan.helper_base_rule,
@@ -4312,7 +4309,7 @@ impl RustASTPipeline {
                 )
             }
         } else {
-            eprintln!(
+            crate::pgen_trace_debug!(
                 "[mod.rs][eliminate_left_recursive_patterns()] ⏭️  INDIRECT left-recursion elimination disabled by configuration"
             );
             indirect_lr_elimination::IndirectEliminationOutcome::default()
@@ -4321,13 +4318,13 @@ impl RustASTPipeline {
         let retracted =
             Self::retract_consumed_normalization_rules(&normalized_direct, grammar_tree, rule_order);
         if retracted > 0 {
-            eprintln!(
+            crate::pgen_trace_debug!(
                 "[mod.rs][eliminate_left_recursive_patterns()] 🧹 Retracted {} consumed normalization rule(s) — the planner inlined them, so leaving them defined would publish useless symbols",
                 retracted
             );
         }
 
-        eprintln!(
+        crate::pgen_trace_debug!(
             "[mod.rs][eliminate_left_recursive_patterns()] 🏁 Completed left-recursion elimination pass ({} transformations)",
             transformation_count
         );
@@ -5116,10 +5113,10 @@ impl RustASTPipeline {
 
     fn parse_rule_content(&self, content: &[serde_json::Value]) -> Result<ParsedRuleContent> {
         if content.is_empty() {
-            eprintln!(
+            crate::pgen_trace_debug!(
                 "[mod.rs][parse_rule_content()] 📝 Rule content is empty - creating empty sequence node"
             );
-            eprintln!("   File: {}:{}", file!(), line!());
+            crate::pgen_trace_debug!("   File: {}:{}", file!(), line!());
             return Ok(ParsedRuleContent {
                 ast_node: ASTNode::Sequence { elements: vec![] },
                 branch_return_annotations: vec![None],
@@ -5130,12 +5127,12 @@ impl RustASTPipeline {
             });
         }
 
-        eprintln!("   🏗️   RULE CONTENT PARSING (STAGED PIPELINE)");
-        eprintln!("        Elements to process: {}", content.len());
-        eprintln!("        File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!("   🏗️   RULE CONTENT PARSING (STAGED PIPELINE)");
+        crate::pgen_trace_debug!("        Elements to process: {}", content.len());
+        crate::pgen_trace_debug!("        File: {}:{}", file!(), line!());
 
         let extracted = self.extract_rule_annotations(content)?;
-        eprintln!(
+        crate::pgen_trace_debug!(
             "        Annotation extraction: {} branch return slot(s), {} branch semantic slot(s), {} branch mid-sequence slot(s), {} rule semantic annotation(s)",
             extracted.branch_return_annotations.len(),
             extracted.branch_semantic_annotations.len(),
@@ -5167,43 +5164,43 @@ impl RustASTPipeline {
             });
         }
 
-        eprintln!("        Stage-1: normalize raw elements");
+        crate::pgen_trace_debug!("        Stage-1: normalize raw elements");
         let normalized = self.step1_normalize_raw_elements(&extracted.syntax_elements)?;
-        eprintln!(
+        crate::pgen_trace_debug!(
             "        Stage-1 result: {} normalized elements",
             normalized.len()
         );
-        eprintln!("        Stage-2: group top-level alternatives (|)");
+        crate::pgen_trace_debug!("        Stage-2: group top-level alternatives (|)");
         let branches = self.step2_group_by_or(&normalized);
-        eprintln!(
+        crate::pgen_trace_debug!(
             "        Stage-2 result: {} top-level branches",
             branches.len()
         );
-        eprintln!("        Stage-2.5: handle parentheses/groups per branch");
+        crate::pgen_trace_debug!("        Stage-2.5: handle parentheses/groups per branch");
         let mut branch_asts = Vec::with_capacity(branches.len());
         for (branch_idx, branch) in branches.iter().enumerate() {
-            eprintln!(
+            crate::pgen_trace_debug!(
                 "          🔀 Branch {}/{} has {} elements",
                 branch_idx + 1,
                 branches.len(),
                 branch.len()
             );
             let branch_elements = self.step2_5_handle_parentheses(branch)?;
-            eprintln!(
+            crate::pgen_trace_debug!(
                 "          ✅ Branch {} grouped into {} sequence elements",
                 branch_idx + 1,
                 branch_elements.len()
             );
-            eprintln!("          Stage-3: build sequence nodes");
+            crate::pgen_trace_debug!("          Stage-3: build sequence nodes");
             let branch_ast = self.step3_parse_sequences(branch_elements);
             branch_asts.push(branch_ast);
         }
-        eprintln!("        Stage-5: build final tree structure");
+        crate::pgen_trace_debug!("        Stage-5: build final tree structure");
         let result = self.step5_build_tree_structure(branch_asts);
 
-        eprintln!("   🏆  Rule content parsing complete (staged pipeline)");
-        eprintln!("       Final AST: {:?}", result);
-        eprintln!("       File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!("   🏆  Rule content parsing complete (staged pipeline)");
+        crate::pgen_trace_debug!("       Final AST: {:?}", result);
+        crate::pgen_trace_debug!("       File: {}:{}", file!(), line!());
 
         let mut branch_return_annotations = extracted.branch_return_annotations;
         let mut branch_semantic_annotations = extracted.branch_semantic_annotations;
@@ -5373,8 +5370,7 @@ impl RustASTPipeline {
                 }
                 "return_scalar" | "return_array" | "return_object" => {
                     let Some(annotation_content) = arr.get(1).and_then(|v| v.as_str()) else {
-                        eprintln!(
-                            "[mod.rs][extract_rule_annotations()] ⚠️ malformed return annotation payload: {:?}",
+                        crate::pgen_warn!("malformed return annotation payload: {:?}",
                             item
                         );
                         continue;
@@ -5396,8 +5392,7 @@ impl RustASTPipeline {
                     }
                     for tgt_idx in range_start..=range_end {
                         if branch_return_annotations[tgt_idx].is_some() {
-                            eprintln!(
-                                "[mod.rs][extract_rule_annotations()] ⚠️ multiple return annotations in branch {} - keeping last",
+                            crate::pgen_warn!("multiple return annotations in branch {} - keeping last",
                                 tgt_idx + 1
                             );
                         }
@@ -5417,8 +5412,7 @@ impl RustASTPipeline {
                             semantic_annotations.push(annotation);
                         }
                     } else {
-                        eprintln!(
-                            "[mod.rs][extract_rule_annotations()] ⚠️ semantic annotation missing payload: {:?}",
+                        crate::pgen_warn!("semantic annotation missing payload: {:?}",
                             item
                         );
                     }
@@ -5452,8 +5446,7 @@ impl RustASTPipeline {
                             branch_semantic_annotations[branch_idx].push(annotation);
                         }
                     } else {
-                        eprintln!(
-                            "[mod.rs][extract_rule_annotations()] ⚠️ inline semantic annotation missing payload: {:?}",
+                        crate::pgen_warn!("inline semantic annotation missing payload: {:?}",
                             item
                         );
                     }
@@ -5479,8 +5472,7 @@ impl RustASTPipeline {
                             );
                         }
                     } else {
-                        eprintln!(
-                            "[mod.rs][extract_rule_annotations()] ⚠️ mid-sequence semantic annotation missing payload: {:?}",
+                        crate::pgen_warn!("mid-sequence semantic annotation missing payload: {:?}",
                             item
                         );
                     }
@@ -5637,8 +5629,7 @@ impl RustASTPipeline {
         let logger = runtime_logger("pipeline.return_annotation.bootstrap");
         if !self.config.bootstrap_mode {
             if !self.validate_return_annotation_backend(content) {
-                eprintln!(
-                    "[mod.rs][parse_return_annotation_ast()] ⚠️ selected backend could not validate return annotation '{}'",
+                crate::pgen_warn!("selected backend could not validate return annotation '{}'",
                     content
                 );
                 return Ok(None);
@@ -5661,8 +5652,7 @@ impl RustASTPipeline {
                         ) {
                             Ok(ast) => Ok(Some(ast)),
                             Err(err) => {
-                                eprintln!(
-                                    "[mod.rs][parse_return_annotation_ast()] ⚠️ generated return tree -> typed AST failed for '{}' ({})",
+                                crate::pgen_warn!("generated return tree -> typed AST failed for '{}' ({})",
                                     content, err
                                 );
                                 Ok(None)
@@ -5670,8 +5660,7 @@ impl RustASTPipeline {
                         };
                     }
                     Err(err) => {
-                        eprintln!(
-                            "[mod.rs][parse_return_annotation_ast()] ⚠️ generated parser failed for '{}' ({})",
+                        crate::pgen_warn!("generated parser failed for '{}' ({})",
                             content, err
                         );
                         return Ok(None);
@@ -5688,8 +5677,7 @@ impl RustASTPipeline {
         match UnifiedReturnAST::parse_bootstrap(content, &logger) {
             Ok(ast) => Ok(Some(ast)),
             Err(err) => {
-                eprintln!(
-                    "[mod.rs][parse_return_annotation_ast()] ⚠️ failed to build typed return AST for '{}' ({})",
+                crate::pgen_warn!("failed to build typed return AST for '{}' ({})",
                     content, err
                 );
                 Ok(None)
@@ -5707,8 +5695,7 @@ impl RustASTPipeline {
                 let name = self.semantic_value_to_string(&parts[0]);
                 let annotation_name = name.trim().to_ascii_lowercase();
                 if annotation_name.is_empty() {
-                    eprintln!(
-                        "[mod.rs][parse_semantic_annotation_entry()] ⚠️ empty semantic annotation name in {:?}",
+                    crate::pgen_warn!("empty semantic annotation name in {:?}",
                         original_element
                     );
                     return Ok(None);
@@ -5718,8 +5705,11 @@ impl RustASTPipeline {
                 let canonical = format!("@{}: {}", annotation_name, payload_text);
                 let backend_valid = self.validate_semantic_annotation_backend(&canonical);
                 if !backend_valid {
-                    eprintln!(
-                        "[mod.rs][parse_semantic_annotation_entry()] ⚠️ selected backend could not validate semantic annotation '{}'",
+                    // `.72` adjudication: TRACE, not a warning. The generated semantic-annotation backend does not model
+                    // free-form payload directives (`@transform:` / `@generate:` carry expression text), so this fires on
+                    // the shipped regex (8×) and return_annotation (3×) grammars for annotations the engine keeps and
+                    // uses; an always-on line about a designed gap on every run teaches readers to ignore warnings.
+                    crate::pgen_trace_debug!("selected backend could not validate semantic annotation '{}'",
                         canonical
                     );
                 }
@@ -5744,8 +5734,11 @@ impl RustASTPipeline {
                 {
                     let backend_valid = self.validate_semantic_annotation_backend(trimmed);
                     if !backend_valid {
-                        eprintln!(
-                            "[mod.rs][parse_semantic_annotation_entry()] ⚠️ selected backend could not validate semantic annotation '{}'",
+                        // `.72` adjudication: TRACE, not a warning. The generated semantic-annotation backend does not model
+                        // free-form payload directives (`@transform:` / `@generate:` carry expression text), so this fires on
+                        // the shipped regex (8×) and return_annotation (3×) grammars for annotations the engine keeps and
+                        // uses; an always-on line about a designed gap on every run teaches readers to ignore warnings.
+                        crate::pgen_trace_debug!("selected backend could not validate semantic annotation '{}'",
                             trimmed
                         );
                     }
@@ -5899,9 +5892,8 @@ impl RustASTPipeline {
         #[cfg(not(feature = "generated_parsers"))]
         {
             let _ = annotation_content;
-            eprintln!(
-                "[mod.rs][validate_return_annotation_backend()] ⚠️ generated parser backend unavailable (build with --features generated_parsers)"
-            );
+            { static ONCE: std::sync::Once = std::sync::Once::new(); ONCE.call_once(|| crate::pgen_warn!("generated parser backend unavailable (build with --features generated_parsers)"
+            )); };
             true
         }
     }
@@ -5925,9 +5917,8 @@ impl RustASTPipeline {
         #[cfg(not(feature = "generated_parsers"))]
         {
             let _ = annotation_text;
-            eprintln!(
-                "[mod.rs][validate_semantic_annotation_backend()] ⚠️ generated parser backend unavailable (build with --features generated_parsers)"
-            );
+            { static ONCE: std::sync::Once = std::sync::Once::new(); ONCE.call_once(|| crate::pgen_warn!("generated parser backend unavailable (build with --features generated_parsers)"
+            )); };
             true
         }
     }
@@ -5936,23 +5927,23 @@ impl RustASTPipeline {
         &self,
         content: &[serde_json::Value],
     ) -> Result<Vec<RawRuleElement>> {
-        eprintln!("[mod.rs][step1_normalize_raw_elements()] 🔎 Start normalization");
+        crate::pgen_trace_debug!("[mod.rs][step1_normalize_raw_elements()] 🔎 Start normalization");
         let mut normalized = Vec::new();
 
         for (elem_idx, item) in content.iter().enumerate() {
-            eprintln!("        🔧  Element {}/{}", elem_idx + 1, content.len());
-            eprintln!("            Raw data: {:?}", item);
-            eprintln!("            File: {}:{}", file!(), line!());
+            crate::pgen_trace_debug!("        🔧  Element {}/{}", elem_idx + 1, content.len());
+            crate::pgen_trace_debug!("            Raw data: {:?}", item);
+            crate::pgen_trace_debug!("            File: {}:{}", file!(), line!());
             if let Some(parsed) = self.parse_raw_element(item)? {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "            ✅  Normalized element kind: {}",
                     self.raw_element_kind(&parsed)
                 );
                 normalized.push(parsed);
             } else {
-                eprintln!("            ⚠️   Element skipped (return annotation or unknown type)");
+                crate::pgen_trace_debug!("            ⚠️   Element skipped (return annotation or unknown type)");
             }
-            eprintln!();
+            crate::pgen_trace_debug!();
         }
 
         Ok(normalized)
@@ -5960,32 +5951,30 @@ impl RustASTPipeline {
 
     fn parse_raw_element(&self, element: &serde_json::Value) -> Result<Option<RawRuleElement>> {
         let Some(arr) = element.as_array() else {
-            eprintln!("            ❌  [mod.rs][parse_raw_element()] Element is not array");
+            crate::pgen_error!("Element is not array");
             return Ok(None);
         };
 
         if arr.len() < 2 {
-            eprintln!(
-                "            ❌  [mod.rs][parse_raw_element()] Element array too short: {}",
+            crate::pgen_error!("Element array too short: {}",
                 arr.len()
             );
             return Ok(None);
         }
 
         let (Some(elem_type), Some(elem_value)) = (arr[0].as_str(), arr[1].as_str()) else {
-            eprintln!(
-                "            ❌  [mod.rs][parse_raw_element()] Invalid element structure: {:?}",
+            crate::pgen_error!("Invalid element structure: {:?}",
                 arr
             );
             return Ok(None);
         };
 
-        eprintln!("            🔍  \x1b[34mELEMENT ANALYSIS\x1b[0m");
-        eprintln!(
+        crate::pgen_trace_debug!("            🔍  \x1b[34mELEMENT ANALYSIS\x1b[0m");
+        crate::pgen_trace_debug!(
             "                Type: '{}' | Value: '{}'",
             elem_type, elem_value
         );
-        eprintln!("                File: {}:{}", file!(), line!());
+        crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
 
         let atom_from = |token_type: &str, token_value: &str| -> RawRuleElement {
             RawRuleElement::Atom(ASTNode::Atom {
@@ -5998,40 +5987,40 @@ impl RustASTPipeline {
 
         let parsed = match elem_type {
             "rule_reference" => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "                📋  RULE REFERENCE - Creating call to rule '{}'",
                     elem_value
                 );
                 Some(atom_from("rule_reference", elem_value))
             }
             "quoted_string" => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "                💬  \x1b[32mSTRING TERMINAL\x1b[0m - Creating matcher for '{}'",
                     elem_value
                 );
                 Some(atom_from("quoted_string", elem_value))
             }
             "regex" => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "                🔤  \x1b[32mREGEX PATTERN\x1b[0m - Creating regex matcher for '{}'",
                     elem_value
                 );
                 Some(atom_from("regex", elem_value))
             }
             "group_open" => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "                🔓  \x1b[32mGROUP OPEN\x1b[0m - Start grouped expression"
                 );
                 Some(RawRuleElement::GroupOpen)
             }
             "group_close" => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "                🔒  \x1b[32mGROUP CLOSE\x1b[0m - End grouped expression"
                 );
                 Some(RawRuleElement::GroupClose)
             }
             "quantifier" => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "                🔢  \x1b[32mQUANTIFIER\x1b[0m - Binding quantifier '{}'",
                     elem_value
                 );
@@ -6039,32 +6028,32 @@ impl RustASTPipeline {
             }
             "operator" => match elem_value {
                 "|" => {
-                    eprintln!(
+                    crate::pgen_trace_debug!(
                         "                🔀  \x1b[32mALTERNATIVE OPERATOR\x1b[0m (|) - Split branches"
                     );
                     Some(RawRuleElement::OrOperator)
                 }
                 "?" | "*" | "+" => {
-                    eprintln!(
+                    crate::pgen_trace_debug!(
                         "                🔁  \x1b[32mQUANTIFIER OPERATOR\x1b[0m '{}' - Bind to previous primary",
                         elem_value
                     );
                     Some(RawRuleElement::Quantifier(elem_value.to_string()))
                 }
                 "&" => {
-                    eprintln!(
+                    crate::pgen_trace_debug!(
                         "                👀  \x1b[32mPOSITIVE LOOKAHEAD\x1b[0m (&) - Assert next primary without consuming"
                     );
                     Some(RawRuleElement::Lookahead(true))
                 }
                 "!" => {
-                    eprintln!(
+                    crate::pgen_trace_debug!(
                         "                🚫  \x1b[32mNEGATIVE LOOKAHEAD\x1b[0m (!) - Reject matching next primary without consuming"
                     );
                     Some(RawRuleElement::Lookahead(false))
                 }
                 _ => {
-                    eprintln!(
+                    crate::pgen_trace_debug!(
                         "                ⚙️   \x1b[33mNON-STRUCTURAL OPERATOR\x1b[0m '{}' - treat as terminal",
                         elem_value
                     );
@@ -6072,49 +6061,49 @@ impl RustASTPipeline {
                 }
             },
             "number" => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "                🔢  \x1b[32mNUMBER\x1b[0m - treat as terminal '{}'",
                     elem_value
                 );
                 Some(atom_from("number", elem_value))
             }
             "probability" => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "                🎲  \x1b[32mPROBABILITY\x1b[0m - treat as terminal '{}'",
                     elem_value
                 );
                 Some(atom_from("probability", elem_value))
             }
             "include_dir" => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "                📁  \x1b[32mINCLUDE DIR\x1b[0m - preserve '{}' token",
                     elem_value
                 );
                 Some(atom_from("include_dir", elem_value))
             }
             "include_file" => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "                📄  \x1b[32mINCLUDE FILE\x1b[0m - preserve '{}' token",
                     elem_value
                 );
                 Some(atom_from("include_file", elem_value))
             }
             "rule" => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "                📝  \x1b[33mRULE TOKEN\x1b[0m - preserve '{}' token",
                     elem_value
                 );
                 Some(atom_from("rule", elem_value))
             }
             "return_scalar" | "return_array" | "return_object" => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "                🔙  \x1b[33mRETURN ANNOTATION\x1b[0m '{}' - skipped in syntax tree stage",
                     elem_type
                 );
                 None
             }
             _ => {
-                eprintln!(
+                crate::pgen_trace_debug!(
                     "                ❓  \x1b[33mUNKNOWN ELEMENT TYPE\x1b[0m '{}' - skipping",
                     elem_type
                 );
@@ -6126,7 +6115,7 @@ impl RustASTPipeline {
     }
 
     fn step2_group_by_or(&self, elements: &[RawRuleElement]) -> Vec<Vec<RawRuleElement>> {
-        eprintln!("[mod.rs][step2_group_by_or()] 🔀 Splitting top-level alternatives");
+        crate::pgen_trace_debug!("[mod.rs][step2_group_by_or()] 🔀 Splitting top-level alternatives");
         let mut branches: Vec<Vec<RawRuleElement>> = Vec::new();
         let mut current: Vec<RawRuleElement> = Vec::new();
         let mut group_depth = 0usize;
@@ -6141,8 +6130,7 @@ impl RustASTPipeline {
                     if group_depth > 0 {
                         group_depth -= 1;
                     } else {
-                        eprintln!(
-                            "  ⚠️ [mod.rs][step2_group_by_or()] unmatched group_close at top-level"
+                        crate::pgen_warn!("unmatched group_close at top-level"
                         );
                     }
                     current.push(elem.clone());
@@ -6158,8 +6146,7 @@ impl RustASTPipeline {
         branches.push(current);
 
         if group_depth != 0 {
-            eprintln!(
-                "  ⚠️ [mod.rs][step2_group_by_or()] unbalanced parentheses depth={}",
+            crate::pgen_warn!("unbalanced parentheses depth={}",
                 group_depth
             );
         }
@@ -6168,7 +6155,7 @@ impl RustASTPipeline {
     }
 
     fn step2_5_handle_parentheses(&self, branch: &[RawRuleElement]) -> Result<Vec<ASTNode>> {
-        eprintln!(
+        crate::pgen_trace_debug!(
             "[mod.rs][step2_5_handle_parentheses()] 🧩 Parsing grouped branch of {} elements",
             branch.len()
         );
@@ -6219,24 +6206,21 @@ impl RustASTPipeline {
                 self.build_ast_from_elements(&inner)?
             }
             RawRuleElement::GroupClose => {
-                eprintln!(
-                    "  ⚠️ [mod.rs][parse_branch_primary()] unexpected group_close at idx={}",
+                crate::pgen_warn!("unexpected group_close at idx={}",
                     *idx
                 );
                 *idx += 1;
                 return Ok(None);
             }
             RawRuleElement::OrOperator => {
-                eprintln!(
-                    "  ⚠️ [mod.rs][parse_branch_primary()] unexpected top-level OR token inside branch at idx={}",
+                crate::pgen_warn!("unexpected top-level OR token inside branch at idx={}",
                     *idx
                 );
                 *idx += 1;
                 return Ok(None);
             }
             RawRuleElement::Quantifier(q) => {
-                eprintln!(
-                    "  ⚠️ [mod.rs][parse_branch_primary()] dangling quantifier '{}' at idx={} (ignored)",
+                crate::pgen_warn!("dangling quantifier '{}' at idx={} (ignored)",
                     q, *idx
                 );
                 *idx += 1;
@@ -6290,7 +6274,7 @@ impl RustASTPipeline {
     }
 
     fn step3_parse_sequences(&self, elements: Vec<ASTNode>) -> ASTNode {
-        eprintln!(
+        crate::pgen_trace_debug!(
             "[mod.rs][step3_parse_sequences()] 🧱 Building sequence from {} elements",
             elements.len()
         );
@@ -6310,7 +6294,7 @@ impl RustASTPipeline {
         while *idx < branch.len() {
             match &branch[*idx] {
                 RawRuleElement::Quantifier(q) => {
-                    eprintln!(
+                    crate::pgen_trace_debug!(
                         "[mod.rs][step4_handle_quantifiers()] 🔁 Apply quantifier '{}' at idx={}",
                         q, *idx
                     );
@@ -6328,7 +6312,7 @@ impl RustASTPipeline {
     }
 
     fn step5_build_tree_structure(&self, branches: Vec<ASTNode>) -> ASTNode {
-        eprintln!(
+        crate::pgen_trace_debug!(
             "[mod.rs][step5_build_tree_structure()] 🌳 Final tree from {} branches",
             branches.len()
         );
@@ -6370,20 +6354,20 @@ impl RustASTPipeline {
         if let Some(arr) = element.as_array() {
             if arr.len() >= 2 {
                 if let (Some(elem_type), Some(elem_value)) = (arr[0].as_str(), arr[1].as_str()) {
-                    eprintln!("            🔍  \x1b[34mELEMENT ANALYSIS\x1b[0m");
-                    eprintln!(
+                    crate::pgen_trace_debug!("            🔍  \x1b[34mELEMENT ANALYSIS\x1b[0m");
+                    crate::pgen_trace_debug!(
                         "                Type: '{}' | Value: '{}'",
                         elem_type, elem_value
                     );
-                    eprintln!("                File: {}:{}", file!(), line!());
+                    crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
 
                     match elem_type {
                         "rule" => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                📝  \x1b[32mRULE DECLARATION\x1b[0m - Defining rule '{}'",
                                 elem_value
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             Ok(Some(ASTNode::Atom {
                                 value: ASTValue::Token(vec![
                                     TokenValue::String("rule".to_string()),
@@ -6392,11 +6376,11 @@ impl RustASTPipeline {
                             }))
                         }
                         "rule_reference" => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                📋  RULE REFERENCE - Creating call to rule '{}'",
                                 elem_value
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             Ok(Some(ASTNode::Atom {
                                 value: ASTValue::Token(vec![
                                     TokenValue::String("rule_reference".to_string()),
@@ -6405,11 +6389,11 @@ impl RustASTPipeline {
                             }))
                         }
                         "quoted_string" => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                💬  \x1b[32mSTRING TERMINAL\x1b[0m - Creating matcher for '{}'",
                                 elem_value
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             Ok(Some(ASTNode::Atom {
                                 value: ASTValue::Token(vec![
                                     TokenValue::String("quoted_string".to_string()),
@@ -6418,11 +6402,11 @@ impl RustASTPipeline {
                             }))
                         }
                         "regex" => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                🔤  \x1b[32mREGEX PATTERN\x1b[0m - Creating regex matcher for '{}'",
                                 elem_value
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             Ok(Some(ASTNode::Atom {
                                 value: ASTValue::Token(vec![
                                     TokenValue::String("regex".to_string()),
@@ -6431,11 +6415,11 @@ impl RustASTPipeline {
                             }))
                         }
                         "group_open" => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                🔓  \x1b[32mGROUP OPEN\x1b[0m - Starting group '{}'",
                                 elem_value
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             Ok(Some(ASTNode::Atom {
                                 value: ASTValue::Token(vec![
                                     TokenValue::String("group_open".to_string()),
@@ -6444,11 +6428,11 @@ impl RustASTPipeline {
                             }))
                         }
                         "group_close" => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                🔒  \x1b[32mGROUP CLOSE\x1b[0m - Ending group '{}'",
                                 elem_value
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             Ok(Some(ASTNode::Atom {
                                 value: ASTValue::Token(vec![
                                     TokenValue::String("group_close".to_string()),
@@ -6457,22 +6441,22 @@ impl RustASTPipeline {
                             }))
                         }
                         "quantifier" => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                🔢  \x1b[32mEXPLICIT QUANTIFIER\x1b[0m - Processing '{}'",
                                 elem_value
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             Ok(Some(ASTNode::Quantified {
                                 element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
                                 quantifier: elem_value.to_string(),
                             }))
                         }
                         "number" => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                🔢  \x1b[32mNUMERIC LITERAL\x1b[0m - Processing '{}'",
                                 elem_value
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             Ok(Some(ASTNode::Atom {
                                 value: ASTValue::Token(vec![
                                     TokenValue::String("number".to_string()),
@@ -6481,11 +6465,11 @@ impl RustASTPipeline {
                             }))
                         }
                         "probability" => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                🎲  \x1b[32mPROBABILITY\x1b[0m - Processing '{}'",
                                 elem_value
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             Ok(Some(ASTNode::Atom {
                                 value: ASTValue::Token(vec![
                                     TokenValue::String("probability".to_string()),
@@ -6494,11 +6478,11 @@ impl RustASTPipeline {
                             }))
                         }
                         "include_dir" => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                📁  \x1b[32mINCLUDE DIRECTORY\x1b[0m - Processing '{}'",
                                 elem_value
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             Ok(Some(ASTNode::Atom {
                                 value: ASTValue::Token(vec![
                                     TokenValue::String("include_dir".to_string()),
@@ -6507,11 +6491,11 @@ impl RustASTPipeline {
                             }))
                         }
                         "include_file" => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                📄  \x1b[32mINCLUDE FILE\x1b[0m - Processing '{}'",
                                 elem_value
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             Ok(Some(ASTNode::Atom {
                                 value: ASTValue::Token(vec![
                                     TokenValue::String("include_file".to_string()),
@@ -6520,68 +6504,68 @@ impl RustASTPipeline {
                             }))
                         }
                         "operator" => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                🔄  \x1b[33mQUANTIFIER OPERATOR\x1b[0m - Processing '{}'",
                                 elem_value
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             // Handle quantifiers
                             match elem_value {
                                 "?" => {
-                                    eprintln!(
+                                    crate::pgen_trace_debug!(
                                         "                    ❓  \x1b[32mOPTIONAL QUANTIFIER\x1b[0m (?) - Zero or one occurrence"
                                     );
-                                    eprintln!("                    File: {}:{}", file!(), line!());
+                                    crate::pgen_trace_debug!("                    File: {}:{}", file!(), line!());
                                     Ok(Some(ASTNode::Quantified {
                                         element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
                                         quantifier: "?".to_string(),
                                     }))
                                 }
                                 "*" => {
-                                    eprintln!(
+                                    crate::pgen_trace_debug!(
                                         "                    🔁  \x1b[32mZERO-OR-MORE QUANTIFIER\x1b[0m (*) - Zero or more occurrences"
                                     );
-                                    eprintln!("                    File: {}:{}", file!(), line!());
+                                    crate::pgen_trace_debug!("                    File: {}:{}", file!(), line!());
                                     Ok(Some(ASTNode::Quantified {
                                         element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
                                         quantifier: "*".to_string(),
                                     }))
                                 }
                                 "+" => {
-                                    eprintln!(
+                                    crate::pgen_trace_debug!(
                                         "                    ➕  \x1b[32mONE-OR-MORE QUANTIFIER\x1b[0m (+) - One or more occurrences"
                                     );
-                                    eprintln!("                    File: {}:{}", file!(), line!());
+                                    crate::pgen_trace_debug!("                    File: {}:{}", file!(), line!());
                                     Ok(Some(ASTNode::Quantified {
                                         element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
                                         quantifier: "+".to_string(),
                                     }))
                                 }
                                 "&" => {
-                                    eprintln!(
+                                    crate::pgen_trace_debug!(
                                         "                    👀  \x1b[32mPOSITIVE LOOKAHEAD\x1b[0m (&) - Placeholder lookahead node"
                                     );
-                                    eprintln!("                    File: {}:{}", file!(), line!());
+                                    crate::pgen_trace_debug!("                    File: {}:{}", file!(), line!());
                                     Ok(Some(ASTNode::Lookahead {
                                         element: Box::new(ASTNode::Sequence { elements: vec![] }),
                                         positive: true,
                                     }))
                                 }
                                 "!" => {
-                                    eprintln!(
+                                    crate::pgen_trace_debug!(
                                         "                    🚫  \x1b[32mNEGATIVE LOOKAHEAD\x1b[0m (!) - Placeholder lookahead node"
                                     );
-                                    eprintln!("                    File: {}:{}", file!(), line!());
+                                    crate::pgen_trace_debug!("                    File: {}:{}", file!(), line!());
                                     Ok(Some(ASTNode::Lookahead {
                                         element: Box::new(ASTNode::Sequence { elements: vec![] }),
                                         positive: false,
                                     }))
                                 }
                                 "|" => {
-                                    eprintln!(
+                                    crate::pgen_trace_debug!(
                                         "                    🔀  \x1b[32mALTERNATIVE OPERATOR\x1b[0m (|) - Creating choice between alternatives"
                                     );
-                                    eprintln!("                    File: {}:{}", file!(), line!());
+                                    crate::pgen_trace_debug!("                    File: {}:{}", file!(), line!());
                                     Ok(Some(ASTNode::Atom {
                                         value: ASTValue::Token(vec![
                                             TokenValue::String("operator".to_string()),
@@ -6590,59 +6574,58 @@ impl RustASTPipeline {
                                     }))
                                 }
                                 _ => {
-                                    eprintln!(
-                                        "                    ⚠️   \x1b[33mUNKNOWN OPERATOR\x1b[0m '{}' - Skipping",
+                                    crate::pgen_warn!("UNKNOWN OPERATOR '{}' - Skipping",
                                         elem_value
                                     );
-                                    eprintln!("                    File: {}:{}", file!(), line!());
+                                    crate::pgen_trace_debug!("                    File: {}:{}", file!(), line!());
                                     Ok(None) // Skip unknown operators
                                 }
                             }
                         }
                         "return_scalar" | "return_array" | "return_object" => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                🔙  \x1b[33mRETURN ANNOTATION\x1b[0m '{}' - Skipping (semantic annotation)",
                                 elem_type
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             // Skip return annotations for now
                             Ok(None)
                         }
                         _ => {
-                            eprintln!(
+                            crate::pgen_trace_debug!(
                                 "                ❓  \x1b[33mUNKNOWN ELEMENT TYPE\x1b[0m '{}' - Skipping",
                                 elem_type
                             );
-                            eprintln!("                File: {}:{}", file!(), line!());
+                            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                             Ok(None) // Skip unknown element types
                         }
                     }
                 } else {
-                    eprintln!("            ❌  \x1b[31mERROR: Invalid element structure\x1b[0m");
-                    eprintln!(
+                    crate::pgen_error!("Invalid element structure");
+                    crate::pgen_trace_debug!(
                         "                Expected [string, string] but got: [{:?}, {:?}]",
                         arr[0], arr[1]
                     );
-                    eprintln!("                File: {}:{}", file!(), line!());
+                    crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                     Ok(None)
                 }
             } else {
-                eprintln!("            ❌  \x1b[31mERROR: Element array too short\x1b[0m");
-                eprintln!(
+                crate::pgen_error!("Element array too short");
+                crate::pgen_trace_debug!(
                     "                Need at least 2 elements, got {}",
                     arr.len()
                 );
-                eprintln!("                File: {}:{}", file!(), line!());
+                crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
                 Ok(None)
             }
         } else {
-            eprintln!("            ❌  \x1b[31mERROR: Element is not an array\x1b[0m");
-            eprintln!(
+            crate::pgen_error!("Element is not an array");
+            crate::pgen_trace_debug!(
                 "                Type: {} | Value: {:?}",
                 std::any::type_name::<serde_json::Value>(),
                 element
             );
-            eprintln!("                File: {}:{}", file!(), line!());
+            crate::pgen_trace_debug!("                File: {}:{}", file!(), line!());
             Ok(None)
         }
     }
