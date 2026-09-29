@@ -3,7 +3,7 @@
 //! A preprocessor is a fact about one language (SystemVerilog's backtick directives, C's `#`
 //! lines, VHDL-2019's tool directives); what every one of them shares is the STAGE — an ordered
 //! compilation unit of files in, expanded text with a source map, an event log and diagnostics
-//! out — and the context every front end knows: predefined macros, include search directories,
+//! out — and the context every front end knows: predefined symbols, include search directories,
 //! the unit's earlier files, and the dialect the expanded text will be parsed under. That shared
 //! part is this module; nothing here knows any language's directives, option names or event
 //! kinds. A family that has a preprocessor declares a [`PreprocessingStage`] on its
@@ -64,8 +64,11 @@ pub struct StageRequest {
     pub unit: Vec<PathBuf>,
     /// Include search directories, in order.
     pub include_dirs: Vec<PathBuf>,
-    /// Predefined macros, in order: `NAME` or `NAME=TEXT`.
-    pub defines: Vec<String>,
+    /// The symbols a front end predefines before the first line, in order: `NAME` or
+    /// `NAME=VALUE` (`NAME` alone defines it with empty text). The CLI spelling is `--symbol`
+    /// (`--define` accepted as an alias: the concept is universal, that word is one family of
+    /// preprocessors' directive name — director, 2026-09-29).
+    pub symbols: Vec<String>,
     /// The profile spelling the EXPANDED text will be parsed under (the family decides what it
     /// means for its stage; `None` is the unprofiled reading).
     pub parse_profile: Option<String>,

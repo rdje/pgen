@@ -2008,11 +2008,11 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   preprocessor is the SystemVerilog family's own component (`rust/src/families/systemverilog/preprocessor.rs`,
   its §22.14 tables beside it), published to the engine as one neutral preprocessing stage
   (`rust/src/preprocessing_stage.rs`); the CLI spellings below are the neutral ones — `--preprocess <family>`,
-  `--include-dir`, `--define`, `--unit-file`, `--profile`, `--stage-opt KEY=VALUE` — and the pre-`.113`
+  `--include-dir`, `--symbol` (alias `--define`; the concept is every preprocessor's, the word one family's — director, 2026-09-29), `--unit-file`, `--profile`, `--stage-opt KEY=VALUE` — and the pre-`.113`
   spellings (`--preprocess-systemverilog`, every `--sv-…` flag) are accepted through release `1.0.247`, each
   rewritten with one deprecation line on stderr, and removed after it.
 - **The single command** (the probe, `rust/src/bin/parseability_probe.rs`):
-  `parseability_probe --parse systemverilog FILE --profile sv_2017|sv_2023 --preprocess [--include-dir DIR]… [--define NAME[=TEXT]]… [--unit-file FILE]… [--stage-opt KEY=VALUE]… [--lib-in DIR] [--lib-out DIR]`.
+  `parseability_probe --parse systemverilog FILE --profile sv_2017|sv_2023 --preprocess [--include-dir DIR]… [--symbol NAME[=VALUE]]… [--unit-file FILE]… [--stage-opt KEY=VALUE]… [--lib-in DIR] [--lib-out DIR]`.
   Exit `0` = accepted, `1` = the parser rejected the expanded text (the message carries `furthest_position=N`
   and `[origin=FILE:LINE:COL]`), `3` = the preprocessor refused (`preprocess_failed …`, never `1` — a corpus
   lane keys on exactly that difference). The expansion alone: `ast_pipeline INPUT.sv --preprocess systemverilog
@@ -2020,7 +2020,7 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   context flags. Both are embedding-API-free CLIs; the runtime module is
   `rust/src/families/systemverilog/preprocessor.rs`, reached through `pgen::preprocessing_stage::stage_for("systemverilog")`.
 - **The context is the consumer's, and it is four things**: the include search directories
-  (`--include-dir`, in order), the predefined macros (`--define`, in order, exactly as `` `define NAME
+  (`--include-dir`, in order), the predefined macros (`--symbol`, in order, exactly as `` `define NAME
   TEXT `` before the first line), the compilation unit's earlier files (`--unit-file`, in order — §22.5.1: a
   macro is unit-wide once defined; their macro tables are folded into one, their text is not parsed), and the
   library (`--lib-in`, below). The corpus lane DERIVES all four from the corpus itself

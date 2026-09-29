@@ -53,6 +53,7 @@ commit** (`scripts/check_diagnosis_evidence.sh`, run by the doctrine enforcer). 
 - [ ] **ADDRESSED (verified)** — <before→after on the symptom: REJECT→PASS, UNKNOWN N→M>
 - [ ] **NO REGRESSION** — <cert seeds 0/7/42 spf=0; the 6 fully-certified grammars byte-identical; external corpus 14/14; ast_shape_contract GREEN; clippy clean>
 - [ ] **LOCKSTEP** — <book / contract / ledger / schema updated, or N/A + reason>
+- [ ] **NEUTRALITY TIER** (a leaf that ADDS a capability the EBNF could not express; director 2026-09-29) — <the tier reached: (1) a grammar directive the engine serves for everyone, (2) a neutral engine service, (3) a family component shaped to be lifted; and the MEASURED reason for not reaching the tier above, naming the second language that diverges — `docs/decisions/a-capability-a-grammar-cannot-express-climbs-the-neutrality-ladder-before-it-becomes-a-family-component.md`>
 ```
 
 ⭐ **AND THE ROOT CAUSE BOX MUST ACTUALLY BE A ROOT CAUSE BOX** (`GENERATED-LINT-CORRECTNESS.9`).
@@ -203,7 +204,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ./rust/target/release/parseability_probe --parse systemverilog file.sv --profile sv_2017
   # the PIPELINE: preprocess in-process, parse the EXPANDED text, map the rejection back to its origin
   ./rust/target/release/parseability_probe --parse systemverilog file.sv --profile sv_2017 --preprocess \
-      --include-dir DIR --define UVM --unit-file defines_first.svh     # exit 3 = the preprocessor refused
+      --include-dir DIR --symbol UVM --unit-file defines_first.svh     # exit 3 = the preprocessor refused
   ```
 - ⭐ **`--profile` reaches the PREPROCESSOR too** (`SVPP-EXPANSION.8`): it decides which identifiers a
   `` `begin_keywords "…" `` region has to hand the parser as ESCAPED identifiers (IEEE 1800-2017 §22.14
@@ -214,7 +215,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   all; under `--preprocess` the same row either PARSES, or REJECTS with `[origin=FILE:LINE:COL]` — the
   `furthest_position` mapped through the preprocessor's source map (an included file names itself; a
   macro expansion names the line of its USE). The context flags are `ast_pipeline --preprocess
-  systemverilog`'s own (`--include-dir` / `--define` / `--unit-file` / `--profile` / `--stage-opt KEY=VALUE`;
+  systemverilog`'s own (`--include-dir` / `--symbol` (alias `--define`) / `--unit-file` / `--profile` / `--stage-opt KEY=VALUE`;
   `ENGINE-UNIVERSAL-SERVICES.113` — the stage is the FAMILY's, `rust/src/families/systemverilog/`, behind the
   engine's neutral `preprocessing_stage`; `--list-stage-options` lists a family's keys; the pre-`.113` `--sv-…`
   spellings are accepted through `1.0.247`). Book: the SV parser book's *The Preprocess→Parse Pipeline*.
@@ -262,7 +263,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   (the one sharing the longest path prefix with the includer — `pipeline_context_files.tsv`, applied
   to that file first), and a tie is REPORTED with its candidates, never guessed. The DEFINES a
   file's own driver passes for it are derived the same way (`pipeline_context_defines.tsv`, applied
-  per file as `--define`; `SVPP-EXPANSION.4c.1`): verilator's same-stem `t_x.py` (its
+  per file as `--symbol`; `SVPP-EXPANSION.4c.1`): verilator's same-stem `t_x.py` (its
   `+define+NAME[=VALUE]` / `-DNAME[=VALUE]` tokens in the SV flag lists — `-CFLAGS`, `make_flags`
   and `iv_flags` spans reach the C++ compiler or iverilog and are skipped), a single variant driver
   naming the file as `top_filename` when no same-stem driver exists, and sv-tests' `:defines:`

@@ -141,7 +141,7 @@ cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
   path/to/input.sv \
   --preprocess systemverilog \
   --include-dir path/to/includes \
-  --define UVM --define WIDTH=8 \
+  --symbol UVM --symbol WIDTH=8 \
   --unit-file path/to/defines_first.svh \
   --profile sv_2017 \
   --stage-opt include_path_policy=relative_only \
@@ -226,7 +226,7 @@ Primary modes:
 6. Preprocess SystemVerilog source
 - `ast_pipeline INPUT.sv --preprocess systemverilog [--output PREPROCESSED.sv]` (`ENGINE-UNIVERSAL-SERVICES.113`, 2026-09-29: the stage is the family's, reached by name; the pre-`.113` `--preprocess-systemverilog` / `--sv-…` spellings are accepted through release `1.0.247` with one deprecation line each; `--list-stage-options` prints the family's `--stage-opt` keys)
 - The preprocess→parse chain in ONE command (the release reading of a file; `SVPP-EXPANSION.3`):
-  `parseability_probe --parse systemverilog INPUT.sv --profile sv_2017 --preprocess [--include-dir D]… [--define N[=T]]… [--unit-file F]… [--lib-in DIR] [--lib-out DIR]`
+  `parseability_probe --parse systemverilog INPUT.sv --profile sv_2017 --preprocess [--include-dir D]… [--symbol N[=V]]… [--unit-file F]… [--lib-in DIR] [--lib-out DIR]`
   — exit 0 accepted, 1 rejected (with `furthest_position=` and `[origin=FILE:LINE:COL]`), 3 the preprocessor
   refused. A design is parsed package-first with `--lib-out` / `--lib-in` (see `TOOLBOX.md` §1.1b and the
   SV contract's *Front End* section); the corpus lane is `stimuli/run_pipeline_lane.sh`.
@@ -242,7 +242,7 @@ Primary modes:
     - `code`, `severity`, `file`, `line`, `message`, `detail`.
 - Deterministic controls:
   - include search path order via repeated `--include-dir`,
-  - the compilation context's PREDEFINED macros via repeated `--define NAME` / `--define NAME=TEXT`
+  - the compilation context's PREDEFINED macros via repeated `--symbol NAME` / `--symbol NAME=VALUE`
     (seeded before the first source line, as if `` `define NAME TEXT `` stood at the top of the unit;
     `NAME` alone defines it with empty text — the `+define+` of every commercial front end),
   - an ordered COMPILATION UNIT via repeated `--unit-file F`: each `F` is preprocessed before
@@ -291,7 +291,7 @@ High-value stimuli flags:
 Preprocessing-stage flags (`ENGINE-UNIVERSAL-SERVICES.113`; the pre-`.113` `--preprocess-systemverilog` / `--sv-…` spellings are accepted through release `1.0.247`):
 - `--preprocess <family>` (the family whose stage runs; `--list-stage-options` prints its `--stage-opt` keys)
 - `--include-dir` (repeatable)
-- `--define NAME[=TEXT]` (repeatable, ordered — predefined macros)
+- `--symbol NAME[=VALUE]` (repeatable, ordered — the symbols predefined before the first line; `--define` is an alias)
 - `--unit-file F` (repeatable, ordered — the compilation unit's earlier files)
 - `--stage-opt plain_string_substitution=standard|paste_delimited|all` (default `standard`: a formal inside a plain `"…"` string in macro text is the string's, per IEEE 1800-2017 §22.5.1; `paste_delimited` admits OpenTitan's `"…[``i``]…"` idiom; `all` is Icarus's full substitution)
 - `--profile P` (the profile the expanded text will be parsed under)
@@ -408,7 +408,7 @@ CLI controls:
 - `parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file]`
 - add `--preprocess` (SystemVerilog only) to any of the parse commands to run the SystemVerilog
   preprocessor first and parse / dump the EXPANDED text, with the compilation context
-  `--include-dir DIR` / `--define NAME[=TEXT]` / `--unit-file F` (repeatable, ordered);
+  `--include-dir DIR` / `--symbol NAME[=VALUE]` / `--unit-file F` (repeatable, ordered);
   a rejection then carries `[origin=FILE:LINE:COL]` and a preprocessor refusal exits `3`
   (see `docs/reference/PARSEABILITY_PROBE.md`).
 - optional tail flag for both commands:

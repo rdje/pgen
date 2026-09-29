@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-29 — ENGINE-UNIVERSAL-SERVICES.113 note (`PGEN-ENGINE-UNIVERSAL-SERVICES-0170`): a concept can be universal while its word is one family's — and the guard cannot see the difference
+
+- **The director's question was the right instrument.** `ENGINE-NEUTRALITY` derives its forbidden vocabulary from the grammars: family names, profiles, keyword tokens, rule names. `--define` is none of those, so the gate read the CLI as neutral while the flag carried the C-family's and SystemVerilog's directive name for a concept every preprocessor has (VHDL-2019 calls it a conditional-analysis identifier). The fix is a rename with an alias; the lesson is that concept FLAVOUR is a review judgement the guard does not take, and the catalogue answer of `.113`(d) is where that judgement is written down.
+- **Aliases cost nothing when they are declared where the concept lives.** `--define` stays as clap's `visible_alias` on the engine's flag (a word for a universal concept, not a family's name), the SystemVerilog family's legacy row now points `--sv-define` at `--symbol`, and the three spellings write byte-identical artifacts.
+
 ## 2026-09-29 — ENGINE-UNIVERSAL-SERVICES.113 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0169`): the engine may not TYPE a list of its components either — a crate dependency is the same list in another file
 
 - **The sketch failed the rule it served.** `.113`'s pre-registration named a workspace crate `pgen-sv-preprocessor`. Measured against the frame — the engine names no language — a Cargo `[dependencies]` row naming the family is exactly the hand-typed list `.112` slice 2 had just removed from `lib.rs`, and it would have moved 155 `cargo` invocations. The shape that holds the rule was already in the tree: a family COMPONENT is a directory `build.rs` discovers and the guard classes by path. So the preprocessor moved with `git mv`, its bodies untouched, and every identity gate read the same.

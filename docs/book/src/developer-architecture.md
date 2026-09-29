@@ -272,6 +272,15 @@ code` means the fact belongs in a grammar or in a per-family component, not in t
 means a classed file gained language knowledge it had been shedding. The full census, every hit by class,
 position and kind, is `bash scripts/check_engine_neutrality.sh --census`.
 
+**The ladder a new capability climbs** (director, 2026-09-29). When work on one grammar needs something the
+EBNF could not express, it is tried in this order, and stepping down needs a measured reason naming the
+second language that diverges: (1) a grammar directive the engine serves for every family (`@profiles`,
+`@entry`, the annotations), (2) a neutral engine service — a property of parsing, not of the language
+parsed, (3) a family component shaped to be lifted later. A "neutral" service witnessed by one language is
+a family capability in the engine's clothes; the guard reads names, not concept flavour (`--define` passed
+it while carrying one family's word, and became `--symbol`), so the ladder is a line in the task-acceptance
+template rather than a gate.
+
 The grammar-side direction — a grammar carrying what the engine should provide — is held by the earned
 left-recursion verdict of `--lint-grammar` and `LR-ELIMINATION-RATCHET`, and owed a census of its own
 (`ENGINE-UNIVERSAL-SERVICES.2`).

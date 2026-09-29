@@ -4,7 +4,7 @@
 //! `.113`: the family's preprocessor ([`preprocessor`]) and its IEEE 1800-2017 §22.14 keyword
 //! tables ([`keyword_versions`]) live here, beside the family, and are published to the engine
 //! as ONE neutral [`PreprocessingStage`] (`HOOKS.preprocessing`): the engine hands it a
-//! [`StageRequest`] (the unit, the include dirs, the defines, the parse profile, this stage's own
+//! [`StageRequest`] (the unit, the include dirs, the symbols, the parse profile, this stage's own
 //! options by key) and gets the engine's [`StageOutput`] back. The option KEYS and the deprecated
 //! pre-`.113` CLI spellings are declared below — the engine spells none of them.
 //!
@@ -31,7 +31,7 @@ use preprocessor::{
 };
 
 /// The stage's options (`--stage-opt KEY=VALUE`); the universal context — `--include-dir`,
-/// `--define`, `--unit-file`, `--profile` — is the engine's request, not an option.
+/// `--symbol`, `--unit-file`, `--profile` — is the engine's request, not an option.
 const STAGE_OPTIONS: &[StageOptionSpec] = &[
     StageOptionSpec { key: "include_max_depth", values: "N", default: "64", doc: "the deepest `include nesting accepted before the stage refuses" },
     StageOptionSpec { key: "include_path_policy", values: "allow_absolute|relative_only", default: "allow_absolute", doc: "whether an absolute `include path is honoured" },
@@ -47,7 +47,7 @@ const STAGE_OPTIONS: &[StageOptionSpec] = &[
 /// of the policy, so it maps to a FIXED value the engine appends last.
 const LEGACY_FLAGS: &[LegacyFlag] = &[
     LegacyFlag { flag: "--sv-include-dir", takes_value: true, to: LegacyTarget::Flag("--include-dir") },
-    LegacyFlag { flag: "--sv-define", takes_value: true, to: LegacyTarget::Flag("--define") },
+    LegacyFlag { flag: "--sv-define", takes_value: true, to: LegacyTarget::Flag("--symbol") },
     LegacyFlag { flag: "--sv-unit-file", takes_value: true, to: LegacyTarget::Flag("--unit-file") },
     LegacyFlag { flag: "--sv-keyword-profile", takes_value: true, to: LegacyTarget::Flag("--profile") },
     LegacyFlag { flag: "--sv-source-map-json", takes_value: true, to: LegacyTarget::Flag("--source-map-json") },
@@ -69,9 +69,9 @@ const LEGACY_FLAGS: &[LegacyFlag] = &[
 /// --preprocess-systemverilog` did before `.113`.
 fn run_stage(request: &StageRequest) -> anyhow::Result<Vec<StageOutput>> {
     let defines = request
-        .defines
+        .symbols
         .iter()
-        .map(|raw| PredefinedMacro::parse(raw).with_context(|| format!("invalid --define '{}'", raw)))
+        .map(|raw| PredefinedMacro::parse(raw).with_context(|| format!("invalid --symbol '{}'", raw)))
         .collect::<anyhow::Result<Vec<_>>>()?;
     let mut config = SvPreprocessorConfig {
         include_dirs: request.include_dirs.clone(),

@@ -17,18 +17,18 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `1c4bd7b371fd0e9d741db7b6b346cc80fc179398f0a39b1fab44e4d9195e5e66` |
+| parse binary | `rust/target/debug/parseability_probe` | `fc12ebfc42554a84b4dad53ed18d7efda01679016caf663d0427c827ab8de423` |
 | grammar | `grammars/systemverilog.ebnf` | `a41a2c6236e6025b905942a9bb945f7caf46861cc8af7ff85a8d57385fc0f05e` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `3fe3b12fe98f1947b9b0d0eb5dda18f25d000be50278bcd8d742b1ffa6576a75` |
 | generated parser | `generated/systemverilog_parser.rs` | `d199be9cab57faf18d645ef9d9c94208db9a5cbd95ab2eb2b6b1a79fdccf1fdf` |
 | context | `stimuli/sv/pipeline_context.tsv` | `f1b77668e01ef6bedcd293f3c5967052525fa48a9b40aa17941cc875a3c8d625` |
 | context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `636c8dec8eeab13488b6dd91c0b5547e53c3f6a25c46ccca884d2fb01f459333` |
 | context (per-file unit predecessors) | `stimuli/sv/pipeline_context_units.tsv` | `df065bdc8a87ff15fb441550d42775de494a6cf63eb971b1303e85ab4500bc70` |
-| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `481a18cd62529e6a226effe71908d71c05f1cdefcfb13001c79664476f0635d2` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `8dd37878c51938dc902e426a5c4fb51fd633d164497006573f96c92082348449` |
+| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `c6aede1c7c9be303802cb0fa3f4833c1473f879fd67c30f5011967cf4101318c` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `355d3b79cbfd5fc534aa54d302903c5f27c85815d4640189a8a6825ae8bca9e6` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
 
-Measured at `HEAD` = `3a4adb44e+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `a65bf0433+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 

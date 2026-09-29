@@ -51,7 +51,7 @@ If a parser of yours rejects valid input, hangs, or behaves unexpectedly, **star
 | `--lib-in DIR` | Read `@import_from_library` artifacts from `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
 | `--lib-out DIR` | Write `@export_to_library` artifacts to `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
 | `--preprocess` | Run the grammar's family **preprocessing stage** in-process (a family that declares none is refused, naming the families that do) and parse the EXPANDED text; a rejection carries `[origin=FILE:LINE:COL]`; a stage refusal exits `3` | [Pipeline](#preprocessparse-in-one-command---preprocess) |
-| `--include-dir DIR` / `--define NAME[=TEXT]` / `--unit-file F` / `--stage-opt KEY=VALUE` | The stage's compilation context (include path, predefined macros, the unit's earlier files) and the family's own options by key; repeatable, ordered, need `--preprocess` (`ENGINE-UNIVERSAL-SERVICES.113`; the pre-`.113` `--sv-…` spellings are accepted through release `1.0.247`) | [Pipeline](#preprocessparse-in-one-command---preprocess) |
+| `--include-dir DIR` / `--symbol NAME[=VALUE]` (alias `--define`) / `--unit-file F` / `--stage-opt KEY=VALUE` | The stage's compilation context (include path, predefined macros, the unit's earlier files) and the family's own options by key; repeatable, ordered, need `--preprocess` (`ENGINE-UNIVERSAL-SERVICES.113`; the pre-`.113` `--sv-…` spellings are accepted through release `1.0.247`) | [Pipeline](#preprocessparse-in-one-command---preprocess) |
 
 Environment fallbacks:
 
@@ -678,7 +678,7 @@ rejection's `furthest_position` back through the preprocessor's source map:
 
 ```bash
 parseability_probe --parse systemverilog top.sv --profile sv_2017 --preprocess \
-    --include-dir path/to/includes --define UVM --unit-file defines_first.svh
+    --include-dir path/to/includes --symbol UVM --unit-file defines_first.svh
 # parse_full passed for grammar 'systemverilog' on 'top.sv' [preprocessed]
 
 parseability_probe --parse systemverilog top.sv --profile sv_2017 --preprocess
@@ -687,7 +687,7 @@ parseability_probe --parse systemverilog top.sv --profile sv_2017 --preprocess
 # … [origin=top.sv:4:13]                                          ← a MACRO expansion names its USE line
 ```
 
-- `--include-dir DIR`, `--define NAME[=TEXT]` and `--unit-file F` are the compilation context and
+- `--include-dir DIR`, `--symbol NAME[=VALUE]` and `--unit-file F` are the compilation context and
   `--stage-opt KEY=VALUE` the family's own options — the same flags `ast_pipeline --preprocess
   systemverilog` takes (`ENGINE-UNIVERSAL-SERVICES.113`; the pre-`.113` `--sv-…` spellings are
   accepted through release `1.0.247` with one deprecation line each); repeatable, ordered, and

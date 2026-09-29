@@ -514,11 +514,11 @@ struct Args {
     #[arg(long, value_name = "DIR", requires = "preprocess")]
     include_dir: Vec<String>,
 
-    /// `SVPP-EXPANSION.2`(a) — a PREDEFINED macro for the stage, `NAME` or `NAME=TEXT` (repeatable,
-    /// applied in order; the `+define+` of every commercial front end). `NAME` alone defines the
-    /// macro with empty text, exactly as a bare definition line would.
-    #[arg(long, value_name = "NAME[=TEXT]", requires = "preprocess")]
-    define: Vec<String>,
+    /// A symbol PREDEFINED for the stage before the first line, `NAME` or `NAME=VALUE`
+    /// (repeatable, applied in order; `NAME` alone defines it with empty text, exactly as a bare
+    /// definition line would — `SVPP-EXPANSION.2`(a)). `--define` is accepted as an alias.
+    #[arg(long, visible_alias = "define", value_name = "NAME[=VALUE]", requires = "preprocess")]
+    symbol: Vec<String>,
 
     /// `SVPP-EXPANSION.2`(b) — a file preprocessed BEFORE `INPUT` in the same COMPILATION UNIT
     /// (repeatable, in order): its definitions carry into `INPUT`, while its own expanded text is
@@ -1050,7 +1050,7 @@ fn pipeline_main() -> Result<()> {
         let request = StageRequest {
             unit,
             include_dirs: args.include_dir.iter().map(PathBuf::from).collect(),
-            defines: args.define.clone(),
+            symbols: args.symbol.clone(),
             parse_profile: args.profile.clone(),
             options,
         };
@@ -1090,7 +1090,7 @@ fn pipeline_main() -> Result<()> {
             .filter(|d| matches!(d.severity, StageDiagnosticSeverity::Error))
             .count();
         println!(
-            "preprocess summary: family={} output_bytes={} source_map_entries={} events={} diagnostics={} warnings={} errors={} included_files={} predefines={} unit_predecessors={}",
+            "preprocess summary: family={} output_bytes={} source_map_entries={} events={} diagnostics={} warnings={} errors={} included_files={} symbols={} unit_predecessors={}",
             family,
             output.text.len(),
             output.source_map.len(),
@@ -1099,7 +1099,7 @@ fn pipeline_main() -> Result<()> {
             warning_count,
             error_count,
             output.included_files.len(),
-            request.defines.len(),
+            request.symbols.len(),
             unit_predecessors
         );
         return Ok(());

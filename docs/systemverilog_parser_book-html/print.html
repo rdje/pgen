@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3538f490.js";
+            window.path_to_searchindex_js = "searchindex-3d02c0cf.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -321,7 +321,7 @@ refuses a commit whose published block or whose history’s last row disagrees w
 ESTIMATE over the last five recorded releases; a structural leg (a corpus conformance gate, the generator proof) is one item that costs more than a bar row;
 the 38 % of corpus rows with no verdict are an answer-key gap outside <code>items</code>; and an item can be opened by a release as well as closed — the history shows both.</p>
 <!-- BEGIN DERIVED: scripts/report_sv_release_distance.sh --markdown -->
-<p><strong>SV release distance: 18 items</strong> (<code>legs_unmet + bar_rows + open_leaves</code>).</p>
+<p><strong>SV release distance: 19 items</strong> (<code>legs_unmet + bar_rows + open_leaves</code>).</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -330,13 +330,13 @@ the 38 % of corpus rows with no verdict are an answer-key gap outside <code>item
 <tbody>
 <tr><td>Done-bar legs unmet</td><td style="text-align: right">3 of 3</td><td>the derived block above (<code>report_family_status.sh</code>)</td></tr>
 <tr><td>Corpus bar rows (unexplained divergences)</td><td style="text-align: right">0 (sv_2017 0, sv_2023 0, verilog_2005 0)</td><td><code>stimuli/sv/characterization/adjudication_manifest*.tsv</code></td></tr>
-<tr><td>Open leaves owning SV work</td><td style="text-align: right">15 (SV-CORPUS-GRAD 3, engine leaves SV opened 12)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
+<tr><td>Open leaves owning SV work</td><td style="text-align: right">16 (SV-CORPUS-GRAD 4, engine leaves SV opened 12)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
 <tr><td>Corpus passing (sv_2017, <code>match</code> rows)</td><td style="text-align: right">6069 of 16336 (37.2 %)</td><td>the sv_2017 manifest</td></tr>
 <tr><td>Known defects (unexplained, sv_2017)</td><td style="text-align: right">0</td><td>the sv_2017 manifest</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>Trailing closure rate:</strong> 2.00 items per release over the last 5 recorded release(s); <strong>ETA ≈ 9.0 releases ≈ 43.4 days</strong> — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.</p>
+<p><strong>Trailing closure rate:</strong> 1.00 items per release over the last 5 recorded release(s); <strong>ETA ≈ 19.0 releases ≈ 93.6 days</strong> — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.</p>
 <p>History: <a href="../../tasks/artifacts/sv_corpus_grad/release_distance/history.tsv"><code>release_distance/history.tsv</code></a> (one row per release, appended by <code>--record</code> — and one more, under the shipped release’s label, when a commit outside a release moves the distance; the rate above divides by distinct releases; the last row must equal this tree, checked by <code>--check</code>).</p>
 <!-- END DERIVED: scripts/report_sv_release_distance.sh -->
 <div style="break-before: page; page-break-before: always;"></div>
@@ -662,7 +662,7 @@ context the pipeline takes, and each has the same spelling on both CLIs:</p>
 </thead>
 <tbody>
 <tr><td>include search path</td><td><code>--include-dir DIR</code> (repeatable, ordered)</td><td>where <code>`include "x.svh"</code> is looked for after the including file’s own directory</td></tr>
-<tr><td>predefined macros</td><td><code>--define NAME</code> / <code>--define NAME=TEXT</code> (repeatable, ordered)</td><td>seeded into the macro table before the first line is read, exactly as if <code>`define NAME TEXT</code> stood at the top of the unit; <code>NAME</code> alone defines it with <strong>empty</strong> text (the meaning a bare <code>`define NAME</code> line has). A predefine is an ordinary definition: <code>`ifdef</code>, <code>`undef</code> and the redefinition policy treat it as one</td></tr>
+<tr><td>predefined macros</td><td><code>--symbol NAME</code> / <code>--symbol NAME=VALUE</code> (repeatable, ordered; alias <code>--define</code>)</td><td>seeded into the macro table before the first line is read, exactly as if <code>`define NAME TEXT</code> stood at the top of the unit; <code>NAME</code> alone defines it with <strong>empty</strong> text (the meaning a bare <code>`define NAME</code> line has). A predefine is an ordinary definition: <code>`ifdef</code>, <code>`undef</code> and the redefinition policy treat it as one</td></tr>
 <tr><td>the compilation unit</td><td><code>--unit-file F</code> (repeatable, ordered)</td><td>the files preprocessed <strong>before</strong> the input, under the <strong>same macro table</strong>; the input is the unit’s last file</td></tr>
 <tr><td>a formal inside a plain <code>"…"</code> string</td><td><code>--stage-opt plain_string_substitution=standard|paste_delimited|all</code> (default <code>standard</code>)</td><td>what a formal’s name inside a plain string literal in MACRO TEXT means: <code>standard</code> — the string is opaque, IEEE 1800-2017 §22.5.1’s own <code>`define H(x) "Hello, x"</code> prints <code>Hello, x</code>; <code>paste_delimited</code> — only a formal marked by paste tokens on both sides (<code>"…[``i``]…"</code>, OpenTitan’s idiom) is substituted; <code>all</code> — every formal substituted and every paste joined (Icarus’s reading). The same spelling on <code>ast_pipeline --preprocess-systemverilog</code></td></tr>
 </tbody>
@@ -687,12 +687,12 @@ a default (e.g., <code>`define</code> and <code>`include</code>) are not affecte
 ./rust/target/release/parseability_probe --parse systemverilog hw/ip/uart/rtl/uart.sv \
     --profile sv_2017 --preprocess \
     --include-dir hw/ip/prim/rtl --include-dir stimuli/sv/uvm/uvm-core-2020.3.1/src \
-    --define SYNTHESIS
+    --symbol SYNTHESIS
 # parse_full passed for grammar 'systemverilog' on 'hw/ip/uart/rtl/uart.sv' [preprocessed]
 
 # the AST of the EXPANDED text, same flags
 ./rust/target/release/parseability_probe --parse-dump-ast-pretty systemverilog top.sv out.json \
-    --profile sv_2017 --preprocess --define UVM
+    --profile sv_2017 --preprocess --symbol UVM
 
 # a compilation unit: defines.svh first, then the input, one macro table
 ./rust/target/release/parseability_probe --parse systemverilog dut.sv --profile sv_2017 \
@@ -738,7 +738,7 @@ Paths are printed relative to the working directory when they sit under it. A po
 cannot place (an empty expansion) reads <code>origin=unknown</code> rather than nothing.</p>
 <p>An opt-in summary line describes the expansion itself:</p>
 <pre><code class="language-bash">PGEN_REPORT_PREPROCESS=1 ./rust/target/release/parseability_probe --parse systemverilog f.sv --profile sv_2017 --preprocess
-# preprocess: input='f.sv' unit_predecessors=0 include_dirs=0 defines=0 output_bytes=37 source_map_entries=1 included_files=1 events=5 warnings=0
+# preprocess: input='f.sv' unit_predecessors=0 include_dirs=0 symbols=0 output_bytes=37 source_map_entries=1 included_files=1 events=5 warnings=0
 </code></pre>
 <p>It is opt-in for the same reason the stack-probe line is: PGEN’s corpus runner captures the probe’s
 stderr as a per-file measurement column, and an unconditional line would edit a tracked artifact.</p>
@@ -751,7 +751,7 @@ corpus suite through the chain under a context DERIVED from the corpus itself
 (<code>stimuli/sv/pipeline_context.py</code>: for every <code>`include</code> an includer’s own directory does not
 satisfy, the one directory that does; an ambiguous name is reported, never guessed — and, since
 <code>.4c.1</code>, the defines a file’s own driver passes for it: verilator’s <code>t_x.py</code> flags and sv-tests’
-<code>:defines:</code> header, a literal value only, applied per file as <code>--define</code>; a value the driver
+<code>:defines:</code> header, a literal value only, applied per file as <code>--symbol</code>; a value the driver
 computes at run time and a file several variant drivers configure differently are reported, not
 guessed. These are the test’s own configuration, not a tool identity: <code>.6b.3</code> measured and declined
 the identity predefines — and, since <code>.4c.2</code>, the unit predecessors a file’s own harness compiles
@@ -1056,7 +1056,7 @@ row carries one; the report’s <code>refuted_awaiting_disposition</code> is the
 <code>t_x.py</code> passes <code>+define+NAME[=VALUE]</code> / <code>-DNAME[=VALUE]</code>, sv-tests’ header carries <code>:defines:</code>. The
 derived context now includes them per file (<code>stimuli/sv/pipeline_context_defines.tsv</code>, 55 rows on 48 files:
 52 verilator, 3 sv-tests — a name the same command line <code>-U</code>s again is not one of them), applied as
-<code>--define</code> before the suite’s rows. The deriver emits a LITERAL
+<code>--symbol</code> before the suite’s rows. The deriver emits a LITERAL
 value only and reports the rest instead of guessing — 3 files whose driver computes the value at run time
 (<code>"+define+SIM_CYCLES=" + str(test.cycles)</code>), 24 files that several variant drivers configure differently
 (<code>t_time_sc_ns.py</code> … <code>t_time_sc_sec.py</code>), and it skips the spans whose <code>-D</code> reaches the C++ compiler or

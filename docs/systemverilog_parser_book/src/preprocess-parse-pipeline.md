@@ -37,7 +37,7 @@ context the pipeline takes, and each has the same spelling on both CLIs:
 | Context | Flag (both `ast_pipeline --preprocess systemverilog` and `parseability_probe --preprocess`) | Meaning |
 |---|---|---|
 | include search path | `--include-dir DIR` (repeatable, ordered) | where `` `include "x.svh" `` is looked for after the including file's own directory |
-| predefined macros | `--define NAME` / `--define NAME=TEXT` (repeatable, ordered) | seeded into the macro table before the first line is read, exactly as if `` `define NAME TEXT `` stood at the top of the unit; `NAME` alone defines it with **empty** text (the meaning a bare `` `define NAME `` line has). A predefine is an ordinary definition: `` `ifdef ``, `` `undef `` and the redefinition policy treat it as one |
+| predefined macros | `--symbol NAME` / `--symbol NAME=VALUE` (repeatable, ordered; alias `--define`) | seeded into the macro table before the first line is read, exactly as if `` `define NAME TEXT `` stood at the top of the unit; `NAME` alone defines it with **empty** text (the meaning a bare `` `define NAME `` line has). A predefine is an ordinary definition: `` `ifdef ``, `` `undef `` and the redefinition policy treat it as one |
 | the compilation unit | `--unit-file F` (repeatable, ordered) | the files preprocessed **before** the input, under the **same macro table**; the input is the unit's last file |
 | a formal inside a plain `"…"` string | `--stage-opt plain_string_substitution=standard\|paste_delimited\|all` (default `standard`) | what a formal's name inside a plain string literal in MACRO TEXT means: `standard` — the string is opaque, IEEE 1800-2017 §22.5.1's own `` `define H(x) "Hello, x" `` prints `Hello, x`; `paste_delimited` — only a formal marked by paste tokens on both sides (`"…[``i``]…"`, OpenTitan's idiom) is substituted; `all` — every formal substituted and every paste joined (Icarus's reading). The same spelling on `ast_pipeline --preprocess-systemverilog` |
 
@@ -65,12 +65,12 @@ a default (e.g., `` `define `` and `` `include ``) are not affected by `` `reset
 ./rust/target/release/parseability_probe --parse systemverilog hw/ip/uart/rtl/uart.sv \
     --profile sv_2017 --preprocess \
     --include-dir hw/ip/prim/rtl --include-dir stimuli/sv/uvm/uvm-core-2020.3.1/src \
-    --define SYNTHESIS
+    --symbol SYNTHESIS
 # parse_full passed for grammar 'systemverilog' on 'hw/ip/uart/rtl/uart.sv' [preprocessed]
 
 # the AST of the EXPANDED text, same flags
 ./rust/target/release/parseability_probe --parse-dump-ast-pretty systemverilog top.sv out.json \
-    --profile sv_2017 --preprocess --define UVM
+    --profile sv_2017 --preprocess --symbol UVM
 
 # a compilation unit: defines.svh first, then the input, one macro table
 ./rust/target/release/parseability_probe --parse systemverilog dut.sv --profile sv_2017 \
@@ -121,7 +121,7 @@ An opt-in summary line describes the expansion itself:
 
 ```bash
 PGEN_REPORT_PREPROCESS=1 ./rust/target/release/parseability_probe --parse systemverilog f.sv --profile sv_2017 --preprocess
-# preprocess: input='f.sv' unit_predecessors=0 include_dirs=0 defines=0 output_bytes=37 source_map_entries=1 included_files=1 events=5 warnings=0
+# preprocess: input='f.sv' unit_predecessors=0 include_dirs=0 symbols=0 output_bytes=37 source_map_entries=1 included_files=1 events=5 warnings=0
 ```
 
 It is opt-in for the same reason the stack-probe line is: PGEN's corpus runner captures the probe's
@@ -137,7 +137,7 @@ corpus suite through the chain under a context DERIVED from the corpus itself
 (`stimuli/sv/pipeline_context.py`: for every `` `include `` an includer's own directory does not
 satisfy, the one directory that does; an ambiguous name is reported, never guessed — and, since
 `.4c.1`, the defines a file's own driver passes for it: verilator's `t_x.py` flags and sv-tests'
-`:defines:` header, a literal value only, applied per file as `--define`; a value the driver
+`:defines:` header, a literal value only, applied per file as `--symbol`; a value the driver
 computes at run time and a file several variant drivers configure differently are reported, not
 guessed. These are the test's own configuration, not a tool identity: `.6b.3` measured and declined
 the identity predefines — and, since `.4c.2`, the unit predecessors a file's own harness compiles
@@ -470,7 +470,7 @@ row carries one; the report's `refuted_awaiting_disposition` is the count still 
 `t_x.py` passes `+define+NAME[=VALUE]` / `-DNAME[=VALUE]`, sv-tests' header carries `:defines:`. The
 derived context now includes them per file (`stimuli/sv/pipeline_context_defines.tsv`, 55 rows on 48 files:
 52 verilator, 3 sv-tests — a name the same command line `-U`s again is not one of them), applied as
-`--define` before the suite's rows. The deriver emits a LITERAL
+`--symbol` before the suite's rows. The deriver emits a LITERAL
 value only and reports the rest instead of guessing — 3 files whose driver computes the value at run time
 (`"+define+SIM_CYCLES=" + str(test.cycles)`), 24 files that several variant drivers configure differently
 (`t_time_sc_ns.py` … `t_time_sc_sec.py`), and it skips the spans whose `-D` reaches the C++ compiler or
