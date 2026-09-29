@@ -1,5 +1,14 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-29 — SV-CORPUS-GRAD.35 (`PGEN-SV-CORPUS-GRAD-0420`): a residual of twenty was a census error, and the instrument built one leaf earlier read it in one run
+
+- **Two walks over one graph must agree.** The static reachability walk descended into lookaheads; the planner's walk did not (by an older, correct decision). Everything between the two — an OR inside `&( … )`, a guard rule referenced only as `!( guard )` — was "reachable" for the census and unreachable for every plan, so it sat in the residual forever. The fix derives generation reachability from the planner's graph; the two can no longer disagree.
+- **The pin was right; the number under it was wrong.** The ratchet's pin of 0 was measured before the guard rules existed and never raised. Classifying the twenty (not lowering, not raising) took the residual to exactly 0 on both profiles. A two-sided ratchet plus a correct census is what "banked" means.
+- **A two-sided pin catches its own author.** The first cut pinned 22 branches and four rules from a branch-only census; the rule-level census then found ten guard rules and 28 alternatives, and the gate's new arms refused the stale pins before anything shipped. The re-pin names every rule, so the next move is attributable.
+- **"Covered" by an own-rule witness is not coverage.** The keyword guards read as covered because the witness pass rendered them from their own root — text that is a keyword, rejected in every context the guard protects. A rule whose only use-sites are negative lookaheads has no positive derivation; it belongs to the parse-side rule-fire census, not to generation coverage.
+- **Measure the blast radius before touching a shared census.** The gap report feeds a dozen gates; the census over all ten grammars (20 s each) showed only two others move (regex, rtl_frontend), neither pinned, and the entry-scoped numbers every contract already carried came back identical.
+- **Route the ceremony gap with the fix.** The gate that would have read this three weeks earlier is in the release ceremony now (item 11), next to the library suite `.34` put there.
+
 ## 2026-09-29 — SV-CORPUS-GRAD.34 (`PGEN-SV-CORPUS-GRAD-0419`): a test that fires as designed is silent if nothing runs it — and the leaf that opened it had read the grammar instead of diffing it
 
 - **The premise was wrong, and the first tool run said so.** The opening text stated the rule was "unchanged since March" and blamed the path THROUGH it. `git diff` between the bisected vintages and the frontend's own `--emit-raw-ast-json` on both showed `.3.42` had rewritten the rule — the inline `( … | … | … )?` became a reference to a lifted helper — so the OR the test named no longer exists at that path. A leaf's opening text is a hypothesis; the toolbox is what decides it, and here the toolbox took two commands.

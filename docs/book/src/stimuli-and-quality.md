@@ -969,6 +969,72 @@ So the maintained rule is:
 - if a rule reference is pruned out by profile selection, generation and replay-gap accounting must both treat that branch as outside the active grammar
 - proof surfaces should report impossible branches as unreachable, not as reachable work we merely failed to hit
 
+## Lookahead-Interior Truth
+
+The same rule has a second instance, found on 2026-09-29 (`SV-CORPUS-GRAD.35`) when the reach-path
+dump gained the branch-target plans (`SV-CORPUS-GRAD.34`): an alternation spelled **inside a
+lookahead** — `&( a | b )` or `!( a | b )` — is a parser *assertion*. The generator materialises
+nothing for a lookahead (`generate_node` returns the empty string for it), so `generate_or` never
+runs on the interior OR, its `selected` counter can never move, and no reach plan can steer into
+it (the path walker has no `l` arm, and the reach BFS deliberately does not follow references
+inside a lookahead — the `RTL-FE-CLOSURE.5.4` rule). Yet `generate_gap_report()` registered the
+interior's alternatives as *reachable* branch targets, so they read `never_selected` forever.
+
+Measured on the 1.0.246 SystemVerilog grammar: **16 of the 20** targets the closed-loop residual
+ratchet in `sv_stimuli_quality_gate` had read as regressed were exactly this class
+(`data_type_or_implicit_declared`'s `&( declaration_identifier | hash )`, the two
+`list_of_type_assignments*` separators' `&( comma non_keyword_identifier ( comma | rparen | semi |
+assign ) )`, `param_assignment_sv_2017` / `_sv_2023`, `wildcard_escape_lone_name_shape`), 22
+alternatives in 7 rules over the whole grammar; regex carries 2 (`literal_open_brace`'s negative
+guard); the other eight grammars none. With the branch-plan dump on, every one of them printed
+`[reach-path] target='…/l…#k' … REFUSED: no node at '…/l…'`.
+
+The kept fix mirrors the profile-pruning rule above, in the same function:
+
+- a branch group whose node path crosses an `l` segment is classed `unreachable_branch_debt` with the
+  explicit reason `inside_lookahead`; it is never a target and never counted as actionable debt
+- the group stays in `total_branches` (it exists in the grammar), and its alternatives are counted
+  separately in `summary.unreachable_branches_inside_lookahead` (`default`-deserialised, so a gap
+  report written before the field still loads as a `--target-report-input`)
+- the syntax-closure gate subtracts that count before comparing `unreachable_branches` with the
+  contract's `max_unreachable_branches` — which the contract has always said means the ENTRY-scoped
+  predicate — and pins the count itself **two-sided** through a new required contract field,
+  `expected_inside_lookahead_branches` (22 for SystemVerilog, 0 for the preprocessor grammar), so a
+  grammar edit that adds or removes an alternation inside a lookahead is seen in either direction, and
+  a report from an `ast_pipeline` older than the field is refused rather than read as zero
+
+The same class has a **rule** form. A guard rule referenced only inside lookaheads — the
+wildcard-escape shapes `wildcard_escape_lone_name_shape`, `wildcard_escape_interface_port_shape` and
+`nettype_alias_shape_ahead`, spelled `!( shape )` at every use-site, and `wildcard_import_open_gate`,
+the zero-width fact gate they alone reference — is reachable for the static walk (which descends into
+lookaheads) and unreachable for the planner's walk (which does not, so every raised-entry plan read
+`REFUSED: … is not graph-reachable … (lookahead-only references are not edges)`), and its own-rule
+witness dies on `STORE-AWARE-GEN: rule 'wildcard_import_open_gate' fact_count_at_least predicate
+unsatisfiable (zero source facts)` because nothing on a path that starts at the guard can plant the
+`import pkg::*` fact. Those were the other four of the twenty. The gap report now derives generation
+reachability from the planner's graph, classes such a rule `reachable_only_inside_lookahead` (counted in
+`summary.unreachable_rules_inside_lookahead`, its own branch groups `inside_lookahead`), and the
+syntax-closure contract pins the set by name, two-sided, in `expected_lookahead_only_rules`, apart from
+`allowed_unreachable_rules` so neither list can absorb the other's members.
+
+Measured across every grammar the engine loads (the gap report at count 1 / seed 0, before the change
+none of these were classed): SystemVerilog **10** lookahead-only rules (the four above plus the keyword
+and directive guards `reserved_non_keyword_identifier` / `_sv` / `_v2005` and `lrm_directive_name` /
+`_shared` / `_sv_only`, every one spelled `!( guard )` inside the identifier rules) and **28**
+lookahead-interior alternatives (the 22 inline ones plus the ORs those guard rules own); regex **9**
+rules and **37** alternatives (the character-class range guards around `class_bracket_token` and
+`descending_class_range` / `invalid_class_range`); `rtl_frontend` **1** rule (`port_direction_token`,
+the very rule `RTL-FE-CLOSURE.5.4` named as having no reach path) and **3** alternatives; the other
+seven grammars none. The keyword guards had been "covered" only by own-rule witnesses — a rendered
+`reserved_non_keyword_identifier` is a keyword, text the parser rejects in every context the guard
+protects — which is the second reason a guard is not a generation target.
+
+The narrow interpretation, as before: this closes no frontier. A branch inside a lookahead is
+credited, if at all, only at parse time by whatever the *following* sibling happens to render, and that
+is not a generation-coverage question. What the change removes is a permanent, unwinnable residual
+so that the closed-loop residual ratchet reads the grammar's real generation frontier — which, on
+the 1.0.246 grammar, is empty.
+
 ## Per-Target Reach Classification
 
 Each residual target in the coverage gap report carries a **read-only** `reach_classification` field, computed by `generate_gap_report()` (in `../../rust/src/ast_pipeline/stimuli_generator.rs`) purely as analysis over the already-computed targets — it never changes generation, so it cannot affect coverage counts.

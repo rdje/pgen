@@ -870,12 +870,25 @@ pub struct CoverageDebtSummary {
     pub total_rules: usize,
     pub reachable_rules: usize,
     pub unreachable_rules: usize,
+    /// SV-CORPUS-GRAD.35: how many of `unreachable_rules` are reachable from the entry ONLY through
+    /// lookahead interiors (guards) — never producible by generation, never targets. `default` so a
+    /// gap report written before the field still loads.
+    #[serde(default)]
+    pub unreachable_rules_inside_lookahead: usize,
     pub covered_rules: usize,
     pub covered_reachable_rules: usize,
     pub reachable_rules_at_threshold: usize,
     pub total_branches: usize,
     pub reachable_branches: usize,
     pub unreachable_branches: usize,
+    /// SV-CORPUS-GRAD.35: how many of `unreachable_branches` are alternatives of an OR that sits
+    /// INSIDE A LOOKAHEAD (`l` in the group's node path) — a parser assertion the generator never
+    /// renders, so they can never be selected by generation and are never coverage targets. Kept
+    /// separate so a contract can pin the count two-sided and subtract it from the entry-scoped
+    /// `unreachable_branches` comparison. `default` so a gap report written before the field
+    /// existed still loads (`--target-report-input`).
+    #[serde(default)]
+    pub unreachable_branches_inside_lookahead: usize,
     pub covered_branches: usize,
     pub covered_reachable_branches: usize,
     pub reachable_branches_at_threshold: usize,
@@ -910,20 +923,22 @@ impl StimuliCoverageGapReport {
             self.summary.sample_attempts, self.summary.sample_successes, self.summary.sample_errors
         ));
         out.push_str(&format!(
-            "- Rules: covered {}/{} | reachable {} (at-threshold {}) | unreachable {}\n",
+            "- Rules: covered {}/{} | reachable {} (at-threshold {}) | unreachable {} (only inside a lookahead {})\n",
             self.summary.covered_rules,
             self.summary.total_rules,
             self.summary.reachable_rules,
             self.summary.reachable_rules_at_threshold,
-            self.summary.unreachable_rules
+            self.summary.unreachable_rules,
+            self.summary.unreachable_rules_inside_lookahead
         ));
         out.push_str(&format!(
-            "- Branches: covered {}/{} | reachable {} (at-threshold {}) | unreachable {}\n",
+            "- Branches: covered {}/{} | reachable {} (at-threshold {}) | unreachable {} (inside a lookahead {})\n",
             self.summary.covered_branches,
             self.summary.total_branches,
             self.summary.reachable_branches,
             self.summary.reachable_branches_at_threshold,
-            self.summary.unreachable_branches
+            self.summary.unreachable_branches,
+            self.summary.unreachable_branches_inside_lookahead
         ));
         out.push_str(&format!("- Actionable targets: {}\n\n", self.targets.len()));
 
@@ -3011,7 +3026,25 @@ impl<'a> StimuliGenerator<'a> {
     ) -> Result<StimuliCoverageGapReport> {
         let threshold = required_successes.max(1);
         let resolved_entry = self.resolve_entry_rule(entry_rule)?;
-        let reachable_rules = self.compute_reachable_rules(&resolved_entry);
+        let statically_reachable_rules = self.compute_reachable_rules(&resolved_entry);
+        // SV-CORPUS-GRAD.35: a rule the static walk reaches ONLY through lookahead interiors — a
+        // guard spelled `!( shape )` / `&( shape )` at every use-site, or a rule reachable only via
+        // such a guard — can never be produced by generation (`generate_node` renders nothing for a
+        // lookahead), so it is not a generation-coverage target: classed
+        // `reachable_only_inside_lookahead`, counted in `unreachable_rules_inside_lookahead`, and
+        // excluded from `reachable_rules` so the exhaustiveness arithmetic stays achievable. The
+        // positive graph is the one `reach_hops` walks, so census and planner agree by construction.
+        let positively_reachable_rules = self.compute_positively_reachable_rules(&resolved_entry);
+        let lookahead_only_rules: HashSet<String> = statically_reachable_rules
+            .iter()
+            .filter(|rule_name| !positively_reachable_rules.contains(rule_name.as_str()))
+            .cloned()
+            .collect();
+        let reachable_rules: HashSet<String> = statically_reachable_rules
+            .iter()
+            .filter(|rule_name| positively_reachable_rules.contains(rule_name.as_str()))
+            .cloned()
+            .collect();
 
         let mut all_rule_names: HashSet<String> =
             self.coverage.rule_success_hits.keys().cloned().collect();
@@ -3093,6 +3126,8 @@ impl<'a> StimuliGenerator<'a> {
                 } else {
                     "below_threshold"
                 }
+            } else if lookahead_only_rules.contains(rule_name.as_str()) {
+                "reachable_only_inside_lookahead"
             } else {
                 "unreachable_from_entry"
             };
@@ -3142,6 +3177,7 @@ impl<'a> StimuliGenerator<'a> {
 
         let mut total_branches = 0usize;
         let mut reachable_branches = 0usize;
+        let mut unreachable_branches_inside_lookahead = 0usize;
         let mut covered_branches = 0usize;
         let mut covered_reachable_branches = 0usize;
         let mut reachable_branches_at_threshold = 0usize;
@@ -3152,6 +3188,23 @@ impl<'a> StimuliGenerator<'a> {
             };
             let reachable = reachable_rules.contains(group.rule_name.as_str());
             total_branches = total_branches.saturating_add(group.total_branches);
+            // SV-CORPUS-GRAD.35: an OR INSIDE A LOOKAHEAD (`l` in its group path) is a parser
+            // assertion the generator never renders — `generate_node` emits `Ok(String::new())`
+            // for every `Lookahead` (RTL-FE-CLOSURE.5.4), so `generate_or` never runs on it, its
+            // `selected` counter can never move, and no reach plan can steer into it
+            // (`node_at_path` has no `l` arm; `collect_rule_reference_sites` does not descend).
+            // Counting its alternatives as REACHABLE targets manufactured a PERMANENT
+            // `never_selected` residual: 16 of the 20 targets `sv_stimuli_quality_gate`'s
+            // closed-loop ratchet read on the 1.0.246 SystemVerilog grammar, and 2 on regex's
+            // `literal_open_brace`. They stay in `total_branches` (the group exists) and are
+            // classed UNREACHABLE under their own reason, counted separately, so a contract can
+            // pin the count two-sided. GENERAL/parser-agnostic — keyed on the path encoding.
+            let inside_lookahead = Self::node_path_crosses_lookahead(&group.node_path)
+                || lookahead_only_rules.contains(group.rule_name.as_str());
+            if inside_lookahead {
+                unreachable_branches_inside_lookahead =
+                    unreachable_branches_inside_lookahead.saturating_add(group.total_branches);
+            }
             let branch_nodes =
                 self.or_alternatives_for_group_path(&group.rule_name, &group.node_path);
 
@@ -3196,7 +3249,8 @@ impl<'a> StimuliGenerator<'a> {
                     }
                 }
 
-                let branch_reachable = reachable && missing_rule_refs.is_empty();
+                let branch_reachable =
+                    reachable && missing_rule_refs.is_empty() && !inside_lookahead;
                 if branch_reachable {
                     reachable_branches = reachable_branches.saturating_add(1);
                 }
@@ -3216,6 +3270,8 @@ impl<'a> StimuliGenerator<'a> {
                     } else {
                         "below_threshold"
                     }
+                } else if inside_lookahead {
+                    "inside_lookahead"
                 } else if !missing_rule_refs.is_empty() {
                     "references_rule_missing_from_active_grammar"
                 } else {
@@ -3377,12 +3433,14 @@ impl<'a> StimuliGenerator<'a> {
                 total_rules,
                 reachable_rules: reachable_rules_count,
                 unreachable_rules: unreachable_rules_count,
+                unreachable_rules_inside_lookahead: lookahead_only_rules.len(),
                 covered_rules,
                 covered_reachable_rules,
                 reachable_rules_at_threshold,
                 total_branches,
                 reachable_branches,
                 unreachable_branches,
+                unreachable_branches_inside_lookahead,
                 covered_branches,
                 covered_reachable_branches,
                 reachable_branches_at_threshold,
@@ -8086,6 +8144,35 @@ impl<'a> StimuliGenerator<'a> {
         required.saturating_sub(self.branch_success_hits(group_key, branch_index))
     }
 
+    /// SV-CORPUS-GRAD.35: the rules reachable from `entry_rule` through POSITIVE references only —
+    /// the graph `reach_hops` walks (`collect_rule_reference_sites`, which does not descend into a
+    /// lookahead, `RTL-FE-CLOSURE.5.4`). `compute_reachable_rules` follows `collect_rule_references`,
+    /// which DOES descend, so a rule referenced only inside lookaheads (a guard such as
+    /// `wildcard_escape_lone_name_shape`, spelled `!( … )` at every use-site) or reachable only
+    /// through one is in that set and not in this one. GENERAL/parser-agnostic.
+    fn compute_positively_reachable_rules(&self, entry_rule: &str) -> HashSet<String> {
+        let mut reachable = HashSet::new();
+        let mut pending = vec![entry_rule.to_string()];
+        while let Some(rule_name) = pending.pop() {
+            if !reachable.insert(rule_name.clone()) {
+                continue;
+            }
+            let Some(rule_node) = self.grammar_tree.get(rule_name.as_str()) else {
+                continue;
+            };
+            let mut sites: Vec<RuleReferenceSite> = Vec::new();
+            Self::collect_rule_reference_sites(rule_node, "root", &mut sites);
+            for site in sites {
+                if self.grammar_tree.contains_key(site.referenced_rule.as_str())
+                    && !reachable.contains(site.referenced_rule.as_str())
+                {
+                    pending.push(site.referenced_rule);
+                }
+            }
+        }
+        reachable
+    }
+
     fn compute_reachable_rules(&self, entry_rule: &str) -> HashSet<String> {
         let mut reachable = HashSet::new();
         let mut pending = vec![entry_rule.to_string()];
@@ -11049,6 +11136,13 @@ impl<'a> StimuliGenerator<'a> {
     /// so a reach plan can force the site to expand. Mirrors `directives_along_path`,
     /// which emits one OR directive per `o{i}` segment and (deliberately) ignores `q`
     /// segments — un-taken optionals were exactly the reach gap H.7.1 pinned.
+    /// SV-CORPUS-GRAD.35: does a branch-group path pass through a lookahead? The `l` segment is
+    /// what `collect_branch_groups` writes for `ASTNode::Lookahead`; a group under it is the
+    /// interior of a parser assertion, which generation never enters.
+    fn node_path_crosses_lookahead(node_path: &str) -> bool {
+        node_path.split('/').any(|segment| segment == "l")
+    }
+
     fn quantifier_sites_along_path(rule_name: &str, node_path: &str) -> Vec<(String, String)> {
         let mut sites = Vec::new();
         let mut prefix = String::from("root");
@@ -29334,6 +29428,118 @@ mod tests {
             },
         );
         grammar_tree
+    }
+
+    #[test]
+    fn branch_groups_inside_a_lookahead_are_unreachable_by_construction_not_targets() {
+        // SV-CORPUS-GRAD.35: `unit := &( "x" | "y" ) &( guard ) ( "x" | "y" )` with `guard := "x" | "y"`
+        // — the SAME choice spelled three times: inline inside a positive lookahead, through a GUARD
+        // rule referenced only inside a lookahead, and as the element that satisfies both. The gap
+        // report must count every group in `total_branches`, class the two lookahead-interior
+        // pairs UNREACHABLE under `inside_lookahead` (one by its path's `l` segment, one because its
+        // rule is reachable only through a lookahead), class `guard` itself
+        // `reachable_only_inside_lookahead`, report both counts in the summary, and offer ONLY the
+        // rendered pair as branch targets — nothing inside a lookahead can be selected by generation.
+        let peeked = || ASTNode::Or {
+            alternatives: vec![token("quoted_string", "x"), token("quoted_string", "y")],
+        };
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "unit".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Lookahead {
+                        element: Box::new(peeked()),
+                        positive: true,
+                    },
+                    ASTNode::Lookahead {
+                        element: Box::new(token("rule_reference", "guard")),
+                        positive: true,
+                    },
+                    peeked(),
+                ],
+            },
+        );
+        grammar_tree.insert("guard".to_string(), peeked());
+        let rule_order = vec!["unit".to_string(), "guard".to_string()];
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+        let report = generator
+            .generate_gap_report(Some("unit"), 1)
+            .expect("gap report");
+
+        assert_eq!(report.summary.total_branches, 6, "all three ORs are counted: {:?}", report.summary);
+        assert_eq!(
+            report.summary.unreachable_branches_inside_lookahead, 4,
+            "the inline peeked pair and the guard's pair are inside a lookahead: {:?}",
+            report.summary
+        );
+        assert_eq!(
+            report.summary.reachable_branches, 2,
+            "only the rendered OR's alternatives are reachable: {:?}",
+            report.summary
+        );
+        assert_eq!(
+            report.summary.unreachable_rules_inside_lookahead, 1,
+            "`guard` is reachable only through a lookahead: {:?}",
+            report.summary
+        );
+        assert_eq!(report.summary.reachable_rules, 1, "`unit` alone is generation-reachable");
+        let guard_debt: Vec<&RuleCoverageDebt> = report
+            .unreachable_rule_debt
+            .iter()
+            .filter(|d| d.rule_name == "guard")
+            .collect();
+        assert_eq!(guard_debt.len(), 1, "{:?}", report.unreachable_rule_debt);
+        assert_eq!(guard_debt[0].reason, "reachable_only_inside_lookahead");
+        assert!(!guard_debt[0].reachable);
+
+        let inside: Vec<&BranchCoverageDebt> = report
+            .unreachable_branch_debt
+            .iter()
+            .filter(|d| d.reason == "inside_lookahead")
+            .collect();
+        assert_eq!(inside.len(), 4, "{:?}", report.unreachable_branch_debt);
+        assert!(
+            inside.iter().all(|d| !d.reachable
+                && ((d.rule_name == "unit" && d.node_path == "root/s0/l")
+                    || (d.rule_name == "guard" && d.node_path == "root"))),
+            "the interior groups sit at unit@root/s0/l and guard@root: {:?}",
+            inside
+        );
+        // The report also carries the RULE target `rule::unit` (nothing was generated yet), so the
+        // check is over the BRANCH targets: only the rendered OR's alternatives may appear.
+        let branch_targets: Vec<&StimuliCoverageTarget> = report
+            .targets
+            .iter()
+            .filter(|t| t.target_type == StimuliCoverageTargetType::Branch)
+            .collect();
+        assert!(
+            branch_targets
+                .iter()
+                .all(|t| t.rule_name == "unit" && t.node_path.as_deref() == Some("root/s2")),
+            "no branch target may name a lookahead's interior: {:?}",
+            branch_targets.iter().map(|t| t.id.as_str()).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            branch_targets.len(),
+            2,
+            "the rendered OR's two alternatives are the branch targets: {:?}",
+            branch_targets.iter().map(|t| t.id.as_str()).collect::<Vec<_>>()
+        );
+        assert!(
+            report.targets.iter().all(|t| t.rule_name != "guard"),
+            "the guard rule is never a target: {:?}",
+            report.targets.iter().map(|t| t.id.as_str()).collect::<Vec<_>>()
+        );
+        // CONTROL: the group that IS rendered must not be touched by the classification.
+        assert!(
+            report
+                .unreachable_branch_debt
+                .iter()
+                .all(|d| !(d.rule_name == "unit" && d.node_path == "root/s2")),
+            "the rendered OR is reachable: {:?}",
+            report.unreachable_branch_debt
+        );
     }
 
     #[test]

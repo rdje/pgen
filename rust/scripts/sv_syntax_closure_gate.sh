@@ -289,6 +289,38 @@ reachable_rules="$(jq -er '.summary.reachable_rules | numbers' "$gap_json")"
 unreachable_rules="$(jq -er '.summary.unreachable_rules | numbers' "$gap_json")"
 reachable_branches="$(jq -er '.summary.reachable_branches | numbers' "$gap_json")"
 unreachable_branches="$(jq -er '.summary.unreachable_branches | numbers' "$gap_json")"
+# SV-CORPUS-GRAD.35: `unreachable_branches` is `total - reachable`, and since .35 the generator
+# classes an OR INSIDE A LOOKAHEAD (`l` in its group path) as unreachable under its own reason —
+# a parser assertion it never renders, so those alternatives can never be generation targets.
+# They are NOT the entry-scoped predicate this contract's `max_unreachable_branches` means, so
+# they are subtracted from that comparison and pinned TWO-SIDED on their own: a grammar edit that
+# adds or removes an alternation inside a lookahead moves this number in either direction, and a
+# report from an `ast_pipeline` older than .35 carries no such field and is REFUSED rather than
+# read as zero.
+if ! unreachable_branches_inside_lookahead="$(jq -er '.summary.unreachable_branches_inside_lookahead | numbers' "$gap_json" 2>/dev/null)"; then
+    echo "error: $gap_json carries no summary.unreachable_branches_inside_lookahead — the gap report was written by an ast_pipeline older than SV-CORPUS-GRAD.35; rebuild the binary (this gate cannot tell a missing field from zero and will not guess)" >&2
+    exit 2
+fi
+if ! expected_inside_lookahead_branches="$(jq -er '.constraints.expected_inside_lookahead_branches | numbers' "$CONTRACT_FILE" 2>/dev/null)"; then
+    echo "error: constraints.expected_inside_lookahead_branches is ABSENT from $CONTRACT_FILE — since SV-CORPUS-GRAD.35 the lookahead-interior branch count is pinned two-sided beside max_unreachable_branches (the report measures ${unreachable_branches_inside_lookahead}); NAME it (0 when the grammar spells no alternation inside a lookahead)" >&2
+    exit 2
+fi
+unreachable_branches_from_entry=$((unreachable_branches - unreachable_branches_inside_lookahead))
+# SV-CORPUS-GRAD.35, the RULE half: a rule reachable from the entry only through lookahead interiors
+# (a guard spelled `!( shape )` at every use-site) is classed `reachable_only_inside_lookahead` by the
+# generator — never producible, never a target — and is pinned here as a NAMED two-sided SET, kept
+# apart from `allowed_unreachable_rules` (the entry-scoped predicate) so neither list can absorb the
+# other's members.
+if ! unreachable_rules_inside_lookahead="$(jq -er '.summary.unreachable_rules_inside_lookahead | numbers' "$gap_json" 2>/dev/null)"; then
+    echo "error: $gap_json carries no summary.unreachable_rules_inside_lookahead — the gap report was written by an ast_pipeline older than SV-CORPUS-GRAD.35; rebuild the binary" >&2
+    exit 2
+fi
+observed_lookahead_only_rules_json="$(jq -cer '[.unreachable_rule_debt[]? | select(.reason == "reachable_only_inside_lookahead") | .rule_name] | sort' "$gap_json")"
+if ! expected_lookahead_only_rules_json="$(jq -cer '.constraints.expected_lookahead_only_rules | select(type == "array") | sort' "$CONTRACT_FILE" 2>/dev/null)"; then
+    echo "error: constraints.expected_lookahead_only_rules is ABSENT from $CONTRACT_FILE — since SV-CORPUS-GRAD.35 the rules reachable only inside lookaheads are pinned as a named two-sided set (the report observes ${observed_lookahead_only_rules_json}); NAME them (an empty list when there are none)" >&2
+    exit 2
+fi
+unreachable_rules_from_entry=$((unreachable_rules - unreachable_rules_inside_lookahead))
 target_debt_count="$(jq -er '(.targets // []) | length | numbers' "$gap_json")"
 
 failures=0
@@ -313,23 +345,35 @@ if [[ "$allowed_unreachable_rules_json" != "null" ]]; then
     # ⭐ SET EQUALITY, BOTH WAYS — the register's own two-sided rule, one surface over. An observed
     # rule missing from the list is an unexplained unreachability; a listed rule that is no longer
     # observed is a DEAD EXEMPTION, and the SVPP precedent refuses those for the same reason.
-    observed_unreachable_rules_json="$(jq -cer '[.unreachable_rule_debt[]?.rule_name] | sort' "$gap_json")"
+    observed_unreachable_rules_json="$(jq -cer '[.unreachable_rule_debt[]? | select(.reason != "reachable_only_inside_lookahead") | .rule_name] | sort' "$gap_json")"
     if [[ "$observed_unreachable_rules_json" != "$allowed_unreachable_rules_json" ]]; then
         failures=$((failures + 1))
         failure_notes+=("unreachable rule SET differs from constraints.allowed_unreachable_rules: observed=${observed_unreachable_rules_json} allowed=${allowed_unreachable_rules_json} (a listed rule that is no longer observed is GOOD NEWS and an invitation to re-derive the contract, not a defect to suppress)")
     elif ! jq -e --arg reason "$required_unreachable_rule_reason" \
-              'all(.unreachable_rule_debt[]?; .reachable == false and .reason == $reason)' \
+              'all(.unreachable_rule_debt[]? | select(.reason != "reachable_only_inside_lookahead"); .reachable == false and .reason == $reason)' \
               "$gap_json" >/dev/null; then
         failures=$((failures + 1))
         failure_notes+=("an allowed unreachable rule carries a reason other than '${required_unreachable_rule_reason}'")
     fi
-elif (( unreachable_rules > max_unreachable_rules )); then
+elif (( unreachable_rules_from_entry > max_unreachable_rules )); then
     failures=$((failures + 1))
-    failure_notes+=("unreachable_rules=${unreachable_rules} > max_unreachable_rules=${max_unreachable_rules}")
+    failure_notes+=("unreachable_rules_from_entry=${unreachable_rules_from_entry} (unreachable_rules=${unreachable_rules} minus inside_lookahead=${unreachable_rules_inside_lookahead}) > max_unreachable_rules=${max_unreachable_rules}")
 fi
-if (( unreachable_branches > max_unreachable_branches )); then
+if [[ "$observed_lookahead_only_rules_json" != "$expected_lookahead_only_rules_json" ]]; then
     failures=$((failures + 1))
-    failure_notes+=("unreachable_branches=${unreachable_branches} > max_unreachable_branches=${max_unreachable_branches}")
+    failure_notes+=("rules reachable only inside a lookahead differ from constraints.expected_lookahead_only_rules: observed=${observed_lookahead_only_rules_json} expected=${expected_lookahead_only_rules_json} (two-sided: a guard rule was added, removed, or gained a positive use-site — re-pin, naming it)")
+fi
+if (( unreachable_rules_inside_lookahead != $(jq -er 'length' <<<"$observed_lookahead_only_rules_json") )); then
+    failures=$((failures + 1))
+    failure_notes+=("summary.unreachable_rules_inside_lookahead=${unreachable_rules_inside_lookahead} disagrees with the ${observed_lookahead_only_rules_json} debt rows carrying that reason — the report is inconsistent with itself")
+fi
+if (( unreachable_branches_from_entry > max_unreachable_branches )); then
+    failures=$((failures + 1))
+    failure_notes+=("unreachable_branches_from_entry=${unreachable_branches_from_entry} (unreachable_branches=${unreachable_branches} minus inside_lookahead=${unreachable_branches_inside_lookahead}) > max_unreachable_branches=${max_unreachable_branches}")
+fi
+if (( unreachable_branches_inside_lookahead != expected_inside_lookahead_branches )); then
+    failures=$((failures + 1))
+    failure_notes+=("unreachable_branches_inside_lookahead=${unreachable_branches_inside_lookahead} != expected_inside_lookahead_branches=${expected_inside_lookahead_branches} (two-sided: an alternation inside a lookahead was added or removed — re-measure and re-pin, naming the rule)")
 fi
 if (( reachable_rules < min_reachable_rules )); then
     failures=$((failures + 1))
@@ -353,6 +397,11 @@ jq -n \
   --argjson unreachable_rules "$unreachable_rules" \
   --argjson reachable_branches "$reachable_branches" \
   --argjson unreachable_branches "$unreachable_branches" \
+  --argjson unreachable_branches_inside_lookahead "$unreachable_branches_inside_lookahead" \
+  --argjson unreachable_rules_inside_lookahead "$unreachable_rules_inside_lookahead" \
+  --argjson unreachable_rules_from_entry "$unreachable_rules_from_entry" \
+  --argjson lookahead_only_rules "$observed_lookahead_only_rules_json" \
+  --argjson unreachable_branches_from_entry "$unreachable_branches_from_entry" \
   --argjson target_debt_count "$target_debt_count" \
   --argjson failures "$failures" \
   --argjson constraints "$(jq -c '.constraints' "$CONTRACT_FILE")" \
@@ -375,6 +424,11 @@ jq -n \
       unreachable_rules: $unreachable_rules,
       reachable_branches: $reachable_branches,
       unreachable_branches: $unreachable_branches,
+      unreachable_branches_inside_lookahead: $unreachable_branches_inside_lookahead,
+      unreachable_rules_inside_lookahead: $unreachable_rules_inside_lookahead,
+      unreachable_rules_from_entry: $unreachable_rules_from_entry,
+      lookahead_only_rules: $lookahead_only_rules,
+      unreachable_branches_from_entry: $unreachable_branches_from_entry,
       target_debt_count: $target_debt_count
     },
     constraints: $constraints,
@@ -403,6 +457,10 @@ jq -n \
     echo "  unreachable_rules: $unreachable_rules"
     echo "  reachable_branches: $reachable_branches"
     echo "  unreachable_branches: $unreachable_branches"
+    echo "  unreachable_rules_inside_lookahead: $unreachable_rules_inside_lookahead $observed_lookahead_only_rules_json (pinned two-sided: constraints.expected_lookahead_only_rules)"
+    echo "  unreachable_rules_from_entry: $unreachable_rules_from_entry (the entry-scoped predicate the allow-list / max_unreachable_rules mean)"
+    echo "  unreachable_branches_inside_lookahead: $unreachable_branches_inside_lookahead (pinned two-sided: expected_inside_lookahead_branches=$expected_inside_lookahead_branches)"
+    echo "  unreachable_branches_from_entry: $unreachable_branches_from_entry (compared with max_unreachable_branches=$max_unreachable_branches)"
     echo "  target_debt_count: $target_debt_count"
     echo
     echo "Artifacts:"
@@ -450,6 +508,8 @@ if (( identity_stale == 1 )); then
         --confirmed-by "auto re-stamped by a GREEN ${grammar_name} syntax closure gate run: \
 defined_rule_count=${defined_rule_count} reachable_rules=${reachable_rules} \
 unreachable_rules=${unreachable_rules} unreachable_branches=${unreachable_branches} \
+unreachable_branches_inside_lookahead=${unreachable_branches_inside_lookahead} \
+unreachable_rules_inside_lookahead=${unreachable_rules_inside_lookahead} \
 unresolved_rule_reference_count=${unresolved_rule_reference_count} \
 entry_rule=${entry_rule} stimuli_seed=${stimuli_seed}"; then
         echo "    the baseline was STALE and every constraint still held, so this run re-stamped it"

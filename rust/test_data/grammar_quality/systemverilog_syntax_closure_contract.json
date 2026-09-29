@@ -3,12 +3,12 @@
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "auto re-stamped by a GREEN systemverilog syntax closure gate run: defined_rule_count=1702 reachable_rules=1733 unreachable_rules=1 unreachable_branches=2 unresolved_rule_reference_count=0 entry_rule=sv_multi_entry_root stimuli_seed=24001",
-    "verified_at_commit": "7ac640e94f996240b684c846978db038fb4851d4",
+    "confirmed_by": "auto re-stamped by a GREEN systemverilog syntax closure gate run: defined_rule_count=1702 reachable_rules=1723 unreachable_rules=11 unreachable_branches=30 unreachable_branches_inside_lookahead=28 unreachable_rules_inside_lookahead=10 unresolved_rule_reference_count=0 entry_rule=sv_multi_entry_root stimuli_seed=24001",
+    "verified_at_commit": "707d276a261c12b434bdf68e254f4087e0e4ad69",
     "inputs": {
       "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "3fe3b12fe98f1947b9b0d0eb5dda18f25d000be50278bcd8d742b1ffa6576a75" },
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "ebfafdd38fda2371dbcd7211b98bb5b13bfa7f9666678cd5e7d82ca7c1bc48b6",
-      "rust/src/ast_pipeline/stimuli_generator.rs": "3c566c6109a34a5c662fdd2805ecb48cd66d6f5b66de7966550fad3e3a2f51c7"
+      "rust/src/ast_pipeline/stimuli_generator.rs": "051efd2d8fe7b13c0ea163ea92c7ab0c6919968b7a833d61f82d83229e2ace2d"
     }
   },
   "version": 6,
@@ -29,6 +29,21 @@
     "require_entry_rule_defined": true,
     "max_unreachable_rules": 1,
     "max_unreachable_branches": 2,
+    "expected_inside_lookahead_branches": 28,
+    "_inside_lookahead_note": "SV-CORPUS-GRAD.35 (2026-09-29): the alternatives of every OR spelled INSIDE A LOOKAHEAD (`l` in the gap report's group path) or belonging to a rule reachable only through one — parser assertions the generator never renders, so they can never be selected and are never coverage targets. Classed `inside_lookahead` by the generator and SUBTRACTED from the `max_unreachable_branches` comparison (which means the entry-scoped predicate above), then pinned here TWO-SIDED so a grammar edit that adds or removes an alternation inside a lookahead is seen in either direction. Measured on the 1.0.246 grammar under this gate's configuration: 28 = 22 alternatives inside a lookahead in 7 rules — data_type_or_implicit_declared (2), list_of_type_assignments (4), list_of_type_assignments_with_default (4), output_variable_data_type_v2005 (3), param_assignment_sv_2017 (3), param_assignment_sv_2023 (3), wildcard_escape_lone_name_shape (3) — plus the 6 alternatives of the ORs owned by the lookahead-only rules named in expected_lookahead_only_rules. Re-pin with the rule named when it moves.",
+    "expected_lookahead_only_rules": [
+      "lrm_directive_name",
+      "lrm_directive_name_shared",
+      "lrm_directive_name_sv_only",
+      "nettype_alias_shape_ahead",
+      "reserved_non_keyword_identifier",
+      "reserved_non_keyword_identifier_sv",
+      "reserved_non_keyword_identifier_v2005",
+      "wildcard_escape_interface_port_shape",
+      "wildcard_escape_lone_name_shape",
+      "wildcard_import_open_gate"
+    ],
+    "_lookahead_only_rules_note": "SV-CORPUS-GRAD.35 (2026-09-29): rules the static walk reaches ONLY through lookahead interiors — the keyword and directive GUARDS (`reserved_non_keyword_identifier*`, `lrm_directive_name*`, spelled `!( guard )` inside the identifier rules), the wildcard-escape guards (`!( shape )` at every use-site: data_type_or_implicit, production_return_type_guarded, the direction-less ANSI port, the two nettype declarations) and the zero-width fact gate only those shapes reference. Generation never renders a lookahead's interior, so none can be produced or witnessed from the entry; classed `reachable_only_inside_lookahead`, excluded from the entry-scoped `allowed_unreachable_rules` / `max_unreachable_rules` comparison, and pinned here as a named two-sided SET. Measured on the 1.0.246 grammar under this gate's configuration: 10 rules. Re-pin with the rule named when it moves.",
     "allowed_unreachable_rules": [
       "casting_type"
     ],

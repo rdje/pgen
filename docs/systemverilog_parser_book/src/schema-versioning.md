@@ -394,8 +394,12 @@ each under the memory guard, sequentially.
     `stimuli_module_parity_gate`, `rtl_const_expr_cert_gate`, `regex_formal_exhaustive_closure_gate`,
     `vhdl_formal_exhaustive_closure_gate`, `sv_formal_exhaustive_closure_gate`,
     `sv_preprocessor_formal_exhaustive_closure_gate`, `sv_preprocessor_reachability_closure_gate`,
-    `sv_preprocessor_syntax_closure_gate` — the SV done-bar's SECOND leg reads *gates green and invoked*
-    over exactly these, and `.24` found three of them RED for months because no release chain ran them.
+    `sv_preprocessor_syntax_closure_gate`, and — since `SV-CORPUS-GRAD.35`, 2026-09-29 —
+    `sv_stimuli_quality_gate` (≈ 30 min: the closed-loop residual ratchet whose pin of 0 nothing had run
+    against between 2026-08-08 and 2026-09-29, during which the census it reads counted parser assertions
+    as generation targets and would have read 20 / 20 on both profiles) — the SV done-bar's SECOND leg
+    reads *gates green and invoked* over exactly these, and `.24` found three of them RED for months
+    because no release chain ran them.
     A RED here is one of two things and the record says which: a condition already owned by name
     (today: the SV formal umbrella's external-corpus surface on UVM's `const local … = new(…)`, the director's `SVPP-EXPANSION.5`(d) ruling; the envelope divergence `GRAMMAR-WELLFORMED.H.20.3` named on 2026-09-24 closed the same day),
     or a NEW defect, routed the same day with its measured line. A RED that is neither blocks the

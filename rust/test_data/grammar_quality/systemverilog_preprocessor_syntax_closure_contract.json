@@ -3,12 +3,12 @@
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/systemverilog_preprocessor_syntax_closure_contract.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "SV-CORPUS-GRAD.24 (b), 2026-09-24, at 8f15c16c3: re-derived by the closure gate's own two steps run directly (ast_pipeline --generate-parser --emit-raw-ast-json --eliminate-left-recursion; --generate-stimuli --count 1 --seed 24001 --entry-rule systemverilog_preprocessor_file --gap-report-threshold 1): defined_rule_count=74 unique_rule_names=74 reachable_rules=74 unreachable_rules=0 reachable_branches=29 unreachable_branches=19 unresolved_rule_reference_count=0 entry_rule_defined=1 \u2014 every constraint of the 2026-05-17 contract (min_total_rules=71 min_reachable_rules=69 max_unreachable_rules=2 max_unreachable_branches=24 max_unresolved_rule_references=0) holds; the contract had carried NO identity block since the doctrine (SV-CORPUS-GRAD.24 condition (b))",
-    "verified_at_commit": "8f15c16c32367b4baa10958489342c5ed2141e32",
+    "confirmed_by": "auto re-stamped by a GREEN systemverilog_preprocessor syntax closure gate run: defined_rule_count=74 reachable_rules=74 unreachable_rules=0 unreachable_branches=19 unreachable_branches_inside_lookahead=0 unreachable_rules_inside_lookahead=0 unresolved_rule_reference_count=0 entry_rule=systemverilog_preprocessor_file stimuli_seed=24001",
+    "verified_at_commit": "707d276a261c12b434bdf68e254f4087e0e4ad69",
     "inputs": {
       "grammars/systemverilog_preprocessor.ebnf": { "kind": "ebnf_raw_ast", "digest": "b0ea2e943a06880697d8881c0bd0707b807eeaa175c12601f3715868414e5e4f" },
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "ebfafdd38fda2371dbcd7211b98bb5b13bfa7f9666678cd5e7d82ca7c1bc48b6",
-      "rust/src/ast_pipeline/stimuli_generator.rs": "3c566c6109a34a5c662fdd2805ecb48cd66d6f5b66de7966550fad3e3a2f51c7"
+      "rust/src/ast_pipeline/stimuli_generator.rs": "051efd2d8fe7b13c0ea163ea92c7ab0c6919968b7a833d61f82d83229e2ace2d"
     }
   },
   "version": 3,
@@ -30,8 +30,12 @@
     "max_unreachable_rules": 0,
     "allowed_unreachable_rules": [],
     "required_unreachable_rule_reason": "unreachable_from_entry",
-    "_unreachable_predicate": "\u26d4 `unreachable_rules` IS ONE NAME FOR TWO PREDICATES AND THIS CONTRACT MEANS THE ENTRY-SCOPED ONE. The number is produced by the syntax-probe gap report over the POST-left-recursion-elimination grammar, rooted at `entry_rule` above; measured 2026-08-20 it is 3 for `systemverilog_preprocessor_file`, 14 for `systemverilog_file` and 1058 for `library_text` on one grammar and one binary. `ast_pipeline --lint-grammar` publishes a counter of the same name that treats an unreferenced orphan as a ROOT by design (rust/src/ast_pipeline/grammar_wellformedness.rs:341) and therefore reports 0 here. NEITHER IS WRONG. A reader whose gate fails on this constraint and reaches for the lint will get 0 and wrongly conclude the gate is broken.",
+    "_unreachable_predicate": "⛔ `unreachable_rules` IS ONE NAME FOR TWO PREDICATES AND THIS CONTRACT MEANS THE ENTRY-SCOPED ONE. The number is produced by the syntax-probe gap report over the POST-left-recursion-elimination grammar, rooted at `entry_rule` above; measured 2026-08-20 it is 3 for `systemverilog_preprocessor_file`, 14 for `systemverilog_file` and 1058 for `library_text` on one grammar and one binary. `ast_pipeline --lint-grammar` publishes a counter of the same name that treats an unreferenced orphan as a ROOT by design (rust/src/ast_pipeline/grammar_wellformedness.rs:341) and therefore reports 0 here. NEITHER IS WRONG. A reader whose gate fails on this constraint and reaches for the lint will get 0 and wrongly conclude the gate is broken.",
     "_allowed_unreachable_rationale": "RE-DERIVED 2026-09-24 (SV-CORPUS-GRAD.24 (b), PGEN-SV-CORPUS-GRAD-0415) at 8f15c16c3 by the gate's own two steps run directly: the entry-scoped unreachable-rule SET rooted at systemverilog_preprocessor_file is EMPTY (defined_rule_count=74 reachable_rules=74 unreachable_rules=0 unreachable_branches=19), so the list is empty and the ceiling is the measured 0. The 2026-05-17 contract carried a BARE ceiling of 2 with no names and no allow-list at all; the gate reads the absent list as a refusal (a bare ceiling records no reason, SV-CORPUS-GRAD.13c.2x.3), and until this commit it did so SILENTLY (a jq -e on null under set -e) — the gate now names the missing field. A rule newly unreachable here is adjudicated by name or deleted, never absorbed by the ceiling.",
-    "max_unreachable_branches": 24
+    "max_unreachable_branches": 24,
+    "expected_inside_lookahead_branches": 0,
+    "_inside_lookahead_note": "SV-CORPUS-GRAD.35 (2026-09-29): the preprocessor grammar spells no alternation inside a lookahead (measured 0 on the tree's grammar); pinned two-sided so one that appears is seen.",
+    "expected_lookahead_only_rules": [],
+    "_lookahead_only_rules_note": "SV-CORPUS-GRAD.35 (2026-09-29): the preprocessor grammar has no rule reachable only through a lookahead (measured empty); pinned two-sided so one that appears is seen."
   }
 }
