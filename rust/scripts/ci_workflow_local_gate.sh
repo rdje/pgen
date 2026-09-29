@@ -3666,8 +3666,11 @@ main() {
     "make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate" \
     "make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate"
   # ENGINE-UNIVERSAL-SERVICES.49(b) — the crate's own unit suite. Replayed here because a hosted
-  # workflow nothing exercises locally is the class this whole gate exists to remove, and this one
-  # is `workflow_dispatch`-only (see its header), so the local replay is its ONLY automatic reader.
+  # workflow nothing exercises locally is the class this whole gate exists to remove. ⚠️ It shipped
+  # `workflow_dispatch`-only (-0087) and was promoted to `push:` ONE COMMIT LATER (-0088, 2026-08-25),
+  # so the hosted lane fires on every push; this replay is still its only reader BETWEEN pushes, and
+  # the push cadence is 300 commits (ENGINE-UNIVERSAL-SERVICES.80: the lane had fired exactly once,
+  # on the push that wired it, when .78's three embedding locks went red 288 commits later).
   run_workflow \
     "lib-unit-test-gate" \
     ".github/workflows/lib-unit-test-gate.yml" \

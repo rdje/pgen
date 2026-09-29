@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.80 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0177`): a tier decision is a census first, and this leaf's census was wrong three times
+
+- **Grep the workflows before saying which tier runs a test.** Two corrections had already been recorded on this leaf; the surviving sentence still missed a hosted lane wired five days before it was written. The population is small (`.github/workflows/*.yml`, the two aggregate scripts, the ceremony list) and one grep names every reader.
+- **A lane that fires on push has fired as often as there were pushes.** `gh run list` turned the abstract "push cadence" into one row; `git rev-list --count origin/main..HEAD` turned it into 288. The red days were the distance between those two numbers, not a wiring gap.
+- **Price a scoped arm against the hook it would join, on the commits it would fire on.** A build plus a 320 s module against a 67 s hook on 7 % of commits is not a rounding error, and §4.7 already says what to do with a check that size: defer it to a cadence that runs anyway.
+- **Say when no proxy exists.** The scoped-arm pattern works where a cheap re-derivation stands in for the oracle; a test pinning a constant the engine dropped has none, and a decision that names that is stronger than one that quietly skips the option.
+- **A DONE section under a `todo` heading is the `.14` class, and it recurs.** `.78` sat that way for a month; `.50` sat that way since August. Reading the heading against the sections before queueing a leaf is the cheapest check there is.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.50 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0176`): a leaf whose every item has landed is still open until its heading says so, and the distance was counting it
 
 - **Read the heading against the sections before queueing the leaf.** The resume pointer queued `.50`(c) as *"measure what the fix leaves"*; the leaf's own sections showed (a)–(e) each closed by a named commit and one deferred half-control. The work was one measurement and a heading, not a fix — and a `### ⛔` heading is what the release distance counts.

@@ -179,6 +179,26 @@ featured suite as a `libsuite` step. Neither is a gate and nothing invokes eithe
 feature-gating refusals, so it could never have been a clean signal. **The claim is about gates,
 not about the command being absent from the tree.**
 
+⭐ **Where the unit suite runs, and why not at every commit** (`ENGINE-UNIVERSAL-SERVICES.80`,
+2026-09-30). The ordinary-commit tier — the pre-commit hook — runs the enforced doctrines and **no
+`cargo test`**; that is the director's cadence ruling (ordinary commits run a selected fast set,
+full CI before a push), and the hook's whole doctrine run measures about a minute. The suite runs at
+three cadences instead: **every SystemVerilog release**, as ceremony item 13 on the final bytes
+(`SV-CORPUS-GRAD.34`); **every push**, through `lib-unit-test-gate.yml` (automatic on `push:`,
+regenerating, ≈ 16 min; it reports and never gates a merge) and its local replay in
+`ci_workflow_local_gate`; and **the flagship**, where `lib_unit_test_gate` and `embedding_api_gate`
+are policy-required. ⛔ The gap this closes was a *cadence* gap, measured: three SystemVerilog
+embedding-ceiling locks went red on 2026-08-28 and stayed red for two days with every gate green,
+because the push lane had fired exactly once — on the push that wired it, 2026-08-25 — and no push
+has happened since (288 commits at the time of writing), while the release-cadence tier did not yet
+exist. A staged-diff-scoped pre-commit arm running just the embedding module was priced and
+declined: it needs the test binary built (a `--features generated_parsers` build of two engine
+binaries measured 1 m 44 s) plus the module's 320 s, on the 20 of the last 300 commits that touch
+the embedding surface — against a hook that otherwise finishes in about a minute — and there is no
+cheap structural proxy for a test that pins a constant the engine no longer has. The release
+cadence, days, is now the bound on how long such a red can live; the push cadence, 300 commits,
+no longer is.
+
 plus per-family switches (`PGEN_SOTA_POLICY_RUN_SV_STIMULI_QUALITY=1`,
 `..._REQUIRE_SV_STIMULI_QUALITY_STRICT=1`, …) that promote individual stages
 between informational and required. Each stage runs through a `run_check` helper
