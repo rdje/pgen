@@ -2004,16 +2004,24 @@ preprocess→parse chain below, and every corpus number this contract's companio
 chain is derived by that chain (`docs/systemverilog_parser_book/src/preprocess-parse-pipeline.md`; the
 platform book's verdict-coverage anchor carries the raw tuple and the tuple under the pipeline side by side).
 
+- **`ENGINE-UNIVERSAL-SERVICES.113` (2026-09-29; no release / schema bump — no verdict and no tree moved)**: the
+  preprocessor is the SystemVerilog family's own component (`rust/src/families/systemverilog/preprocessor.rs`,
+  its §22.14 tables beside it), published to the engine as one neutral preprocessing stage
+  (`rust/src/preprocessing_stage.rs`); the CLI spellings below are the neutral ones — `--preprocess <family>`,
+  `--include-dir`, `--define`, `--unit-file`, `--profile`, `--stage-opt KEY=VALUE` — and the pre-`.113`
+  spellings (`--preprocess-systemverilog`, every `--sv-…` flag) are accepted through release `1.0.247`, each
+  rewritten with one deprecation line on stderr, and removed after it.
 - **The single command** (the probe, `rust/src/bin/parseability_probe.rs`):
-  `parseability_probe --parse systemverilog FILE --profile sv_2017|sv_2023 --preprocess [--sv-include-dir DIR]… [--sv-define NAME[=TEXT]]… [--sv-unit-file FILE]… [--lib-in DIR] [--lib-out DIR]`.
+  `parseability_probe --parse systemverilog FILE --profile sv_2017|sv_2023 --preprocess [--include-dir DIR]… [--define NAME[=TEXT]]… [--unit-file FILE]… [--stage-opt KEY=VALUE]… [--lib-in DIR] [--lib-out DIR]`.
   Exit `0` = accepted, `1` = the parser rejected the expanded text (the message carries `furthest_position=N`
   and `[origin=FILE:LINE:COL]`), `3` = the preprocessor refused (`preprocess_failed …`, never `1` — a corpus
-  lane keys on exactly that difference). The expansion alone: `ast_pipeline INPUT.sv --preprocess-systemverilog
-  [--output OUT.sv] [--sv-source-map-json MAP] [--sv-event-log-json LOG] [--sv-diagnostics-json DIAG]` with the
-  same `--sv-*` flags. Both are embedding-API-free CLIs; the runtime module is `rust/src/sv_preprocessor.rs`.
+  lane keys on exactly that difference). The expansion alone: `ast_pipeline INPUT.sv --preprocess systemverilog
+  [--output OUT.sv] [--source-map-json MAP] [--event-log-json LOG] [--diagnostics-json DIAG]` with the same
+  context flags. Both are embedding-API-free CLIs; the runtime module is
+  `rust/src/families/systemverilog/preprocessor.rs`, reached through `pgen::preprocessing_stage::stage_for("systemverilog")`.
 - **The context is the consumer's, and it is four things**: the include search directories
-  (`--sv-include-dir`, in order), the predefined macros (`--sv-define`, in order, exactly as `` `define NAME
-  TEXT `` before the first line), the compilation unit's earlier files (`--sv-unit-file`, in order — §22.5.1: a
+  (`--include-dir`, in order), the predefined macros (`--define`, in order, exactly as `` `define NAME
+  TEXT `` before the first line), the compilation unit's earlier files (`--unit-file`, in order — §22.5.1: a
   macro is unit-wide once defined; their macro tables are folded into one, their text is not parsed), and the
   library (`--lib-in`, below). The corpus lane DERIVES all four from the corpus itself
   (`stimuli/sv/pipeline_context.py` → `stimuli/sv/pipeline_context{,_files,_defines,_units}.tsv`, and
@@ -2032,7 +2040,7 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   a region in a SOURCE line is left as written, the form being defined for macro text), and `()` read as one empty
   actual when the macro declares formals (`.5`(j′)), and a plain `"…"` string in macro text OPAQUE — no formal
   substituted, no paste joined — as §22.5.1 `:370-372` and its own `H(x) "Hello, x"` read it (`.5`(k), 2026-09-15; the
-  two tool readings are `--sv-plain-string-substitution paste_delimited` (OpenTitan's marked-formal idiom) and `all`
+  two tool readings are `--stage-opt plain_string_substitution=paste_delimited` (OpenTitan's marked-formal idiom) and `all`
   (Icarus's), never the default) —, a `$ident` never
   substituted (A.9.3), a missing or extra actual REFUSED (`E_SVPP_MISSING_MACRO_ARGUMENT`,
   `E_SVPP_EXTRA_MACRO_ARGUMENT`; §22.5.1 *"shall be an error"*), direct or indirect recursion REFUSED
@@ -2043,8 +2051,8 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   begin_protected `` … `` end_protected `` consumed as an envelope (§34; unterminated →
   `E_SVPP_UNTERMINATED_PROTECTED_ENVELOPE`), block comments spanning lines and following an `` `include ``, the
   fifteen `` `SV_COV_* `` coverage-control macros predefined (§40.3.1), conditional groups with the
-  `--sv-conditional-symbol-policy` (`E_SVPP_UNDEFINED_CONDITIONAL_SYMBOL` under the strict policy) and macro
-  redefinition under `--sv-macro-redefine-policy` (`E_SVPP_MACRO_REDEFINED` when disallowed). Every event is
+  `--stage-opt conditional_symbol_policy=…` (`E_SVPP_UNDEFINED_CONDITIONAL_SYMBOL` under the strict policy) and macro
+  redefinition under `--stage-opt macro_redefine_policy=…` (`E_SVPP_MACRO_REDEFINED` when disallowed). Every event is
   logged (`Define Undef Include Ifdef Ifndef Elsif Else Endif PassthroughLine SkippedLine MacroExpand
   LineDirective ProtectedEnvelope KeywordsRegion`).
 - **`` `begin_keywords `` regions are APPLIED, and the profile reaches this stage** (`SVPP-EXPANSION.8`,
@@ -2054,11 +2062,11 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   identifier (`reg [63:0] logic;` → `reg [63:0] \logic ;`), which §5.6.2 makes not a keyword and §5.6.1 makes
   the same identifier as the unescaped spelling. ⛔ **A consumer walking the AST sees that escaped spelling**
   at a rendered site and the source map points back at the bytes the author wrote. The profile is
-  `--profile` on the single command (`--sv-keyword-profile` on `ast_pipeline --preprocess-systemverilog`);
+  `--profile` on both commands (`ast_pipeline --preprocess systemverilog --profile P`; `--sv-keyword-profile` accepted through `1.0.247`);
   omitted, the parser's unprofiled reading is used, which reserves IEEE 1800-2017 Table B.1. Regions NEST
-  and are compilation-UNIT state — they carry across `--sv-unit-file` boundaries, as the clause requires.
+  and are compilation-UNIT state — they carry across `--unit-file` boundaries, as the clause requires.
   The per-version tables are the standard's own (Table 22-1 … 22-6 and §22.14.4's `"1364-2001-noconfig"`
-  exclusions), carried in `rust/src/sv_keyword_versions.rs`, derived from the in-repo LRM text and held
+  exclusions), carried in `rust/src/families/systemverilog/keyword_versions.rs` (the family's own component since `.113`), derived from the in-repo LRM text and held
   equal to it on every commit by the `SV-KEYWORD-VERSIONS` doctrine. Refusals and reports:
   `E_SVPP_UNKNOWN_KEYWORDS_VERSION` (§22.14: *"It shall be an error if an implementation does not recognize
   the version_specifier"*), `W_SVPP_KEYWORDS_VERSION_ABOVE_PROFILE` (the region reserves MORE than the

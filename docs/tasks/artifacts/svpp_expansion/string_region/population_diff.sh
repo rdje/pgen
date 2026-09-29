@@ -17,8 +17,8 @@ rm -rf "$W"; mkdir -p "$W/before" "$W/after"
   printf '%s\n' stimuli/sv/subs/opentitan/hw/dv/sv/dv_utils/dv_utils_pkg.sv stimuli/sv/subs/opentitan/hw/ip/uart/rtl/uart.sv \
                 stimuli/sv/subs/opentitan/hw/dv/sv/dv_lib/dv_base_env.sv stimuli/sv/uvm/uvm-core-2020.3.1/src/uvm_pkg.sv; } | sort -u > "$W/population.txt"
 # the .5 include context: UVM's src plus every OpenTitan directory that holds a .svh
-{ printf -- '--sv-include-dir\nstimuli/sv/uvm/uvm-core-2020.3.1/src\n'
-  find stimuli/sv/subs/opentitan -name '*.svh' | sed 's#/[^/]*$##' | sort -u | sed 's/^/--sv-include-dir\n/'; } > "$W/include_dirs.txt"
+{ printf -- '--include-dir\nstimuli/sv/uvm/uvm-core-2020.3.1/src\n'
+  find stimuli/sv/subs/opentitan -name '*.svh' | sed 's#/[^/]*$##' | sort -u | sed 's/^/--include-dir\n/'; } > "$W/include_dirs.txt"
 INC=$(tr '\n' ' ' < "$W/include_dirs.txt")
 # `.5`(k): the context is the LANE's own per-suite / per-file derivation (stimuli/sv/pipeline_context_args.sh,
 # minus --lib-in, which is a probe flag), so a suite whose includes the .5 UVM+OpenTitan directories cannot
@@ -35,7 +35,7 @@ expand_one() { # <binary> <outdir> <file>
   flags=$(context_args "$suite" "$f" 2>/dev/null | grep -v '^--lib-in' | tr '\t' ' ' | tr '\n' ' ')
   [ -n "$flags" ] || flags="$INC"
   # shellcheck disable=SC2086
-  "$bin" "$f" --preprocess-systemverilog --output "$out/$n.pp" $flags > "$out/$n.log" 2>&1; echo $? > "$out/$n.rc"
+  "$bin" "$f" --preprocess systemverilog --output "$out/$n.pp" $flags > "$out/$n.log" 2>&1; echo $? > "$out/$n.rc"
 }
 export -f expand_one; export INC
 expand_all() { # <binary> <outdir> — 8-way, like the lanes

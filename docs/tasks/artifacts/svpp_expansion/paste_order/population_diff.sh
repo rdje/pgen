@@ -15,14 +15,14 @@ rm -rf "$W"; mkdir -p "$W/before" "$W/after"
   printf '%s\n' stimuli/sv/subs/opentitan/hw/dv/sv/dv_utils/dv_utils_pkg.sv stimuli/sv/subs/opentitan/hw/ip/uart/rtl/uart.sv \
                 stimuli/sv/subs/opentitan/hw/dv/sv/dv_lib/dv_base_env.sv stimuli/sv/uvm/uvm-core-2020.3.1/src/uvm_pkg.sv; } | sort -u > "$W/population.txt"
 # the .5 include context: UVM's src plus every OpenTitan directory that holds a .svh
-{ printf -- '--sv-include-dir\nstimuli/sv/uvm/uvm-core-2020.3.1/src\n'
-  find stimuli/sv/subs/opentitan -name '*.svh' | sed 's#/[^/]*$##' | sort -u | sed 's/^/--sv-include-dir\n/'; } > "$W/include_dirs.txt"
+{ printf -- '--include-dir\nstimuli/sv/uvm/uvm-core-2020.3.1/src\n'
+  find stimuli/sv/subs/opentitan -name '*.svh' | sed 's#/[^/]*$##' | sort -u | sed 's/^/--include-dir\n/'; } > "$W/include_dirs.txt"
 INC=$(tr '\n' ' ' < "$W/include_dirs.txt")
 expand_all() { # <binary> <outdir>
   local bin=$1 out=$2
   while read -r f; do n=$(echo "$f" | tr '/' '_');
     # shellcheck disable=SC2086
-    "$bin" "$f" --preprocess-systemverilog --output "$out/$n.pp" $INC > "$out/$n.log" 2>&1; echo $? > "$out/$n.rc"; done < "$W/population.txt"
+    "$bin" "$f" --preprocess systemverilog --output "$out/$n.pp" $INC > "$out/$n.log" 2>&1; echo $? > "$out/$n.rc"; done < "$W/population.txt"
 }
 expand_all "$BEFORE" "$W/before"; expand_all "$AFTER" "$W/after"
 same=0; moved=0

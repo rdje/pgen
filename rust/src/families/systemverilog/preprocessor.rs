@@ -1,4 +1,7 @@
-//! SystemVerilog preprocessor execution stage (baseline).
+//! SystemVerilog preprocessor execution stage (baseline) — a COMPONENT of the SystemVerilog
+//! family (`ENGINE-UNIVERSAL-SERVICES.113`): it lives beside its family, may name its own
+//! family and nothing else, and the engine reaches it only through the neutral
+//! [`crate::preprocessing_stage::PreprocessingStage`] the family declares in `super::HOOKS`.
 //!
 //! This module provides a deterministic, file-based preprocessing pass:
 //! - macro define/undef and expansion (object-like + function-like),
@@ -6,7 +9,7 @@
 //! - conditional-compilation flow (`ifdef/`ifndef/`elsif/`else/`endif),
 //! - source mapping metadata from expanded output back to originating file/line.
 
-use crate::sv_keyword_versions::{
+use super::keyword_versions::{
     KeywordVersion, profile_admits_specifier, region_within_profile, version_for_profile,
     words_to_escape,
 };
@@ -36,7 +39,7 @@ pub struct SvPreprocessorConfig {
     /// this stage knows which identifiers the parser reserves and can render a
     /// `` `begin_keywords `` region's non-keywords as escaped identifiers (IEEE 1800-2017 §22.14).
     /// `None` is the parser's unprofiled reading, which reserves IEEE 1800-2017 Table B.1; see
-    /// [`crate::sv_keyword_versions::version_for_profile`]. Nothing else in this stage reads it.
+    /// [`super::keyword_versions::version_for_profile`]. Nothing else in this stage reads it.
     pub parse_profile: Option<String>,
 }
 
@@ -205,37 +208,13 @@ impl ConditionalExprPolicy {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum PreprocessorDiagnosticSeverity {
-    Warning,
-    Error,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct PreprocessorDiagnostic {
-    pub code: String,
-    pub severity: PreprocessorDiagnosticSeverity,
-    pub file: String,
-    pub line: usize,
-    pub message: String,
-    pub detail: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct SourceLocation {
-    pub file: String,
-    pub line: usize,
-    pub column_start: usize,
-    pub column_end: usize,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct SourceMapEntry {
-    pub output_start: usize,
-    pub output_end: usize,
-    pub source: SourceLocation,
-}
+// The four output shapes are the ENGINE's neutral stage types (`crate::preprocessing_stage`),
+// used here under the names this module always had: the JSON this stage writes is byte-identical
+// to what it wrote before the stage interface existed (`.113`).
+pub use crate::preprocessing_stage::{
+    SourceLocation, SourceMapEntry, StageDiagnostic as PreprocessorDiagnostic,
+    StageDiagnosticSeverity as PreprocessorDiagnosticSeverity,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -263,6 +242,29 @@ pub enum PreprocessorEventKind {
     KeywordsRegion,
 }
 
+impl PreprocessorEventKind {
+    /// The kind's serde spelling — what [`crate::preprocessing_stage::StageEvent::kind`] carries,
+    /// so a converted event log serializes byte-identically (pinned by a test over every variant).
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PreprocessorEventKind::Define => "define",
+            PreprocessorEventKind::Undef => "undef",
+            PreprocessorEventKind::Include => "include",
+            PreprocessorEventKind::Ifdef => "ifdef",
+            PreprocessorEventKind::Ifndef => "ifndef",
+            PreprocessorEventKind::Elsif => "elsif",
+            PreprocessorEventKind::Else => "else",
+            PreprocessorEventKind::Endif => "endif",
+            PreprocessorEventKind::PassthroughLine => "passthrough_line",
+            PreprocessorEventKind::SkippedLine => "skipped_line",
+            PreprocessorEventKind::MacroExpand => "macro_expand",
+            PreprocessorEventKind::LineDirective => "line_directive",
+            PreprocessorEventKind::ProtectedEnvelope => "protected_envelope",
+            PreprocessorEventKind::KeywordsRegion => "keywords_region",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PreprocessorEvent {
     pub kind: PreprocessorEventKind,
@@ -279,6 +281,31 @@ pub struct PreprocessedOutput {
     pub events: Vec<PreprocessorEvent>,
     pub diagnostics: Vec<PreprocessorDiagnostic>,
     pub included_files: Vec<String>,
+}
+
+/// `.113`: this family's output as the engine's neutral [`crate::preprocessing_stage::StageOutput`]
+/// — text, source map, diagnostics and the included-file list move; only the event kind is
+/// re-spelled (its serde name), so every JSON artifact is byte-identical.
+impl From<PreprocessedOutput> for crate::preprocessing_stage::StageOutput {
+    fn from(output: PreprocessedOutput) -> Self {
+        crate::preprocessing_stage::StageOutput {
+            text: output.text,
+            source_map: output.source_map,
+            events: output
+                .events
+                .into_iter()
+                .map(|event| crate::preprocessing_stage::StageEvent {
+                    kind: event.kind.as_str().to_string(),
+                    file: event.file,
+                    line: event.line,
+                    active: event.active,
+                    detail: event.detail,
+                })
+                .collect(),
+            diagnostics: output.diagnostics,
+            included_files: output.included_files,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -3804,6 +3831,26 @@ fn is_ident_continue(b: u8) -> bool {
 
 #[cfg(test)]
 mod tests {
+    /// `.113`: the neutral event log carries the kind's serde name — every variant's `as_str`
+    /// equals what serde writes for it, so the converted `--event-log-json` is byte-identical.
+    #[test]
+    fn every_event_kind_spells_itself_as_serde_does() {
+        use super::PreprocessorEventKind as K;
+        let all = [
+            K::Define, K::Undef, K::Include, K::Ifdef, K::Ifndef, K::Elsif, K::Else, K::Endif,
+            K::PassthroughLine, K::SkippedLine, K::MacroExpand, K::LineDirective,
+            K::ProtectedEnvelope, K::KeywordsRegion,
+        ];
+        for kind in &all {
+            let via_serde = serde_json::to_string(kind).expect("serializes");
+            assert_eq!(via_serde, format!("{:?}", kind.as_str()), "{:?}", kind);
+        }
+        // exhaustiveness: a variant added without a row above fails to compile in `as_str`,
+        // and one added without a row HERE is caught by the count.
+        let variants_in_as_str = 14;
+        assert_eq!(all.len(), variants_in_as_str);
+    }
+
     use super::{
         ConditionalSymbolPolicy, IncludePathPolicy, MacroDefinition, MacroParameter,
         MacroRedefinitionPolicy, PlainStringSubstitutionPolicy, PredefinedMacro,

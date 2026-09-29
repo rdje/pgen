@@ -2,7 +2,7 @@
 # SVPP-EXPANSION.5(i) — the ORDER around a `` paste, measured against two reference tools this
 # repository did not build. For each corpus file that carries a paste next to a macro usage and for
 # each shape under shapes/, the expansion is produced three ways — PGEN (`ast_pipeline
-# --preprocess-systemverilog`), Verilator (`verilator -E -P`) and Icarus (`iverilog -E`) — and
+# --preprocess systemverilog`), Verilator (`verilator -E -P`) and Icarus (`iverilog -E`) — and
 # compared modulo `line markers, // comments and all whitespace. One row per input: PGEN=V means PGEN agrees
 # with Verilator, PGEN=I with Icarus, V=I the two oracles agree with each other. The oracles are
 # EXTERNAL: a missing one is reported NOT EVALUATED for its column, never counted as agreement.
@@ -32,7 +32,7 @@ printf '%-8s %-8s %-8s  %s\n' 'PGEN=V' 'PGEN=I' 'V=I' input
 for f in $CORPUS "$HERE"/shapes/*.sv; do
   [ -f "$f" ] || { printf '%-8s %-8s %-8s  %s\n' ABSENT ABSENT ABSENT "$f"; continue; }
   n=$(echo "$f" | tr '/' '_')
-  "$AST" --preprocess-systemverilog "$f" --output "$SCRATCH/$n.pgen" >/dev/null 2>&1 || : > "$SCRATCH/$n.pgen"
+  "$AST" --preprocess systemverilog "$f" --output "$SCRATCH/$n.pgen" >/dev/null 2>&1 || : > "$SCRATCH/$n.pgen"
   a=NOTEVAL; b=NOTEVAL; c=NOTEVAL
   if [ $have_v = 1 ]; then verilator -E -P "$f" > "$SCRATCH/$n.v" 2>/dev/null || :; fi
   if [ $have_i = 1 ]; then iverilog -E -o "$SCRATCH/$n.i" "$f" 2>/dev/null || :; fi

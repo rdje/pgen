@@ -28,7 +28,7 @@ lane's; `.gitignore`d; the report renders its summary):
 `status` ∈ pass | fail | pp_fail | timeout | crash; `exported` = the packages published from this file.
 
 SVPP-EXPANSION.6d.2 — the UNIT MEMBERSHIP: the files a package unit's preprocessed text came from (the
-preprocessor's source map, `--sv-source-map-json`), one row per (package file, member file) to
+preprocessor's source map, `--source-map-json`), one row per (package file, member file) to
 `stimuli/sv/characterization/pipeline_library_members.tsv` (`suite  package_relpath  member_relpath`; a
 dump too). A member has no `import` of its own; its verdict under the pipeline is its unit's at that
 file's origin — the re-adjudication instrument reads this table with the dump above.
@@ -71,9 +71,9 @@ def expansion(ast_pipeline: pathlib.Path, rel: str, flags: list[str], timeout_s:
               source_map: pathlib.Path | None = None) -> tuple[str | None, list[str]]:
     """(the preprocessed text — the unit the parser sees — or None when the preprocessor refuses,
     the distinct repo-relative files the text came from, in first-appearance order)."""
-    cmd = [str(ast_pipeline), rel, "--preprocess-systemverilog", *flags]
+    cmd = [str(ast_pipeline), rel, "--preprocess", "systemverilog", *flags]
     if source_map is not None:
-        cmd += ["--sv-source-map-json", str(source_map)]
+        cmd += ["--source-map-json", str(source_map)]
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, timeout=timeout_s, errors="replace")
     except subprocess.TimeoutExpired:

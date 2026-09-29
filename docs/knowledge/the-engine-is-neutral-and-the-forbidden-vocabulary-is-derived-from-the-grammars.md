@@ -10,7 +10,7 @@ answers:
 tags: [engine, neutrality, doctrine, responsibility-boundary, derived-vocabulary, ratchet]
 date: 2026-09-28
 status: current
-evidence: "ENGINE-UNIVERSAL-SERVICES.4 (PGEN-ENGINE-UNIVERSAL-SERVICES-0164): the census on 7ac640e94 read the engine's behaviour neutral and its example text not — six language tokens in three universal help / lint strings, fixed; the embedding API 37 hand-typed family / profile tokens (.112) and the SystemVerilog preprocessor inside the engine crate (.113), ratcheted; ten self-test arms; the gate GREEN on the tree after the fixes."
+evidence: "ENGINE-UNIVERSAL-SERVICES.4 (PGEN-ENGINE-UNIVERSAL-SERVICES-0164): the census on 7ac640e94 read the engine's behaviour neutral and its example text not — six language tokens in three universal help / lint strings, fixed; the embedding API 37 hand-typed family / profile tokens (.112) and the SystemVerilog preprocessor inside the engine crate (.113), ratcheted; ten self-test arms; the gate GREEN on the tree after the fixes. .112 (-0165/-0167/-0168) and .113 (-0169, 2026-09-29) took every ceiling to 0; thirteen arms."
 reverify: "bash scripts/check_engine_neutrality.sh --self-test && bash scripts/check_engine_neutrality.sh --census | head -20"
 ---
 
@@ -33,11 +33,16 @@ guard runs, because a typed list is a second copy of the grammars that would rot
 
 ## What the guard ratchets
 
-The non-engine classes are a closed population: a component may name its own family only; the registry, the
-API, the operator binaries and the harnesses each carry a per-file ceiling that only falls, with the leaf that
-owes its zero named on the row. The end state is every ceiling at zero — the API's enumeration derived from
-the registry and each parser's declared profiles (`.112`), the preprocessor in its own crate behind a neutral
-stage interface (`.113`).
+The non-engine classes are a closed population: a component may name its own family only, and it is classed
+by its PATH (`rust/src/families/<name>.rs`, or anything under `rust/src/families/<name>/` — no row to type);
+the registry, the API, the operator binaries and the harnesses each carry a per-file ceiling that only falls,
+with the leaf that owes its zero named on the row. **Every ceiling reached zero on 2026-09-29**: `.112` derived
+the API's and the registry's enumeration from the artifacts; `.113` moved the SystemVerilog preprocessor and
+its keyword tables beside their family (`rust/src/families/systemverilog/`) behind the engine's ONE neutral
+preprocessing stage (`rust/src/preprocessing_stage.rs`: the compilation unit, include dirs, defines, the
+parse profile and the family's options by key in; expanded text, source map, events and diagnostics out —
+the CLIs reach a stage by family name only), and derived the probe's fingerprint table and the equivalence
+harness's target / certification / curated tables from the registry and tracked data.
 
 ## Why example text counts
 

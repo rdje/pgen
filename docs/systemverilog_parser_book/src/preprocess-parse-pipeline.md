@@ -22,7 +22,7 @@ which is a different deliverable from the expansion stage described here.)
 
 | Stage | What it does | Where it lives | Its own CLI |
 |---|---|---|---|
-| **Preprocessor** (expansion) | object-like and function-like macros with defaults, `` `" `` stringize, ``` `` ``` token paste, nested expansion, `` `undef ``, `` `__FILE__ `` / `` `__LINE__ ``; `` `include `` with a search path, cycle and depth guards; `` `ifdef `` / `` `ifndef `` / `` `elsif `` / `` `else `` / `` `endif ``; a byte-indexed source map, an event log and diagnostics | `rust/src/sv_preprocessor.rs` | `ast_pipeline INPUT.sv --preprocess-systemverilog` |
+| **Preprocessor** (expansion) | object-like and function-like macros with defaults, `` `" `` stringize, ``` `` ``` token paste, nested expansion, `` `undef ``, `` `__FILE__ `` / `` `__LINE__ ``; `` `include `` with a search path, cycle and depth guards; `` `ifdef `` / `` `ifndef `` / `` `elsif `` / `` `else `` / `` `endif ``; a byte-indexed source map, an event log and diagnostics | `rust/src/families/systemverilog/preprocessor.rs` (the family's component, behind the engine's `preprocessing_stage`) | `ast_pipeline INPUT.sv --preprocess systemverilog` |
 | **Parser** | the generated SystemVerilog parser, profile `sv_2017` / `sv_2023` / `verilog_2005` | `generated/systemverilog_parser.rs` | `parseability_probe --parse systemverilog FILE` |
 
 The two compose through one type: `PreprocessedOutput { text, source_map, events, diagnostics,
@@ -34,12 +34,21 @@ back into `file:line:column` of the source.
 A preprocessor without a context is a guess. Three things a real front end always knows are the
 context the pipeline takes, and each has the same spelling on both CLIs:
 
-| Context | Flag (both `ast_pipeline --preprocess-systemverilog` and `parseability_probe --preprocess`) | Meaning |
+| Context | Flag (both `ast_pipeline --preprocess systemverilog` and `parseability_probe --preprocess`) | Meaning |
 |---|---|---|
-| include search path | `--sv-include-dir DIR` (repeatable, ordered) | where `` `include "x.svh" `` is looked for after the including file's own directory |
-| predefined macros | `--sv-define NAME` / `--sv-define NAME=TEXT` (repeatable, ordered) | seeded into the macro table before the first line is read, exactly as if `` `define NAME TEXT `` stood at the top of the unit; `NAME` alone defines it with **empty** text (the meaning a bare `` `define NAME `` line has). A predefine is an ordinary definition: `` `ifdef ``, `` `undef `` and the redefinition policy treat it as one |
-| the compilation unit | `--sv-unit-file F` (repeatable, ordered) | the files preprocessed **before** the input, under the **same macro table**; the input is the unit's last file |
-| a formal inside a plain `"…"` string | `--sv-plain-string-substitution standard\|paste_delimited\|all` (default `standard`) | what a formal's name inside a plain string literal in MACRO TEXT means: `standard` — the string is opaque, IEEE 1800-2017 §22.5.1's own `` `define H(x) "Hello, x" `` prints `Hello, x`; `paste_delimited` — only a formal marked by paste tokens on both sides (`"…[``i``]…"`, OpenTitan's idiom) is substituted; `all` — every formal substituted and every paste joined (Icarus's reading). The same spelling on `ast_pipeline --preprocess-systemverilog` |
+| include search path | `--include-dir DIR` (repeatable, ordered) | where `` `include "x.svh" `` is looked for after the including file's own directory |
+| predefined macros | `--define NAME` / `--define NAME=TEXT` (repeatable, ordered) | seeded into the macro table before the first line is read, exactly as if `` `define NAME TEXT `` stood at the top of the unit; `NAME` alone defines it with **empty** text (the meaning a bare `` `define NAME `` line has). A predefine is an ordinary definition: `` `ifdef ``, `` `undef `` and the redefinition policy treat it as one |
+| the compilation unit | `--unit-file F` (repeatable, ordered) | the files preprocessed **before** the input, under the **same macro table**; the input is the unit's last file |
+| a formal inside a plain `"…"` string | `--stage-opt plain_string_substitution=standard\|paste_delimited\|all` (default `standard`) | what a formal's name inside a plain string literal in MACRO TEXT means: `standard` — the string is opaque, IEEE 1800-2017 §22.5.1's own `` `define H(x) "Hello, x" `` prints `Hello, x`; `paste_delimited` — only a formal marked by paste tokens on both sides (`"…[``i``]…"`, OpenTitan's idiom) is substituted; `all` — every formal substituted and every paste joined (Icarus's reading). The same spelling on `ast_pipeline --preprocess-systemverilog` |
+
+The spellings are the neutral engine's (`ENGINE-UNIVERSAL-SERVICES.113`, 2026-09-29): the family's own
+knobs travel as `--stage-opt KEY=VALUE` — `ast_pipeline INPUT.sv --preprocess systemverilog
+--list-stage-options` lists them: `include_max_depth`, `include_path_policy`, `macro_redefine_policy`,
+`conditional_symbol_policy`, `conditional_expr_policy`, `plain_string_substitution`,
+`strict_warning_codes` — and the pre-`.113` spellings (`--preprocess-systemverilog`, `--sv-include-dir`,
+`--sv-define`, `--sv-unit-file`, `--sv-keyword-profile`, the `--sv-*-policy` flags,
+`--sv-disallow-macro-redefine`, the three `--sv-*-json` outputs) are accepted through release `1.0.247`,
+each rewritten to the neutral form with one deprecation line on stderr, and removed after it.
 
 The unit flag is not a convenience. IEEE 1800-2017 §22.5.1 says: *"Once a text macro name has been
 defined, it can be used anywhere in the compilation unit where it is defined. There are no other
@@ -55,17 +64,17 @@ a default (e.g., `` `define `` and `` `include ``) are not affected by `` `reset
 # preprocess, then parse — in one process, no scratch file
 ./rust/target/release/parseability_probe --parse systemverilog hw/ip/uart/rtl/uart.sv \
     --profile sv_2017 --preprocess \
-    --sv-include-dir hw/ip/prim/rtl --sv-include-dir stimuli/sv/uvm/uvm-core-2020.3.1/src \
-    --sv-define SYNTHESIS
+    --include-dir hw/ip/prim/rtl --include-dir stimuli/sv/uvm/uvm-core-2020.3.1/src \
+    --define SYNTHESIS
 # parse_full passed for grammar 'systemverilog' on 'hw/ip/uart/rtl/uart.sv' [preprocessed]
 
 # the AST of the EXPANDED text, same flags
 ./rust/target/release/parseability_probe --parse-dump-ast-pretty systemverilog top.sv out.json \
-    --profile sv_2017 --preprocess --sv-define UVM
+    --profile sv_2017 --preprocess --define UVM
 
 # a compilation unit: defines.svh first, then the input, one macro table
 ./rust/target/release/parseability_probe --parse systemverilog dut.sv --profile sv_2017 \
-    --preprocess --sv-unit-file defines.svh
+    --preprocess --unit-file defines.svh
 ```
 
 `--preprocess` is SystemVerilog-only (`--preprocess` with `json` is refused by name), and the three
@@ -112,7 +121,7 @@ An opt-in summary line describes the expansion itself:
 
 ```bash
 PGEN_REPORT_PREPROCESS=1 ./rust/target/release/parseability_probe --parse systemverilog f.sv --profile sv_2017 --preprocess
-# preprocess: input='f.sv' unit_predecessors=0 include_dirs=0 defines=0 output_bytes=37 source_map_entries=1 included_files=1 macro_expansions=1 warnings=0
+# preprocess: input='f.sv' unit_predecessors=0 include_dirs=0 defines=0 output_bytes=37 source_map_entries=1 included_files=1 events=5 warnings=0
 ```
 
 It is opt-in for the same reason the stack-probe line is: PGEN's corpus runner captures the probe's
@@ -128,11 +137,11 @@ corpus suite through the chain under a context DERIVED from the corpus itself
 (`stimuli/sv/pipeline_context.py`: for every `` `include `` an includer's own directory does not
 satisfy, the one directory that does; an ambiguous name is reported, never guessed — and, since
 `.4c.1`, the defines a file's own driver passes for it: verilator's `t_x.py` flags and sv-tests'
-`:defines:` header, a literal value only, applied per file as `--sv-define`; a value the driver
+`:defines:` header, a literal value only, applied per file as `--define`; a value the driver
 computes at run time and a file several variant drivers configure differently are reported, not
 guessed. These are the test's own configuration, not a tool identity: `.6b.3` measured and declined
 the identity predefines — and, since `.4c.2`, the unit predecessors a file's own harness compiles
-before it, applied as `--sv-unit-file` in order: verilator's source-file arguments, slang's `.f` command
+before it, applied as `--unit-file` in order: verilator's source-file arguments, slang's `.f` command
 files, sv2v's explicit multi-file runs; a `-f` list, a glob, a `--siloed` run and an ordering conflict
 are reported, not applied). The first
 measurement, on the two suites the raw lane cannot judge at all (every one of their rows is
@@ -369,9 +378,9 @@ that rely on substitution are design code written for commercial simulators — 
 tool readings are the named values of one policy, with the standard's as the default:
 
 ```text
---sv-plain-string-substitution standard          "Hello, x"                         (the clause; Verilator 5.050)
---sv-plain-string-substitution paste_delimited   "tb.dut.gen_classes[0]…" — only a ``formal`` is substituted, prose stays
---sv-plain-string-substitution all               every formal substituted, every paste joined (Icarus 13.0)
+--stage-opt plain_string_substitution=standard          "Hello, x"                         (the clause; Verilator 5.050)
+--stage-opt plain_string_substitution=paste_delimited   "tb.dut.gen_classes[0]…" — only a ``formal`` is substituted, prose stays
+--stage-opt plain_string_substitution=all               every formal substituted, every paste joined (Icarus 13.0)
 ```
 
 Over the corpus the default moved 67 of 16 388 expansions and every changed line sits inside a plain string; the
@@ -406,8 +415,8 @@ endmodule                       //  character is not interpreted as a keyword"
 as a nonescaped identifier `cpu3`"*), so nothing about the design changes — only which words the parser
 may bind as names. What decides the rendering:
 
-- **The profile.** `--profile` reaches this stage (`--sv-keyword-profile` on
-  `ast_pipeline --preprocess-systemverilog`); under `verilog_2005` the parser never reserved `logic`, so
+- **The profile.** `--profile` reaches this stage on both commands (`ast_pipeline --preprocess
+  systemverilog --profile P`; `--sv-keyword-profile` accepted through `1.0.247`); under `verilog_2005` the parser never reserved `logic`, so
   the same region renders nothing. Omitted, the parser's unprofiled reading is used, which reserves
   IEEE 1800-2017 Table B.1.
 - **The version tables are the LRM's own** — Table 22-1 … Table 22-6 and §22.14.4's
@@ -415,7 +424,7 @@ may bind as names. What decides the rendering:
   every commit by the `SV-KEYWORD-VERSIONS` doctrine, never typed by hand.
 - **Regions nest** (*"Each nested pair is stacked"*) and run *"even across source code file boundaries,
   until the matching `` `end_keywords `` directive or the end of the compilation unit"*, so the stack is
-  carried between the files of a `--sv-unit-file` unit exactly as the macro table is. sv2v's
+  carried between the files of a `--unit-file` unit exactly as the macro table is. sv2v's
   `test/lex/begin_keywords.sv` turns on exactly this: inside a `"1364-2005"` region nested in a
   `"1364-1995"` one, `task automatic bar;` keeps `automatic` as a keyword while `logic` becomes a name.
 - **It is lexical.** A keyword named in a comment, a string literal, a numeric literal, a `$`-name or an
@@ -461,7 +470,7 @@ row carries one; the report's `refuted_awaiting_disposition` is the count still 
 `t_x.py` passes `+define+NAME[=VALUE]` / `-DNAME[=VALUE]`, sv-tests' header carries `:defines:`. The
 derived context now includes them per file (`stimuli/sv/pipeline_context_defines.tsv`, 55 rows on 48 files:
 52 verilator, 3 sv-tests — a name the same command line `-U`s again is not one of them), applied as
-`--sv-define` before the suite's rows. The deriver emits a LITERAL
+`--define` before the suite's rows. The deriver emits a LITERAL
 value only and reports the rest instead of guessing — 3 files whose driver computes the value at run time
 (`"+define+SIM_CYCLES=" + str(test.cycles)`), 24 files that several variant drivers configure differently
 (`t_time_sc_ns.py` … `t_time_sc_sec.py`), and it skips the spans whose `-D` reaches the C++ compiler or
@@ -482,7 +491,7 @@ generate region (the `.3.56` ruling, A.4.2) — a row the `driver_define` dispos
 **The file's own unit (`.4c.2`).** A harness also decides what is compiled BEFORE a file in the same
 compilation unit, and §22.5.1 makes a macro unit-wide once defined. The derived context now carries those
 predecessors per file (`stimuli/sv/pipeline_context_units.tsv`, 44 rows on 17 files), applied as
-`--sv-unit-file` in order, from three declaration dialects: verilator's source-file arguments in the
+`--unit-file` in order, from three declaration dialects: verilator's source-file arguments in the
 driver's SV flag lists (the harness puts them before the top file), slang's `tests/unittests/data/*.f`
 command files (`-F` expanded, `-v` library files skipped, the units unioned in declaration order), sv2v's
 `test/*/run.sh` explicit multi-file `convert` / `runAndCapture` lines (sv2v lexes its inputs as one unit
@@ -596,7 +605,10 @@ and the number is now on the table for the leaf that decides how a per-file lane
 
 ## Boundaries
 
-- The expansion engine is hand-written Rust (`rust/src/sv_preprocessor.rs`), not a grammar; its
+- The expansion engine is hand-written Rust (`rust/src/families/systemverilog/preprocessor.rs` — the
+  SystemVerilog family's own component since `ENGINE-UNIVERSAL-SERVICES.113`, published to the engine as one
+  neutral preprocessing stage, `rust/src/preprocessing_stage.rs`, which knows nothing of the backtick), not a
+  grammar; its
   *directive* structure is separately described by the `systemverilog_preprocessor` grammar, whose
   parser does not expand anything. The two are different deliverables and this chapter is about
   the first.

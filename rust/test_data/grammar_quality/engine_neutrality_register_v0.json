@@ -36,28 +36,8 @@
   "file_classes": {
     "per-family": [
       {
-        "path": "rust/src/sv_preprocessor.rs",
-        "family": "systemverilog"
-      },
-      {
-        "path": "rust/src/sv_keyword_versions.rs",
-        "family": "systemverilog"
-      },
-      {
-        "path": "rust/src/families/systemverilog.rs",
-        "family": "systemverilog"
-      },
-      {
-        "path": "rust/src/families/regex.rs",
-        "family": "regex"
-      },
-      {
         "path": "rust/src/bin/rtl_frontend_generated_contract_probe.rs",
         "family": "rtl_frontend"
-      },
-      {
-        "path": "rust/src/families/vhdl.rs",
-        "family": "vhdl"
       }
     ],
     "registry": [
@@ -100,22 +80,22 @@
       "rust/src/test_runner/round_trip_tests.rs"
     ]
   },
-  "_file_classes_note": "per-family: a language-specific COMPONENT (it may name its own family — its name, its profiles, its rules — and nothing of another's) — owed to its own crate behind a neutral stage interface; registry: the enumeration of registered generated parsers (derived by build.rs from generated/); api: the shipped embedding surface — its family / profile enumeration is owed to derivation from the registry and the generated parsers' declared profiles; bin: operator tools (build / measure / debug), not shipped to users; harness: test suites and censuses that name families as fixtures. Everything else is the ENGINE.",
+  "_file_classes_note": "per-family: a language-specific COMPONENT (it may name its own family — its name, its profiles, its rules — and nothing of another's). DERIVED BY PATH since ENGINE-UNIVERSAL-SERVICES.113: every rust/src/families/<name>.rs and every file under rust/src/families/<name>/ is that family's component and needs no row here (the SystemVerilog preprocessor and its keyword tables live under rust/src/families/systemverilog/, published to the engine as one neutral preprocessing stage); the rows listed are the components that live elsewhere (a family's own contract probe under bin/); registry: the enumeration of registered generated parsers (derived by build.rs from generated/); api: the shipped embedding surface — its family / profile enumeration is owed to derivation from the registry and the generated parsers' declared profiles; bin: operator tools (build / measure / debug), not shipped to users; harness: test suites and censuses that name families as fixtures. Everything else is the ENGINE.",
   "ceilings": {
     "rust/src/embedding_api.rs": {
       "ceiling": 0,
-      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.112",
-      "why_non_zero": "GrammarFamily / GrammarProfile enums and the contract's hand-typed family and profile lists — to be derived from the registry and each generated parser's declared @profiles / @profile_alias (a versioned embedding-API change; Nexsim consumes 1.3.6 / schema 2)"
+      "owner_leaf": "",
+      "why_non_zero": ""
     },
     "rust/src/parser_registry.rs": {
       "ceiling": 0,
-      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.112",
-      "why_non_zero": "the registered parsers by name — the derived enumeration; the tokens are the registry's rows, to be generated from build.rs's cfg list rather than typed"
+      "owner_leaf": "",
+      "why_non_zero": ""
     },
     "rust/src/lib.rs": {
       "ceiling": 0,
-      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.112",
-      "why_non_zero": "the cfg-gated `pub mod <family>` includes of the generated parsers — the registry's include list"
+      "owner_leaf": "",
+      "why_non_zero": ""
     },
     "rust/build.rs": {
       "ceiling": 0,
@@ -123,33 +103,23 @@
       "why_non_zero": ""
     },
     "rust/src/main.rs": {
-      "ceiling": 1,
-      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113",
-      "why_non_zero": "the `--preprocess-systemverilog` flag family of the operator CLI — to become `--preprocess <family>` resolved through a registered preprocessing stage"
+      "ceiling": 0,
+      "owner_leaf": "",
+      "why_non_zero": ""
     },
     "rust/src/bin/parseability_probe.rs": {
-      "ceiling": 13,
+      "ceiling": 0,
       "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113",
       "why_non_zero": "the probe's SystemVerilog preprocess flags and the family-specific dump paths"
     },
     "rust/src/bin/rtl_frontend_generated_contract_probe.rs": {
       "ceiling": 0,
-      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113",
-      "why_non_zero": "a per-family contract probe living under the universal bin/ — to move beside its family's contract artifacts"
+      "owner_leaf": "",
+      "why_non_zero": ""
     },
     "rust/src/parse_harness_equivalence.rs": {
-      "ceiling": 20,
-      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113",
-      "why_non_zero": "the equivalence harness's fixture table of families — a table the registry should feed"
-    },
-    "rust/src/sv_keyword_versions.rs": {
       "ceiling": 0,
-      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113",
-      "why_non_zero": "the IEEE 1800 §22.14 per-version keyword tables name the SV profiles — a per-family component owed to its own crate"
-    },
-    "rust/src/sv_preprocessor.rs": {
-      "ceiling": 0,
-      "owner_leaf": "ENGINE-UNIVERSAL-SERVICES.113",
+      "owner_leaf": "",
       "why_non_zero": ""
     },
     "rust/src/parse_harness.rs": {
@@ -273,7 +243,7 @@
       "why_non_zero": ""
     }
   },
-  "_ceilings_note": "production-code language tokens per classed file, measured 2026-09-28 on 7ac640e94 by `--census`; a rise FAILS, a fall is promoted with `--rebaseline`; every non-zero ceiling names the leaf that owes its zero — the doctrine's end state is every ceiling at 0.",
+  "_ceilings_note": "production-code language tokens per classed file, measured 2026-09-28 on 7ac640e94 by `--census`; a rise FAILS, a fall is promoted with `--rebaseline`; every non-zero ceiling names the leaf that owes its zero — the doctrine's end state is every ceiling at 0. ENGINE-UNIVERSAL-SERVICES.112 (2026-09-29) took the api / registry rows to 0 and .113 (2026-09-29) the bin / harness rows; a row at 0 names no owner.",
   "engine_allow": [],
   "_engine_allow_note": "EMPTY by design. A row here is a language token the ENGINE is temporarily allowed to carry; it needs `file`, `token`, `reason` and `owner_leaf`, and the gate refuses a row without them. Nothing is allowed today: the three strings measured on 7ac640e94 (annotation_validator.rs:852, grammar_wellformedness.rs:338, semantic_runtime.rs:716) were made neutral in this doctrine's own commit."
 }

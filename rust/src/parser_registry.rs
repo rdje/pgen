@@ -489,6 +489,14 @@ pub struct GeneratedParserRegistryEntry {
     /// GRAMMAR-WELLFORMED.H.15 — the witness-verification hook; every derived row carries it.
     cover: Option<CoverFn>,
     hooks: &'static FamilyHooks,
+    /// `ENGINE-UNIVERSAL-SERVICES.24` (ii′) / `.113`: the sha256 build.rs computed over the
+    /// generated parser this row was compiled against (`PGEN_<NAME>_PARSER_SHA256`); `None` for a
+    /// row that is not its own artifact (the bootstrap surface).
+    pub fingerprint: Option<&'static str>,
+    /// Whether this row's oracle IS the codegen parser of its own grammar (every derived row and
+    /// the ebnf seed) — `false` for an alias row and for the hand-written bootstrap surface, which
+    /// no differential against "the parser of this grammar" may include.
+    pub own_artifact: bool,
 }
 
 impl GeneratedParserRegistryEntry {
@@ -534,7 +542,7 @@ where
 /// `$hooks` the family's hook table (`&crate::families::<name>::HOOKS`, or
 /// `&crate::families::FamilyHooks::NONE`).
 macro_rules! generated_parser_row {
-    ($module:ident, $ty:path, $hooks:expr) => {{
+    ($module:ident, $ty:path, $hooks:expr, $fingerprint_env:literal) => {{
         #[allow(non_snake_case)]
         mod $module {
             use super::*;
@@ -706,6 +714,8 @@ macro_rules! generated_parser_row {
             ast_json: $module::ast_json,
             cover: Some($module::cover),
             hooks: $hooks,
+            fingerprint: option_env!($fingerprint_env),
+            own_artifact: true,
         }
     }};
 }
@@ -760,7 +770,7 @@ fn registry() -> &'static [GeneratedParserRegistryEntry] {
         // engine's bootstrap surface and carries its own row (above). A build without the pair does
         // not get here: build.rs refuses it with the remedy.
         if let Some(row) = rows.iter().find(|row| row.grammar_name == "return_annotation").copied() {
-            rows.push(GeneratedParserRegistryEntry { grammar_name: "builtin_return_annotation", cover: None, ..row });
+            rows.push(GeneratedParserRegistryEntry { grammar_name: "builtin_return_annotation", cover: None, own_artifact: false, ..row });
         }
         rows.push(GeneratedParserRegistryEntry {
             grammar_name: "builtin_semantic_annotation",
@@ -771,6 +781,8 @@ fn registry() -> &'static [GeneratedParserRegistryEntry] {
             ast_json: builtin_semantic_ast_json,
             cover: None,
             hooks: &crate::families::FamilyHooks::NONE,
+            fingerprint: None,
+            own_artifact: false,
         });
         rows
     })
@@ -794,6 +806,24 @@ pub fn supports_grammar(grammar_name: &str) -> bool {
 
 pub fn registered_grammars() -> Vec<&'static str> {
     registry().iter().map(|entry| entry.grammar_name).collect()
+}
+
+/// `.113`: every row that is its own generated artifact, with the build-time sha256 of the parser
+/// it was compiled against (`None` when build.rs could not hash it) — the operator probe's
+/// `--parser-fingerprint` reads this; nothing types the list.
+pub fn parser_fingerprints() -> Vec<(&'static str, Option<&'static str>)> {
+    registry()
+        .iter()
+        .filter(|entry| entry.own_artifact)
+        .map(|entry| (entry.grammar_name, entry.fingerprint))
+        .collect()
+}
+
+/// `.113`: whether the registered grammar's oracle IS the codegen parser of its own grammar
+/// (`None` for an unregistered grammar) — a differential "interpreter vs the parser of this
+/// grammar" applies exactly to the rows that answer `true`.
+pub fn is_own_artifact(grammar_name: &str) -> Option<bool> {
+    find_entry(grammar_name).map(|entry| entry.own_artifact)
 }
 
 /// The family's published downstream contract identity, when its module ships one (`None` for a

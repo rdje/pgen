@@ -85,7 +85,7 @@ list that says how much is left.
 
 The parser this book documents reads compiler directives into an AST. Executing them — expanding a file
 so the SystemVerilog parser reads text with IEEE 1800-2017 clause 22 already applied — is the
-**expansion stage** (`rust/src/sv_preprocessor.rs`), a sibling deliverable owned by the `SVPP-EXPANSION`
+**expansion stage** (`rust/src/families/systemverilog/preprocessor.rs`, the SystemVerilog family's own component behind the engine's neutral preprocessing stage since `ENGINE-UNIVERSAL-SERVICES.113`), a sibling deliverable owned by the `SVPP-EXPANSION`
 tree listed above, not a leg of this family's `Done` bar. Its contract is the SV integration contract's
 *"Front End — the preprocess→parse pipeline"* section; its live measurement — the corpus parsed through
 `parseability_probe --preprocess` under a derived context and library, read twice against the raw lane —

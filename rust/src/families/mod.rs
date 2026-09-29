@@ -10,6 +10,12 @@
 //! A family with no module gets [`FamilyHooks::NONE`]: no pre-check, no dedicated stack, no
 //! pre-parse, no post-parse — which is exactly what every family other than the two above had in
 //! the hand-copied helpers this template replaced.
+//!
+//! `ENGINE-UNIVERSAL-SERVICES.113`: a family module is a COMPONENT — `families/<name>.rs` or a
+//! directory `families/<name>/` with its own submodules (the SystemVerilog preprocessor and its
+//! keyword tables live in the latter) — discovered by `build.rs`, compiled unconditionally, and
+//! listed in the derived [`components`] table. A family with a preprocessor declares it as
+//! [`FamilyHooks::preprocessing`], the engine's neutral stage.
 
 /// What a family hook may touch on a parser before the parse begins — the surface every
 /// generated parser exposes, behind a trait so a hook needs neither the parser's type nor a
@@ -40,6 +46,9 @@ pub struct FamilyHooks {
     pub post_parse: fn(&str) -> Result<(), String>,
     /// The family's published downstream contract identity, when it ships one.
     pub contract: fn() -> Option<FamilyContract>,
+    /// `.113`: the family's preprocessing stage, when it has one — reached by the operator CLIs
+    /// through [`crate::preprocessing_stage::stage_for`], never by name.
+    pub preprocessing: Option<&'static crate::preprocessing_stage::PreprocessingStage>,
 }
 
 fn no_pre_check(_: &str) -> Result<(), String> {
@@ -70,10 +79,17 @@ impl FamilyHooks {
         pre_parse: no_pre_parse,
         post_parse: no_post_parse,
         contract: no_contract,
+        preprocessing: None,
     };
 }
 
-// The family modules. Each is compiled only when its own artifact is present (its own cfg), and
-// the build-derived table (`$OUT_DIR/generated_parser_table.rs`) names a module's `HOOKS` only for
-// the families that have one; every other row carries `FamilyHooks::NONE`.
+/// The component of a family, by name (`None` when the family ships no module).
+pub fn component(family: &str) -> Option<&'static FamilyHooks> {
+    components().iter().find(|(name, _)| *name == family).map(|(_, hooks)| *hooks)
+}
+
+// The family modules and the `components()` table, DERIVED by build.rs from `src/families`
+// (unconditional: a component is a source-tree fact). The registry's build-derived row table
+// (`$OUT_DIR/generated_parser_table.rs`) names a module's `HOOKS` only for the families that have
+// one; every other row carries `FamilyHooks::NONE`.
 include!(concat!(env!("OUT_DIR"), "/family_hook_modules.rs"));

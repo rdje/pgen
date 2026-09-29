@@ -139,20 +139,20 @@ cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- generated/foolan
 ```bash
 cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
   path/to/input.sv \
-  --preprocess-systemverilog \
-  --sv-include-dir path/to/includes \
-  --sv-define UVM --sv-define WIDTH=8 \
-  --sv-unit-file path/to/defines_first.svh \
-  --sv-keyword-profile sv_2017 \
-  --sv-include-path-policy relative_only \
-  --sv-macro-redefine-policy warn \
-  --sv-conditional-symbol-policy assume_false_warn \
-  --sv-conditional-expr-policy identifier_or_defined \
-  --sv-strict-warning-codes W_SVPP_ABSOLUTE_INCLUDE_PATH,W_SVPP_UNSUPPORTED_CONDITIONAL_EXPR \
+  --preprocess systemverilog \
+  --include-dir path/to/includes \
+  --define UVM --define WIDTH=8 \
+  --unit-file path/to/defines_first.svh \
+  --profile sv_2017 \
+  --stage-opt include_path_policy=relative_only \
+  --stage-opt macro_redefine_policy=warn \
+  --stage-opt conditional_symbol_policy=assume_false_warn \
+  --stage-opt conditional_expr_policy=identifier_or_defined \
+  --stage-opt strict_warning_codes=W_SVPP_ABSOLUTE_INCLUDE_PATH,W_SVPP_UNSUPPORTED_CONDITIONAL_EXPR \
   --output /tmp/input.preprocessed.sv \
-  --sv-source-map-json /tmp/input.preprocessed.map.json \
-  --sv-event-log-json /tmp/input.preprocessed.events.json \
-  --sv-diagnostics-json /tmp/input.preprocessed.diagnostics.json
+  --source-map-json /tmp/input.preprocessed.map.json \
+  --event-log-json /tmp/input.preprocessed.events.json \
+  --diagnostics-json /tmp/input.preprocessed.diagnostics.json
 ```
 
 ### Existing Makefile pipeline shortcuts
@@ -224,40 +224,40 @@ Primary modes:
   - module mode supports the same parseability/coverage/gap-report flags used by in-memory stimuli mode for parity and regression workflows.
 
 6. Preprocess SystemVerilog source
-- `ast_pipeline INPUT.sv --preprocess-systemverilog [--output PREPROCESSED.sv]`
+- `ast_pipeline INPUT.sv --preprocess systemverilog [--output PREPROCESSED.sv]` (`ENGINE-UNIVERSAL-SERVICES.113`, 2026-09-29: the stage is the family's, reached by name; the pre-`.113` `--preprocess-systemverilog` / `--sv-…` spellings are accepted through release `1.0.247` with one deprecation line each; `--list-stage-options` prints the family's `--stage-opt` keys)
 - The preprocess→parse chain in ONE command (the release reading of a file; `SVPP-EXPANSION.3`):
-  `parseability_probe --parse systemverilog INPUT.sv --profile sv_2017 --preprocess [--sv-include-dir D]… [--sv-define N[=T]]… [--sv-unit-file F]… [--lib-in DIR] [--lib-out DIR]`
+  `parseability_probe --parse systemverilog INPUT.sv --profile sv_2017 --preprocess [--include-dir D]… [--define N[=T]]… [--unit-file F]… [--lib-in DIR] [--lib-out DIR]`
   — exit 0 accepted, 1 rejected (with `furthest_position=` and `[origin=FILE:LINE:COL]`), 3 the preprocessor
   refused. A design is parsed package-first with `--lib-out` / `--lib-in` (see `TOOLBOX.md` §1.1b and the
   SV contract's *Front End* section); the corpus lane is `stimuli/run_pipeline_lane.sh`.
 - `--profile` reaches the PREPROCESSOR too (`SVPP-EXPANSION.8`): it decides which identifiers a
   `` `begin_keywords "…" `` region hands the parser as ESCAPED identifiers (IEEE 1800-2017 §22.14, §5.6.2).
-  On `ast_pipeline --preprocess-systemverilog` the same spelling is `--sv-keyword-profile`; omitted, the
+  On `ast_pipeline --preprocess systemverilog` the same flag is `--profile`; omitted, the
   parser's unprofiled reading is used, which reserves IEEE 1800-2017 Table B.1.
 - This mode executes the Rust preprocessor stage and emits:
   - expanded/preprocessed SV text,
-  - optional source map JSON (`--sv-source-map-json`),
-  - optional event log JSON (`--sv-event-log-json`),
-  - optional diagnostics JSON (`--sv-diagnostics-json`) containing stable diagnostic tuples:
+  - optional source map JSON (`--source-map-json`),
+  - optional event log JSON (`--event-log-json`),
+  - optional diagnostics JSON (`--diagnostics-json`) containing stable diagnostic tuples:
     - `code`, `severity`, `file`, `line`, `message`, `detail`.
 - Deterministic controls:
-  - include search path order via repeated `--sv-include-dir`,
-  - the compilation context's PREDEFINED macros via repeated `--sv-define NAME` / `--sv-define NAME=TEXT`
+  - include search path order via repeated `--include-dir`,
+  - the compilation context's PREDEFINED macros via repeated `--define NAME` / `--define NAME=TEXT`
     (seeded before the first source line, as if `` `define NAME TEXT `` stood at the top of the unit;
     `NAME` alone defines it with empty text — the `+define+` of every commercial front end),
-  - an ordered COMPILATION UNIT via repeated `--sv-unit-file F`: each `F` is preprocessed before
+  - an ordered COMPILATION UNIT via repeated `--unit-file F`: each `F` is preprocessed before
     `INPUT` under the same macro table (IEEE 1800-2017 §22.5.1 — a macro, once defined, is usable
     anywhere in the compilation unit), its expanded text discarded; `INPUT` is the unit's last file,
-  - bounded include recursion (`--sv-include-max-depth`),
-  - include path policy (`--sv-include-path-policy` = `allow_absolute|relative_only`),
-  - macro-redefinition policy (`--sv-macro-redefine-policy` = `allow|warn|error`),
-  - conditional symbol policy (`--sv-conditional-symbol-policy` = `assume_false_silent|assume_false_warn|error`),
-  - conditional expression policy (`--sv-conditional-expr-policy` = `identifier_only|identifier_or_defined`),
-  - strict warning promotion (`--sv-strict-warning-codes` = `none|all|CSV of warning codes`).
+  - bounded include recursion (`--stage-opt include_max_depth=N`),
+  - include path policy (`--stage-opt include_path_policy=``allow_absolute|relative_only`),
+  - macro-redefinition policy (`--stage-opt macro_redefine_policy=``allow|warn|error`),
+  - conditional symbol policy (`--stage-opt conditional_symbol_policy=``assume_false_silent|assume_false_warn|error`),
+  - conditional expression policy (`--stage-opt conditional_expr_policy=``identifier_only|identifier_or_defined`),
+  - strict warning promotion (`--stage-opt strict_warning_codes=``none|all|CSV of warning codes`).
 - Backward-compatible strict macro mode:
-  - `--sv-disallow-macro-redefine` forces macro redefinition policy to error.
+  - `--stage-opt macro_redefine_policy=error` (the pre-`.113` `--sv-disallow-macro-redefine` rewrites to it).
 - Strict warning promotion env fallback:
-  - `PGEN_SVPP_STRICT_WARNING_CODES` is used when `--sv-strict-warning-codes` is omitted.
+  - `PGEN_SVPP_STRICT_WARNING_CODES` is used when `--stage-opt strict_warning_codes=…` is omitted (read by the family's stage, not by the engine).
 
 High-value stimuli flags:
 
@@ -288,22 +288,22 @@ High-value stimuli flags:
 - `--coverage-guided-fuzz-seed-start`
 - `--coverage-guided-fuzz-replay-output`
 
-SystemVerilog preprocess flags:
-- `--preprocess-systemverilog`
-- `--sv-include-dir` (repeatable)
-- `--sv-define NAME[=TEXT]` (repeatable, ordered — predefined macros)
-- `--sv-unit-file F` (repeatable, ordered — the compilation unit's earlier files)
-- `--sv-plain-string-substitution standard|paste_delimited|all` (default `standard`: a formal inside a plain `"…"` string in macro text is the string's, per IEEE 1800-2017 §22.5.1; `paste_delimited` admits OpenTitan's `"…[``i``]…"` idiom; `all` is Icarus's full substitution)
-- `--sv-include-max-depth`
-- `--sv-disallow-macro-redefine`
-- `--sv-include-path-policy`
-- `--sv-macro-redefine-policy`
-- `--sv-conditional-symbol-policy`
-- `--sv-conditional-expr-policy`
-- `--sv-strict-warning-codes`
-- `--sv-source-map-json`
-- `--sv-event-log-json`
-- `--sv-diagnostics-json`
+Preprocessing-stage flags (`ENGINE-UNIVERSAL-SERVICES.113`; the pre-`.113` `--preprocess-systemverilog` / `--sv-…` spellings are accepted through release `1.0.247`):
+- `--preprocess <family>` (the family whose stage runs; `--list-stage-options` prints its `--stage-opt` keys)
+- `--include-dir` (repeatable)
+- `--define NAME[=TEXT]` (repeatable, ordered — predefined macros)
+- `--unit-file F` (repeatable, ordered — the compilation unit's earlier files)
+- `--stage-opt plain_string_substitution=standard|paste_delimited|all` (default `standard`: a formal inside a plain `"…"` string in macro text is the string's, per IEEE 1800-2017 §22.5.1; `paste_delimited` admits OpenTitan's `"…[``i``]…"` idiom; `all` is Icarus's full substitution)
+- `--profile P` (the profile the expanded text will be parsed under)
+- `--stage-opt include_max_depth=N`
+- `--stage-opt include_path_policy=allow_absolute|relative_only`
+- `--stage-opt macro_redefine_policy=allow|warn|error`
+- `--stage-opt conditional_symbol_policy=assume_false_silent|assume_false_warn|error`
+- `--stage-opt conditional_expr_policy=identifier_only|identifier_or_defined`
+- `--stage-opt strict_warning_codes=all|none|CODE[,CODE…]`
+- `--source-map-json`
+- `--event-log-json`
+- `--diagnostics-json`
 
 ### Tracing and Verbosity
 Tracing in the Rust pipeline uses a single verbosity contract:
@@ -408,7 +408,7 @@ CLI controls:
 - `parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file]`
 - add `--preprocess` (SystemVerilog only) to any of the parse commands to run the SystemVerilog
   preprocessor first and parse / dump the EXPANDED text, with the compilation context
-  `--sv-include-dir DIR` / `--sv-define NAME[=TEXT]` / `--sv-unit-file F` (repeatable, ordered);
+  `--include-dir DIR` / `--define NAME[=TEXT]` / `--unit-file F` (repeatable, ordered);
   a rejection then carries `[origin=FILE:LINE:COL]` and a preprocessor refusal exits `3`
   (see `docs/reference/PARSEABILITY_PROBE.md`).
 - optional tail flag for both commands:

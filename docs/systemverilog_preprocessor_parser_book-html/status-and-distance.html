@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-79407f59.js";
+            window.path_to_searchindex_js = "searchindex-1294fa02.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1f5fa4fd.js"></script>
@@ -264,7 +264,7 @@ reading of them would make the check fail on a fresh clone. Run
 <h2 id="the-expansion-stage-is-a-sibling-deliverable"><a class="header" href="#the-expansion-stage-is-a-sibling-deliverable">The expansion stage is a sibling deliverable</a></h2>
 <p>The parser this book documents reads compiler directives into an AST. Executing them — expanding a file
 so the SystemVerilog parser reads text with IEEE 1800-2017 clause 22 already applied — is the
-<strong>expansion stage</strong> (<code>rust/src/sv_preprocessor.rs</code>), a sibling deliverable owned by the <code>SVPP-EXPANSION</code>
+<strong>expansion stage</strong> (<code>rust/src/families/systemverilog/preprocessor.rs</code>, the SystemVerilog family’s own component behind the engine’s neutral preprocessing stage since <code>ENGINE-UNIVERSAL-SERVICES.113</code>), a sibling deliverable owned by the <code>SVPP-EXPANSION</code>
 tree listed above, not a leg of this family’s <code>Done</code> bar. Its contract is the SV integration contract’s
 <em>“Front End — the preprocess→parse pipeline”</em> section; its live measurement — the corpus parsed through
 <code>parseability_probe --preprocess</code> under a derived context and library, read twice against the raw lane —

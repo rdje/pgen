@@ -1,0 +1,22 @@
+{
+  "grammar": "return_annotation",
+  "owner": "GRAMMAR-WELLFORMED.H.22",
+  "why": "The DISCRIMINATING rows for the two codegen decisions the interpreter does not mirror on match_regex. return_annotation was CERTIFIED byte-identical while a real divergence sat inside it: codegen emits match_regex(\"[^']*\", false) for string_content_single (the string_content_double / string_content_single layout allowlist), the interpreter passed true, and the generated stimuli corpus never produced the input that separates them — the gate was green because the corpus did not reach the hole. The discriminator is a quoted string whose CONTENT begins with layout (measured before the fix: first diff at byte 317); each leading-layout row is paired with its no-layout CONTROL so the pair proves the corpus can return BOTH readings.",
+  "moved_from": "rust/src/parse_harness_equivalence.rs RETURN_ANNOTATION_CURATED (ENGINE-UNIVERSAL-SERVICES.113, 2026-09-29)",
+  "inputs": [
+    "-> {k: 'abc'}",
+    "-> {k: ' abc'}",
+    "-> {k: '\tabc'}",
+    "-> {k: 'abc '}",
+    "-> {k: '  '}",
+    "-> {k: ''}",
+    "-> {k: \"abc\"}",
+    "-> {k: \" abc\"}",
+    "-> {k: \"\tabc\"}",
+    "-> {k: \"abc \"}",
+    "-> ' abc'",
+    "-> \" abc\"",
+    "-> [' abc', 'abc']",
+    "-> {' k': 'v'}"
+  ]
+}

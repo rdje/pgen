@@ -1343,7 +1343,7 @@ def first_alterable_tick(stripped: str):
 #
 # The word sets are the ones the engine uses: `stimuli/sv/check_sv_keyword_versions.py` derives
 # Tables 22-1…22-6 and §22.14.4's exclusion list from the three in-repo standards and holds
-# `rust/src/sv_keyword_versions.rs` equal to them (doctrine SV-KEYWORD-VERSIONS) - imported, never
+# `rust/src/families/systemverilog/keyword_versions.rs` equal to them (doctrine SV-KEYWORD-VERSIONS) - imported, never
 # copied, so the adjudicator cannot drift from the renderer.
 KEYWORDS_REGION_FLAG = "keywords_region"
 BEGIN_KEYWORDS_AT_RE = re.compile(r'`begin_keywords\s+"([^"\n]*)"')

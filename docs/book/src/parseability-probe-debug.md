@@ -50,8 +50,8 @@ If a parser of yours rejects valid input, hangs, or behaves unexpectedly, **star
 | `--max-bytes N` | Bound AST dump size | [Basic](#basic-usage) |
 | `--lib-in DIR` | Read `@import_from_library` artifacts from `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
 | `--lib-out DIR` | Write `@export_to_library` artifacts to `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
-| `--preprocess` | SystemVerilog only: run the **preprocessor** in-process and parse the EXPANDED text; a rejection carries `[origin=FILE:LINE:COL]`; a preprocessor refusal exits `3` | [Pipeline](#preprocessparse-in-one-command---preprocess) |
-| `--sv-include-dir DIR` / `--sv-define NAME[=TEXT]` / `--sv-unit-file F` | The preprocessor's compilation context (include path, predefined macros, the unit's earlier files); repeatable, ordered, need `--preprocess` | [Pipeline](#preprocessparse-in-one-command---preprocess) |
+| `--preprocess` | Run the grammar's family **preprocessing stage** in-process (a family that declares none is refused, naming the families that do) and parse the EXPANDED text; a rejection carries `[origin=FILE:LINE:COL]`; a stage refusal exits `3` | [Pipeline](#preprocessparse-in-one-command---preprocess) |
+| `--include-dir DIR` / `--define NAME[=TEXT]` / `--unit-file F` / `--stage-opt KEY=VALUE` | The stage's compilation context (include path, predefined macros, the unit's earlier files) and the family's own options by key; repeatable, ordered, need `--preprocess` (`ENGINE-UNIVERSAL-SERVICES.113`; the pre-`.113` `--sv-…` spellings are accepted through release `1.0.247`) | [Pipeline](#preprocessparse-in-one-command---preprocess) |
 
 Environment fallbacks:
 
@@ -678,7 +678,7 @@ rejection's `furthest_position` back through the preprocessor's source map:
 
 ```bash
 parseability_probe --parse systemverilog top.sv --profile sv_2017 --preprocess \
-    --sv-include-dir path/to/includes --sv-define UVM --sv-unit-file defines_first.svh
+    --include-dir path/to/includes --define UVM --unit-file defines_first.svh
 # parse_full passed for grammar 'systemverilog' on 'top.sv' [preprocessed]
 
 parseability_probe --parse systemverilog top.sv --profile sv_2017 --preprocess
@@ -687,9 +687,12 @@ parseability_probe --parse systemverilog top.sv --profile sv_2017 --preprocess
 # … [origin=top.sv:4:13]                                          ← a MACRO expansion names its USE line
 ```
 
-- `--sv-include-dir`, `--sv-define NAME[=TEXT]` and `--sv-unit-file F` are the compilation
-  context — the same flags `ast_pipeline --preprocess-systemverilog` takes; repeatable, ordered,
-  and refused without `--preprocess`. `--lib-in` / `--lib-out` compose unchanged.
+- `--include-dir DIR`, `--define NAME[=TEXT]` and `--unit-file F` are the compilation context and
+  `--stage-opt KEY=VALUE` the family's own options — the same flags `ast_pipeline --preprocess
+  systemverilog` takes (`ENGINE-UNIVERSAL-SERVICES.113`; the pre-`.113` `--sv-…` spellings are
+  accepted through release `1.0.247` with one deprecation line each); repeatable, ordered, and
+  refused without `--preprocess`. A grammar whose family declares no stage refuses `--preprocess`
+  naming the families that do. `--lib-in` / `--lib-out` compose unchanged.
 - Three exit codes: `0` accepted, `1` rejected by the parser, **`3` the preprocessor refused the
   input** (`preprocess_failed …` on stderr) — the parser never ran, so a corpus lane can keep the
   two populations apart.

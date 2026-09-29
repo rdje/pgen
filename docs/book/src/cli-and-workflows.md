@@ -84,14 +84,22 @@ For any work involving a parser's behavior — investigating a parse failure, id
 
 ## The SystemVerilog Preprocess→Parse Pipeline
 
+Since `ENGINE-UNIVERSAL-SERVICES.113` (2026-09-29) the preprocessor is the SystemVerilog family's own
+component (`rust/src/families/systemverilog/`), and both CLIs reach it through the engine's one neutral
+preprocessing stage: `--preprocess <family>` names the family, `--include-dir` / `--define` / `--unit-file`
+/ `--profile` are the universal context, `--stage-opt KEY=VALUE` carries the family's own options
+(`ast_pipeline INPUT --preprocess systemverilog --list-stage-options` prints them). The pre-`.113`
+spellings (`--preprocess-systemverilog`, the `--sv-…` flags) are accepted through release `1.0.247`, each
+rewritten with one deprecation line on stderr, and removed after it.
+
 Real SystemVerilog is parsed **after** preprocessing, so the SystemVerilog deliverable is a
-pipeline: `ast_pipeline INPUT.sv --preprocess-systemverilog` is the expansion stage on its own
+pipeline: `ast_pipeline INPUT.sv --preprocess systemverilog` is the expansion stage on its own
 (macros, `` `include ``, conditionals; an expanded file plus a source map), and
 `parseability_probe --parse systemverilog FILE --preprocess` runs expansion and parse in one
 command, mapping a rejection back to the source line it came from (`[origin=FILE:LINE:COL]`).
-Both take the same compilation context — `--sv-include-dir DIR`, `--sv-define NAME[=TEXT]`,
-`--sv-unit-file F` (the unit's earlier files, one macro table, IEEE 1800-2017 §22.5.1), and the one
-reading knob, `--sv-plain-string-substitution standard|paste_delimited|all` (a formal's name inside a plain
+Both take the same compilation context — `--include-dir DIR`, `--define NAME[=TEXT]`,
+`--unit-file F` (the unit's earlier files, one macro table, IEEE 1800-2017 §22.5.1), and the one
+reading knob, `--stage-opt plain_string_substitution=standard|paste_delimited|all` (a formal's name inside a plain
 `"…"` string in macro text: opaque per §22.5.1 by default, OpenTitan's paste-delimited idiom, or Icarus's
 full substitution — `SVPP-EXPANSION.5`(k)). The
 chapter *The Preprocess→Parse Pipeline* in the SystemVerilog parser book

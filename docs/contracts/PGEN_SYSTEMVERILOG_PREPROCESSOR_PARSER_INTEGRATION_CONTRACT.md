@@ -910,8 +910,8 @@ Where this prose and the inventory disagree, the inventory wins.
 ## Source Of Truth
 - Grammar source:
   - `grammars/systemverilog_preprocessor.ebnf`
-- Runtime execution stage:
-  - `rust/src/sv_preprocessor.rs`
+- Runtime execution stage (`ENGINE-UNIVERSAL-SERVICES.113`, 2026-09-29: the SystemVerilog family's own component, behind the engine's neutral `rust/src/preprocessing_stage.rs`):
+  - `rust/src/families/systemverilog/preprocessor.rs`
 - Generated-parser build discovery:
   - `rust/build.rs`
   - `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH`
@@ -924,7 +924,7 @@ Where this prose and the inventory disagree, the inventory wins.
 - Current downstream-facing contract is narrower than the main SystemVerilog/VHDL/regex host surface.
 - The repository does expose generated-parser registry coverage for `systemverilog_preprocessor`, but it does not currently publish a dedicated general-purpose embedding API profile for it in `pgen::embedding_api`.
 - The practical stable surface today is:
-  - the Rust preprocessor execution/runtime module in `rust/src/sv_preprocessor.rs`
+  - the Rust preprocessor execution/runtime module in `rust/src/families/systemverilog/preprocessor.rs` (reached by the CLIs through `pgen::preprocessing_stage::stage_for("systemverilog")`)
   - the executable quality and differential gates documented in `PGEN_USER_GUIDE.md`
 
 ## Build / Availability Requirements
@@ -939,7 +939,7 @@ Where this prose and the inventory disagree, the inventory wins.
 ## Runtime Execution Stage — the EXPANSION (`SVPP-EXPANSION`, 2026-09-09; the directive parser's grammar, release and schema unchanged)
 - The generated `systemverilog_preprocessor` parser this contract describes reads DIRECTIVES into an AST. The
   EXPANSION — executing those directives on a file so the `systemverilog` parser reads IEEE 1800-2017 text with
-  clause 22 already applied — is a **sibling deliverable** in the runtime module `rust/src/sv_preprocessor.rs`,
+  clause 22 already applied — is a **sibling deliverable** in the runtime module `rust/src/families/systemverilog/preprocessor.rs`,
   governed by the `SVPP-EXPANSION` tree and contracted in the SV integration contract's *"Front End — the
   preprocess→parse pipeline"* section (`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`),
   where the command, the four-part context, the source-map rule, the refusal codes and the library live.
@@ -949,17 +949,18 @@ Where this prose and the inventory disagree, the inventory wins.
   (`E_SVPP_RECURSIVE_MACRO`), `//` comments are stripped from macro text, a well-formed `` `line `` is consumed,
   a `` `pragma protect `` envelope is consumed (`E_SVPP_UNTERMINATED_PROTECTED_ENVELOPE` when open at EOF), block
   comments span lines, a `$ident` is never substituted, the fifteen `` `SV_COV_* `` macros are predefined
-  (§40.3.1), `--sv-unit-file` folds a predecessor file's macro table into the unit, and the event log gained the
+  (§40.3.1), `--unit-file` (`--sv-unit-file` through `1.0.247`) folds a predecessor file's macro table into the unit, and the event log gained the
   `LineDirective` and `ProtectedEnvelope` kinds. The single-command chain is
   `parseability_probe --parse systemverilog FILE --profile P --preprocess …` (exit 3 = the preprocessor refused).
 - **`` `begin_keywords `` regions (IEEE 1800-2017 §22.14), landed 2026-09-14 (`SVPP-EXPANSION.8`).** The
   expansion stage applies the clause as TEXT: inside a region, every token the PARSE PROFILE reserves and
   the region's `version_specifier` does not is re-emitted as an ESCAPED identifier (`logic` → `\logic `),
   which §5.6.2 makes not a keyword and §5.6.1 makes the same identifier as the unescaped spelling. The
-  profile is `SvPreprocessorConfig::parse_profile` — `--profile` on the single command,
-  `--sv-keyword-profile` on `ast_pipeline --preprocess-systemverilog`; `None` is the parser's unprofiled
-  reading, which reserves IEEE 1800-2017 Table B.1. Regions nest and are UNIT state (they carry across
-  `--sv-unit-file` boundaries, per the clause). The per-version tables are `rust/src/sv_keyword_versions.rs`,
+  profile is `SvPreprocessorConfig::parse_profile` — `--profile` on both commands (`parseability_probe`
+  and, since `ENGINE-UNIVERSAL-SERVICES.113`, `ast_pipeline --preprocess systemverilog`; `--sv-keyword-profile`
+  accepted through `1.0.247`); `None` is the parser's unprofiled reading, which reserves IEEE 1800-2017
+  Table B.1. Regions nest and are UNIT state (they carry across `--unit-file` boundaries, per the clause).
+  The per-version tables are `rust/src/families/systemverilog/keyword_versions.rs` (the family's own component),
   derived from the in-repo LRM text and held equal to it by the `SV-KEYWORD-VERSIONS` doctrine. New
   diagnostics: `E_SVPP_UNKNOWN_KEYWORDS_VERSION` (§22.14's *"It shall be an error if an implementation does
   not recognize the version_specifier"*), `W_SVPP_KEYWORDS_VERSION_ABOVE_PROFILE` (the region reserves more
@@ -989,7 +990,7 @@ Where this prose and the inventory disagree, the inventory wins.
 - **A plain `"…"` string in macro text is opaque, landed 2026-09-15 (`SVPP-EXPANSION.5`(k)).** §22.5.1 `:370-372`: the
   characters of a plain string literal "become part of the string in the replaced macro text", its own example
   `` `define H(x) "Hello, x" `` printing `Hello, x`. `SvPreprocessorConfig::plain_string_substitution` /
-  `--sv-plain-string-substitution` names the two measured deviations — `paste_delimited` (only a formal marked by paste
+  `--stage-opt plain_string_substitution=…` (`--sv-plain-string-substitution` through `1.0.247`) names the two measured deviations — `paste_delimited` (only a formal marked by paste
   tokens on both sides is substituted: OpenTitan's `"…[``i``]…"`) and `all` (every formal, every paste: Icarus 13.0) —
   with `standard` the default. The engine had read `all` since the runtime module's first commit, which mangled 66 of
   the corpus's 72 in-string formal sites (a message's prose replaced by an actual) to serve 6.
@@ -1253,7 +1254,7 @@ POST-SV-AUDIT Category-A correction).
   [Stable Integration Surface](#stable-integration-surface)) does **not**
   currently publish a dedicated general-purpose embedding-API profile in
   `pgen::embedding_api`; the practical stable surface today is the
-  runtime module `rust/src/sv_preprocessor.rs` plus the executable
+  runtime module `rust/src/families/systemverilog/preprocessor.rs` plus the executable
   gates. Signatures are in `rust/docs/EMBEDDING_API_CONTRACT.md`.
 - **`SVPP-0001`** — the one accepted shape defect the `1.0.1` parser
   shipped, **fixed in parser release `1.0.2` / schema `2`**.

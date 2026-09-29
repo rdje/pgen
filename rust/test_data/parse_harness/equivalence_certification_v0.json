@@ -1,0 +1,43 @@
+{
+  "register": "equivalence_certification_v0",
+  "owner": "PARSE-HARNESS.5",
+  "what_this_is": "The PARSE-HARNESS.5 classification of every registered grammar for the interpreter-vs-generated-parser differential (rust/src/parse_harness_equivalence.rs): CERTIFIED = proven byte-identical (verdict + typed AST) over the gate's deterministic stimuli corpus (seeds 0/7/42, the EquivalenceConfig::default depth ladder) — the gate FAILS if one regresses; DEFERRED = registered grammars whose differential is NOT yet byte-identical, each with its tool-established reason and owning leaf — the gate asserts they are STILL divergent and demands promotion when one becomes identical (the no-silent-caps ratchet; empty since every deferred grammar was promoted through PARSE-HARNESS.5.1 / .5.2 / .5.3 / .5.5). EXCLUDED is DERIVED, not listed: the registry rows whose oracle is not the codegen parser of their own grammar (parser_registry::is_own_artifact == false — the builtin_return_annotation alias and the builtin_semantic_annotation bootstrap surface). ENGINE-UNIVERSAL-SERVICES.113 (2026-09-29): this data replaces the harness's hand-typed CERTIFIED / DEFERRED tables so the harness names no language; the target table (ebnf path + dialect) is derived from the registry at run time.",
+  "the_rule": "Every registered grammar is CERTIFIED xor DEFERRED xor EXCLUDED (the harness's completeness test); a newly registered grammar left out fails the gate.",
+  "certified": {
+    "json": {
+      "why": "PARSE-HARNESS.5 (session #41): byte-identical over the gate corpus from the first measurement."
+    },
+    "semantic_annotation": {
+      "why": "PARSE-HARNESS.5 (session #41): byte-identical over the gate corpus; store-using, its semantic gates do not change the verdict / AST on this corpus."
+    },
+    "rtl_frontend": {
+      "why": "PARSE-HARNESS.5 (session #41): byte-identical over the gate corpus; store-using (the deeper store-gated constructs are the .6 combinator + semantic suite's job — a corpus-scoped certification, PARSE-HARNESS.md §3.4)."
+    },
+    "vhdl": {
+      "why": "PARSE-HARNESS.5 (session #41): byte-identical over the gate corpus; store-using, see rtl_frontend."
+    },
+    "systemverilog": {
+      "why": "PARSE-HARNESS.5 (session #41): byte-identical over the gate corpus under the grammar's first declared profile; store-using, see rtl_frontend."
+    },
+    "scratch": {
+      "why": "PARSE-HARNESS.5 (session #41): byte-identical over the gate corpus (the scratch slot, when built)."
+    },
+    "regex": {
+      "why": "Promoted from DEFERRED by PARSE-HARNESS.5.1 — the four regex-fidelity root causes: whitespace-sensitive layout policy, the unresolved-reference built-ins builtin_any_char / builtin_ascii_char, the @transform numeric span coercion + the PCRE2 post-parse contract, and @profiles dialect gating. Byte-identical over the gate corpus AND a deeper stress ladder (5 seeds, depths 6-30 — probe_layout_deep_stress)."
+    },
+    "systemverilog_preprocessor": {
+      "why": "Promoted by PARSE-HARNESS.5.1: the same general fixes (the regex-token whitespace-sensitivity via the shared layout policy, + the built-ins) incidentally closed the .5.4 AST span / shape divergence. Byte-identical over the gate corpus AND the deep stress ladder (459 samples)."
+    },
+    "ebnf": {
+      "why": "Promoted from DEFERRED by PARSE-HARNESS.5.2: the interpreter's two layout skippers unconditionally skipped all three comment introducers (# // /*), but codegen SUPPRESSES a comment arm per grammar when the grammar claims that introducer as a non-comment token (GRAMMAR-WELLFORMED.H.11.5) — ebnf's block_comment := \"/*\" … makes \"/*\" a real token, so the generated parser has NO /* layout arm and rejects the comment-only /**/. The interpreter now gates each arm via codegen's OWN predicate (comment_arm_suppression_for_grammar). Byte-identical over the gate corpus AND the deep stress ladder."
+    },
+    "return_annotation": {
+      "why": "Promoted from DEFERRED by PARSE-HARNESS.5.3: the _pgen_lr_chain wrapper_specs blob (the serialized per-alt annotation_templates of an LR-eliminated rule such as property_access_expression) was serialized from a std HashMap (UnifiedReturnAST::Object) whose per-instance iteration order is non-deterministic; codegen froze ONE arbitrary order, the interpreter re-serialized a fresh one — the two typed ASTs diverged on the dotted / array LR-eliminated shapes ($1.S15, $1[$1*]). The Object.properties serializer now emits keys SORTED, canonicalizing every serialization site (gen-AST, codegen-frozen literal, interpreter) and removing a latent codegen non-determinism. Byte-identical over the gate corpus (68 samples)."
+    },
+    "rtl_const_expr": {
+      "why": "Promoted from DEFERRED by PARSE-HARNESS.5.5: NOT an interpreter fidelity fix — a corpus fix. The stimuli generator produces ZERO usable samples within the bounded depth ladder; the construct-complete hand-authored curated corpus (curated/rtl_const_expr.json) gives the differential its inputs, and the interpreter is byte-identical to the generated parser over it (verdict + typed AST)."
+    }
+  },
+  "deferred": {},
+  "_deferred_note": "name -> the tool-established reason + owning leaf; the gate runs each and fails when it is byte-identical (promote it to certified)."
+}

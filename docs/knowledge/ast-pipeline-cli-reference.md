@@ -28,7 +28,7 @@ stimuli pipeline. `<INPUT>` is a grammar source: a `.json` raw/transformed/gen-a
 - `INPUT --generate-parser --output PARSER.rs` — generate the Rust parser.
 - `INPUT --generate-stimuli [--count N] [--seed S] --output FILE` — generate grammar-valid stimuli.
 - `INPUT --generate-stimuli-module --output generated/<g>_stimuli.rs` — emit a Rust stimuli module.
-- `INPUT --preprocess-systemverilog --output OUT.sv` — run the SV preprocessor stage.
+- `INPUT --preprocess <family> --output OUT` — run the family's preprocessing stage (`--include-dir DIR`, `--define NAME[=TEXT]`, `--unit-file F`, `--profile P`, `--stage-opt KEY=VALUE`, `--list-stage-options`, `--source-map-json` / `--event-log-json` / `--diagnostics-json`; `ENGINE-UNIVERSAL-SERVICES.113` — the pre-`.113` `--preprocess-systemverilog` / `--sv-…` spellings are accepted through release `1.0.247`).
 - `INPUT.ebnf --emit-raw-ast-json RAW.json` — export the Rust-frontend raw AST envelope.
 - `INPUT --generate-* --dump-gen-ast GEN_AST.json` — dump the **normalized generation-input AST**
   (the grammar IR the stimuli/parser generators actually consume). Regenerate it after a grammar
@@ -63,6 +63,7 @@ stimuli pipeline. `<INPUT>` is a grammar source: a `.json` raw/transformed/gen-a
 `--lint-grammar` (well-formedness checks), `--max-depth N`, `--max-repeat N`,
 `--emit-return-annotations-json`, `--trace` / `--trace-log-file` / `--verbosity N` (⚠️ high
 verbosity floods — a debug run produced a multi-GB log; prefer the bounded in-summary samples),
-`--lib-in DIR` / library import, `--sv-include-dir`, `--sv-define NAME[=TEXT]` and
-`--sv-unit-file F` (the preprocessor's compilation context — predefined macros and the unit's earlier
-files under one macro table, `SVPP-EXPANSION.2`), `--coverage-input/-output`.
+`--lib-in DIR` / library import, `--include-dir`, `--define NAME[=TEXT]`, `--unit-file F` and
+`--stage-opt KEY=VALUE` (the preprocessing stage's compilation context — predefined macros and the unit's
+earlier files under one macro table, `SVPP-EXPANSION.2` — and the family's own options; `.113`),
+`--coverage-input/-output`.

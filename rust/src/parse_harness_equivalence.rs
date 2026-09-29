@@ -210,7 +210,7 @@ fn push_sample_with_probes(
 
 /// Build the deterministic corpus for a grammar: `count_per_seed` stimuli-generated valid samples per
 /// seed, plus (optionally) a first-half truncation of each to probe reject-path parity, plus any
-/// hand-authored [`CURATED_CORPUS`] inputs for grammars the stimuli generator cannot cover within the
+/// hand-authored curated inputs (`test_data/parse_harness/curated/<grammar>.json`) for grammars the stimuli generator cannot cover within the
 /// bounded depth ladder (PARSE-HARNESS.5.5). Deduplicated, order-stable.
 fn build_corpus(grammar_name: &str, gen_ast: &GenAst, cfg: &EquivalenceConfig) -> Vec<String> {
     let (tree, order, annotations) = gen_ast;
@@ -252,7 +252,7 @@ fn build_corpus(grammar_name: &str, gen_ast: &GenAst, cfg: &EquivalenceConfig) -
     // differential compares the interpreter against the AUTHORITATIVE generated parser, so curated INPUTS
     // carry no expected-output mirror risk (the oracle supplies the verdict + AST).
     if let Some(curated) = curated_corpus_for(grammar_name) {
-        for &s in curated {
+        for s in &curated {
             push_sample_with_probes(&mut samples, &mut seen, s, cfg.include_truncation_probes);
         }
     }
@@ -504,300 +504,131 @@ pub fn truncate(s: &str, max: usize) -> String {
     format!("{}…[+{}B]", &s[..cut], s.len() - cut)
 }
 
-/// The registered grammar → (`.ebnf` path relative to `grammars/`, dialect profile) table the
-/// differential runs over. One source of truth for both the measurement and the enforcing gate.
-pub const EQUIVALENCE_TARGETS: &[(&str, &str, Option<&str>)] = &[
-    ("json", "json.ebnf", None),
-    ("regex", "regex.ebnf", None),
-    ("ebnf", "ebnf.ebnf", None),
-    ("rtl_const_expr", "rtl_const_expr.ebnf", None),
-    ("return_annotation", "return_annotation.ebnf", None),
-    ("semantic_annotation", "semantic_annotation.ebnf", None),
-    ("builtin_return_annotation", "builtin_return_annotation.ebnf", None),
-    ("builtin_semantic_annotation", "builtin_semantic_annotation.ebnf", None),
-    ("rtl_frontend", "rtl_frontend.ebnf", None),
-    ("systemverilog_preprocessor", "systemverilog_preprocessor.ebnf", None),
-    ("vhdl", "vhdl.ebnf", None),
-    ("systemverilog", "systemverilog.ebnf", Some("sv_2017")),
-    ("scratch", "scratch/scratch.ebnf", None),
-];
-
-/// **CERTIFIED** — grammars proven byte-identical (interpreter == generated parser: verdict + typed
-/// AST) over the gate's deterministic stimuli corpus (seeds 0/7/42, the [`EquivalenceConfig::default`]
-/// depth ladder). The gate FAILS if any of these regresses. Established by the PARSE-HARNESS.5
-/// measurement (session #41); notably includes the store-using SV/VHDL/rtl_frontend, whose semantic
-/// gates do not change the verdict/AST on this corpus (the deeper store-gated-outcome constructs are
-/// the `.6` combinator+semantic suite's job — this is a corpus-scoped certification, not an all-inputs
-/// proof; `PARSE-HARNESS.md` §3.4).
-pub const CERTIFIED: &[&str] = &[
-    "json",
-    "semantic_annotation",
-    "rtl_frontend",
-    "vhdl",
-    "systemverilog",
-    "scratch",
-    // Promoted from DEFERRED by PARSE-HARNESS.5.1 (the four regex-fidelity root causes: whitespace-sensitive
-    // layout policy, unresolved-reference built-ins `builtin_any_char`/`builtin_ascii_char`, the `@transform`
-    // numeric span coercion + the PCRE2 post-parse contract, and `@profiles` dialect gating). Byte-identical
-    // over the gate corpus AND a deeper stress ladder (5 seeds, depths 6-30 — `probe_layout_deep_stress`).
-    "regex",
-    // Also promoted by PARSE-HARNESS.5.1: the same general fixes (the `systemverilog_preprocessor` regex-token
-    // whitespace-sensitivity via the shared layout policy, + the built-ins) incidentally closed the `.5.4`
-    // AST span/shape divergence. Byte-identical over the gate corpus AND the deep stress ladder (459 samples).
-    "systemverilog_preprocessor",
-    // Promoted from DEFERRED by PARSE-HARNESS.5.2: the interpreter's two layout skippers unconditionally
-    // skipped all three comment introducers (`#`/`//`/`/*`), but codegen SUPPRESSES a comment arm per-grammar
-    // when the grammar claims that introducer as a non-comment token (GRAMMAR-WELLFORMED.H.11.5). ebnf's
-    // `block_comment := "/*" …` makes `"/*"` a real token, so the generated ebnf parser has NO `/*` layout
-    // arm and rejects the comment-only `/**/`. The interpreter now gates each arm via codegen's OWN
-    // predicate (`comment_arm_suppression_for_grammar`), so it matches the generated parser for every
-    // grammar. Byte-identical over the gate corpus AND the deep stress ladder (`probe_layout_deep_stress`).
-    "ebnf",
-    // Promoted from DEFERRED by PARSE-HARNESS.5.3: the `_pgen_lr_chain` `wrapper_specs` blob (the
-    // serialized per-alt `annotation_template`s of an LR-eliminated rule such as
-    // `property_access_expression`) was serialized from a std `HashMap` (`UnifiedReturnAST::Object`),
-    // whose per-instance iteration order is non-deterministic. Codegen froze ONE arbitrary order into the
-    // generated parser; the interpreter re-serialized a fresh (and itself non-deterministic) order each
-    // load — so the two typed ASTs diverged byte-for-byte on the dotted/array LR-eliminated shapes
-    // (`$1.S15`, `$1[$1*]`). The `Object.properties` serializer now emits keys SORTED, canonicalizing
-    // every serialization site at once (gen-AST, codegen-frozen literal, interpreter) AND removing a
-    // latent codegen non-determinism (regens could otherwise freeze different orders). Byte-identical over
-    // the gate corpus (68 samples).
-    "return_annotation",
-    // Promoted from DEFERRED by PARSE-HARNESS.5.5: NOT an interpreter fidelity fix — a corpus fix. The
-    // stimuli generator produces ZERO usable samples for rtl_const_expr within the bounded depth ladder
-    // (its ~16-level precedence chain needs `max_depth ≳ 30` to reach a leaf; the only generating depth
-    // window emits pathologically huge, hang-adjacent expressions — tool-established via the CLI generation
-    // sweep). A construct-complete hand-authored [`CURATED_CORPUS`] entry gives the differential inputs,
-    // and the interpreter is byte-identical to the generated parser over it (verdict + typed AST) —
-    // confirming the leaf's thesis that this was a corpus gap, not an interpreter divergence.
-    "rtl_const_expr",
-];
-
-/// **DEFERRED** — registered grammars whose interpreter differential is NOT yet byte-identical, each
-/// with the tool-established reason + owning follow-up leaf. The gate runs them and asserts they are
-/// *still* divergent (the no-silent-caps discipline): if one becomes byte-identical it must be
-/// *promoted* to [`CERTIFIED`], so the gate fails until it is — an honest ratchet, never a silent skip.
-///
-/// Now **empty**: every previously-deferred grammar has been promoted to [`CERTIFIED`] through the
-/// per-grammar closures — `regex`+`systemverilog_preprocessor` (PARSE-HARNESS.5.1), `ebnf` (5.2),
-/// `return_annotation` (5.3), and `rtl_const_expr` (5.5, via the curated corpus). The ratchet stays wired
-/// (an empty list is a vacuous-but-honest guard) so a future newly-registered divergent grammar has a
-/// place to land, and [`every_registered_grammar_is_classified_exactly_once`] keeps the classification
-/// exhaustive.
-pub const DEFERRED: &[(&str, &str)] = &[];
-
-/// **EXCLUDED** — registered grammar names the differential does NOT apply to, because their registry
-/// oracle is not a codegen parser *of their own `.ebnf`*: `builtin_return_annotation` aliases the
-/// `return_annotation` parser (a different grammar), and `builtin_semantic_annotation` uses the
-/// hand-rolled `UnifiedSemanticAST::parse_bootstrap`. Interpreting their `.ebnf` and comparing to those
-/// oracles compares two different parsers — the differential's premise fails — so they are out of scope
-/// by construction, not deferred.
-pub const EXCLUDED: &[(&str, &str)] = &[
-    (
-        "builtin_return_annotation",
-        "registry oracle is the return_annotation parser (a different grammar), not codegen of \
-         builtin_return_annotation.ebnf",
-    ),
-    (
-        "builtin_semantic_annotation",
-        "registry oracle is the hand-rolled parse_bootstrap, not a codegen parser of \
-         builtin_semantic_annotation.ebnf",
-    ),
-];
-
-/// **CURATED_CORPUS** — hand-authored input corpora for grammars whose stimuli generator cannot produce
-/// a usable corpus within the gate's bounded depth ladder. Parser-agnostic: keyed by grammar name, one
-/// row per such grammar, kept next to the CERTIFIED/DEFERRED/EXCLUDED classification as one source of
-/// truth. These are INPUTS only — the differential still compares the interpreter against the
-/// authoritative generated parser (which supplies the verdict + typed AST), so a curated input carries no
-/// "expected-output mirror" risk; it merely gives the differential something to compare (PARSE-HARNESS.5.5).
-pub const CURATED_CORPUS: &[(&str, &[&str])] = &[
-    ("rtl_const_expr", RTL_CONST_EXPR_CURATED),
-    ("return_annotation", RETURN_ANNOTATION_CURATED),
-];
-
-/// GRAMMAR-WELLFORMED.H.22 — the DISCRIMINATING rows for the two codegen decisions the interpreter
-/// does not mirror on `match_regex`.
-///
-/// ⛔ These exist because `return_annotation` was CERTIFIED byte-identical while a real divergence
-/// sat inside it: codegen emits `match_regex("[^']*", false)` for `string_content_single` (the
-/// `string_content_double`/`string_content_single` layout allowlist), the interpreter passes `true`,
-/// and the generated stimuli corpus never produces the input that separates them. The gate was green
-/// because the corpus did not reach the hole, not because the hole was closed — so the row comes
-/// FIRST and the fix second. A fix whose gate cannot fail is not verified.
-///
-/// The discriminator is a quoted string whose CONTENT begins with layout: codegen hands the content
-/// regex the bytes as written, the unmirrored interpreter skipped the leading horizontal whitespace
-/// first (`[^']*` can match empty, so it takes `consume_layout_for_regex`'s early return) and
-/// captured `abc` where the parser captured ` abc`. Measured before the fix, first diff at byte 317.
-///
-/// Each leading-layout row is paired with its no-layout CONTROL, so the pair proves the corpus can
-/// return BOTH readings rather than being uniformly insensitive.
-const RETURN_ANNOTATION_CURATED: &[&str] = &[
-    // ── single-quoted content: the measured divergence, each with its control ──
-    "-> {k: 'abc'}",
-    "-> {k: ' abc'}",
-    "-> {k: '\tabc'}",
-    "-> {k: 'abc '}",
-    "-> {k: '  '}",
-    "-> {k: ''}",
-    // ── double-quoted content: the sibling allowlist entry, same shape ──
-    "-> {k: \"abc\"}",
-    "-> {k: \" abc\"}",
-    "-> {k: \"\tabc\"}",
-    "-> {k: \"abc \"}",
-    // ── the same content in the other positions a string_literal reaches ──
-    "-> ' abc'",
-    "-> \" abc\"",
-    "-> [' abc', 'abc']",
-    "-> {' k': 'v'}",
-];
-
-/// Construct-complete curated inputs for `rtl_const_expr` (PARSE-HARNESS.5.5). The ~16-level precedence
-/// chain (`rtl_const_expr → conditional_expr → logical_or_expr → … → multiplicative_expr → unary_expr →
-/// primary_expr → literal → decimal_integer`) needs `max_depth ≳ 30` just to reach a leaf, and the only
-/// generating depth window (~32) emits pathologically huge, hang-adjacent expressions (tool-established),
-/// so the stimuli generator yields ZERO usable samples on the bounded ladder. This list instead exercises
-/// every construct directly, kept small so the no-memo interpreter stays fast: both literal kinds (incl.
-/// underscores), plain/dotted/package-qualified identifiers, all four unary ops (incl. nesting), every
-/// binary op at each of the 10 precedence levels + multi-term chains + mixed precedence, ternary (incl.
-/// nesting), parentheses, whitespace/trivia variety, and near-miss rejects (both sides must agree on the
-/// reject too).
-const RTL_CONST_EXPR_CURATED: &[&str] = &[
-    // ── literals — decimal (incl. underscores) and every based radix (b/o/d/h, signed, underscores) ──
-    "0",
-    "5",
-    "42",
-    "255",
-    "1_000",
-    "8'hFF",
-    "4'b1010",
-    "16'd255",
-    "3'o7",
-    "1'sb0",
-    "8'hDE_AD",
-    "2'b1_0",
-    "12'HABC",
-    // ── identifiers — plain, keyword-ish, `$`-bearing, dotted, package-qualified, and mixed ──
-    "foo",
-    "x",
-    "_bar",
-    "a$",
-    "WIDTH",
-    "a.b",
-    "pkg.member.sub",
-    "pkg::NAME",
-    "a::b::c",
-    "pkg::a.b",
-    "a.b::c",
-    // ── unary ops — each, plus nesting/stacking ──
-    "+5",
-    "-5",
-    "!x",
-    "~x",
-    "- -5",
-    "~~x",
-    "!~x",
-    "+-x",
-    // ── binary ops — one per precedence level (multiplicative … logical_or) ──
-    "a*b",
-    "a/b",
-    "a%b",
-    "a+b",
-    "a-b",
-    "a<<b",
-    "a>>b",
-    "a<b",
-    "a<=b",
-    "a>b",
-    "a>=b",
-    "a==b",
-    "a!=b",
-    "a&b",
-    "a^b",
-    "a|b",
-    "a&&b",
-    "a||b",
-    // ── multi-term chains (the `(op X)*` quantifier with >1 repetition) ──
-    "a+b+c",
-    "a*b*c*d",
-    "1+2+3+4+5",
-    "a|b|c",
-    "a&&b&&c",
-    "a-b-c-d",
-    // ── mixed precedence (associativity + level interleaving) ──
-    "a+b*c",
-    "a*b+c",
-    "a<<b+c",
-    "a||b&&c",
-    "a==b&&c==d",
-    "a|b^c&d",
-    "a+b<c",
-    // ── ternary — flat and nested (right-associative via conditional_expr recursion) ──
-    "a?b:c",
-    "1?2:3",
-    "a?b:c?d:e",
-    "a?b?c:d:e",
-    "N>0?N:1",
-    // ── parentheses — grouping, nesting, override precedence ──
-    "(a)",
-    "((a))",
-    "(a+b)",
-    "(a+b)*c",
-    "a*(b+c)",
-    "(a?b:c)",
-    // ── whitespace / trivia variety (spaces, tabs, newlines around tokens) ──
-    "a + b",
-    " a ",
-    "a  *  b",
-    "a\t*\tb",
-    "1 +\n2",
-    // ── realistic constant expressions ──
-    "WIDTH-1",
-    "8'hFF & MASK",
-    "(A+B)*2",
-    "pkg::WIDTH*2+1",
-    "DEPTH<<1",
-    "~MASK & DATA",
-    // ── near-miss rejects (both interpreter and generated parser must REJECT) ──
-    "a+",
-    "(a",
-    "a?b",
-    "?:",
-    "*a",
-    "a b",
-    "1 2",
-];
-
-/// Look up a grammar's curated input corpus, if any ([`CURATED_CORPUS`]).
-pub fn curated_corpus_for(grammar_name: &str) -> Option<&'static [&'static str]> {
-    CURATED_CORPUS
-        .iter()
-        .find(|(n, _)| *n == grammar_name)
-        .map(|(_, s)| *s)
+/// `ENGINE-UNIVERSAL-SERVICES.113`: one differential target — DERIVED from the registry, never
+/// typed. The `.ebnf` is found by the repository's layout convention (`grammars/<name>.ebnf`, else
+/// the scratch slot `grammars/scratch/<name>.ebnf`); the dialect is the grammar's declared default
+/// profile, or — for a grammar that declares profiles but no default — the first of its sorted
+/// profile universe, so the differential runs every family under one deterministic dialect.
+#[derive(Debug, Clone)]
+pub struct EquivalenceTarget {
+    pub grammar: &'static str,
+    pub ebnf: std::path::PathBuf,
+    pub profile: Option<String>,
 }
 
-/// Look up a grammar's `.ebnf` path (relative to `grammars/`) + dialect profile from
-/// [`EQUIVALENCE_TARGETS`].
-pub fn target_for(grammar_name: &str) -> Option<(&'static str, Option<&'static str>)> {
-    EQUIVALENCE_TARGETS
-        .iter()
-        .find(|(n, _, _)| *n == grammar_name)
-        .map(|(_, file, profile)| (*file, *profile))
+/// The registered grammar → (`.ebnf`, dialect) table the differential runs over, derived from the
+/// registry for every registered grammar whose `.ebnf` the layout convention finds. One source of
+/// truth for both the measurement and the enforcing gate.
+pub fn equivalence_targets(grammars_dir: &Path) -> Vec<EquivalenceTarget> {
+    let mut targets = Vec::new();
+    for grammar in crate::parser_registry::registered_grammars() {
+        let direct = grammars_dir.join(format!("{grammar}.ebnf"));
+        let scratch = grammars_dir.join("scratch").join(format!("{grammar}.ebnf"));
+        let ebnf = if direct.is_file() {
+            direct
+        } else if scratch.is_file() {
+            scratch
+        } else {
+            continue;
+        };
+        let profile = crate::parser_registry::active_grammar_profile(grammar, None).or_else(|| {
+            crate::parser_registry::registered_profiles(grammar)
+                .and_then(|profiles| profiles.first().map(|p| p.to_string()))
+        });
+        targets.push(EquivalenceTarget { grammar, ebnf, profile });
+    }
+    targets
+}
+
+/// The PARSE-HARNESS.5 classification register (`rust/test_data/parse_harness/equivalence_certification_v0.json`).
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct EquivalenceCertification {
+    /// **CERTIFIED** — grammars proven byte-identical (interpreter == generated parser: verdict + typed
+    /// AST) over the gate's deterministic stimuli corpus; the gate FAILS if any regresses. Each carries
+    /// the measurement that promoted it.
+    pub certified: std::collections::BTreeMap<String, CertificationRow>,
+    /// **DEFERRED** — registered grammars whose differential is NOT yet byte-identical, name → the
+    /// tool-established reason + owning leaf. The gate asserts they are *still* divergent and demands
+    /// promotion when one becomes identical — an honest ratchet, never a silent skip. Empty today.
+    pub deferred: std::collections::BTreeMap<String, String>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct CertificationRow {
+    pub why: String,
+}
+
+fn harness_data_dir() -> std::path::PathBuf {
+    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("test_data/parse_harness")
+}
+
+/// The classification register, read from its tracked file.
+pub fn certification() -> EquivalenceCertification {
+    let path = harness_data_dir().join("equivalence_certification_v0.json");
+    let text = std::fs::read_to_string(&path)
+        .unwrap_or_else(|err| panic!("the equivalence certification register {} is unreadable: {err}", path.display()));
+    serde_json::from_str(&text)
+        .unwrap_or_else(|err| panic!("the equivalence certification register {} is malformed: {err}", path.display()))
+}
+
+/// **EXCLUDED** — DERIVED: registered grammar names the differential does NOT apply to, because their
+/// registry oracle is not a codegen parser *of their own `.ebnf`* (`parser_registry::is_own_artifact`
+/// is false: an alias row, or the hand-rolled bootstrap surface). Interpreting their `.ebnf` and
+/// comparing to those oracles compares two different parsers — the differential's premise fails — so
+/// they are out of scope by construction, not deferred.
+pub fn excluded() -> Vec<(&'static str, String)> {
+    crate::parser_registry::registered_grammars()
+        .into_iter()
+        .filter(|g| crate::parser_registry::is_own_artifact(g) == Some(false))
+        .map(|g| {
+            (
+                g,
+                format!(
+                    "the registry oracle for `{g}` is not a codegen parser of its own grammar (an \
+                     alias of another grammar's parser, or the engine's bootstrap surface)"
+                ),
+            )
+        })
+        .collect()
+}
+
+/// Look up a grammar's curated input corpus, if any — `rust/test_data/parse_harness/curated/<grammar>.json`
+/// (`{"grammar", "why", "inputs": [...]}`): hand-authored inputs for grammars whose stimuli generator
+/// cannot produce a usable corpus within the gate's bounded depth ladder. Parser-agnostic and keyed by
+/// the file's name, so the harness holds no per-family table. These are INPUTS only — the differential
+/// still compares the interpreter against the authoritative generated parser (which supplies the
+/// verdict + typed AST), so a curated input carries no "expected-output mirror" risk (PARSE-HARNESS.5.5).
+pub fn curated_corpus_for(grammar_name: &str) -> Option<Vec<String>> {
+    let path = harness_data_dir().join("curated").join(format!("{grammar_name}.json"));
+    let text = std::fs::read_to_string(&path).ok()?;
+    #[derive(serde::Deserialize)]
+    struct Curated {
+        grammar: String,
+        inputs: Vec<String>,
+    }
+    let curated: Curated = serde_json::from_str(&text)
+        .unwrap_or_else(|err| panic!("the curated corpus {} is malformed: {err}", path.display()));
+    assert_eq!(curated.grammar, grammar_name, "the curated corpus {} names another grammar", path.display());
+    Some(curated.inputs)
+}
+
+/// Look up a grammar's derived differential target (`.ebnf` path + dialect profile).
+pub fn target_for(grammar_name: &str, grammars_dir: &Path) -> Option<EquivalenceTarget> {
+    equivalence_targets(grammars_dir)
+        .into_iter()
+        .find(|target| target.grammar == grammar_name)
 }
 
 /// Evaluate one grammar's differential using the gate's standard corpus config (its `.ebnf` +
-/// profile resolved from [`EQUIVALENCE_TARGETS`]), on a large-stack worker. `grammars_dir` is the repo
-/// `grammars/` directory. Returns `None` if the grammar is not in the target table.
+/// profile derived by [`equivalence_targets`]), on a large-stack worker. `grammars_dir` is the repo
+/// `grammars/` directory. Returns `None` if the grammar has no derived target.
 pub fn gate_evaluate(grammar_name: &str, grammars_dir: &Path) -> Option<GrammarEquivalenceReport> {
-    let (file, profile) = target_for(grammar_name)?;
+    let target = target_for(grammar_name, grammars_dir)?;
     let cfg = EquivalenceConfig {
-        profile: profile.map(|s| s.to_string()),
+        profile: target.profile.clone(),
         ..Default::default()
     };
-    let ebnf = grammars_dir.join(file);
-    Some(evaluate_grammar_equivalence_on_large_stack(grammar_name, &ebnf, &cfg))
+    Some(evaluate_grammar_equivalence_on_large_stack(grammar_name, &target.ebnf, &cfg))
 }
 
 #[cfg(test)]
@@ -822,17 +653,18 @@ mod measurement {
         let only = std::env::var("PGEN_PHEQ_ONLY").ok();
 
         println!("\n=== PARSE-HARNESS.5 differential measurement (interpreter vs generated parser) ===");
-        for (name, file, profile) in EQUIVALENCE_TARGETS {
+        for target in equivalence_targets(&grammars_dir) {
+            let name = target.grammar;
             if let Some(f) = &only {
                 if f != name {
                     continue;
                 }
             }
             let cfg = EquivalenceConfig {
-                profile: profile.map(|s| s.to_string()),
+                profile: target.profile.clone(),
                 ..Default::default()
             };
-            let ebnf = grammars_dir.join(file);
+            let ebnf = target.ebnf.clone();
             println!("[start {name}]");
             let report = evaluate_grammar_equivalence_on_large_stack(name, &ebnf, &cfg);
             println!("{}", report.summary_line());
@@ -1073,10 +905,13 @@ mod gate {
     /// so the differential can never silently omit a grammar.
     #[test]
     fn every_registered_grammar_is_classified_exactly_once() {
-        let deferred: Vec<&str> = DEFERRED.iter().map(|(n, _)| *n).collect();
-        let excluded: Vec<&str> = EXCLUDED.iter().map(|(n, _)| *n).collect();
+        let register = certification();
+        let certified: Vec<&str> = register.certified.keys().map(String::as_str).collect();
+        let deferred: Vec<&str> = register.deferred.keys().map(String::as_str).collect();
+        let excluded_rows = excluded();
+        let excluded: Vec<&str> = excluded_rows.iter().map(|(n, _)| *n).collect();
         for g in crate::parser_registry::registered_grammars() {
-            let in_c = CERTIFIED.contains(&g);
+            let in_c = certified.contains(&g);
             let in_d = deferred.contains(&g);
             let in_e = excluded.contains(&g);
             let count = [in_c, in_d, in_e].iter().filter(|b| **b).count();
@@ -1088,14 +923,15 @@ mod gate {
             );
         }
         // And every classified name must actually be registered + have a target entry (no dangling).
-        for g in CERTIFIED.iter().chain(deferred.iter()).chain(excluded.iter()) {
+        for g in certified.iter().chain(deferred.iter()).chain(excluded.iter()) {
             assert!(
                 crate::parser_registry::supports_grammar(g),
                 "classified grammar {g:?} is not in the registry"
             );
         }
-        for g in CERTIFIED.iter().chain(deferred.iter()) {
-            assert!(target_for(g).is_some(), "grammar {g:?} has no EQUIVALENCE_TARGETS entry");
+        let dir = grammars_dir();
+        for g in certified.iter().chain(deferred.iter()) {
+            assert!(target_for(g, &dir).is_some(), "grammar {g:?} has no derived differential target");
         }
     }
 
@@ -1160,7 +996,7 @@ mod gate {
     fn certified_grammars_are_byte_identical() {
         let dir = grammars_dir();
         let mut failures: Vec<String> = Vec::new();
-        for &g in CERTIFIED {
+        for g in certification().certified.keys() {
             let report = gate_evaluate(g, &dir).expect("certified grammar has a target");
             if !report.is_clean() {
                 failures.push(format!("  {}", report.summary_line()));
@@ -1184,7 +1020,7 @@ mod gate {
     fn deferred_grammars_are_still_divergent_or_promote_them() {
         let dir = grammars_dir();
         let mut promotable: Vec<String> = Vec::new();
-        for (g, reason) in DEFERRED {
+        for (g, reason) in &certification().deferred {
             let report = gate_evaluate(g, &dir).expect("deferred grammar has a target");
             if report.is_clean() {
                 promotable.push(format!("  {g}  (was deferred: {reason})"));

@@ -2368,26 +2368,26 @@ for profile_idx in "${!run_profiles[@]}"; do
 
         run_logged "profile_${profile_key}_closed_loop_initial_preprocess" \
             "$AST_PIPELINE_BIN" "$closed_loop_initial_stimuli" \
-            --preprocess-systemverilog \
+            --preprocess systemverilog \
             --output "$closed_loop_initial_preprocessed" \
-            --sv-diagnostics-json "$closed_loop_initial_diagnostics" \
-            --sv-include-max-depth "$include_max_depth" \
-            --sv-include-path-policy "$include_path_policy" \
-            --sv-macro-redefine-policy "$macro_redefine_policy" \
-            --sv-conditional-symbol-policy "$conditional_symbol_policy" \
-            --sv-conditional-expr-policy "$conditional_expr_policy" \
-            --sv-strict-warning-codes "$strict_warning_codes"
+            --diagnostics-json "$closed_loop_initial_diagnostics" \
+            --stage-opt "include_max_depth=$include_max_depth" \
+            --stage-opt "include_path_policy=$include_path_policy" \
+            --stage-opt "macro_redefine_policy=$macro_redefine_policy" \
+            --stage-opt "conditional_symbol_policy=$conditional_symbol_policy" \
+            --stage-opt "conditional_expr_policy=$conditional_expr_policy" \
+            --stage-opt "strict_warning_codes=$strict_warning_codes"
         run_logged "profile_${profile_key}_closed_loop_replay_preprocess" \
             "$AST_PIPELINE_BIN" "$closed_loop_replay_stimuli" \
-            --preprocess-systemverilog \
+            --preprocess systemverilog \
             --output "$closed_loop_replay_preprocessed" \
-            --sv-diagnostics-json "$closed_loop_replay_diagnostics" \
-            --sv-include-max-depth "$include_max_depth" \
-            --sv-include-path-policy "$include_path_policy" \
-            --sv-macro-redefine-policy "$macro_redefine_policy" \
-            --sv-conditional-symbol-policy "$conditional_symbol_policy" \
-            --sv-conditional-expr-policy "$conditional_expr_policy" \
-            --sv-strict-warning-codes "$strict_warning_codes"
+            --diagnostics-json "$closed_loop_replay_diagnostics" \
+            --stage-opt "include_max_depth=$include_max_depth" \
+            --stage-opt "include_path_policy=$include_path_policy" \
+            --stage-opt "macro_redefine_policy=$macro_redefine_policy" \
+            --stage-opt "conditional_symbol_policy=$conditional_symbol_policy" \
+            --stage-opt "conditional_expr_policy=$conditional_expr_policy" \
+            --stage-opt "strict_warning_codes=$strict_warning_codes"
 
         require_file "$closed_loop_initial_diagnostics"
         require_file "$closed_loop_replay_diagnostics"
@@ -2613,15 +2613,15 @@ for profile_idx in "${!run_profiles[@]}"; do
         preprocess_started_ms="$(now_ms)"
         run_logged "sample_${profile_key}_${idx}_preprocess" \
             "$AST_PIPELINE_BIN" "$sample_file" \
-            --preprocess-systemverilog \
+            --preprocess systemverilog \
             --output "$preprocessed_file" \
-            --sv-diagnostics-json "$diagnostics_json" \
-            --sv-include-max-depth "$include_max_depth" \
-            --sv-include-path-policy "$include_path_policy" \
-            --sv-macro-redefine-policy "$macro_redefine_policy" \
-            --sv-conditional-symbol-policy "$conditional_symbol_policy" \
-            --sv-conditional-expr-policy "$conditional_expr_policy" \
-            --sv-strict-warning-codes "$strict_warning_codes"
+            --diagnostics-json "$diagnostics_json" \
+            --stage-opt "include_max_depth=$include_max_depth" \
+            --stage-opt "include_path_policy=$include_path_policy" \
+            --stage-opt "macro_redefine_policy=$macro_redefine_policy" \
+            --stage-opt "conditional_symbol_policy=$conditional_symbol_policy" \
+            --stage-opt "conditional_expr_policy=$conditional_expr_policy" \
+            --stage-opt "strict_warning_codes=$strict_warning_codes"
         preprocess_elapsed_ms=$(( $(now_ms) - preprocess_started_ms ))
         perf_preprocess_total_ms=$((perf_preprocess_total_ms + preprocess_elapsed_ms))
         if (( preprocess_elapsed_ms > perf_preprocess_max_ms )); then
@@ -2903,16 +2903,16 @@ if [[ "$realistic_corpus_enabled" -eq 1 ]]; then
             case_preprocess_started_ms="$(now_ms)"
             run_logged "realistic_case_${case_name_key}_${case_profile_key}_preprocess" \
                 "$AST_PIPELINE_BIN" "$case_input_file" \
-                --preprocess-systemverilog \
+                --preprocess systemverilog \
                 --output "$case_preprocessed_file" \
-                --sv-diagnostics-json "$case_diagnostics_json" \
-                --sv-include-dir "$case_source_dir" \
-                --sv-include-max-depth "$include_max_depth" \
-                --sv-include-path-policy "$include_path_policy" \
-                --sv-macro-redefine-policy "$macro_redefine_policy" \
-                --sv-conditional-symbol-policy "$conditional_symbol_policy" \
-                --sv-conditional-expr-policy "$conditional_expr_policy" \
-                --sv-strict-warning-codes "$strict_warning_codes"
+                --diagnostics-json "$case_diagnostics_json" \
+                --include-dir "$case_source_dir" \
+                --stage-opt "include_max_depth=$include_max_depth" \
+                --stage-opt "include_path_policy=$include_path_policy" \
+                --stage-opt "macro_redefine_policy=$macro_redefine_policy" \
+                --stage-opt "conditional_symbol_policy=$conditional_symbol_policy" \
+                --stage-opt "conditional_expr_policy=$conditional_expr_policy" \
+                --stage-opt "strict_warning_codes=$strict_warning_codes"
             case_preprocess_elapsed_ms=$(( $(now_ms) - case_preprocess_started_ms ))
             realistic_preprocess_total_ms=$((realistic_preprocess_total_ms + case_preprocess_elapsed_ms))
             if (( case_preprocess_elapsed_ms > realistic_preprocess_max_ms )); then

@@ -929,9 +929,9 @@ if [[ "$DIFF_MODE" != "0" ]]; then
 
             rust_exit=0
             if "$AST_PIPELINE_BIN" "$diff_sample_file" \
-                --preprocess-systemverilog \
+                --preprocess systemverilog \
                 --output "$diff_rust_output" \
-                --sv-diagnostics-json "$diff_rust_diag" >"$diff_rust_log" 2>&1; then
+                --diagnostics-json "$diff_rust_diag" >"$diff_rust_log" 2>&1; then
                 rust_exit=0
             else
                 rust_exit=$?

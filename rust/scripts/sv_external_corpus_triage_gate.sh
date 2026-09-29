@@ -330,20 +330,20 @@ for case_json in "${case_rows[@]}"; do
 
         preprocess_args=(
             "$AST_PIPELINE_BIN" "$case_input_file"
-            --preprocess-systemverilog
+            --preprocess systemverilog
             --output "$case_preprocessed_file"
-            --sv-diagnostics-json "$case_diagnostics_json"
-            --sv-include-dir "$case_source_dir"
-            --sv-include-max-depth "$INCLUDE_MAX_DEPTH"
-            --sv-include-path-policy "$INCLUDE_PATH_POLICY"
-            --sv-macro-redefine-policy "$MACRO_REDEFINE_POLICY"
-            --sv-conditional-symbol-policy "$CONDITIONAL_SYMBOL_POLICY"
-            --sv-conditional-expr-policy "$CONDITIONAL_EXPR_POLICY"
-            --sv-strict-warning-codes "$STRICT_WARNING_CODES"
+            --diagnostics-json "$case_diagnostics_json"
+            --include-dir "$case_source_dir"
+            --stage-opt "include_max_depth=$INCLUDE_MAX_DEPTH"
+            --stage-opt "include_path_policy=$INCLUDE_PATH_POLICY"
+            --stage-opt "macro_redefine_policy=$MACRO_REDEFINE_POLICY"
+            --stage-opt "conditional_symbol_policy=$CONDITIONAL_SYMBOL_POLICY"
+            --stage-opt "conditional_expr_policy=$CONDITIONAL_EXPR_POLICY"
+            --stage-opt "strict_warning_codes=$STRICT_WARNING_CODES"
         )
         for include_dir_raw in "${case_include_dirs_raw[@]}"; do
             include_dir_resolved="$(resolve_path "$include_dir_raw")"
-            preprocess_args+=(--sv-include-dir "$include_dir_resolved")
+            preprocess_args+=(--include-dir "$include_dir_resolved")
         done
 
         case_warning_count=0
@@ -434,20 +434,20 @@ for case_json in "${case_rows[@]}"; do
                     cp "$bootstrap_src" "$bootstrap_input"
                     bootstrap_pp_args=(
                         "$AST_PIPELINE_BIN" "$bootstrap_input"
-                        --preprocess-systemverilog
+                        --preprocess systemverilog
                         --output "$bootstrap_pp_out"
-                        --sv-diagnostics-json "$bootstrap_diag"
-                        --sv-include-dir "$bootstrap_src_dir"
-                        --sv-include-max-depth "$INCLUDE_MAX_DEPTH"
-                        --sv-include-path-policy "$INCLUDE_PATH_POLICY"
-                        --sv-macro-redefine-policy "$MACRO_REDEFINE_POLICY"
-                        --sv-conditional-symbol-policy "$CONDITIONAL_SYMBOL_POLICY"
-                        --sv-conditional-expr-policy "$CONDITIONAL_EXPR_POLICY"
-                        --sv-strict-warning-codes "$STRICT_WARNING_CODES"
+                        --diagnostics-json "$bootstrap_diag"
+                        --include-dir "$bootstrap_src_dir"
+                        --stage-opt "include_max_depth=$INCLUDE_MAX_DEPTH"
+                        --stage-opt "include_path_policy=$INCLUDE_PATH_POLICY"
+                        --stage-opt "macro_redefine_policy=$MACRO_REDEFINE_POLICY"
+                        --stage-opt "conditional_symbol_policy=$CONDITIONAL_SYMBOL_POLICY"
+                        --stage-opt "conditional_expr_policy=$CONDITIONAL_EXPR_POLICY"
+                        --stage-opt "strict_warning_codes=$STRICT_WARNING_CODES"
                     )
                     for include_dir_raw in "${case_include_dirs_raw[@]}"; do
                         include_dir_resolved="$(resolve_path "$include_dir_raw")"
-                        bootstrap_pp_args+=(--sv-include-dir "$include_dir_resolved")
+                        bootstrap_pp_args+=(--include-dir "$include_dir_resolved")
                     done
                     if ! run_optional_logged "$bootstrap_pp_label" "${bootstrap_pp_args[@]}"; then
                         case_parse_status="fail"

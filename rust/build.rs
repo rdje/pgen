@@ -76,19 +76,28 @@ fn main() {
             );
         }
     }
-    // Family hook modules: `src/families/<name>.rs` present ⇒ that family's `HOOKS`.
-    let mut hook_families: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    // Family COMPONENT modules (`.112` slice 2 / `.113`): `src/families/<name>.rs` or
+    // `src/families/<name>/mod.rs` present ⇒ that family's `HOOKS` (and, through them, its
+    // preprocessing stage). The map is name → the module's root file.
+    let mut hook_families: std::collections::BTreeMap<String, PathBuf> = std::collections::BTreeMap::new();
     if let Ok(entries) = std::fs::read_dir(&families_dir) {
         for entry in entries.flatten() {
+            let path = entry.path();
             let file_name = entry.file_name().to_string_lossy().to_string();
-            if let Some(stem) = file_name.strip_suffix(".rs") {
+            if path.is_dir() {
+                let root = path.join("mod.rs");
+                if root.is_file() {
+                    println!("cargo:rerun-if-changed={}", path.to_string_lossy());
+                    hook_families.insert(file_name, root);
+                }
+            } else if let Some(stem) = file_name.strip_suffix(".rs") {
                 if stem != "mod" {
-                    hook_families.insert(stem.to_string());
+                    hook_families.insert(stem.to_string(), path);
                 }
             }
         }
     }
-    for family in &hook_families {
+    for family in hook_families.keys() {
         println!("cargo:rustc-check-cfg=cfg(has_generated_{}_parser)", family);
     }
 
@@ -128,27 +137,35 @@ fn main() {
             cfg = cfg, name = name, path = resolved.display().to_string(), alias = compat_alias
         ));
         // The registry row.
-        let hooks = if hook_families.contains(name) {
+        let hooks = if hook_families.contains_key(name) {
             format!("&crate::families::{}::HOOKS", name)
         } else {
             "&crate::families::FamilyHooks::NONE".to_string()
         };
         table.push_str(&format!(
-            "    #[cfg({cfg})]\n    {{\n        rows.push(generated_parser_row!({name}, crate::generated_parsers::{name}::{ty}, {hooks}));\n    }}\n",
-            cfg = cfg, name = name, ty = type_name, hooks = hooks
+            "    #[cfg({cfg})]\n    {{\n        rows.push(generated_parser_row!({name}, crate::generated_parsers::{name}::{ty}, {hooks}, \"PGEN_{upper}_PARSER_SHA256\"));\n    }}\n",
+            cfg = cfg, name = name, ty = type_name, hooks = hooks, upper = upper
         ));
     }
     // The ebnf seed's row — the meta-grammar's parser, under the `ebnf_dual_run` feature.
     if ebnf_resolved.is_file() {
-        table.push_str("    #[cfg(all(feature = \"ebnf_dual_run\", has_generated_ebnf_parser))]\n    {\n        rows.push(generated_parser_row!(ebnf, crate::ebnf_generated_parser::EbnfParser, &crate::families::FamilyHooks::NONE));\n    }\n");
+        table.push_str("    #[cfg(all(feature = \"ebnf_dual_run\", has_generated_ebnf_parser))]\n    {\n        rows.push(generated_parser_row!(ebnf, crate::ebnf_generated_parser::EbnfParser, &crate::families::FamilyHooks::NONE, \"PGEN_EBNF_PARSER_SHA256\"));\n    }\n");
     }
     table.push_str("    rows\n}\n");
-    for family in &hook_families {
+    // Unconditional: a component is a fact of the source tree, not of a generated artifact — the
+    // operator CLI reaches a family's preprocessing stage whether or not its parser was generated.
+    for (family, root) in &hook_families {
         hook_modules.push_str(&format!(
-            "#[cfg(has_generated_{f}_parser)]\n#[path = {p:?}]\npub mod {f};\n",
-            f = family, p = families_dir.join(format!("{}.rs", family)).display().to_string()
+            "#[path = {p:?}]\npub mod {f};\n",
+            f = family, p = root.display().to_string()
         ));
     }
+    // The component table: every family module, keyed by its directory name.
+    hook_modules.push_str("/// DERIVED by build.rs: every family component under `src/families`, by name.\npub fn components() -> &'static [(&'static str, &'static FamilyHooks)] {\n    &[\n");
+    for family in hook_families.keys() {
+        hook_modules.push_str(&format!("        ({f:?}, &{f}::HOOKS),\n", f = family));
+    }
+    hook_modules.push_str("    ]\n}\n");
     std::fs::write(out_dir.join("generated_parser_modules.rs"), modules).expect("write generated_parser_modules.rs");
     std::fs::write(out_dir.join("generated_parser_table.rs"), table).expect("write generated_parser_table.rs");
     std::fs::write(out_dir.join("family_hook_modules.rs"), hook_modules).expect("write family_hook_modules.rs");

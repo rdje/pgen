@@ -59,11 +59,10 @@ pub mod regex_compile_validation;
 /// repository, derived at run time, never `$TMPDIR`. See the module docs.
 pub mod repo_scratch;
 pub mod source_text;
-/// `SVPP-EXPANSION.8` — IEEE 1800-2017 §22.14's per-version reserved-keyword tables, derived
-/// from the in-repo LRM text and gate-held equal to it. The preprocessor reads them to render a
-/// `` `begin_keywords `` region's non-keywords as escaped identifiers. See the module docs.
-pub mod sv_keyword_versions;
-pub mod sv_preprocessor;
+/// `ENGINE-UNIVERSAL-SERVICES.113` — the PREPROCESSING STAGE the engine owns: a unit of files in,
+/// expanded text + source map + diagnostics out, selected by family; every language's own
+/// preprocessor lives beside its family under `families/` and is reached only through it.
+pub mod preprocessing_stage;
 pub mod test_registry;
 pub mod test_runner; // Only declare once
 
@@ -93,9 +92,10 @@ pub mod generated_parsers {
     include!(concat!(env!("OUT_DIR"), "/generated_parser_modules.rs"));
 }
 
-/// `ENGINE-UNIVERSAL-SERVICES.112` slice 2 — the per-family hook modules (the only place under
-/// `rust/src` where a language's name may appear, one module per family, each naming its own).
-#[cfg(feature = "generated_parsers")]
+/// `ENGINE-UNIVERSAL-SERVICES.112` slice 2 / `.113` — the per-family COMPONENTS (the only place
+/// under `rust/src` where a language's name may appear, one module per family, each naming its
+/// own): hooks around a parse, and — `.113` — a family's preprocessing stage. Unconditional: a
+/// component is a fact of the source tree, not of a generated artifact.
 pub mod families;
 
 #[cfg(feature = "generated_parsers")]

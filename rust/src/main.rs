@@ -19,11 +19,7 @@ use pgen::ast_pipeline::{
 use pgen::ebnf_frontend;
 #[cfg(feature = "generated_parsers")]
 use pgen::parser_registry;
-use pgen::sv_preprocessor::{
-    ConditionalExprPolicy, ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy,
-    PlainStringSubstitutionPolicy, PredefinedMacro, SvPreprocessorConfig,
-    parse_strict_warning_codes, preprocess_systemverilog_file, preprocess_systemverilog_unit,
-};
+use pgen::preprocessing_stage::{self, StageDiagnosticSeverity, StageRequest};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -37,7 +33,7 @@ const DEFAULT_STIMULI_MODULE_SEED: u64 = 1;
 #[command(about = "Rust AST Transformation Pipeline")]
 #[command(version = "1.0.0")]
 #[command(
-    long_about = "Transform AST JSON files or parse EBNF source directly via Rust frontend, generate high-performance Rust parsers, generate grammar-valid stimuli, emit Rust stimuli modules, or preprocess SystemVerilog source files.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Rust EBNF raw_ast export: ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json\n  3. Rust EBNF frontend generation: ast_pipeline INPUT.ebnf --generate-parser|--generate-stimuli|--generate-stimuli-module [--emit-raw-ast-json RAW.json]\n  4. Parser generation: ast_pipeline INPUT --generate-parser [--output PARSER.rs]\n  5. Stimuli generation: ast_pipeline INPUT --generate-stimuli [--count N] [--seed SEED]\n  6. Stimuli module generation: ast_pipeline INPUT --generate-stimuli-module [--count N] [--seed SEED] [--output generated/<grammar>_stimuli.rs]\n  7. SV preprocess stage: ast_pipeline INPUT.sv --preprocess-systemverilog [--output PREPROCESSED.sv]\n  8. Generation-input AST dump: ast_pipeline INPUT --generate-* --dump-gen-ast [PATH]"
+    long_about = "Transform AST JSON files or parse EBNF source directly via Rust frontend, generate high-performance Rust parsers, generate grammar-valid stimuli, emit Rust stimuli modules, or run a language family's preprocessing stage on source files.\n\nUsage modes:\n  1. JSON transformation: ast_pipeline INPUT.json [OUTPUT.json]\n  2. Rust EBNF raw_ast export: ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json\n  3. Rust EBNF frontend generation: ast_pipeline INPUT.ebnf --generate-parser|--generate-stimuli|--generate-stimuli-module [--emit-raw-ast-json RAW.json]\n  4. Parser generation: ast_pipeline INPUT --generate-parser [--output PARSER.rs]\n  5. Stimuli generation: ast_pipeline INPUT --generate-stimuli [--count N] [--seed SEED]\n  6. Stimuli module generation: ast_pipeline INPUT --generate-stimuli-module [--count N] [--seed SEED] [--output generated/<grammar>_stimuli.rs]\n  7. Preprocessing stage: ast_pipeline INPUT --preprocess <family> [--output PREPROCESSED]\n  8. Generation-input AST dump: ast_pipeline INPUT --generate-* --dump-gen-ast [PATH]"
 )]
 struct Args {
     /// Input grammar source file (.json raw/transformed AST, or .ebnf when built with --features ebnf_dual_run)
@@ -327,9 +323,9 @@ struct Args {
     #[arg(long, conflicts_with_all = ["generate_parser", "generate_stimuli"])]
     generate_stimuli_module: bool,
 
-    /// Run SystemVerilog preprocessor execution stage on INPUT (raw SV -> expanded SV + source-map metadata)
-    #[arg(long, conflicts_with_all = ["generate_parser", "generate_stimuli", "generate_stimuli_module"])]
-    preprocess_systemverilog: bool,
+    /// `ENGINE-UNIVERSAL-SERVICES.113` — run FAMILY's preprocessing stage on INPUT (source -> expanded text + source map + event log + diagnostics); an unknown family is refused naming the families that declare one
+    #[arg(long, value_name = "FAMILY", conflicts_with_all = ["generate_parser", "generate_stimuli", "generate_stimuli_module"])]
+    preprocess: Option<String>,
 
     /// Number of stimuli samples to generate (stimuli mode)
     #[arg(long, default_value_t = 1)]
@@ -514,98 +510,49 @@ struct Args {
     #[arg(long)]
     indirect_lr_admit_starvation_safe_only: bool,
 
-    /// Include search directory for SystemVerilog preprocessor mode (can be used multiple times)
-    #[arg(long, requires = "preprocess_systemverilog")]
-    sv_include_dir: Vec<String>,
+    /// Include search directory for the preprocessing stage (repeatable, in order)
+    #[arg(long, value_name = "DIR", requires = "preprocess")]
+    include_dir: Vec<String>,
 
-    /// Max include depth for SystemVerilog preprocessor mode
-    #[arg(long, default_value_t = 64, requires = "preprocess_systemverilog")]
-    sv_include_max_depth: usize,
-
-    /// Disallow macro redefinition in SystemVerilog preprocessor mode
-    #[arg(long, requires = "preprocess_systemverilog")]
-    sv_disallow_macro_redefine: bool,
-
-    /// Optional JSON output path for preprocessor source-map entries
-    #[arg(long, requires = "preprocess_systemverilog")]
-    sv_source_map_json: Option<String>,
-
-    /// Optional JSON output path for preprocessor event log
-    #[arg(long, requires = "preprocess_systemverilog")]
-    sv_event_log_json: Option<String>,
-
-    /// Optional JSON output path for preprocessor diagnostics
-    #[arg(long, requires = "preprocess_systemverilog")]
-    sv_diagnostics_json: Option<String>,
-
-    /// Include path policy for preprocessor mode: allow_absolute, relative_only
-    #[arg(
-        long,
-        default_value = "allow_absolute",
-        value_parser = ["allow_absolute", "relative_only"],
-        requires = "preprocess_systemverilog"
-    )]
-    sv_include_path_policy: String,
-
-    /// Macro redefinition policy for preprocessor mode: allow, warn, error
-    #[arg(
-        long,
-        default_value = "allow",
-        value_parser = ["allow", "warn", "error"],
-        requires = "preprocess_systemverilog"
-    )]
-    sv_macro_redefine_policy: String,
-
-    /// Conditional symbol policy for preprocessor mode: assume_false_silent, assume_false_warn, error
-    #[arg(
-        long,
-        default_value = "assume_false_silent",
-        value_parser = ["assume_false_silent", "assume_false_warn", "error"],
-        requires = "preprocess_systemverilog"
-    )]
-    sv_conditional_symbol_policy: String,
-
-    /// `SVPP-EXPANSION.5`(k): a formal inside a plain "…" string in macro text — standard (opaque, IEEE 1800-2017 §22.5.1's own `H(x) "Hello, x"`), paste_delimited (OpenTitan's `"[``i``]"` idiom), all (Icarus's reading)
-    #[arg(
-        long,
-        default_value = "standard",
-        value_parser = ["standard", "paste_delimited", "all"],
-        requires = "preprocess_systemverilog"
-    )]
-    sv_plain_string_substitution: String,
-
-    /// Conditional expression policy for `elsif in preprocessor mode: identifier_only, identifier_or_defined
-    #[arg(
-        long,
-        default_value = "identifier_or_defined",
-        value_parser = ["identifier_only", "identifier_or_defined"],
-        requires = "preprocess_systemverilog"
-    )]
-    sv_conditional_expr_policy: String,
-
-    /// Comma-separated warning codes promoted to errors in preprocessor mode (`all`, `none`, or specific codes)
-    #[arg(long, requires = "preprocess_systemverilog")]
-    sv_strict_warning_codes: Option<String>,
-
-    /// `SVPP-EXPANSION.2`(a) — a PREDEFINED macro for preprocessor mode, `NAME` or `NAME=TEXT`
-    /// (repeatable, applied in order; the `+define+` of every commercial front end). `NAME` alone
-    /// defines the macro with empty text, exactly as a bare `` `define NAME `` line would.
-    #[arg(long, requires = "preprocess_systemverilog")]
-    sv_define: Vec<String>,
+    /// `SVPP-EXPANSION.2`(a) — a PREDEFINED macro for the stage, `NAME` or `NAME=TEXT` (repeatable,
+    /// applied in order; the `+define+` of every commercial front end). `NAME` alone defines the
+    /// macro with empty text, exactly as a bare definition line would.
+    #[arg(long, value_name = "NAME[=TEXT]", requires = "preprocess")]
+    define: Vec<String>,
 
     /// `SVPP-EXPANSION.2`(b) — a file preprocessed BEFORE `INPUT` in the same COMPILATION UNIT
-    /// (repeatable, in order): its macro definitions carry into `INPUT` per IEEE 1800-2017 §22.5.1,
-    /// while its own expanded text is discarded. `INPUT` is the unit's last file.
-    #[arg(long, requires = "preprocess_systemverilog")]
-    sv_unit_file: Vec<String>,
+    /// (repeatable, in order): its definitions carry into `INPUT`, while its own expanded text is
+    /// discarded. `INPUT` is the unit's last file.
+    #[arg(long, value_name = "FILE", requires = "preprocess")]
+    unit_file: Vec<String>,
 
-    /// `SVPP-EXPANSION.8` — the `--profile` spelling the EXPANDED text will be parsed under
-    /// (`sv_2017`, `sv_2023`, `verilog_2005`, or any alias `grammars/systemverilog.ebnf` declares).
-    /// It decides which identifiers a `` `begin_keywords `` region must hand over as escaped
-    /// identifiers (IEEE 1800-2017 §22.14); omitted, the unprofiled reading is used, which reserves
-    /// IEEE 1800-2017 Table B.1. Nothing else in this mode reads it.
-    #[arg(long, requires = "preprocess_systemverilog")]
-    sv_keyword_profile: Option<String>,
+    /// `SVPP-EXPANSION.8` — the `--profile` spelling the EXPANDED text will be parsed under (any
+    /// name or alias the family's grammar declares). What it means is the family's: a
+    /// dialect-profiled family uses it to decide which identifiers a keyword-version region must
+    /// hand the parser as escaped identifiers. Omitted, the unprofiled reading is used.
+    #[arg(long, value_name = "PROFILE", requires = "preprocess")]
+    profile: Option<String>,
+
+    /// A stage option the family DECLARES, `KEY=VALUE` (repeatable); `--list-stage-options`
+    /// prints the family's keys, values and defaults. An undeclared key is refused.
+    #[arg(long, value_name = "KEY=VALUE", requires = "preprocess")]
+    stage_opt: Vec<String>,
+
+    /// Print the family's declared stage options (`KEY=VALUES (default: …) — meaning`) and exit
+    #[arg(long, requires = "preprocess")]
+    list_stage_options: bool,
+
+    /// Optional JSON output path for the stage's source-map entries
+    #[arg(long, value_name = "FILE", requires = "preprocess")]
+    source_map_json: Option<String>,
+
+    /// Optional JSON output path for the stage's event log
+    #[arg(long, value_name = "FILE", requires = "preprocess")]
+    event_log_json: Option<String>,
+
+    /// Optional JSON output path for the stage's diagnostics
+    #[arg(long, value_name = "FILE", requires = "preprocess")]
+    diagnostics_json: Option<String>,
 }
 // `Clone` (GRAMMAR-WELLFORMED.H.12.8.1.1): the multi-config certificate-coverage union
 // (`--cert-union-config`) re-filters the SAME loaded grammar bundle once per `(entry, profile)`
@@ -996,7 +943,26 @@ fn pipeline_main() -> Result<()> {
         );
         return Ok(());
     }
-    let args = Args::parse();
+    // `ENGINE-UNIVERSAL-SERVICES.113`(b): a family's deprecated pre-.113 spellings
+    // (`--preprocess-<family>`, its prefixed context flags) are rewritten to the neutral flags
+    // before clap reads the line, ONE stderr line per old spelling used. Derived from the families
+    // that declare a stage — this binary spells none of them.
+    let args = {
+        let raw: Vec<String> = std::env::args().collect();
+        let (raw, family, mut notes) = preprocessing_stage::resolve_preprocess_family(&raw);
+        let raw = match family {
+            Some(family) => {
+                let (rewritten, more) = preprocessing_stage::rewrite_legacy_args(&raw, &family);
+                notes.extend(more);
+                rewritten
+            }
+            None => raw,
+        };
+        for note in &notes {
+            eprintln!("{note}");
+        }
+        Args::parse_from(raw)
+    };
     let trace_log_path = args
         .trace_log_file
         .clone()
@@ -1052,140 +1018,80 @@ fn pipeline_main() -> Result<()> {
         ));
     }
 
-    if args.preprocess_systemverilog {
-        let include_dirs = args
-            .sv_include_dir
+    if let Some(family) = args.preprocess.as_deref() {
+        // `ENGINE-UNIVERSAL-SERVICES.113`: the stage is the FAMILY's, reached through the engine's
+        // neutral interface; this binary knows no family's name, options or output vocabulary.
+        let Some(stage) = preprocessing_stage::stage_for(family) else {
+            let with = preprocessing_stage::families_with_stage();
+            return Err(anyhow::anyhow!(
+                "no preprocessing stage is declared for family '{}'; families that declare one: {}",
+                family,
+                if with.is_empty() {
+                    "none in this build".to_string()
+                } else {
+                    with.join(", ")
+                }
+            ));
+        };
+        if args.list_stage_options {
+            print!("{}", stage.describe_options());
+            return Ok(());
+        }
+        let options = args
+            .stage_opt
             .iter()
-            .map(PathBuf::from)
-            .collect::<Vec<_>>();
-        let include_path_policy = IncludePathPolicy::parse(&args.sv_include_path_policy)
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "invalid --sv-include-path-policy '{}'; expected allow_absolute|relative_only",
-                    args.sv_include_path_policy
-                )
-            })?;
-        let macro_redefinition_policy =
-            MacroRedefinitionPolicy::parse(&args.sv_macro_redefine_policy).ok_or_else(|| {
-                anyhow::anyhow!(
-                    "invalid --sv-macro-redefine-policy '{}'; expected allow|warn|error",
-                    args.sv_macro_redefine_policy
-                )
-            })?;
-        let conditional_symbol_policy =
-            ConditionalSymbolPolicy::parse(&args.sv_conditional_symbol_policy).ok_or_else(
-                || {
-                    anyhow::anyhow!(
-                        "invalid --sv-conditional-symbol-policy '{}'; expected assume_false_silent|assume_false_warn|error",
-                        args.sv_conditional_symbol_policy
-                    )
-                },
-            )?;
-        let plain_string_substitution =
-            PlainStringSubstitutionPolicy::parse(&args.sv_plain_string_substitution).ok_or_else(|| {
-                anyhow::anyhow!(
-                    "invalid --sv-plain-string-substitution '{}'; expected standard|paste_delimited|all",
-                    args.sv_plain_string_substitution
-                )
-            })?;
-        let conditional_expr_policy = ConditionalExprPolicy::parse(&args.sv_conditional_expr_policy)
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "invalid --sv-conditional-expr-policy '{}'; expected identifier_only|identifier_or_defined",
-                    args.sv_conditional_expr_policy
-                )
-            })?;
-        let strict_warning_codes_raw = args
-            .sv_strict_warning_codes
-            .clone()
-            .or_else(|| std::env::var("PGEN_SVPP_STRICT_WARNING_CODES").ok())
-            .unwrap_or_else(|| "none".to_string());
-        let strict_warning_codes = parse_strict_warning_codes(&strict_warning_codes_raw);
-        let defines = args
-            .sv_define
-            .iter()
-            .map(|raw| {
-                PredefinedMacro::parse(raw)
-                    .with_context(|| format!("invalid --sv-define '{}'", raw))
-            })
+            .map(|raw| preprocessing_stage::parse_stage_opt(raw))
             .collect::<Result<Vec<_>>>()?;
-        let config = SvPreprocessorConfig {
-            include_dirs,
-            max_include_depth: args.sv_include_max_depth,
-            include_path_policy,
-            macro_redefinition_policy: if args.sv_disallow_macro_redefine {
-                MacroRedefinitionPolicy::Error
-            } else {
-                macro_redefinition_policy
-            },
-            conditional_symbol_policy,
-            conditional_expr_policy,
-            plain_string_substitution,
-            strict_warning_codes,
-            defines,
-            parse_profile: args.sv_keyword_profile.clone(),
-        };
-        // `SVPP-EXPANSION.2`(b): with `--sv-unit-file`, INPUT is the LAST file of an ordered
+        // `SVPP-EXPANSION.2`(b): with `--unit-file`, INPUT is the LAST file of an ordered
         // compilation unit; the predecessors' expanded text is context only and is discarded.
-        // Without it the one-file entry is used, so every existing call is byte-identical.
-        let unit_predecessors = args.sv_unit_file.len();
-        let output = if unit_predecessors == 0 {
-            preprocess_systemverilog_file(Path::new(&args.input_path), &config)?
-        } else {
-            let mut unit: Vec<std::path::PathBuf> = args
-                .sv_unit_file
-                .iter()
-                .map(std::path::PathBuf::from)
-                .collect();
-            unit.push(std::path::PathBuf::from(&args.input_path));
-            let mut outputs = preprocess_systemverilog_unit(&unit, &config)?;
-            outputs.pop().ok_or_else(|| {
-                anyhow::anyhow!("the compilation unit produced no output for INPUT")
-            })?
+        let unit_predecessors = args.unit_file.len();
+        let mut unit: Vec<PathBuf> = args.unit_file.iter().map(PathBuf::from).collect();
+        unit.push(PathBuf::from(&args.input_path));
+        let request = StageRequest {
+            unit,
+            include_dirs: args.include_dir.iter().map(PathBuf::from).collect(),
+            defines: args.define.clone(),
+            parse_profile: args.profile.clone(),
+            options,
         };
+        let mut outputs = stage.execute(&request)?;
+        let output = outputs
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("the compilation unit produced no output for INPUT"))?;
         if let Some(output_path) = args.output.as_deref() {
             std::fs::write(output_path, &output.text)?;
-            println!("Wrote preprocessed SystemVerilog to {}", output_path);
+            println!("Wrote preprocessed output to {}", output_path);
         } else {
             print!("{}", output.text);
         }
-        if let Some(source_map_path) = args.sv_source_map_json.as_deref() {
+        if let Some(source_map_path) = args.source_map_json.as_deref() {
             let json = serde_json::to_string_pretty(&output.source_map)?;
             std::fs::write(source_map_path, json)?;
-            println!("Wrote SV preprocessor source map to {}", source_map_path);
+            println!("Wrote preprocessor source map to {}", source_map_path);
         }
-        if let Some(events_path) = args.sv_event_log_json.as_deref() {
+        if let Some(events_path) = args.event_log_json.as_deref() {
             let json = serde_json::to_string_pretty(&output.events)?;
             std::fs::write(events_path, json)?;
-            println!("Wrote SV preprocessor event log to {}", events_path);
+            println!("Wrote preprocessor event log to {}", events_path);
         }
-        if let Some(diagnostics_path) = args.sv_diagnostics_json.as_deref() {
+        if let Some(diagnostics_path) = args.diagnostics_json.as_deref() {
             let json = serde_json::to_string_pretty(&output.diagnostics)?;
             std::fs::write(diagnostics_path, json)?;
-            println!("Wrote SV preprocessor diagnostics to {}", diagnostics_path);
+            println!("Wrote preprocessor diagnostics to {}", diagnostics_path);
         }
         let warning_count = output
             .diagnostics
             .iter()
-            .filter(|d| {
-                matches!(
-                    d.severity,
-                    pgen::sv_preprocessor::PreprocessorDiagnosticSeverity::Warning
-                )
-            })
+            .filter(|d| matches!(d.severity, StageDiagnosticSeverity::Warning))
             .count();
         let error_count = output
             .diagnostics
             .iter()
-            .filter(|d| {
-                matches!(
-                    d.severity,
-                    pgen::sv_preprocessor::PreprocessorDiagnosticSeverity::Error
-                )
-            })
+            .filter(|d| matches!(d.severity, StageDiagnosticSeverity::Error))
             .count();
         println!(
-            "SV preprocess summary: output_bytes={} source_map_entries={} events={} diagnostics={} warnings={} errors={} included_files={} predefines={} unit_predecessors={}",
+            "preprocess summary: family={} output_bytes={} source_map_entries={} events={} diagnostics={} warnings={} errors={} included_files={} predefines={} unit_predecessors={}",
+            family,
             output.text.len(),
             output.source_map.len(),
             output.events.len(),
@@ -1193,7 +1099,7 @@ fn pipeline_main() -> Result<()> {
             warning_count,
             error_count,
             output.included_files.len(),
-            config.defines.len(),
+            request.defines.len(),
             unit_predecessors
         );
         return Ok(());

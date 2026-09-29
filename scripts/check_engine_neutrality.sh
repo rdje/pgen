@@ -111,7 +111,13 @@ def make_classifier(reg, root):
             path = e["path"] if isinstance(e, dict) else e
             classed[path] = (cls, e.get("family") if isinstance(e, dict) else None)
     def rel(f): return os.path.relpath(f, root) if os.path.isabs(f) else f
-    def classify(f): return classed.get(rel(f), ("engine", None))
+    fam_rx = re.compile(r"^rust/src/families/([A-Za-z0-9_]+)(?:\.rs|/.+\.rs)$")
+    def classify(f):
+        r = rel(f)
+        if r in classed: return classed[r]
+        m = fam_rx.match(r)   # `.113`: a family COMPONENT is classed by WHERE it lives — rust/src/families/<name>.rs or rust/src/families/<name>/** — never by a typed row
+        if m and m.group(1) != "mod": return ("per-family", m.group(1))
+        return ("engine", None)
     classify.rel = rel
     return classify, classed
 
@@ -138,6 +144,10 @@ def verdict(root, reg, files, print_census=False, rebaseline=False):
     counts = collections.Counter((r["file"], ) for r in rows if r["cls"] != "engine" and r["pos"] == "code")
     ceilings = reg["ceilings"]
     fell = []
+    derived = {classify.rel(f): classify(f) for f in files if classify.rel(f) not in classed and classify(f)[0] != "engine"}   # the path-classed components
+    for path, (cls, own) in sorted(derived.items()):
+        n = counts.get((path,), 0)
+        if n: problems.append(f"`{path}` (per-family component of `{own}`, classed by its path) names {n} token(s) of ANOTHER language grammar in production code — a component may name its own family only")
     for path, (cls, _) in sorted(classed.items()):
         n = counts.get((path,), 0); c = ceilings.get(path)
         if c is None:
@@ -158,7 +168,7 @@ def verdict(root, reg, files, print_census=False, rebaseline=False):
         print(f"{TAG}: {len(problems)} breach(es)", file=sys.stderr); return 1
     nz = sum(1 for c in ceilings.values() if c["ceiling"] > 0)
     print(f"{TAG}: OK (engine: 0 language tokens in production code over {sum(1 for f in files if classify(f)[0] == 'engine')} files; "
-          f"{len(classed)} classed non-engine files at or under their ceilings, {nz} still non-zero and owned; vocabulary derived: "
+          f"{len(classed)} classed non-engine files at or under their ceilings, {nz} still non-zero and owned; {len(derived)} family-component files classed by path; vocabulary derived: "
           f"{len(vocab['families'])} language grammars, {len(vocab['profiles'])} profiles, {len(vocab['rules'])} rules)")
     return 0
 
@@ -166,7 +176,7 @@ def tree_files(root):
     return sorted(glob.glob(os.path.join(root, "rust/src/**/*.rs"), recursive=True)) + [os.path.join(root, "rust/build.rs")]
 
 def self_test():
-    """Eleven arms on synthetic inputs: every refusal is driven for real, and the own-family exemption is proven green."""
+    """Thirteen arms on synthetic inputs: every refusal is driven for real, and the own-family exemption is proven green."""
     arms = []
     with tempfile.TemporaryDirectory(dir=os.path.join(ROOT, "rust/target") if os.path.isdir(os.path.join(ROOT, "rust/target")) else None) as d:
         os.makedirs(os.path.join(d, "grammars")); os.makedirs(os.path.join(d, "rust/src/bin")); os.makedirs(os.path.join(d, "rust/test_data/grammar_quality"))
@@ -209,6 +219,14 @@ def self_test():
         reg6 = json.loads(json.dumps(base_reg)); reg6["engine_allow"] = [{"file": "rust/src/engine.rs", "token": "lang"}]
         arm("RED: an allow-list row without reason / owner", 1, reg6, ("rust/src/engine.rs", 'fn g() { let s = "lang"; }\n'))
         arm("GREEN: a per-family component names its OWN family's profile", 0, base_reg, ("rust/src/sv_thing.rs", 'fn f() -> &\'static str { "lp_2017" }\n'))
+        # `.113`: a component under rust/src/families/<name>/ is classed by its PATH — no register row
+        open(os.path.join(d, "rust/src/sv_thing.rs"), "w").write('fn f() { let a = "lang"; }\n')   # the row's file again (the arm above removed its plant)
+        os.makedirs(os.path.join(d, "rust/src/families/lang"))
+        arm("GREEN: a file under rust/src/families/<name>/ names its own family (classed by path, no row)", 0, base_reg, ("rust/src/families/lang/stage.rs", 'fn f() -> &\'static str { "lang lp_2017" }\n'))
+        open(os.path.join(d, "grammars/other.ebnf"), "w").write('other_top_rule := "z"\n')
+        reg7 = json.loads(json.dumps(base_reg)); reg7["grammar_classes"]["other"] = "language"
+        arm("RED: a file under rust/src/families/<name>/ names ANOTHER family (classed by path, no row)", 1, reg7, ("rust/src/families/lang/stage.rs", 'fn f() -> &\'static str { "other" }\n'))
+        os.remove(os.path.join(d, "grammars/other.ebnf")); os.rmdir(os.path.join(d, "rust/src/families/lang")); os.rmdir(os.path.join(d, "rust/src/families"))
     n = len(arms); ok = sum(arms)
     print(f"{TAG} --self-test: arms={n} failed={n - ok}")
     return 0 if ok == n else 1

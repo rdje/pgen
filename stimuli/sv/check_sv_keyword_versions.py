@@ -4,13 +4,13 @@
 `SVPP-EXPANSION.8` (`PGEN-SVPP-EXPANSION-0022`). IEEE 1800-2017 §22.14 makes
 `` `begin_keywords "version" `` select WHICH identifiers are reserved inside a region, from the
 standard's own per-version tables (Table 22-1 … Table 22-6 plus the "1364-2001-noconfig"
-exclusion list). `rust/src/sv_keyword_versions.rs` carries those tables so the preprocessor can
+exclusion list). `rust/src/families/systemverilog/keyword_versions.rs` carries those tables so the preprocessor can
 render a token that is a keyword of the PARSE PROFILE but not of the REGION as an escaped
 identifier (§5.6.1/§5.6.2). This instrument DERIVES the tables from the in-repo LRM text and
 compares them against that file, both directions — the tables are never typed by hand.
 
   gate mode (default)   derive + compare; exit 1 naming every word missing from or foreign to a table
-  --write               regenerate the derived block of rust/src/sv_keyword_versions.rs
+  --write               regenerate the derived block of rust/src/families/systemverilog/keyword_versions.rs
   --self-test           a planted missing word, a planted foreign word and a broken split are refused
   --print               print the derived tables (one `name: words` line each) and exit 0
 
@@ -54,7 +54,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-RUST = ROOT / "rust/src/sv_keyword_versions.rs"
+RUST = ROOT / "rust/src/families/systemverilog/keyword_versions.rs"
 GRAMMAR = ROOT / "grammars/systemverilog.ebnf"
 
 SV2017 = ROOT / "docs/systemverilog/2017/md/section-22-compiler-directives.md"
@@ -357,7 +357,7 @@ def rust_specifiers(text):
     out = {}
     block = re.search(r"const ADMITTED_SPECIFIERS:.*?\n\];", text, re.S)
     if not block:
-        raise ValueError("rust/src/sv_keyword_versions.rs has no ADMITTED_SPECIFIERS table")
+        raise ValueError("rust/src/families/systemverilog/keyword_versions.rs has no ADMITTED_SPECIFIERS table")
     for canonical, body in re.findall(r'\("(\w+)",\s*&\[(.*?)\]\)', block.group(0), re.S):
         out[canonical] = set(re.findall(r'"([^"]+)"', body))
     return out
@@ -370,7 +370,7 @@ def compare(text, tables, aliases):
         want = tables[name]
         got = have.get(name)
         if got is None:
-            problems.append(f"{name}: absent from the derived block of rust/src/sv_keyword_versions.rs")
+            problems.append(f"{name}: absent from the derived block of rust/src/families/systemverilog/keyword_versions.rs")
             continue
         if got != want:
             missing = sorted(set(want) - set(got))
@@ -550,7 +550,7 @@ def main(argv):
         for problem in problems:
             print("  - " + problem)
         return 1
-    print(f"SV-KEYWORD-VERSIONS: OK — rust/src/sv_keyword_versions.rs == IEEE 1800-2017 §22.14 "
+    print(f"SV-KEYWORD-VERSIONS: OK — rust/src/families/systemverilog/keyword_versions.rs == IEEE 1800-2017 §22.14 "
           f"Tables 22-1…22-6 + §22.14.4, cross-checked against IEEE 1364-2005 §19.11 and "
           f"IEEE 1800-2023 §22.14, Σ == Annex B Table B.1 ({tag})")
     return 0

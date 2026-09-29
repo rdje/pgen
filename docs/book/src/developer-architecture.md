@@ -244,15 +244,28 @@ words of the languages it parses:
 - **The engine is every `rust/src` source the register does not class otherwise**, and it may carry none of the
   vocabulary in production code. Test modules and comments may name families freely: they are fixtures and
   prose, not behaviour. The allow-list is empty by design.
-- **The non-engine classes are a closed population under a ratchet.** A *per-family* component (the
-  SystemVerilog preprocessor and its keyword tables, the family hook modules under `rust/src/families/`, a
-  family's own contract probe) may name its own family only — its name, its profiles, its rules; the *registry* (the
-  build-derived list of generated parsers), the *api* (the embedding surface), the *bin* (operator tools) and
-  the *harness* (test suites) files each carry a ceiling of production-code tokens that only falls — a rise
-  fails the commit, a fall is promoted deliberately, and every non-zero ceiling names the leaf that owes its
-  zero (`ENGINE-UNIVERSAL-SERVICES.112` for the API's enumeration, `.113` for the preprocessor's relocation).
-- **Eleven self-test arms run before the tree is read**, so a guard that has stopped refusing is caught by its own
-  run.
+- **The non-engine classes are a closed population under a ratchet.** A *per-family* component may name its
+  own family only — its name, its profiles, its rules — and it is classed by WHERE it lives:
+  `rust/src/families/<name>.rs` or anything under `rust/src/families/<name>/` is that family's, with no
+  register row to type (the SystemVerilog preprocessor and its IEEE 1800-2017 §22.14 keyword tables live at
+  `rust/src/families/systemverilog/`, the regex nesting ceiling and PCRE2 contract at `families/regex.rs`; a
+  family's own contract probe under `bin/` is the one component classed by an explicit row). The *registry*
+  (the build-derived list of generated parsers), the *api* (the embedding surface), the *bin* (operator tools)
+  and the *harness* (test suites) files each carry a ceiling of production-code tokens that only falls — a
+  rise fails the commit, a fall is promoted deliberately, and every non-zero ceiling names the leaf that owes
+  its zero. **Every ceiling is at zero since 2026-09-29**: `.112` derived the API's and the registry's
+  enumeration from the artifacts; `.113` moved the preprocessor beside its family and derived the operator
+  binaries' and the harness's tables.
+- **What the engine owns of preprocessing is the STAGE, not the preprocessor.** `rust/src/preprocessing_stage.rs`
+  is the one neutral interface: a family declares a `PreprocessingStage` on its hooks (its option keys, its
+  deprecated CLI spellings, its `run`), and the engine hands it a request every front end can express — the
+  ordered compilation unit, the include search directories, the predefined macros, the profile the expanded
+  text will be parsed under, and the family's own options by key — and gets back expanded text with a source
+  map, an event log and diagnostics in the engine's shapes. The CLIs reach a stage only by family name
+  (`ast_pipeline INPUT --preprocess <family>`, `parseability_probe --parse <grammar> … --preprocess`), so a
+  second language with a preprocessor adds a component directory and nothing to the engine.
+- **Thirteen self-test arms run before the tree is read**, so a guard that has stopped refusing is caught by its
+  own run.
 
 How to read a breach: `ENGINE source <file>:<line> names the <kind> <token> of a language grammar in production
 code` means the fact belongs in a grammar or in a per-family component, not in the engine; `<file> ROSE a → b`
