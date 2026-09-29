@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.45 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0179`): a leaf fixed by a refactor elsewhere still owes its own durability leg
+
+- **Re-measure before re-fixing.** The two commands that founded the leaf, re-run on today's probe, showed the defect gone; `git log -S` on the hand-written call named the refactor that removed it. Without the re-measure the "fix" would have been a tenth call to a function that no longer has nine.
+- **"Supported but not fingerprinted" needs a reason per row, not a waiver.** The two builtin annotation rows are `own_artifact: false` — one an alias, one the bootstrap surface — so they have no digest of their own to report; the test asserts that the supported-but-unfingerprinted set is exactly the non-own rows, which is the two-sided statement the leaf asked for.
+- **Put the durable leg in the suite that actually runs.** A unit test in the library suite is executed at every SV release (ceremony item 13) and on every push (the hosted lane); a shell comparison of two probe commands would have needed a built probe and a caller.
+- **`cargo test` takes one positional filter.** Several names go after `--`; the first invocation was refused in five seconds and the guard's `exit=0` was the wrapper's, not cargo's — `set -o pipefail` inside the guarded command is what makes the log's exit code cargo's.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.83 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0178`): registering a number with a proven pattern is mostly deciding which pattern, and the check's first run is a measurement of the check
 
 - **Two patterns, two jobs.** `BASELINE-IDENTITY` answers "did the inputs of this derivation move since it was stamped"; `SV-CORPUS-DENOMINATOR` answers "does every surface still say what the derivation says". The per-frame census needed both, and reusing the verifier for the first (`--stamp` / `--verify` on a JSON outside its register — it accepts any repo-relative path) kept the digest definition singular.

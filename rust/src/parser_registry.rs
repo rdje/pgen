@@ -1206,6 +1206,64 @@ mod tests {
         assert!(grammars.contains(&"builtin_semantic_annotation"));
     }
 
+    /// `ENGINE-UNIVERSAL-SERVICES.45` — the `--parser-fingerprint` population is DERIVED from the
+    /// registry and TWO-SIDED against `--supports`. A hand-written list of nine calls in `build.rs`
+    /// once missed the two annotation parsers while the report read `absent: []`; since `.112`
+    /// slice 2 / `.113` the fingerprint rides every derived registry row, and this pins the two
+    /// halves that made the omission invisible: (1) every row that is its own artifact carries the
+    /// digest build.rs computed over the parser it compiled against, and (2) every SUPPORTED name
+    /// without a digest is exactly a row that is not its own artifact — the bootstrap
+    /// `builtin_semantic_annotation` surface and the `builtin_return_annotation` alias — never a
+    /// generated parser the instrument cannot see.
+    #[cfg(feature = "generated_parsers")]
+    #[test]
+    fn parser_fingerprints_cover_every_own_artifact_row_and_nothing_else() {
+        use std::collections::{BTreeMap, BTreeSet};
+        let rows = super::registry();
+        let fingerprinted: BTreeMap<&str, Option<&str>> =
+            super::parser_fingerprints().into_iter().collect();
+        for entry in rows {
+            if entry.own_artifact {
+                assert!(
+                    fingerprinted.get(entry.grammar_name).is_some_and(|d| d.is_some()),
+                    "own-artifact row `{}` has no fingerprint — build.rs could not hash the parser \
+                     this binary compiled against, and the report would say `absent` about it",
+                    entry.grammar_name
+                );
+            } else {
+                assert!(
+                    !fingerprinted.contains_key(entry.grammar_name),
+                    "row `{}` is not its own artifact and must not be reported as fingerprinted",
+                    entry.grammar_name
+                );
+            }
+        }
+        // The closed population: every fingerprinted name is a registry row that is its own artifact.
+        for name in fingerprinted.keys() {
+            assert!(
+                rows.iter().any(|e| e.grammar_name == *name && e.own_artifact),
+                "fingerprinted name `{name}` is not an own-artifact registry row"
+            );
+        }
+        // Two-sided against `--supports`: the supported names WITHOUT a fingerprint are exactly the
+        // rows that are not their own artifact, so a supported generated parser can never be missing
+        // from the report in the passing direction.
+        let supported_unfingerprinted: BTreeSet<&str> = registered_grammars()
+            .into_iter()
+            .filter(|g| !fingerprinted.contains_key(g))
+            .collect();
+        let not_own: BTreeSet<&str> = rows
+            .iter()
+            .filter(|e| !e.own_artifact)
+            .map(|e| e.grammar_name)
+            .collect();
+        assert_eq!(
+            supported_unfingerprinted, not_own,
+            "the supported-but-unfingerprinted set must be exactly the non-own-artifact rows"
+        );
+        assert!(!fingerprinted.is_empty(), "a build with generated parsers fingerprints at least one");
+    }
+
     #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
     #[test]
     fn registry_exposes_ebnf_when_dual_run_enabled() {

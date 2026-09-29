@@ -715,15 +715,24 @@ you build an experimental arm:
 
 ```bash
 $ parseability_probe --parser-fingerprint
-{"pgen_parser_fingerprint_version":1,"parsers":{"ebnf":"97c1753306787edb…","systemverilog":"46bc8a56469a0abd…", …},"absent":[]}
+{"pgen_parser_fingerprint_version":1,"parsers":{"json":"23771e6d31c00e…","regex":"493a6634494852…","return_annotation":"2beeb1aba74832…","semantic_annotation":"2eb532e35b3633…","systemverilog":"3d95ef8534e2d5…", …},"absent":[]}
 ```
 
 Each value is the **sha256 of the generated parser source this binary was compiled against**,
 computed by `rust/build.rs` — which already declares `cargo:rerun-if-changed` for every parser it
 resolves, so it re-runs exactly when one moves — and published as `PGEN_<FAMILY>_PARSER_SHA256`.
-Families whose parser was absent at build time appear in `absent` rather than carrying a
-placeholder digest: *"not measured"* and *"wrong parser"* are different answers and must not look
-alike.
+⭐ **The population is DERIVED, not listed** (`ENGINE-UNIVERSAL-SERVICES.112` slice 2 / `.113`;
+`.45` closed on it): `build.rs` fingerprints every `generated/*_parser.rs` it resolves in the same
+loop that registers it — the two annotation parsers included, which a hand-written list of nine once
+missed while reporting `absent: []` — and the `ebnf` seed joins under `ebnf_dual_run`. So a family
+with no generated parser on disk is not registered at all and appears in **neither** list; `absent`
+names a registered row that is its own artifact and that `build.rs` could not hash — *"not measured"*
+and *"wrong parser"* are different answers and must not look alike. The two built-in annotation
+rows (`builtin_return_annotation`, an alias of `return_annotation`'s row, and the bootstrap
+`builtin_semantic_annotation` surface) are supported by `--supports` and carry no digest of their
+own, so they are in neither list by design; the unit test
+`parser_fingerprints_cover_every_own_artifact_row_and_nothing_else` holds the report two-sided
+against the registry on every run of the library suite.
 
 Compare it against the tree with:
 
