@@ -195,8 +195,13 @@ admitted when this was written needed ≈8 MB / ≈70 MB, more than the 8 MB def
 > modes and the five cheap-frame families in release are bounded by cost, not by choice: a cell is
 > reached at `budget ÷ bytes_per_frame` frames and crossing costs Θ(depth²)
 > (`ENGINE-UNIVERSAL-SERVICES.68`), while a release cell needs 8–10× that depth — one such run cost
-> 1.17 GB of peak RSS on an 8 KB input (`ENGINE-UNIVERSAL-SERVICES.84`). `regex` is bounded by
-> `ENGINE-UNIVERSAL-SERVICES.82`, whose refusal reading is stranded on that family's own worker.
+> 1.17 GB of peak RSS on an 8 KB input (`ENGINE-UNIVERSAL-SERVICES.84`). `regex` is bounded by its
+> own nesting pre-check: since `ENGINE-UNIVERSAL-SERVICES.112` slice 3 every family parses through
+> the engine's dedicated-stack join, which carries the refusal reading back to the caller
+> (`ENGINE-UNIVERSAL-SERVICES.82`, closed on that measurement 2026-09-29 — the family's own worker
+> that stranded the reading is gone), but the regex family refuses more than 250 nested groups
+> before any parser runs and 250 levels cannot contact a 64 MiB stack, so the census has no
+> crossing to measure there.
 > ⭐ Note the direction: the margin is `budget ÷ (4 096 × bytes_per_frame)`, so **cheap frames mean
 > wide margins**, while the census's cost is quadratic in `budget ÷ bytes_per_frame`, so **cheap
 > frames also mean expensive cells**. The measurement is cheapest exactly where the risk is highest.

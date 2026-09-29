@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-29 — ENGINE-UNIVERSAL-SERVICES.82 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0175`): a defect fixed as a side effect is not closed until someone measures the closure
+
+- **Check the route before designing the carry.** The leaf priced carrying a reading across a channel hand-off; the channel no longer existed. `git log -S` on the worker's name found the commit that removed it, and a census of every thread spawn in the engine found one production route, which already carries.
+- **A reproduction that now fails earlier is a different fact, not the same one.** The founding input is refused by the regex family's nesting pre-check today, so `no_refusal` is true rather than stranded; the honest closure is a SystemVerilog input that does contact its ceiling and shows the reading arriving across the join.
+- **Say why a cell is empty.** `.79`(a)'s regex cell moved from *not measurable by this route* to *not reachable within the family's nesting ceiling* — two different reasons with two different remedies, and the book now names the right one.
+
 ## 2026-09-29 — ENGINE-UNIVERSAL-SERVICES.72 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0174`): a macro that redefines a std name is a trap laid for every future reader, and the fix is to delete it, not to document it
 
 - **Delete the shadow rather than rename it.** The leaf's option (c) priced a rename (`trace_dbg!`); spelling every one of the 247 calls as the `pgen_trace_debug!` it always was costs the same edit and leaves nothing to misread — a bare `eprintln!` in these two files now means what it means in every other file of the crate.
