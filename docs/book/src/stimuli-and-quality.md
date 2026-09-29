@@ -1394,6 +1394,13 @@ consumer and lets the consumer render normally, while a generation-side prune on
 refuses the gated shape wherever no such header precedes it (a plan's directives are keyed on rule and
 path, so the mandatory first list item would otherwise be forced into the gated shape too). Any
 attribute key is producer-matchable now; it used to be `declaration_family` alone.
+⚠️ **Honest bound** (`ENGINE-UNIVERSAL-SERVICES.115`, 2026-09-29): every prelude is hosted at a
+*quantifier* site on the reach path, so a name-gated consumer reached by a linear, unquantified path
+(`program := opener decl use closer`) gets no prelude and renders an unbound name — measured as
+`{let d;use hye;}` on both a `visibility: lexical` kind and its store-wide control. The generation-time
+store also opens no scopes: every generation-time fact lives at the root, which every query can see,
+so a kind declared `visibility: lexical` (the *Semantic Store* chapter §4, `ENGINE-UNIVERSAL-SERVICES.89`)
+is honoured by the parser's state — the generator receives the same seed and is, today, unchanged by it.
 
 The result is verified per grammar with certificate-coverage, where `sample_parse_failures` is the
 **semantic round-trip metric**: zero means every generated sample re-parses through the real parser's

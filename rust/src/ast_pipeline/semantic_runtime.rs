@@ -5,7 +5,7 @@ use super::{
 use super::predicate_expr::{
     PredicateDef, PredicateExpr, PredicateValue, PrimitiveCall, parse_predicate_expression,
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -1059,8 +1059,9 @@ fn scalar_bool(value: &UnifiedSemanticValue) -> Option<bool> {
 /// 7. `name` and `artefact_kind` (if specified) are valid path components:
 ///    no `/`, no `..`, no leading dot.
 ///
-/// Per-instance validation (V-DECL-2..5, V-DECL-7) lives in `validate_local`;
-/// V-DECL-1 / V-DECL-6 are deferred to `compile_semantic_runtime_annotations`.
+/// Per-instance validation (V-DECL-2..5, V-DECL-7, V-DECL-8) lives in
+/// `validate_local` and `parse_fact_kind`; V-DECL-1 / V-DECL-6 are deferred to
+/// `compile_semantic_runtime_annotations`.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct FactKindDecl {
     pub name: String,
@@ -1075,6 +1076,59 @@ pub struct FactKindDecl {
     pub exportable: bool,
     pub artefact_kind: Option<String>,
     pub description: Option<String>,
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: which facts of this kind an existence
+    /// query sees — every fact in the store (`store`, the default) or only
+    /// the facts whose scope is still open (`lexical`). See [`FactVisibility`].
+    pub visibility: FactVisibility,
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.89`: the `visibility:` field of a `@fact_kind:`
+/// declaration — the scope rule the existence family (`has_fact`,
+/// `lacks_fact`, `has_fact_attribute`, `fact_attribute_equals`,
+/// `lacks_fact_attribute_equals`, `latest_fact_attribute_equals`,
+/// `fact_count_at_least`) and `has_fact_in_current_scope` apply to facts of
+/// the kind.
+///
+/// - `Store` (the default, and the only behaviour before `.89`): a fact is
+///   found wherever it was emitted, in a scope that is open or one that has
+///   since closed. A grammar depends on this — the regex grammar's
+///   `phase: final` check that a named back-reference names a DEFINED group
+///   must see groups defined inside lookaround scopes that closed long
+///   before parse completion — so the default never changed.
+/// - `Lexical`: a fact is found only while the scope it was emitted into is
+///   still on the active chain (the root scope always is). A fact emitted
+///   inside a region that then closed is invisible from outside it, a
+///   sibling scope at the same depth cannot see it, and a rolled-back scope
+///   takes its facts with it. `has_fact_in_current_scope` on a lexical kind
+///   means the innermost OPEN scope by identity, not any scope at the same
+///   depth. This is the declare-a-name-only-inside-a-region idiom
+///   (`@open_scope` + `@emit_fact` + `@close_scope`) the book had described
+///   and the engine had not honoured (`SV-CORPUS-GRAD.3.29`, 2026-09-03).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub enum FactVisibility {
+    #[default]
+    Store,
+    Lexical,
+}
+
+impl FactVisibility {
+    /// The spelling a grammar writes in `visibility:`.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Store => "store",
+            Self::Lexical => "lexical",
+        }
+    }
+
+    /// Parse the `visibility:` spelling (case-insensitive); `None` for any
+    /// other word — the caller reports it as a V-DECL-8 violation.
+    pub fn parse(text: &str) -> Option<Self> {
+        match text.trim().to_ascii_lowercase().as_str() {
+            "store" => Some(Self::Store),
+            "lexical" => Some(Self::Lexical),
+            _ => None,
+        }
+    }
 }
 
 impl FactKindDecl {
@@ -1613,6 +1667,20 @@ impl CompiledSemanticRuntimeAnnotations {
             .values()
             .filter(|decl| decl.exportable)
             .map(|decl| decl.name.clone())
+            .collect()
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: the kinds declared `visibility: lexical`,
+    /// lower-cased to the index's key normalisation — the set a
+    /// [`SemanticRuntimeState`] is seeded with (`set_lexical_fact_kinds`) so
+    /// every existence query on such a kind reads only the open scopes.
+    /// Empty for a grammar with no `@fact_kind:` schema or none lexical, which
+    /// keeps the store-wide default byte-for-byte.
+    pub fn lexical_fact_kinds(&self) -> FxHashSet<String> {
+        self.fact_kinds
+            .values()
+            .filter(|decl| decl.visibility == FactVisibility::Lexical)
+            .map(|decl| decl.name.to_ascii_lowercase())
             .collect()
     }
 
@@ -2484,6 +2552,19 @@ impl FactIndex {
             .max()
     }
 
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: every position of a fact of `kind`,
+    /// across all scope depths and names, in no particular order — the
+    /// candidate set a lexical-visibility count or latest-fact query filters
+    /// by the LIVE active chain. O(facts of the kind).
+    fn positions_for_kind<'a>(&'a self, kind: &str) -> impl Iterator<Item = usize> + 'a {
+        let kind_normalised = kind.to_ascii_lowercase();
+        self.by_kind
+            .get(&kind_normalised)
+            .into_iter()
+            .flat_map(|kind_index| kind_index.by_scope_and_name.values())
+            .flat_map(|positions| positions.iter().copied())
+    }
+
     /// O(1) total fact count for a given kind.
     fn count_for_kind(&self, kind: &str) -> usize {
         let kind_normalised = kind.to_ascii_lowercase();
@@ -2615,6 +2696,13 @@ pub struct SemanticRuntimeState {
     /// scope) so existing consumers (predicates that read scope_depth /
     /// current_scope) continue to work unchanged.
     active_chain: ActiveChain,
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: the fact kinds declared
+    /// `visibility: lexical` (lower-cased, the index's normalisation).
+    /// Grammar-constant — installed once from the compiled annotations
+    /// (`set_lexical_fact_kinds`), never touched by checkpoint / rollback /
+    /// `reset_for_new_parse`. Empty ⇒ every existence query is store-wide,
+    /// the pre-`.89` behaviour, at the cost of one `is_empty` per query.
+    lexical_fact_kinds: FxHashSet<String>,
     /// `RGX-0078.5.j.4` (K4a): the chain UNDO TRAIL — one entry per
     /// `active_chain` mutation (see [`ChainTrailOp`]). Checkpoints record its
     /// length instead of cloning chain content; rollbacks unwind the entries
@@ -2803,6 +2891,7 @@ impl SemanticRuntimeState {
             fact_index: FactIndex::default(),
             scope_arena: vec![root_node],
             active_chain: smallvec![ScopeId::ROOT],
+            lexical_fact_kinds: FxHashSet::default(),
             chain_trail: Vec::new(),
             predicate_defs: FxHashMap::default(),
             counters: SemanticStoreCounters::default(),
@@ -2985,6 +3074,77 @@ impl SemanticRuntimeState {
     /// registry — they are handled directly by `evaluate_predicate`.
     pub fn set_predicate_defs(&mut self, defs: HashMap<String, PredicateDef>) {
         self.predicate_defs = defs.into_iter().collect();
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: install the kinds declared
+    /// `visibility: lexical` (`CompiledSemanticRuntimeAnnotations::lexical_fact_kinds`).
+    /// Grammar-constant, so it is installed once at construction by every
+    /// consumer of the state — the generated parser, the parse-harness
+    /// interpreter and the stimuli generator's generation-time store — and
+    /// survives `reset_for_new_parse`. Keys are lower-cased here so a caller
+    /// may pass the declared spelling.
+    pub fn set_lexical_fact_kinds<I, K>(&mut self, kinds: I)
+    where
+        I: IntoIterator<Item = K>,
+        K: AsRef<str>,
+    {
+        self.lexical_fact_kinds = kinds
+            .into_iter()
+            .map(|kind| kind.as_ref().to_ascii_lowercase())
+            .collect();
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: the kinds installed by
+    /// [`Self::set_lexical_fact_kinds`], lower-cased.
+    pub fn lexical_fact_kinds(&self) -> &FxHashSet<String> {
+        &self.lexical_fact_kinds
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: is `kind` declared `visibility: lexical`?
+    /// The empty-set fast path costs one branch and no allocation, which is
+    /// what keeps a grammar without lexical kinds at the pre-`.89` cost.
+    fn kind_is_lexical(&self, kind: &str) -> bool {
+        !self.lexical_fact_kinds.is_empty()
+            && self.lexical_fact_kinds.contains(&kind.to_ascii_lowercase())
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: is the fact at `position` visible under
+    /// LEXICAL visibility — was it emitted into a scope that is still open?
+    /// The root scope is always on the chain, so a root-level fact (every
+    /// fact of a grammar that opens no scopes, every library import) is
+    /// visible everywhere. O(active depth), read against the LIVE chain, so
+    /// it auto-unwinds the instant `@close_scope` pops the scope and is
+    /// restored by a rollback that re-opens it.
+    fn fact_is_lexically_visible(&self, position: usize) -> bool {
+        self.active_chain.contains(&self.facts[position].scope_id)
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: the `(kind, name)` candidate positions
+    /// an existence query may consult — every position for a store-visible
+    /// kind, only the lexically visible ones for a lexical kind. The single
+    /// funnel the attribute-reading arms of `evaluate_predicate` share, so a
+    /// kind's visibility rule cannot be honoured by one arm and missed by
+    /// another.
+    fn visible_positions_for_name<'a>(
+        &'a self,
+        kind: &str,
+        name: &SemanticRuntimeValue,
+    ) -> impl Iterator<Item = usize> + 'a {
+        let lexical = self.kind_is_lexical(kind);
+        self.fact_index
+            .positions_for_name(kind, name)
+            .filter(move |&position| !lexical || self.fact_is_lexically_visible(position))
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: `has_fact` / `lacks_fact` under the
+    /// kind's declared visibility — the store-wide O(1)-average index probe
+    /// for a store-visible kind, the visible-candidate scan for a lexical one.
+    fn any_fact_visible_with_name(&self, kind: &str, name: &SemanticRuntimeValue) -> bool {
+        if self.kind_is_lexical(kind) {
+            self.visible_positions_for_name(kind, name).next().is_some()
+        } else {
+            self.fact_index.any_with_name(kind, name)
+        }
     }
 
     /// `PGEN-RGX-0078-0198`: the in-place per-parse reset — the allocation-
@@ -4187,7 +4347,9 @@ impl SemanticRuntimeState {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let expected_name =
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
-                let result = self.fact_index.any_with_name(expected_kind, &expected_name);
+                // `ENGINE-UNIVERSAL-SERVICES.89`: store-wide unless the kind is
+                // declared `visibility: lexical`, then open scopes only.
+                let result = self.any_fact_visible_with_name(expected_kind, &expected_name);
                 // SV-EXH-PROOF.3.3.4.b.6.2.28 — self-explaining fact-query trace.
                 // HIGH = the query + verdict; DBG = additionally lists the
                 // facts found (or the count of all facts of that kind, when
@@ -4220,14 +4382,25 @@ impl SemanticRuntimeState {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let expected_name =
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
-                Some(!self.fact_index.any_with_name(expected_kind, &expected_name))
+                Some(!self.any_fact_visible_with_name(expected_kind, &expected_name))
             }
             // `.3.3.4.b.5.1.1`: index-backed at exact scope depth via
-            // `any_with_name_at_scope`.
+            // `any_with_name_at_scope`. `ENGINE-UNIVERSAL-SERVICES.89`: for a
+            // `visibility: lexical` kind the question is asked of the innermost
+            // OPEN scope by identity — a closed sibling at the same depth no
+            // longer answers it.
             "has_fact_in_current_scope" => {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let expected_name =
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
+                if self.kind_is_lexical(expected_kind) {
+                    let current_scope_id = self.current_scope_id();
+                    return Some(
+                        self.fact_index
+                            .positions_for_name(expected_kind, &expected_name)
+                            .any(|position| self.facts[position].scope_id == current_scope_id),
+                    );
+                }
                 let current_depth = self.scopes.len().saturating_sub(1);
                 Some(self.fact_index.any_with_name_at_scope(
                     expected_kind,
@@ -4245,8 +4418,7 @@ impl SemanticRuntimeState {
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
                 let expected_key = scalar_text(predicate.args.get(2)?)?;
                 Some(
-                    self.fact_index
-                        .positions_for_name(expected_kind, &expected_name)
+                    self.visible_positions_for_name(expected_kind, &expected_name)
                         .any(|position| {
                             self.facts[position]
                                 .attributes
@@ -4264,8 +4436,7 @@ impl SemanticRuntimeState {
                 let expected_key = scalar_text(predicate.args.get(2)?)?;
                 let expected_value = predicate.args.get(3)?;
                 Some(
-                    self.fact_index
-                        .positions_for_name(expected_kind, &expected_name)
+                    self.visible_positions_for_name(expected_kind, &expected_name)
                         .any(|position| {
                             self.facts[position].attributes.iter().any(|property| {
                                 property.key.eq_ignore_ascii_case(expected_key)
@@ -4285,7 +4456,17 @@ impl SemanticRuntimeState {
                 let expected_key = scalar_text(predicate.args.get(1)?)?;
                 let expected_value = predicate.args.get(2)?;
                 let current_depth = self.scopes.len().saturating_sub(1);
-                let latest = self.fact_index.latest_position_for_kind(expected_kind, current_depth);
+                // `ENGINE-UNIVERSAL-SERVICES.89`: a lexical kind's latest fact is
+                // the latest one still visible — a header emitted in a scope that
+                // has since closed no longer governs.
+                let latest = if self.kind_is_lexical(expected_kind) {
+                    self.fact_index
+                        .positions_for_kind(expected_kind)
+                        .filter(|&position| self.fact_is_lexically_visible(position))
+                        .max()
+                } else {
+                    self.fact_index.latest_position_for_kind(expected_kind, current_depth)
+                };
                 let result = latest.is_some_and(|position| {
                     self.facts[position].attributes.iter().any(|property| {
                         property.key.eq_ignore_ascii_case(expected_key)
@@ -4311,8 +4492,7 @@ impl SemanticRuntimeState {
                 let expected_key = scalar_text(predicate.args.get(2)?)?;
                 let expected_value = predicate.args.get(3)?;
                 let any_match = self
-                    .fact_index
-                    .positions_for_name(expected_kind, &expected_name)
+                    .visible_positions_for_name(expected_kind, &expected_name)
                     .any(|position| {
                         self.facts[position].attributes.iter().any(|property| {
                             property.key.eq_ignore_ascii_case(expected_key)
@@ -4370,6 +4550,17 @@ impl SemanticRuntimeState {
                     .trim()
                     .parse::<usize>()
                     .ok()?;
+                // `ENGINE-UNIVERSAL-SERVICES.89`: a lexical kind counts only the
+                // facts whose scope is still open; the O(1) per-kind counter is
+                // the store-wide answer and stays the default.
+                if self.kind_is_lexical(expected_kind) {
+                    let visible = self
+                        .fact_index
+                        .positions_for_kind(expected_kind)
+                        .filter(|&position| self.fact_is_lexically_visible(position))
+                        .count();
+                    return Some(visible >= minimum);
+                }
                 Some(self.fact_index.count_for_kind(expected_kind) >= minimum)
             }
             // `SV-EXH-PROOF.3.3.4.b.5.1.4`: built-in `resolve_path` predicate.
@@ -4922,9 +5113,26 @@ fn parse_fact_kind(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirective,
                         .to_string(),
                 );
             }
+            // `ENGINE-UNIVERSAL-SERVICES.89`: V-DECL-8 — `visibility` is `store`
+            // (default) or `lexical`; any other spelling is a hard error, never
+            // a silent fall-back to the default.
+            "visibility" => {
+                let text = scalar_text(&property.value).ok_or_else(|| {
+                    format!(
+                        "@fact_kind 'visibility' field must be a scalar identifier; got {:?}.",
+                        property.value
+                    )
+                })?;
+                decl.visibility = FactVisibility::parse(text).ok_or_else(|| {
+                    format!(
+                        "@fact_kind '{}': V-DECL-8 violation — visibility '{}' is not one of 'store' / 'lexical'.",
+                        decl.name, text
+                    )
+                })?;
+            }
             other => {
                 return Err(format!(
-                    "@fact_kind: unknown field '{}' (accepted: name, attributes, required, indexes, scope_kind, exportable, artefact_kind, description).",
+                    "@fact_kind: unknown field '{}' (accepted: name, attributes, required, indexes, scope_kind, exportable, artefact_kind, description, visibility).",
                     other
                 ));
             }
@@ -5804,8 +6012,8 @@ fn content_kind_name(content: &ParseContent<'_>) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        CompiledSemanticRuntimeAnnotations, LayoutSensitivity, QuantifiedSeparatorPolicy,
-        SemanticFactSpec,
+        CompiledSemanticRuntimeAnnotations, FactVisibility, LayoutSensitivity,
+        QuantifiedSeparatorPolicy, SemanticFactSpec,
         SemanticLibraryExportSpec, SemanticLibraryImportSpec, SemanticPredicateContentView,
         SemanticPredicatePhase, SemanticPredicateSpec, SemanticRuntimeDirective,
         SemanticRuntimeState, SemanticRuntimeValue, SemanticScopeKind,
@@ -5816,6 +6024,7 @@ mod tests {
         parse_semantic_runtime_directives,
     };
     use crate::ast_pipeline::predicate_expr::CompareOp;
+    use std::collections::HashMap;
     use crate::ast_pipeline::{
         Annotations, ParseContent, ParseNode, SemanticAnnotation, UnifiedSemanticAST,
         UnifiedSemanticValue,
@@ -5948,6 +6157,180 @@ mod tests {
             view: SemanticPredicateContentView::Raw,
         };
         assert_eq!(state.evaluate_predicate(&any_no), Some(true));
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: the existence family under `visibility: lexical`.
+    /// A fact emitted into a region that then CLOSED is invisible from outside it, a sibling
+    /// region at the same depth cannot see it, a root-level fact is visible everywhere, a
+    /// rolled-back region takes its facts with it — and a `store` kind under the identical
+    /// sequence of events keeps the pre-`.89` store-wide answers (the control).
+    #[test]
+    fn lexical_visibility_confines_facts_to_open_scopes() {
+        fn fact(kind: &str, name: &str, family: &str) -> SemanticFactSpec {
+            SemanticFactSpec {
+                kind: kind.to_string(),
+                name: SemanticRuntimeValue::Identifier(name.to_string()),
+                attributes: vec![UnifiedSemanticProperty {
+                    key: "family".to_string(),
+                    value: UnifiedSemanticValue::Identifier(family.to_string()),
+                }],
+            }
+        }
+        fn query(name: &str, args: &[&str]) -> SemanticPredicateSpec {
+            SemanticPredicateSpec {
+                name: name.to_string(),
+                args: args
+                    .iter()
+                    .map(|a| UnifiedSemanticValue::Identifier((*a).to_string()))
+                    .collect(),
+                phase: SemanticPredicatePhase::Post,
+                view: SemanticPredicateContentView::Raw,
+            }
+        }
+        let region = || SemanticScopeSpec {
+            kind: SemanticScopeKind::Custom("region".to_string()),
+            name: None,
+        };
+        let close_region = SemanticCloseScopeSpec {
+            kind: Some(SemanticScopeKind::Custom("region".to_string())),
+            name: None,
+        };
+        // Two kinds, one sequence of events: `lx` is lexical, `st` is the store-wide control.
+        let mut state = SemanticRuntimeState::new();
+        state.set_lexical_fact_kinds(["LX"]); // the declared spelling; keys are lower-cased
+        assert!(state.lexical_fact_kinds().contains("lx"));
+
+        // A root-level fact is visible from every depth (the root is always on the chain).
+        state.emit_fact(fact("lx", "root_name", "r"));
+        state.emit_fact(fact("st", "root_name", "r"));
+        state.open_scope(region());
+        assert_eq!(state.evaluate_predicate(&query("has_fact", &["lx", "root_name"])), Some(true));
+        assert_eq!(state.evaluate_predicate(&query("has_fact", &["st", "root_name"])), Some(true));
+
+        // Inside the region: emitted here, visible here — every arm of the family agrees.
+        state.emit_fact(fact("lx", "inner", "i"));
+        state.emit_fact(fact("st", "inner", "i"));
+        for kind in ["lx", "st"] {
+            assert_eq!(state.evaluate_predicate(&query("has_fact", &[kind, "inner"])), Some(true), "{kind}");
+            assert_eq!(state.evaluate_predicate(&query("lacks_fact", &[kind, "inner"])), Some(false), "{kind}");
+            assert_eq!(
+                state.evaluate_predicate(&query("has_fact_in_current_scope", &[kind, "inner"])),
+                Some(true),
+                "{kind}"
+            );
+            assert_eq!(
+                state.evaluate_predicate(&query("has_fact_attribute", &[kind, "inner", "family"])),
+                Some(true),
+                "{kind}"
+            );
+            assert_eq!(
+                state.evaluate_predicate(&query("fact_attribute_equals", &[kind, "inner", "family", "i"])),
+                Some(true),
+                "{kind}"
+            );
+            assert_eq!(
+                state.evaluate_predicate(&query("lacks_fact_attribute_equals", &[kind, "inner", "family", "i"])),
+                Some(false),
+                "{kind}"
+            );
+            assert_eq!(
+                state.evaluate_predicate(&query("latest_fact_attribute_equals", &[kind, "family", "i"])),
+                Some(true),
+                "{kind}"
+            );
+            assert_eq!(state.evaluate_predicate(&query("fact_count_at_least", &[kind, "2"])), Some(true), "{kind}");
+        }
+
+        // The region closes: the lexical fact vanishes from every arm, the store fact stays.
+        assert!(state.close_scope(&close_region));
+        assert_eq!(state.evaluate_predicate(&query("has_fact", &["lx", "inner"])), Some(false));
+        assert_eq!(state.evaluate_predicate(&query("lacks_fact", &["lx", "inner"])), Some(true));
+        assert_eq!(state.evaluate_predicate(&query("has_fact_in_current_scope", &["lx", "inner"])), Some(false));
+        assert_eq!(state.evaluate_predicate(&query("has_fact_attribute", &["lx", "inner", "family"])), Some(false));
+        assert_eq!(
+            state.evaluate_predicate(&query("fact_attribute_equals", &["lx", "inner", "family", "i"])),
+            Some(false)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&query("lacks_fact_attribute_equals", &["lx", "inner", "family", "i"])),
+            Some(true)
+        );
+        // The latest VISIBLE lexical fact is the root one again. The store kind agrees here for a
+        // different reason — `.108`'s "at any depth up to the current one" is a DEPTH filter, so at
+        // depth 0 the closed region's depth-1 header is out of range too; the two readings part ways
+        // in the sibling region below, where the depth is 1 again.
+        assert_eq!(state.evaluate_predicate(&query("latest_fact_attribute_equals", &["lx", "family", "r"])), Some(true));
+        assert_eq!(state.evaluate_predicate(&query("latest_fact_attribute_equals", &["lx", "family", "i"])), Some(false));
+        assert_eq!(state.evaluate_predicate(&query("latest_fact_attribute_equals", &["st", "family", "r"])), Some(true));
+        assert_eq!(state.evaluate_predicate(&query("latest_fact_attribute_equals", &["st", "family", "i"])), Some(false));
+        assert_eq!(state.evaluate_predicate(&query("fact_count_at_least", &["lx", "2"])), Some(false));
+        assert_eq!(state.evaluate_predicate(&query("fact_count_at_least", &["lx", "1"])), Some(true));
+        assert_eq!(state.evaluate_predicate(&query("fact_count_at_least", &["st", "2"])), Some(true));
+        assert_eq!(state.evaluate_predicate(&query("has_fact", &["st", "inner"])), Some(true));
+        assert_eq!(state.evaluate_predicate(&query("has_fact_in_current_scope", &["st", "inner"])), Some(false));
+        assert_eq!(state.evaluate_predicate(&query("has_fact", &["lx", "root_name"])), Some(true));
+
+        // A SIBLING region at the same depth: the closed sibling's lexical fact is not visible
+        // (the depth-keyed reading would have found it — that reading is the store kind's).
+        state.open_scope(region());
+        assert_eq!(state.evaluate_predicate(&query("has_fact", &["lx", "inner"])), Some(false));
+        assert_eq!(state.evaluate_predicate(&query("has_fact_in_current_scope", &["lx", "inner"])), Some(false));
+        assert_eq!(state.evaluate_predicate(&query("has_fact_in_current_scope", &["st", "inner"])), Some(true));
+        // At depth 1 the closed sibling's header is in the store kind's depth range again — and the
+        // lexical kind still refuses it, which is the whole difference between the two readings.
+        assert_eq!(state.evaluate_predicate(&query("latest_fact_attribute_equals", &["st", "family", "i"])), Some(true));
+        assert_eq!(state.evaluate_predicate(&query("latest_fact_attribute_equals", &["lx", "family", "i"])), Some(false));
+        assert_eq!(state.evaluate_predicate(&query("latest_fact_attribute_equals", &["lx", "family", "r"])), Some(true));
+
+        // A rolled-back region takes its lexical fact with it; a rollback that RE-OPENS a region
+        // restores visibility (the chain trail is what the query reads).
+        let before_emit = state.checkpoint();
+        state.emit_fact(fact("lx", "spec", "s"));
+        assert_eq!(state.evaluate_predicate(&query("has_fact", &["lx", "spec"])), Some(true));
+        state.rollback_to(before_emit);
+        assert_eq!(state.evaluate_predicate(&query("has_fact", &["lx", "spec"])), Some(false));
+        state.emit_fact(fact("lx", "kept", "k"));
+        let inside = state.checkpoint();
+        assert!(state.close_scope(&close_region));
+        assert_eq!(state.evaluate_predicate(&query("has_fact", &["lx", "kept"])), Some(false));
+        state.rollback_to(inside);
+        assert_eq!(state.evaluate_predicate(&query("has_fact", &["lx", "kept"])), Some(true));
+
+        // The lexical set is grammar-constant: the in-place per-parse reset keeps it.
+        state.reset_for_new_parse(&HashMap::new());
+        assert!(state.lexical_fact_kinds().contains("lx"));
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: a state with NO lexical kinds is the pre-`.89` state —
+    /// the `is_empty` fast path — and the compiled registry derives the set from the declarations.
+    #[test]
+    fn lexical_fact_kinds_derive_from_the_declared_visibility() {
+        let mut compiled = CompiledSemanticRuntimeAnnotations::default();
+        compiled.fact_kinds.insert(
+            "region_name".to_string(),
+            FactKindDecl {
+                name: "Region_Name".to_string(),
+                visibility: FactVisibility::Lexical,
+                ..FactKindDecl::default()
+            },
+        );
+        compiled.fact_kinds.insert(
+            "type_name".to_string(),
+            FactKindDecl {
+                name: "type_name".to_string(),
+                ..FactKindDecl::default()
+            },
+        );
+        let lexical = compiled.lexical_fact_kinds();
+        assert_eq!(lexical.len(), 1);
+        assert!(lexical.contains("region_name"), "lower-cased, the index's normalisation");
+        let state = SemanticRuntimeState::new();
+        assert!(state.lexical_fact_kinds().is_empty());
+        assert!(!state.kind_is_lexical("region_name"));
+        let mut seeded = SemanticRuntimeState::new();
+        seeded.set_lexical_fact_kinds(compiled.lexical_fact_kinds());
+        assert!(seeded.kind_is_lexical("REGION_NAME"));
+        assert!(!seeded.kind_is_lexical("type_name"));
     }
 
     #[test]
@@ -8179,6 +8562,42 @@ mod tests {
         assert!(decl.indexes.is_empty());
         assert!(!decl.exportable);
         assert!(decl.description.is_none());
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: V-DECL-8 — `visibility` is `store` (the default when the
+    /// field is absent) or `lexical`; any other spelling is a hard error, never a silent default.
+    #[test]
+    fn v_decl_8_visibility_is_store_or_lexical() {
+        let absent = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("nm")),
+            ("attributes", ident_list(&["x"])),
+        ]))
+        .expect("absent visibility parses");
+        assert_eq!(absent.visibility, FactVisibility::Store);
+        let store = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("nm")),
+            ("attributes", ident_list(&["x"])),
+            ("visibility", ident_val("store")),
+        ]))
+        .expect("visibility: store parses");
+        assert_eq!(store.visibility, FactVisibility::Store);
+        let lexical = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("nm")),
+            ("attributes", ident_list(&["x"])),
+            ("visibility", ident_val("Lexical")),
+        ]))
+        .expect("visibility: lexical parses (case-insensitive)");
+        assert_eq!(lexical.visibility, FactVisibility::Lexical);
+        let err = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("nm")),
+            ("attributes", ident_list(&["x"])),
+            ("visibility", ident_val("global")),
+        ]))
+        .expect_err("an unknown visibility must be refused");
+        assert!(err.contains("V-DECL-8"), "{err}");
+        assert!(err.contains("global"), "{err}");
+        assert_eq!(FactVisibility::Lexical.label(), "lexical");
+        assert_eq!(FactVisibility::Store.label(), "store");
     }
 
     #[test]

@@ -733,7 +733,7 @@ memo is **taint-gated with write-epoch validation**: a body that transitively co
 cached *epoch-stamped* and replayable only while the store is unchanged, so a same-position retry
 after a store change evicts the stale entry and honestly re-parses).
 
-The 36 isolating cases (one or more per construct) cover the orchestration surface:
+The 38 isolating cases (one or more per construct) cover the orchestration surface:
 
 | Construct | Isolating grammar (essence) | What it proves |
 |---|---|---|
@@ -745,6 +745,7 @@ The 36 isolating cases (one or more per construct) cover the orchestration surfa
 | **negative gate** | `lacks_fact` | accept-when-absent, reject-when-present |
 | **counting gate** | `fact_count_at_least(item, 2)` | the running per-kind count gates the parse |
 | **scope visibility** | `@open_scope`/`@close_scope` + `has_fact_in_current_scope` | a fact emitted inside a closed scope is invisible at the outer depth |
+| **lexical visibility** | `@fact_kind: { …, visibility: lexical }` + `has_fact` / `has_fact_in_current_scope` (`ENGINE-UNIVERSAL-SERVICES.89`) | the existence family reads only the OPEN scopes for such a kind: `{let a;}use a;` and `{let a;}{use a;}` REJECT (the store-wide default would accept both), a root-level fact is visible from every depth, and the current scope is the innermost open one by identity |
 | **scope identity** | `current_scope_is(class, "c")` | the open scope's kind/name is verdict-observable |
 | **C3-B rollback** | a *successful but losing* branch emits | only the WINNING branch's emissions survive the tournament |
 | **zero-length emit** | `maybe := "x"?` with `@emit_fact`, under `*` | a zero-length success fires its effects even though the iteration is structurally discarded |
@@ -921,7 +922,7 @@ which runs against the real SystemVerilog grammar rather than a synthetic.
   shape from a documented divergence into a certified combinator)
   and the
   **semantic-directive orchestration** half (`.6.2`, *The semantic-directive orchestration suite* above —
-  36 isolating grammars covering the store-gated-outcome surface (20 at landing, since grown by the
+  38 isolating grammars covering the store-gated-outcome surface (20 at landing, since grown by the
   findings-driven re-anchors and the STIMULI-SIGNOFF.13.2 SC-08 value-guard mirror pins), which also
   landed the interpreter's semantic orchestration mirror + split memo, and — with `13.2` — the
   value-constraint atom-guard mirror. A fuzzing lane (`.7`) remains the optional push toward

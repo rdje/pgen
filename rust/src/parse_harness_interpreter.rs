@@ -348,6 +348,9 @@ fn interpret_parse_gen_ast_core(
     // registry installed (the generated parser does `set_predicate_defs(clone_predicate_defs())`).
     let mut semantic_state = SemanticRuntimeState::new();
     semantic_state.set_predicate_defs(compiled_sem.clone_predicate_defs());
+    // `ENGINE-UNIVERSAL-SERVICES.89`: mirror the generated constructor's second seed — the kinds
+    // declared `visibility: lexical`, read from the SAME compiled registry codegen burns in.
+    semantic_state.set_lexical_fact_kinds(compiled_sem.lexical_fact_kinds());
 
     // `DEFAULT-PROFILE.2` / `PROFILE-ALIAS.2`: mirror the generated setter — an
     // EXPLICIT requested spelling resolves through the grammar's declared

@@ -76,8 +76,11 @@ pub struct FactKindDecl {                                                    // 
     pub exportable: bool,
     pub artefact_kind: Option<String>,
     pub description: Option<String>,
+    pub visibility: FactVisibility,   // `Store` (default) | `Lexical` — ENGINE-UNIVERSAL-SERVICES.89, 2026-09-29
 }
 ```
+
+- **`visibility`** (`ENGINE-UNIVERSAL-SERVICES.89`): the scope rule the existence family applies to this kind's facts. `Store` — a fact is found wherever it was emitted, in an open or a closed scope (the shipped default; the regex grammar's `phase: final` back-reference check depends on it). `Lexical` — a fact is found only while the scope it was emitted into is still on the active chain (the root always is); a closed region's fact is invisible from outside it, a sibling scope cannot see it, a rolled-back scope takes its facts with it. Validated by V-DECL-8 (`store` | `lexical`, case-insensitive, any other word is an error). Installed on the runtime state once, from the compiled registry, by every consumer (`SemanticRuntimeState::set_lexical_fact_kinds` ← `CompiledSemanticRuntimeAnnotations::lexical_fact_kinds`).
 
 ### 3.3 EMIT (Stage 2) — fact insertion
 
@@ -108,7 +111,7 @@ pub fn store.fact_count_at_least(kind: KindHandle, m: usize) -> bool;           
 pub fn store.resolve_path(dotted: &str) -> ResolveResult;                                     // Stable
 ```
 
-- **`has_fact`** — preconditions: kind registered. Postconditions: returns true iff a fact of this kind with this name exists in any active scope or any imported library scope. Complexity: O(1) avg via the `(scope, kind, name)` index.
+- **`has_fact`** — preconditions: kind registered. Postconditions: for a kind declared `visibility: store` (the default), returns true iff a fact of this kind with this name exists anywhere in the store — any scope, open or closed, or any imported library scope; for a kind declared `visibility: lexical`, true iff such a fact exists in a scope that is still on the active chain (`ENGINE-UNIVERSAL-SERVICES.89`, 2026-09-29 — before it the store-wide reading was the only one, and the book's "in scope" wording overstated it). The same rule governs `lacks_fact`, `has_fact_attribute`, `fact_attribute_equals`, `lacks_fact_attribute_equals`, `latest_fact_attribute_equals`, `fact_count_at_least`, and `has_fact_in_current_scope` (innermost OPEN scope by identity for a lexical kind, exact depth for a store kind). Complexity: O(1) avg via the `(scope, kind, name)` index for a store kind; O(facts of that `(kind, name)`) × O(active depth) for a lexical kind.
 - **`fact_attribute`** — preconditions: kind registered; attr declared for the kind. Postconditions: returns the value if a fact exists and the attribute was supplied; returns None otherwise; never panics. Complexity: O(1) avg.
 - **`fact_count_at_least`** — preconditions: kind registered. Postconditions: returns true iff the store contains at least M facts of this kind in any visible scope. Complexity: O(1) (counter-backed).
 - **`resolve_path`** — preconditions: dotted name well-formed (matches `simple_identifier ( . simple_identifier )*`). Postconditions: returns `ResolveResult::Resolved { kind, attributes }` if every segment resolves to a fact, or `ResolveResult::Unresolved { last_resolved_segment_index, last_resolved_kind }` describing how far the walk got before failing. Complexity: O(number of segments) — linear in path depth, not store size.
@@ -223,7 +226,7 @@ The annotation language extensions live in `grammars/semantic_annotation.ebnf` (
 ```
 
 - **Where it appears:** at the top of a grammar, before any rule that emits or queries this kind.
-- **Validation:** at grammar-compile time (codegen): uniqueness across the grammar; every name in `required`/`indexes` appears in `attributes`; no zero-length index tuple; `scope_kind` must be one of the labels used in this grammar's `@open_scope`.
+- **Validation:** at grammar-compile time (codegen): uniqueness across the grammar; every name in `required`/`indexes` appears in `attributes`; no zero-length index tuple; `scope_kind` must be one of the labels used in this grammar's `@open_scope`; `visibility` (optional, default `store`) is `store` or `lexical` (V-DECL-8).
 - **Stability:** Stable.
 
 ### 4.2 EMIT — `@emit_fact:`

@@ -88,11 +88,21 @@ The semantic store has three moving parts you'll meet again and again:
    any scope_depth"), and a grammar depends on it: the regex grammar's
    `phase: final` check that a named back-reference names a *defined* group
    must see groups defined inside lookaround scopes that closed long before
-   parse completion. A chain-visible existence query is owned by
-   `ENGINE-UNIVERSAL-SERVICES.89`; until it exists, a grammar that needs a
-   name to be visible *only inside* a region gates the region with
-   `in_scope_kind` (§7 shows SystemVerilog doing exactly that) rather than
-   emitting a fact and expecting the scope to hide it.
+   parse completion. ⭐ **Since `ENGINE-UNIVERSAL-SERVICES.89` (2026-09-29) a
+   kind can opt out of that reading**: declare it
+   `@fact_kind: { …, visibility: lexical }` (§4) and every query of the
+   existence family — and `has_fact_in_current_scope` — sees only the facts
+   whose scope is still *open*: a fact emitted into a region that then closed
+   is invisible from outside it, a sibling region at the same depth cannot
+   see it, a rolled-back region takes its facts with it, and a root-level
+   fact (every fact of a grammar that opens no scopes) stays visible
+   everywhere, because the root scope is always on the active chain. The
+   default is `store`, so no grammar's verdict moved when the field arrived.
+   A grammar that needs two *predefined* names visible only inside a region
+   still gates the region with `in_scope_kind` (§7 shows SystemVerilog doing
+   exactly that); a grammar that needs a *file-declared* name confined to the
+   region it was declared in now declares the kind lexical and lets the
+   scope hide it.
 3. **Transactions.** Every parse attempt happens inside a transaction. If
    the attempt fails (PEG backtracking), every fact emitted, every scope
    opened, and every library imported during that transaction is **rolled
@@ -168,10 +178,46 @@ That's all. The engine now knows:
 | `exportable` | no | `false` | Whether instances are written to library artefacts on scope close. |
 | `artefact_kind` | no | `name` | Subdirectory under `<lib-dir>` for exported artefacts. |
 | `description` | no | empty | Human-readable description (shown in `--explain` output). |
+| `visibility` | no | `store` | Which facts of this kind an existence query sees: `store` — every fact ever emitted, in an open or a closed scope; `lexical` — only facts whose scope is still open (the root scope always is). Read by `has_fact`, `lacks_fact`, `has_fact_attribute`, `fact_attribute_equals`, `lacks_fact_attribute_equals`, `latest_fact_attribute_equals`, `fact_count_at_least` and `has_fact_in_current_scope` (which, for a lexical kind, means the innermost *open* scope by identity rather than any scope at the same depth). `ENGINE-UNIVERSAL-SERVICES.89`. |
+
+⭐ **`visibility: lexical` is the declare-a-name-only-inside-a-region idiom.**
+Open a scope on the region's opener, emit the name into it, close the scope
+on the region's closer, and gate the use with a plain `has_fact` — the scope
+now hides the name the moment the region ends:
+
+```ebnf
+@fact_kind: { name: localv, attributes: [family], visibility: lexical, description: "A region-local name." }
+program := item+
+item := blk | decl | use
+blk := opener item* closer
+@open_scope: { kind: region }
+opener := "{"
+@close_scope: { kind: region }
+closer := "}"
+@emit_fact: { kind: localv, name: $body, family: l }
+decl := "let " word ";" -> { body: $2.body }
+@predicate: { name: has_fact, args: [localv, $body], phase: post }
+use := "use " word ";" -> { body: $2.body }
+word := /[a-z]+/ -> { body: $1 }
+```
+
+| input | verdict | why |
+|---|---|---|
+| `let a;use a;` | ACCEPT | a root-level fact is visible from every depth |
+| `{let a;use a;}` | ACCEPT | the use is inside the open region |
+| `let a;{use a;}` | ACCEPT | the root scope is on the chain inside the region too |
+| `{let a;}use a;` | **REJECT** | the region closed before the use; under `store` this would accept |
+| `{let a;}{use a;}` | **REJECT** | a sibling region at the same depth cannot see the closed one's fact |
+
+Both verdict columns are pinned by the parse-harness semantic suite
+(`sem_scope_lexical`, `sem_scope_lexical_current`), byte-identical between the
+interpreter and the generated parser. The stimuli generator's generation-time
+store reads the same declaration, so a witness it plans for a lexical gate is
+one the parser accepts.
 
 ### Validation cookbook
 
-The engine enforces seven validation rules (V-DECL-1 through V-DECL-7) at
+The engine enforces eight validation rules (V-DECL-1 through V-DECL-8) at
 grammar-compile time. Concrete examples of what passes and what fails:
 
 ```ebnf
@@ -199,6 +245,12 @@ grammar-compile time. Concrete examples of what passes and what fails:
 # ✗ V-DECL-7 — kind names and artefact_kinds must be valid path components.
 @fact_kind: { name: "../escape", attributes: [x] }
 @fact_kind: { name: ok, attributes: [x], artefact_kind: ".hidden" }
+
+# ✓ V-DECL-8 — visibility is `store` (the default) or `lexical`, case-insensitive.
+@fact_kind: { name: ok, attributes: [x], visibility: lexical }
+
+# ✗ V-DECL-8 — any other spelling is refused, never silently defaulted.
+@fact_kind: { name: ok, attributes: [x], visibility: global }
 ```
 
 V-DECL-1 (uniqueness across the grammar) is checked when the grammar is
@@ -291,8 +343,10 @@ The four most grammars start with:
 
 ```ebnf
 # Does any fact of this (kind, name) exist ANYWHERE in the store — any scope,
-# open or closed? (Store-wide by construction; see §2. `has_fact_in_current_scope`
-# is the same question asked of the innermost open scope only.)
+# open or closed? (Store-wide by default; see §2. A kind declared
+# `visibility: lexical` in its `@fact_kind:` narrows every query of this family
+# to the scopes still open — §4. `has_fact_in_current_scope` is the same
+# question asked of the innermost open scope only.)
 @predicate has_fact args:[variable_binding, $1] phase: post
 
 # Does a fact have a specific attribute equal to a specific value?

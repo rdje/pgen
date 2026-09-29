@@ -1847,6 +1847,11 @@ impl AstBasedGenerator {
                 let mut semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();
                 semantic_runtime_state
                     .set_predicate_defs(semantic_runtime_annotations.clone_predicate_defs());
+                // `ENGINE-UNIVERSAL-SERVICES.89`: the kinds declared
+                // `visibility: lexical` — grammar-constant, installed once,
+                // untouched by the per-parse reset.
+                semantic_runtime_state
+                    .set_lexical_fact_kinds(semantic_runtime_annotations.lexical_fact_kinds());
                 Self {
                     input,
                     // RGX-0078.5.d.4.i — the per-parse node arena (candidate B).
@@ -10437,8 +10442,9 @@ impl AstBasedGenerator {
     }
 
     /// `SV-EXH-PROOF.3.3.4.b.6.1.1`: reconstruct a `FactKindDecl` struct literal
-    /// for the generated parser's `@fact_kind:` registry. All eight fields are
-    /// serialised verbatim from the compile-time-validated declaration.
+    /// for the generated parser's `@fact_kind:` registry. All nine fields are
+    /// serialised verbatim from the compile-time-validated declaration
+    /// (`visibility` since `ENGINE-UNIVERSAL-SERVICES.89`).
     fn generate_fact_kind_decl_tokens(decl: &crate::ast_pipeline::FactKindDecl) -> TokenStream {
         let name = decl.name.as_str();
         let attributes = decl.attributes.iter().map(|a| a.as_str());
@@ -10458,6 +10464,17 @@ impl AstBasedGenerator {
         let exportable = decl.exportable;
         let artefact_kind = optional_string(&decl.artefact_kind);
         let description = optional_string(&decl.description);
+        // `ENGINE-UNIVERSAL-SERVICES.89`: the ninth field — the kind's declared
+        // visibility, so the generated parser's state can be seeded with the
+        // same lexical set the interpreter derives from the compiled registry.
+        let visibility = match decl.visibility {
+            crate::ast_pipeline::FactVisibility::Store => {
+                quote! { crate::ast_pipeline::FactVisibility::Store }
+            }
+            crate::ast_pipeline::FactVisibility::Lexical => {
+                quote! { crate::ast_pipeline::FactVisibility::Lexical }
+            }
+        };
         quote! {
             crate::ast_pipeline::FactKindDecl {
                 name: #name.to_string(),
@@ -10468,6 +10485,7 @@ impl AstBasedGenerator {
                 exportable: #exportable,
                 artefact_kind: #artefact_kind,
                 description: #description,
+                visibility: #visibility,
             }
         }
     }

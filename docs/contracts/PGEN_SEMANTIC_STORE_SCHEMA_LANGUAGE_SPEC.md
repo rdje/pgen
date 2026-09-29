@@ -65,6 +65,7 @@ fact_kind_field
      | "exportable:"    bool_literal
      | "artefact_kind:" simple_identifier
      | "description:"   string_literal
+     | "visibility:"    ( "store" | "lexical" )
 
 attribute_list  := "[" simple_identifier ( "," simple_identifier )* ","? "]"
 index_list      := "[" index_tuple        ( "," index_tuple        )* ","? "]"
@@ -83,6 +84,7 @@ index_tuple     := "(" simple_identifier ( "," simple_identifier )* ","? ")"
 | `exportable` | no | `false` | eligibility for library export |
 | `artefact_kind` | no | same as `name` | directory name under `<lib-dir>/<scope_kind>/` for exports |
 | `description` | no | `""` | for documentation / `--explain` |
+| `visibility` | no | `store` | which facts of this kind an existence query sees — `store`: every fact ever emitted, open or closed scope; `lexical`: only facts whose scope is still on the active chain (the root always is). Honoured by `has_fact`, `lacks_fact`, `has_fact_attribute`, `fact_attribute_equals`, `lacks_fact_attribute_equals`, `latest_fact_attribute_equals`, `fact_count_at_least`, and by `has_fact_in_current_scope` (innermost OPEN scope by identity for a lexical kind). `ENGINE-UNIVERSAL-SERVICES.89`, 2026-09-29 |
 
 ### 4.3 Validation rules (codegen-time)
 
@@ -93,6 +95,7 @@ V-DECL-4 — every name in every `index_tuple` appears in `attributes` ∪ `{sco
 V-DECL-5 — `index_tuple` is non-empty and contains no duplicate attribute names.
 V-DECL-6 — `scope_kind` (if specified) matches one of the labels used in this grammar's `@open_scope` directives, or one of the engine reserved labels (`global`, `current`, `enclosing_block`, `enclosing_function`, `enclosing_class`, `enclosing_package`, `enclosing_file`).
 V-DECL-7 — `name` and `artefact_kind` (if specified) are valid path components (no `/`, no `..`, no leading dot).
+V-DECL-8 — `visibility` (if specified) is `store` or `lexical` (case-insensitive); any other spelling is a hard error, never a silent fall-back to the default.
 
 Violation of any V-DECL rule = grammar-compile-time error with a precise message including the field, the offending value, and the rule name (e.g., "V-DECL-3: `required: [type_kindd]` but `type_kindd` is not in `attributes: [name, type_kind]`").
 

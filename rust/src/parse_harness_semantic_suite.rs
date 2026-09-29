@@ -92,6 +92,14 @@ pub enum SemanticConstruct {
     /// `@open_scope`/`@close_scope` + `has_fact_in_current_scope` — a fact emitted inside a closed
     /// scope is invisible to a same-depth query outside it (verdict-observable scope tree).
     ScopeVisibility,
+    /// ENGINE-UNIVERSAL-SERVICES.89: `@fact_kind: { …, visibility: lexical }` — the existence
+    /// family reads only the OPEN scopes for such a kind: a `has_fact` post gate outside a closed
+    /// region no longer finds the region's fact (the store-wide default would), a sibling region
+    /// at the same depth cannot see it either, and a root-level fact stays visible everywhere.
+    /// `has_fact_in_current_scope` on a lexical kind is the innermost OPEN scope by identity, so a
+    /// closed sibling at the same depth no longer answers it (the depth-keyed reading is the
+    /// `store` kind's).
+    LexicalScopeVisibility,
     /// `current_scope_is` — the open-scope kind/name is verdict-observable at rule entry.
     ScopeIs,
     /// C3-B: a successful-but-losing tournament branch's nested `@emit_fact` must NOT persist; the
@@ -263,6 +271,7 @@ impl SemanticConstruct {
         SemanticConstruct::LacksGate,
         SemanticConstruct::CountGate,
         SemanticConstruct::ScopeVisibility,
+        SemanticConstruct::LexicalScopeVisibility,
         SemanticConstruct::ScopeIs,
         SemanticConstruct::RollbackLoserBranch,
         SemanticConstruct::ZeroLengthEmit,
@@ -517,6 +526,63 @@ pub const SEMANTIC_CASES: &[SemanticCase] = &[
         entry_rule: None,
         note: "has_fact_in_current_scope: a fact emitted at block depth is invisible to the same query \
                at file depth after `}` closes the scope",
+    },
+    // ── ENGINE-UNIVERSAL-SERVICES.89: `visibility: lexical` — `has_fact` reads the OPEN scopes only ──
+    SemanticCase {
+        name: "sem_scope_lexical",
+        construct: SemanticConstruct::LexicalScopeVisibility,
+        grammar_body: "@entry: true\n@fact_kind: { name: localv, attributes: [family], visibility: lexical, description: \"A region-local name.\" }\n\
+                       program := item+\n\
+                       item := blk | decl | use\n\
+                       blk := opener item* closer\n\
+                       @open_scope: { kind: region }\n\
+                       opener := \"{\"\n\
+                       @close_scope: { kind: region }\n\
+                       closer := \"}\"\n\
+                       @emit_fact: { kind: localv, name: $body, family: l }\n\
+                       decl := \"let \" word \";\" -> { body: $2.body }\n\
+                       @predicate: { name: has_fact, args: [localv, $body], phase: post }\n\
+                       use := \"use \" word \";\" -> { body: $2.body }\n\
+                       word := /[a-z]+/ -> { body: $1 }\n",
+        inputs: &[
+            ("let a;use a;", true),
+            ("{let a;use a;}", true),
+            ("let a;{use a;}", true),
+            ("{let a;}use a;", false),
+            ("{let a;}{use a;}", false),
+            ("use a;", false),
+        ],
+        entry_rule: None,
+        note: "visibility: lexical — a `has_fact` post gate finds a root-level fact from any depth and a \
+               region's fact only while the region is open; after `}` the fact is gone from outside it \
+               and from a sibling region (the store-wide default would accept both rejecting inputs)",
+    },
+    // ── ENGINE-UNIVERSAL-SERVICES.89: `visibility: lexical` — current scope is the OPEN scope by id ──
+    SemanticCase {
+        name: "sem_scope_lexical_current",
+        construct: SemanticConstruct::LexicalScopeVisibility,
+        grammar_body: "@entry: true\n@fact_kind: { name: localv, attributes: [family], visibility: lexical, description: \"A region-local name.\" }\n\
+                       program := item+\n\
+                       item := blk | decl | use\n\
+                       blk := opener item* closer\n\
+                       @open_scope: { kind: region }\n\
+                       opener := \"{\"\n\
+                       @close_scope: { kind: region }\n\
+                       closer := \"}\"\n\
+                       @emit_fact: { kind: localv, name: $body, family: l }\n\
+                       decl := \"let \" word \";\" -> { body: $2.body }\n\
+                       @predicate: { name: has_fact_in_current_scope, args: [localv, $body], phase: post }\n\
+                       use := \"use \" word \";\" -> { body: $2.body }\n\
+                       word := \"a\" -> { body: $1 }\n",
+        inputs: &[
+            ("{let a;use a;}", true),
+            ("{let a;}{use a;}", false),
+            ("let a;{use a;}", false),
+        ],
+        entry_rule: None,
+        note: "visibility: lexical — `has_fact_in_current_scope` is the innermost OPEN scope by identity: \
+               a closed sibling region at the same depth no longer answers it (the depth-keyed `store` \
+               reading would accept `{let a;}{use a;}`), and a root-level fact is not in the region",
     },
     // ── Scope kind/name observable at rule entry ────────────────────────────────────────────────────
     SemanticCase {

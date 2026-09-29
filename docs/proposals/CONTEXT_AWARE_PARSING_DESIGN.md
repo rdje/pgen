@@ -70,6 +70,11 @@ Storage is **scope-aware** — every record lives in the scope active at emissio
 
 - Scopes form a tree: file → package → class → method → block (and `generate` / `interface` / `modport` / `covergroup` / `constraint_block` / etc. as the grammar requires).
 - A scope's records are visible to its descendants by default.
+  - *Status (2026-09-29):* the shipped engine's existence family (`has_fact` and its siblings) reads the
+    WHOLE store by default — a closed scope's records included — because the regex grammar's
+    `phase: final` back-reference check depends on that reading. The chain-walking visibility this
+    section describes is available per kind as `@fact_kind: { …, visibility: lexical }`
+    (`ENGINE-UNIVERSAL-SERVICES.89`; the book's *Semantic Store* chapter §2 / §4 is the live description).
 - An explicit `@open_scope kind: K, name: N` annotation opens a new scope; `@close_scope` closes it; nesting is the natural call-stack-like model.
 - Cross-scope facts can be imported via `@import_from_library` (already in `.3.3.4.a` for cross-file imports — the same primitive extends naturally to intra-file scope sharing such as class-member access via dotted paths).
 

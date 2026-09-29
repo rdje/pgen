@@ -2153,6 +2153,12 @@ pub struct StimuliGenerator<'a> {
     // The generation-time necessary condition `count(K) >= 1` is checked before the rule generates; on
     // failure the rule is unsatisfiable (no positive `$ref` can match an empty fact set) → backtrack.
     gen_count_kinds: HashMap<String, Vec<String>>,
+    // `ENGINE-UNIVERSAL-SERVICES.89`: the fact kinds the grammar declares `visibility: lexical`
+    // (`@fact_kind: { …, visibility: lexical }`), read from the SAME annotation parse as the store
+    // directives above. Seeds `gen_semantic_state` at construction and on every per-sample reset,
+    // so a generation-time `has_fact` on such a kind reads only the open scopes — exactly as the
+    // parser's `evaluate_predicate` (the shared runtime) does. Empty ⇒ byte-identical generation.
+    gen_lexical_fact_kinds: HashSet<String>,
     // STORE-AWARE-GEN.4b.17: rule → the LITERAL threshold N of its `fact_count_at_least(K, N)`
     // post-predicate (a fixed integer, NOT a generated `$ref` — the SV `fact_count_at_least(
     // wildcard_import_open, 1)` shape on `wildcard_escape_nettype_identifier`). Distinguishes a
@@ -2347,6 +2353,11 @@ impl<'a> StimuliGenerator<'a> {
         // adds inert store bookkeeping (the emit hook + speculative-site checkpoints), so output stays
         // byte-identical until a name prelude is actually armed.
         let store_aware_gen = !gen_count_kinds.is_empty() || !gen_name_gate.is_empty();
+        // `ENGINE-UNIVERSAL-SERVICES.89`: seed the generation-time store with the grammar's lexical
+        // kinds once; the per-sample reset re-seeds from the same set.
+        let gen_lexical_fact_kinds = Self::compute_lexical_fact_kinds(annotations);
+        let mut gen_semantic_state = SemanticRuntimeState::new();
+        gen_semantic_state.set_lexical_fact_kinds(gen_lexical_fact_kinds.iter());
         // GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: precompute per-rule fact-query-predicate consulted kinds
         // once (the SAME annotation parse the codegen/store-aware path use), for the two-pass
         // `reach_hops` store-gated-edge deprioritization. Empty ⇒ inert (no behavior change).
@@ -2420,7 +2431,8 @@ impl<'a> StimuliGenerator<'a> {
             last_terminal_word_shaped: false,
             atomic_token_depth: 0,
             last_terminal_from_atomic_rule: false,
-            gen_semantic_state: SemanticRuntimeState::new(),
+            gen_semantic_state,
+            gen_lexical_fact_kinds,
             store_aware_gen,
             gen_emit_facts,
             unrenderable_rules,
@@ -11533,6 +11545,9 @@ impl<'a> StimuliGenerator<'a> {
         // sample must not influence this one). No-op cost for predicate-free grammars (gated).
         if self.store_aware_gen {
             self.gen_semantic_state = SemanticRuntimeState::new();
+            // `ENGINE-UNIVERSAL-SERVICES.89`: the lexical set is grammar-constant — re-seed it.
+            self.gen_semantic_state
+                .set_lexical_fact_kinds(self.gen_lexical_fact_kinds.iter());
         }
         let previous_active_entry = self
             .active_generation_entry_rule
@@ -15664,6 +15679,44 @@ impl<'a> StimuliGenerator<'a> {
     /// VALUE DRAWS derived from `@gen_predicate` shapes. Parser-agnostic; reuses
     /// `parse_semantic_runtime_directives` (the same parse the codegen uses) plus the shared
     /// `@gen_*` payload parsers, so the generator honours the SAME annotation vocabulary.
+    /// `ENGINE-UNIVERSAL-SERVICES.89`: the fact kinds the grammar declares `visibility: lexical`,
+    /// lower-cased (the runtime index's normalisation). The same rule-and-branch flatten and the
+    /// same `parse_semantic_runtime_directives` parse as every other store-side precompute here,
+    /// so the generator reasons about the declarations the parser was compiled from. A grammar
+    /// with no `@fact_kind:` schema, or none lexical, yields the empty set — the store-wide
+    /// default, byte-identical generation.
+    fn compute_lexical_fact_kinds(annotations: Option<&Annotations>) -> HashSet<String> {
+        let mut lexical: HashSet<String> = HashSet::new();
+        let Some(annotations) = annotations else {
+            return lexical;
+        };
+        let mut per_rule: HashMap<String, Vec<&SemanticAnnotation>> = HashMap::new();
+        for (rule, anns) in &annotations.semantic_annotations {
+            per_rule.entry(rule.clone()).or_default().extend(anns.iter());
+        }
+        for (rule, branches) in &annotations.branch_semantic_annotations {
+            for branch in branches {
+                per_rule
+                    .entry(rule.clone())
+                    .or_default()
+                    .extend(branch.iter());
+            }
+        }
+        for anns in per_rule.into_values() {
+            let Ok(directives) = parse_semantic_runtime_directives(anns.into_iter()) else {
+                continue;
+            };
+            for directive in directives {
+                if let SemanticRuntimeDirective::DeclareFactKind(decl) = directive {
+                    if decl.visibility == crate::ast_pipeline::FactVisibility::Lexical {
+                        lexical.insert(decl.name.to_ascii_lowercase());
+                    }
+                }
+            }
+        }
+        lexical
+    }
+
     fn compute_store_aware_gen_directives(
         annotations: Option<&Annotations>,
     ) -> (
@@ -29843,6 +29896,90 @@ mod tests {
             outcome.accepted,
             "the interpreter accepts the ordered witness {sample:?}: {:?}",
             outcome.error
+        );
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.89: the generation-time store is seeded with the grammar's
+    /// `visibility: lexical` kinds — the same seed the generated parser's constructor and the
+    /// parse-harness interpreter install — so a witness the planner accepts for a lexical gate is
+    /// one the parser accepts. On the semantic suite's `sem_scope_lexical` grammar: the seed is
+    /// derived (and re-derived on the per-sample reset), a grammar without the field seeds nothing
+    /// (the store-wide control), and the planned witness for the gated `use` parses under the
+    /// interpreter, whose state carries the same seed.
+    #[cfg(all(feature = "ebnf_dual_run", feature = "generated_parsers"))]
+    #[test]
+    fn eus89_generation_store_is_seeded_with_the_lexical_kinds() {
+        use crate::parse_harness_interpreter::{InterpretOptions, interpret_parse};
+        let text = "@entry: true\n@fact_kind: { name: localv, attributes: [family], visibility: lexical, description: \"A region-local name.\" }\nprogram := item+\nitem := blk | decl | use\nblk := opener item* closer\n@open_scope: { kind: region }\nopener := \"{\"\n@close_scope: { kind: region }\ncloser := \"}\"\n@emit_fact: { kind: localv, name: $body, family: l }\ndecl := \"let \" word \";\" -> { body: $2.body }\n@predicate: { name: has_fact, args: [localv, $body], phase: post }\nuse := \"use \" word \";\" -> { body: $2.body }\nword := /[a-z]+/ -> { body: $1 }\n";
+        let (grammar_tree, rule_order, annotations, grammar_path) =
+            eus109_grammar_from_text("sem_scope_lexical", text);
+        let mut generator =
+            generator_with_annotations(&grammar_tree, &rule_order, annotations.as_ref(), 7);
+        assert_eq!(
+            generator.gen_lexical_fact_kinds,
+            HashSet::from(["localv".to_string()]),
+            "the declaration is read from the same annotation parse as the other store precomputes"
+        );
+        assert!(generator.gen_semantic_state.lexical_fact_kinds().contains("localv"));
+        assert!(generator.store_aware_gen, "the `has_fact` name gate activates the store-aware path");
+
+        // The store-wide control: the same grammar without the field seeds nothing.
+        let control = text.replace(", visibility: lexical", "");
+        assert_ne!(control, text);
+        let (control_tree, control_order, control_annotations, _) =
+            eus109_grammar_from_text("sem_scope_lexical_control", &control);
+        let control_generator = generator_with_annotations(
+            &control_tree,
+            &control_order,
+            control_annotations.as_ref(),
+            7,
+        );
+        assert!(control_generator.gen_lexical_fact_kinds.is_empty());
+        assert!(control_generator.gen_semantic_state.lexical_fact_kinds().is_empty());
+
+        // The per-sample reset re-seeds the generation store.
+        let _ = generator.generate_from_entry("program");
+        assert!(generator.gen_semantic_state.lexical_fact_kinds().contains("localv"));
+        let _ = grammar_path;
+
+        // The generation-side no-regression leg: the seed must not change what the planner
+        // renders. The declare-then-use shape placed INSIDE a region, generated twice under one
+        // seed — with the kind lexical and with the field absent — must produce the SAME planned
+        // witness; both verdicts are printed for the record. (Whether the name prelude binds a
+        // declaration to its use inside a scoped region is a planner question, not this leaf's:
+        // the first run rendered `{let d;use hye;}` on BOTH arms, see the leaf.)
+        let region_lexical = "@entry: true\n@fact_kind: { name: localv, attributes: [family], visibility: lexical, description: \"A region-local name.\" }\nprogram := opener decl use closer\n@open_scope: { kind: region }\nopener := \"{\"\n@close_scope: { kind: region }\ncloser := \"}\"\n@emit_fact: { kind: localv, name: $body, family: l }\ndecl := \"let \" word \";\" -> { body: $2.body }\n@predicate: { name: has_fact, args: [localv, $body], phase: post }\nuse := \"use \" word \";\" -> { body: $2.body }\nword := /[a-z]+/ -> { body: $1 }\n";
+        let region_store = region_lexical.replace(", visibility: lexical", "");
+        assert_ne!(region_store, region_lexical);
+        let mut witnesses = Vec::new();
+        for (name, grammar) in [
+            ("sem_scope_lexical_region", region_lexical.to_string()),
+            ("sem_scope_lexical_region_control", region_store),
+        ] {
+            let (tree, order, annotations, path) = eus109_grammar_from_text(name, &grammar);
+            let mut generator =
+                generator_with_annotations(&tree, &order, annotations.as_ref(), 7);
+            assert_eq!(
+                generator.gen_semantic_state.lexical_fact_kinds().contains("localv"),
+                name == "sem_scope_lexical_region",
+            );
+            assert!(
+                generator.set_reach_plan_for_rule("program", "use", 16),
+                "`use` is reachable from `program`"
+            );
+            let attempt = generator.attempt_target_witness("program", None, true);
+            let sample = attempt.result.expect("a witness renders");
+            let outcome = interpret_parse(&path, &sample, &InterpretOptions::default())
+                .expect("the interpreter runs");
+            eprintln!(
+                "eus89 planned witness [{name}]: {sample:?} interpreter accepted={} error={:?}",
+                outcome.accepted, outcome.error
+            );
+            witnesses.push(sample);
+        }
+        assert_eq!(
+            witnesses[0], witnesses[1],
+            "the lexical seed does not change what the planner renders under one seed"
         );
     }
 

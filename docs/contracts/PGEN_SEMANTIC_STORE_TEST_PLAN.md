@@ -60,6 +60,7 @@ Every public API primitive (§3 of the API contract) and every validation rule (
 - **U-DECL-7 (V-DECL-5)** — declaring with `indexes: [()]` (empty tuple) returns `Err(EmptyIndexTuple)`.
 - **U-DECL-8 (V-DECL-6)** — declaring with `scope_kind: nonexistent` returns `Err(UnknownScopeKind)` (or warning if config.lenient_scope_kinds).
 - **U-DECL-9 (V-DECL-7)** — declaring with `name: ../foo` returns `Err(InvalidPathComponent)`.
+- **U-DECL-10 (V-DECL-8)** — declaring with `visibility: global` (any word other than `store` / `lexical`) returns an error naming V-DECL-8 and the offending word; `visibility: lexical` and `visibility: Store` (case-insensitive) parse; an absent field reads `store`. Shipped as `semantic_runtime::tests::v_decl_8_visibility_is_store_or_lexical` (`ENGINE-UNIVERSAL-SERVICES.89`, 2026-09-29); the visibility semantics themselves are `lexical_visibility_confines_facts_to_open_scopes` plus the parse-harness cases `sem_scope_lexical` / `sem_scope_lexical_current`.
 - **P-DECL-1** — for any well-formed `FactKindDecl`, `declare_fact_kind` succeeds and the kind is queryable by name immediately.
 - **P-DECL-2** — for any malformed `FactKindDecl`, `declare_fact_kind` errors and the store's set of declared kinds is unchanged.
 

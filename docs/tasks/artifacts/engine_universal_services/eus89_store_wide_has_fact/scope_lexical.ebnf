@@ -1,0 +1,13 @@
+# ENGINE-UNIVERSAL-SERVICES.89 — the FIX, on the same six rules as scope_leak.ebnf: the fact kind is declared
+# `visibility: lexical`, so has_fact reads only the OPEN scopes. `{x}T` REJECTS (the region closed before T),
+# `{xT}` ACCEPTS (T is gated inside the region), and scope_leak.ebnf's store-wide default is UNCHANGED.
+@entry: true
+@fact_kind: { name: nm, attributes: [x], visibility: lexical, description: "A region-scoped name." }
+scratch := region use | region_open "x" use "}"
+@open_scope: { kind: region }
+@emit_fact: { kind: nm, name: T }
+region_open := "{"
+@close_scope: { kind: region }
+region := region_open "x" "}"
+@predicate: { name: has_fact, args: [nm, T], phase: post }
+use := "T"
