@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-29 — SV-CORPUS-GRAD.36 (`PGEN-SV-CORPUS-GRAD-0421`): a queue item nobody owned was a two-row defect in the director's window, and the census that sized it also designed the guard
+
+- **Resolve an unowned pointer by measuring it.** `MEMORY.md` carried "the carrier-table rule-name guard" with no leaf; three greps found the phrase only in a `.111` LOCKSTEP note. A 20-line census — every `Rule`-table row's first code span against the grammar's rule set — turned the phrase into two named rows with `git log -S` provenance, and the guard's scope fell out of the false positives: read the FIRST span only, and only in tables headed `Rule`.
+- **A book row outlives the rule it describes by exactly one release unless something reads it.** `.33` deleted `method_call_receiver_qualifier` in 1.0.246 with every lane green; the row still said "2 branches; 1 since 1.0.244". The `strength` row had outlived a rename for the life of the split. Neither was a lie when written — both went stale the moment the grammar moved, which is the whole argument for an arm in the gate the release ceremony runs.
+- **The arm's first run found a third shape.** `kw_dir_*` is a token-family row, not a rule name; admitting globs (matching at least one rule) is what made the census honest, and re-reading the family's count corrected another stale number (14 → 13) the census had not set out to check.
+- **Price the doctrine before registering one.** A per-commit doctrine here would add three derived surfaces for a check whose subject moves only with the grammar, and the grammar moves only through a ceremony that already runs the book gate. Written down with the price so the next reader can re-decide if a stale row ever appears outside a release.
+
 ## 2026-09-29 — ENGINE-UNIVERSAL-SERVICES.109 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0171`): a priced fix is a hypothesis, and the dump refuted half of it before the code existed
 
 - **Read the probe's SAMPLE, not only its verdict.** Every `parsed=false` sample for the target had a defaulted FIRST item and no header — the reach-path dump's hop chain went through the mandatory first item (`root/s2/q/s1`), and directives are keyed on rule and path. That single observation meant the priced "compose the producer ahead" could never suffice: the first item is forced into the gated shape by the same directive that forces the on-path item. Generation had to REFUSE the gated shape when its predicate is false, so the first item falls back — the count prune's exact move, one predicate over.

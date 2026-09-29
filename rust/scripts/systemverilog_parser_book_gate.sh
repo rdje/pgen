@@ -60,6 +60,83 @@ else
   exit 1
 fi
 
+# SV-CORPUS-GRAD.36 (2026-09-29): THE CARRIER TABLE NAMES LIVE RULES. `json-carrier.md`'s `| Rule | … |`
+# tables are the director's AST-shape reference; a row's first code span is a rule of
+# `grammars/systemverilog.ebnf`, or the row says the rule was retired (`deleted in <release>` /
+# `retired in <release>`). Measured 2026-09-29: two rows had drifted with the grammar and nothing read
+# them — `method_call_receiver_qualifier` (deleted by SV-CORPUS-GRAD.33 in 1.0.246, still described as
+# live) and `strength` (split into `strength0` / `strength1` with suffixed kind labels; the row kept
+# SV-Slice-54's pre-split name). The arm scopes to tables whose header's first cell is `Rule`, so the
+# directive-kind and version tables of the same page are not read as rule names, and it proves it can
+# fail on every run: a planted row naming a rule the grammar does not define must be refused.
+carrier_table_rule_names() {  # $1 page  $2 grammar
+  python3 - "$1" "$2" <<'PYCHECK'
+import re, sys
+page, grammar = sys.argv[1], sys.argv[2]
+rules = set(re.findall(r'^([A-Za-z_][A-Za-z0-9_]*)\s*:?=', open(grammar, encoding='utf-8').read(), flags=re.M))
+in_rule_table = False
+rows = live = retired = 0
+unknown = []
+for lineno, line in enumerate(open(page, encoding='utf-8').read().split('\n'), 1):
+    if not line.startswith('|'):
+        in_rule_table = False
+        continue
+    cells = [c.strip() for c in line.strip().strip('|').split('|')]
+    if not cells:
+        continue
+    if re.fullmatch(r':?-+:?', cells[0]):
+        continue
+    if cells[0] == 'Rule':
+        in_rule_table = True
+        continue
+    if not in_rule_table:
+        continue
+    first = cells[0]
+    if first.startswith('_(none yet)_'):
+        continue
+    rows += 1
+    match = re.search(r'`([A-Za-z_][A-Za-z0-9_*]*)`', first)
+    if not match:
+        unknown.append((lineno, '<no rule name>', first[:70]))
+        continue
+    name = match.group(1)
+    if re.search(r'\b(retired|deleted) in `?\d', first):
+        retired += 1
+        continue
+    if '*' in name:
+        # a token FAMILY row (`kw_dir_*`, 14 tokens): the glob must name at least one rule
+        glob = re.compile('^' + re.escape(name).replace('\\*', '[A-Za-z0-9_]*') + '$')
+        if any(glob.match(rule) for rule in rules):
+            live += 1
+        else:
+            unknown.append((lineno, name, first[:70]))
+        continue
+    if name in rules:
+        live += 1
+    else:
+        unknown.append((lineno, name, first[:70]))
+print(f"CARRIER-TABLE-RULES: page={page} rows={rows} live={live} retired={retired} unknown={len(unknown)}")
+for lineno, name, first in unknown:
+    print(f"  unknown rule name at line {lineno}: `{name}` -- {first}")
+sys.exit(1 if unknown else 0)
+PYCHECK
+}
+echo "==> carrier_table_rule_names" | tee -a "${SUMMARY_TXT}"
+if ! carrier_table_rule_names "${BOOK_ROOT}/src/json-carrier.md" "${ROOT_DIR}/grammars/systemverilog.ebnf" | tee -a "${SUMMARY_TXT}"; then
+  echo "fail: carrier_table_rule_names (a carrier-table row names a rule grammars/systemverilog.ebnf does not define and does not say the rule was retired)" | tee -a "${SUMMARY_TXT}" >&2
+  exit 1
+fi
+red_copy="${REPORT_DIR}/json-carrier.red-control.md"
+{
+  cat "${BOOK_ROOT}/src/json-carrier.md"
+  printf '\n| Rule | Annotation | JSON shape produced |\n|---|---|---|\n| `no_such_rule_planted_by_the_gate` | passthrough | RED control |\n'
+} >"${red_copy}"
+if carrier_table_rule_names "${red_copy}" "${ROOT_DIR}/grammars/systemverilog.ebnf" >/dev/null 2>&1; then
+  echo "fail: carrier_table_rule_names RED control -- the arm accepted a planted row naming an undefined rule" | tee -a "${SUMMARY_TXT}" >&2
+  exit 1
+fi
+echo "pass: carrier_table_rule_names (RED control: the planted undefined rule was refused)" | tee -a "${SUMMARY_TXT}"
+
 # The rendered HTML at docs/systemverilog_parser_book-html/ is TRACKED in git
 # so the book is browsable directly on GitHub. Verify the canonical landing
 # pages are present after build.
