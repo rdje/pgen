@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.42 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0180`): a leaf whose items were all discharged elsewhere is closed by naming the discharging commits, not by re-doing them
+
+- **Adjudicate from history, as the leaf said.** `git log -S` on the assertion's message returned exactly two commits — its birth and the `.46`(d) rewrite — and the rewrite's own comment records the whole chain. The reading the leaf feared (a codegen regression) was refuted by the history, not by the test's wording.
+- **A red test rewritten to the intended behaviour is a fix; a red test deleted is silence.** The leaf's warning held: the assertion now asserts what `.10.3` meant, and it would go red again if the deleted arm ever came back.
+- **Four owed items, four owning commits, none of them this leaf's.** Closing it cost one measurement and a record; leaving it open cost the survey an apparent open defect every time it was read.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.45 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0179`): a leaf fixed by a refactor elsewhere still owes its own durability leg
 
 - **Re-measure before re-fixing.** The two commands that founded the leaf, re-run on today's probe, showed the defect gone; `git log -S` on the hand-written call named the refactor that removed it. Without the re-measure the "fix" would have been a tenth call to a function that no longer has nine.
