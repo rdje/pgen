@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-29 — ENGINE-UNIVERSAL-SERVICES.81 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0173`): a "same commit" obligation written in a comment is a promise, and the first check of it found drift in both directions
+
+- **Size a population by the surface that documents it, not by a filter over the code.** The leaf's own census filtered `rust/src` for `_DUMP|REPORT_|_CENSUS` and called its 8 a floor; the toolbox's §1–§6 headings are the catalogue the director reads, and reading them found 11 unscored instruments plus 4 registered tokens the table had never listed — a direction the code filter could not see at all.
+- **Where a property can be checked, stop promising it.** The gate's header said a token joins the regex only with a toolbox-table row in the same commit; `PARSE-ALLOC-TAPE:` sat in the table and not in the regex, and four tokens sat in the regex and not in the table. The helper now reads the regex from the gate's unexpanded source — the same discipline the doctrine driver's registry meta-check uses — and refuses either drift on every run.
+- **A knob is not an instrument, and the exclusion is declared with its reason.** `--parse`, `--supports` and `--trace-log-file` are heading spellings a leaf could quote without having diagnosed anything; the bare `PGEN_TRACE_VERBOSITY` likewise — only the `=high` / `=debug` spelling that turns the trace on is scored.
+- **Price a widening over the corpus before adopting it, and print what it admits.** Nine boxes newly qualify out of 794; each was printed with the token that admits it, and each names the instrument it led with. A widening that admitted prose would have shown itself in that list.
+- **The subject decides whether an arm is mandatory.** The probe banks stage a scratch repository with only the enforcer; requiring the helper there would have broken 38 controls, skipping it in the repository would have made a deleted helper a silent pass. Where `TOOLBOX.md` exists the arm is required and a missing helper blocks; where it does not, the arm says NOT EVALUATED out loud.
+
 ## 2026-09-29 — ENGINE-UNIVERSAL-SERVICES.89 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0172`): the book had promised a visibility rule the engine never had, and a grammar depended on the engine being right
 
 - **A default that a grammar depends on is not a default you may move.** The design proposal said queries walk the scope chain; the engine read the whole store; the regex grammar's `phase: final` back-reference check relies on the store-wide reading. The fix is a per-kind declaration (`visibility: lexical`), not a corrected default — the north star forbids moving an accept set without a measured reason, and here the measured reason pointed the other way.

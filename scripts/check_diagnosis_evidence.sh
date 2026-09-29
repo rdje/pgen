@@ -36,6 +36,18 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT"
 
+# ENGINE-UNIVERSAL-SERVICES.81 — the diagnosis vocabulary is held current against TOOLBOX.md on every run,
+# BEFORE any staged-scope early exit: a documented instrument the gate cannot score, or a registered token
+# the toolbox table does not list, is a breach whichever files are staged.
+# The subject decides: where TOOLBOX.md exists (the repository) the arm is REQUIRED and a missing helper
+# blocks; a scratch that carries no toolbox (the probe banks copy only this file) reports NOT EVALUATED,
+# loudly — never a silent pass, never a false block on the box logic the probes exercise.
+if [ -f TOOLBOX.md ]; then
+  bash "$(dirname "${BASH_SOURCE[0]}")/check_diagnosis_vocabulary_currency.sh" || exit 1
+else
+  echo "diag-evidence: vocabulary currency NOT EVALUATED — no TOOLBOX.md at $ROOT (a probe scratch, not the repository)" >&2
+fi
+
 if [ -n "${PGEN_DIAG_EVIDENCE_RANGE:-}" ]; then
   mapfile -t staged < <(git diff --name-only --diff-filter=ACMR "$PGEN_DIAG_EVIDENCE_RANGE")
 else
@@ -418,6 +430,22 @@ unchecked() {
 # `docs/tasks/`, the tokens `make -q ` / `make -d ` occur **once** corpus-wide — in the leaf that
 # added them. Zero existing boxes newly qualify, so this admits the instrument, not a loophole.
 #
+# ⭐⭐ THE OBLIGATION IS NOW A PROPERTY, NOT A PROMISE (ENGINE-UNIVERSAL-SERVICES.81, 2026-09-29).
+# `scripts/check_diagnosis_vocabulary_currency.sh`, called at the top of this gate on EVERY run, reads the
+# `DIAGNOSIS_SIG='…'` line below from this file's UNEXPANDED source and holds it against TOOLBOX.md in
+# both directions: every instrument spelling a §1–§6 section heading documents must be scored here
+# (three declared knobs excepted, each with its reason), and every `PGEN_*` / `HEADLINE:` token
+# registered here must be listed in the five-family table. Its first run on the tree as it stood read
+# 15 breaches — 11 documented instruments unscored (`PGEN_REPORT_STACK_PROBE`, the one TOOLBOX.md names
+# for stack defects and `.79` led with, among them) and 4 registered tokens the table never listed —
+# every one of which was a vocabulary promise nobody checked. The widening was PRICED the way this
+# header demands: over all 794 ticked ROOT CAUSE boxes in docs/tasks/, 9 newly qualify and each of the
+# nine names a real instrument invocation (`PGEN_TRACE_VERBOSITY=debug`, `--dump-rule-profiles`,
+# `PARSE-ALLOC-TAPE:`, `--emit-raw-ast-json`, `--dump-gen-ast`, `PGEN_WITNESS_BLOCKED_VERDICT_CENSUS`);
+# none is prose. ⛔ Ruling on vocabulary vs. property (`.81`(c)): an evidence gate IS a vocabulary — it
+# scores tool OUTPUT, and output has spellings — so the vocabulary stays, and what becomes a property is
+# its COMPLETENESS against the documentation surface the director reads.
+#
 # ⭐ REGISTERING A NEW INSTRUMENT IS A LOCKSTEP OBLIGATION, NOT A SIXTH FAMILY
 # (ENGINE-UNIVERSAL-SERVICES.11 slice 1, 2026-08-12). Group 1 is a VOCABULARY OF TOOLS, so a
 # family-1 instrument that lands without its token joining this list is invisible here: every leaf
@@ -429,7 +457,7 @@ unchecked() {
 # bar was aimed at a stale tool list, not lowered. ⛔ The obligation runs the OTHER way too: a token
 # may only be added here when a real, runnable instrument emits it, and TOOLBOX.md's five-family
 # table must list it in the same commit. Adding a token for prose is the `grep` exclusion above.
-DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|[WE]_SVPP_[A-Z_]{4,}|preprocess_failed|--sv-event-log-json|--sv-diagnostics-json|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_LINT_DUMP_ALL|PGEN_REACH_PATH_DUMP|PGEN_REACH_FORCED_OVERRIDE_DUMP|\[forced-override\]|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--dump-rule-outcome-counts|--lint-grammar|--parse-dump-ast|INTERPRET-PARSE:|--interpret-parse|INDIRECT-LR-SURVEY:|--report-indirect-lr-plan|PGEN_INDIRECT_LR_DUMP_ALL|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph|/usr/bin/sample|\botool\b|\bspindump\b|\bfiltercalltree\b|\bITIMER_PROF\b|error\[E[0-9]{4}\]|could not compile|GENERATED-CLIPPY-CORRECTNESS:|clippy::[a-z_]{3,}|PGEN_CLIPPY_GENERATED_STRICT|git (ls-files|log -S|log --all -S|rev-list|fsck|reflog|diff-tree|merge-base|cat-file)|\bshellcheck\b|bash -n |sh -n |make -n |make --dry-run|make -q |make --question|make -d |make --debug|\bE2BIG\b|\bENOSPC\b|\bEACCES\b|\bARG_MAX\b|guard\.[0-9]+\.marker|reason=(none|rss-budget|free-floor|disk-floor|timeout)|GATE-REACHABILITY-PROBE:|SV-CONTRACT-CURRENCY:|ACCEPT-SET-LEDGER:|LRM-ANNEX-A-GAP:|V2005-KEYWORD-FAITHFULNESS:|LRM-KEYWORD-ENUMERATION:|SV-KEYWORD-VERSIONS:|LRM-CLAUSE-CITATION:|IDENTITY-CARRIERS:|LAYOUT-OWNING-TERMINALS:|--report-layout-owning-terminals|SAMPLE-PROFILE-PARITY:|--report-sample-parity|ARENA-CHUNK-ORACLE:|PARSE-ALLOC-CENSUS:|PARSE-THIN-OCCUPANCY:|INLINE-ALT-CENSUS:|AST-IDENTITY-SWEEP:|LIVENESS-CENSUS:|AST-FIELD-CENSUS:|DPI-RESULT-CLASSIFY:|DIRECTIVE-CLASSIFY:|TF-BODY-CLASSIFY:|PARTIAL-TYPING-CENSUS:|RAW-ENVELOPE-CENSUS:|PASTE-ORDER-PROBE:|STRING-REGION-PROBE:|POPULATION-DIFF:'
+DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|[WE]_SVPP_[A-Z_]{4,}|preprocess_failed|--sv-event-log-json|--sv-diagnostics-json|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_LINT_DUMP_ALL|PGEN_REACH_PATH_DUMP|PGEN_REACH_FORCED_OVERRIDE_DUMP|\[forced-override\]|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--dump-rule-outcome-counts|--lint-grammar|--parse-dump-ast|INTERPRET-PARSE:|--interpret-parse|INDIRECT-LR-SURVEY:|--report-indirect-lr-plan|PGEN_INDIRECT_LR_DUMP_ALL|self-time|call-graph attribution|call-graph samples|cargo flamegraph|flamegraph|/usr/bin/sample|\botool\b|\bspindump\b|\bfiltercalltree\b|\bITIMER_PROF\b|error\[E[0-9]{4}\]|could not compile|GENERATED-CLIPPY-CORRECTNESS:|clippy::[a-z_]{3,}|PGEN_CLIPPY_GENERATED_STRICT|git (ls-files|log -S|log --all -S|rev-list|fsck|reflog|diff-tree|merge-base|cat-file)|\bshellcheck\b|bash -n |sh -n |make -n |make --dry-run|make -q |make --question|make -d |make --debug|\bE2BIG\b|\bENOSPC\b|\bEACCES\b|\bARG_MAX\b|guard\.[0-9]+\.marker|reason=(none|rss-budget|free-floor|disk-floor|timeout)|GATE-REACHABILITY-PROBE:|SV-CONTRACT-CURRENCY:|ACCEPT-SET-LEDGER:|LRM-ANNEX-A-GAP:|V2005-KEYWORD-FAITHFULNESS:|LRM-KEYWORD-ENUMERATION:|SV-KEYWORD-VERSIONS:|LRM-CLAUSE-CITATION:|IDENTITY-CARRIERS:|LAYOUT-OWNING-TERMINALS:|--report-layout-owning-terminals|SAMPLE-PROFILE-PARITY:|--report-sample-parity|ARENA-CHUNK-ORACLE:|PARSE-ALLOC-CENSUS:|PARSE-THIN-OCCUPANCY:|INLINE-ALT-CENSUS:|AST-IDENTITY-SWEEP:|LIVENESS-CENSUS:|AST-FIELD-CENSUS:|DPI-RESULT-CLASSIFY:|DIRECTIVE-CLASSIFY:|TF-BODY-CLASSIFY:|PARTIAL-TYPING-CENSUS:|RAW-ENVELOPE-CENSUS:|PASTE-ORDER-PROBE:|STRING-REGION-PROBE:|POPULATION-DIFF:|PGEN_REPORT_MEMO_STATS|PGEN_REPORT_PARSE_FOOTPRINT|PGEN_REPORT_STACK_PROBE|stack_probe:|PARSE-ALLOC-TAPE:|PGEN_REACH_ESCAPE_DUMP|PGEN_WITNESS_BLOCKED_VERDICT_CENSUS|PGEN_ENVELOPE_DUMP_ALL|PGEN_FUSIBILITY_DUMP_ALL|--report-fusibility-census|FUSIBILITY-CENSUS:|PGEN_INDIRECT_LR_GATE_DUMP|PGEN_CERT_RESIDUAL_CLASSIFICATION|PGEN_TRACE_VERBOSITY=(high|debug)|--dump-gen-ast|--dump-rule-profiles|--dump-rule-entry-counts-json|--emit-raw-ast-json|DIAG-VOCABULARY:'
 NOREGRESS_SIG='seeds? *0/7/42|byte-identical|external corpus *1[0-9]/1[0-9]|corpus *1[0-9]/1[0-9]|shape.?contract|spf=0|sample_parse_failures=0|fully_certified|clippy'
 
 fails=()

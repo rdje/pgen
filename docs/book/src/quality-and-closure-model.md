@@ -151,7 +151,12 @@ and **NO REGRESSION** boxes are ticked *and* backed by real tool output —
 checked at commit time by `scripts/check_diagnosis_evidence.sh`. The
 backing signature has to sit **inside that box's own bullet**, so a token
 elsewhere in the leaf, or in an unrelated co-staged tree file, does not
-count.
+count. The gate's vocabulary of instrument spellings is itself held equal to
+the toolbox — every instrument a `TOOLBOX.md` §1–§6 heading documents is
+scored, every token the gate registers is listed in the five-family table —
+on every run (`scripts/check_diagnosis_vocabulary_currency.sh`,
+`ENGINE-UNIVERSAL-SERVICES.81`), so a new instrument cannot land unscored and
+a leaf that leads with the right tool cannot score zero.
 
 It must also be a box **this change actually wrote**: the satisfying box
 has to sit inside a leaf section that the staged change touches, and all
