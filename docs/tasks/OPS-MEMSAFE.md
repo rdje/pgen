@@ -54,7 +54,7 @@ and gates any heavy job.
 - ID: `OPS-MEMSAFE`
   Status: `complete`
   Goal: mechanical host-resource (RAM + disk) budget enforcement for spawned jobs
-  Children: `OPS-MEMSAFE.1`, `OPS-MEMSAFE.2`
+  Children: `OPS-MEMSAFE.1`, `OPS-MEMSAFE.2`, `OPS-MEMSAFE.3`, `OPS-MEMSAFE.4`, `OPS-MEMSAFE.5`
 
 - ID: `OPS-MEMSAFE.1`
   Status: `done`
@@ -75,6 +75,7 @@ and gates any heavy job.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
+| — | `OPS-MEMSAFE.5` | `done` (recurring — re-run when `docs/ARTIFACT_CLEANUP.md` is older than a day) | The §8 artifact cleanup of 2026-09-29: 54.0 GB freed under the decision record's safe inventory; `debug/incremental` kept as the active lane's hot cache. |
 | — | `OPS-MEMSAFE.2` | `done` | Disk-floor axis delivered (T10/T11 + regression green); tree complete again. |
 | — | `OPS-MEMSAFE.1` | `done` | Wrapper delivered + fratricide defect fixed; heavy jobs are unblocked (run them UNDER the guard). |
 
@@ -181,6 +182,7 @@ Process rule recorded in MEMORY: `make -n <target>` before any first-time invoca
 | `2026-07-14` | `OPS-MEMSAFE.1` | live walk repro (pre-fix logic, lone `sleep` root) | 602 pids / 12,215 MB marked ⇒ defect reproduced deterministically, independent of the balloon |
 | `2026-07-14` | `OPS-MEMSAFE.1` | T1–T9 after the fix (`bash -n` + doctrines = T7) | **23/23 PASS**; T2 breach `603MB (pids=1)`, T3 `621MB (pids=4)`, T8 max pids=1, T9 trap fires once; session survived T2/T3 |
 | `2026-07-18` | `OPS-MEMSAFE.2` | T10/T11 + T5-replay + transparency + disable-switch + `bash -n` + doctrines | **ALL PASS**: T10 exit 96 `reason=disk-floor` (never launched), T11 exit 95 tree killed, RAM axis + exit-code transparency byte-unchanged; live `.5.i.15` relaunch shows `disk_floor=8GB disk=109GB` |
+| `2026-09-29` | `OPS-MEMSAFE.5` | `git ls-files rust/target` (0 tracked) · population census by directory before deleting · `du -sk rust/target` before/after · KEEP paths excluded by `-not -path` and re-listed after | **PASS**: 265.9 → 211.9 GB (54.0 GB freed); 91 282 stale `*.log`/`*.bin` + 4 gate caches + `release/incremental` removed; 2 681 recent logs kept; `debug/incremental` (50.9 GB) kept by decision; debug/release probe binaries intact; disk 21 % |
 
 ## Commit Log
 
@@ -189,9 +191,11 @@ Process rule recorded in MEMORY: `make -n <target>` before any first-time invoca
 | `OPS-MEMSAFE.1` | `PGEN-OPS-MEMSAFE-0002 (leaf OPS-MEMSAFE.1)` | wrapper + fratricide root-cause fix + T1–T9 battery green + docs lockstep |
 | `OPS-MEMSAFE.2` | `PGEN-OPS-MEMSAFE-0003 (leaf OPS-MEMSAFE.2)` | disk-floor axis (pre-flight + in-flight exit 95) + T10/T11 + regression green + disk-hygiene decision record + docs lockstep |
 | `OPS-MEMSAFE.3` | `PGEN-OPS-MEMSAFE-0004 (leaf OPS-MEMSAFE.3)` | destructive-target guard (refuse-by-default `clean` family, exit 96) + doctrine check registered + `preserved_probes/` relocation + decision record + docs lockstep |
+| `OPS-MEMSAFE.5` | `PGEN-OPS-MEMSAFE-0009 (leaf OPS-MEMSAFE.5)` | the §8 recurring artifact cleanup of 2026-09-29 + the new `docs/ARTIFACT_CLEANUP.md` record (latest run only) |
 
 ## Changelog
 
+- `2026-09-29`: Leaf `.5` opened and closed in one slice — the session directive's §8 cleanup record did not exist, so a cleanup was due; 54.0 GB freed from `rust/target/` under the decision record's inventory, recorded in `docs/ARTIFACT_CLEANUP.md`.
 - `2026-07-14`: Created task tree; leaf `.1` opened as the session's directive-mandated first item.
 - `2026-07-14`: First build's own T2 test killed the host's user session (awk auto-vivification made the tree walk system-wide; the kill list followed). Root-caused with the surviving guard logs + crash reports + a live repro; fixed (`!(p in mark)`) + three kill-path fail-safes; battery extended with T8 (scoping regression) + T9 (guard-interrupted); 23/23 PASS. Leaf `.1` DONE — heavy jobs now run UNDER the guard.
 - `2026-07-18`: Tree REOPENED for leaf `.2` after the RGX-0078 `.5.i.15` probe build died on host-disk exhaustion (100% disk, 1.1 GB free — the guard had no disk axis). Disk floor delivered mirroring the RAM floor's design (pre-flight refusal exit 96 `reason=disk-floor`; in-flight breach exit 95 via the existing kill path; `--disk-floor-gb` default 8, 0 disables; `df -Pk .` + deterministic seam); T10/T11 + full regression PASS; standing disk-hygiene directive recorded (`docs/decisions/feedback_disk_hygiene_proactive.md`). Leaf `.2` DONE — tree `complete` again.
@@ -286,3 +290,27 @@ Process rule recorded in MEMORY: `make -n <target>` before any first-time invoca
 - A `reason=none exit=2` marker on a heavy job means **an external kill**, not a guard
   breach — re-run it, and if it recurs, reduce the peak rather than raise the budget.
 - After any interrupted `focus_*` fan-out, **redo the whole regeneration**; never resume it.
+
+## Leaf `.5` — the recurring §8 artifact cleanup and its record (opened + closed 2026-09-29, `PGEN-OPS-MEMSAFE-0009`, status: `done`, recurring)
+
+- **Goal:** own the session directive's §8 cleanup as tracked work — a bounded sweep of `rust/target/` under the
+  100 %-safe inventory of `docs/decisions/feedback_disk_hygiene_proactive.md`, and a record a fresh session can
+  read to decide whether one is due (`docs/ARTIFACT_CLEANUP.md`, latest run only, overwrite-only).
+- **Why:** the record file did not exist, so by the directive a cleanup was due this session; `rust/target/`
+  measured **265.9 GB**, of which 42.1 GB were 91 282 `*.log` / `*.bin` files older than seven days (65 552 the
+  per-file preprocessor logs of `svpp_all_population{,_k}/before/`, 12 596 under `sota_exit_gate/`, 8 314 under
+  `ci_workflow_local_gate/`) and 15.2 GB the four gate-local cargo caches.
+- **Done (measured):** `git ls-files rust/target` → 0 before anything was deleted; the population listed by
+  directory and sampled; KEEP paths excluded by `-not -path` (none of the stale files sat under them — 0);
+  deleted the 91 282 stale logs / bins, `parse_harness_{combinator,it,semantic}/`, `ebnf_frontend_build/`,
+  `release/incremental/`; **265.9 → 211.9 GB, 54.0 GB freed**; 2 681 logs younger than seven days kept (this
+  session's `s34/` evidence, the `.35`-cited `s388/`); the debug `ast_pipeline` / `parseability_probe` and the
+  release probe intact afterwards; disk 21 % used (3.0 TB free).
+- **Kept by decision, stated:** `rust/target/debug/incremental/` (50.9 GB) — the inventory allows deleting it, but it
+  is the hot cache of the active SV lane (a cold rebuild of the crate with its generated parsers costs the next
+  slice tens of minutes) and at 21 % disk use nothing is bought by paying that; the sequencing hazard the record
+  names (sweep AFTER a pending warm-cache build) also argues for leaving it while builds are in flight daily.
+- **Recurring:** re-run when `docs/ARTIFACT_CLEANUP.md` is older than a day; overwrite that file, append a row to
+  this tree's Verification Log. Not a code change — no acceptance checklist is owed (nothing under the enforced
+  code globs moved); the evidence is the before/after measurement above.
+
