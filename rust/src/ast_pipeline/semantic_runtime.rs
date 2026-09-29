@@ -5779,7 +5779,9 @@ fn decode_char_literal_digits(digits: &str, radix: u32) -> Option<u32> {
     u32::from_str_radix(digits, radix).ok()
 }
 
-fn semantic_values_match(left: &UnifiedSemanticValue, right: &UnifiedSemanticValue) -> bool {
+/// ENGINE-UNIVERSAL-SERVICES.109: shared with the stimuli generator's name-gate planner, so the
+/// generation-side reading of a fact attribute is the parser's own.
+pub(crate) fn semantic_values_match(left: &UnifiedSemanticValue, right: &UnifiedSemanticValue) -> bool {
     match (scalar_text(left), scalar_text(right)) {
         (Some(left_text), Some(right_text)) => left_text == right_text,
         _ => left == right,

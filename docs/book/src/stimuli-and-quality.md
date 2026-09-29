@@ -1384,7 +1384,16 @@ name-coordinated *declare-then-use prelude* family (`has_fact` / `fact_attribute
 `type_name` / `variable_binding` / class-scope facts: the generator emits the prior declaration a gated
 use needs, diversifies a free name that would otherwise collide with a consumed fact, and arms preludes
 even for gates carried by a mandatory *off-path sibling* along the reach path) plus a literal-threshold
-*count-prelude* (`fact_count_at_least` with a constant bound — e.g. a required wildcard import).
+*count-prelude* (`fact_count_at_least` with a constant bound — e.g. a required wildcard import), and —
+since `ENGINE-UNIVERSAL-SERVICES.109` (2026-09-29) — an *ordering prelude* for a gate that binds no
+name: `latest_fact_attribute_equals(K, key, V)` asks whether the LATEST `K` fact carries `key: V`
+(SystemVerilog's header-less ANSI port default under `verilog_2005`, governed by the nearest `output
+reg` header), so the generator injects one producer iteration — the alternative whose branch-start
+`@emit_fact` carries the value, hosted even in a separator-led sequence body — immediately before the
+consumer and lets the consumer render normally, while a generation-side prune on the same predicate
+refuses the gated shape wherever no such header precedes it (a plan's directives are keyed on rule and
+path, so the mandatory first list item would otherwise be forced into the gated shape too). Any
+attribute key is producer-matchable now; it used to be `declaration_family` alone.
 
 The result is verified per grammar with certificate-coverage, where `sample_parse_failures` is the
 **semantic round-trip metric**: zero means every generated sample re-parses through the real parser's

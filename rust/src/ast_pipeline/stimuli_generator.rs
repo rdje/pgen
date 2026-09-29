@@ -812,10 +812,11 @@ enum StoreGateScope {
     /// NEGATIVE (`reach_gate_kinds`). Correct for the reach-BFS edge *deprioritization*, whose
     /// only effect is to prefer another carrier — over-counting there costs nothing.
     AnyQuery,
-    /// SV-EXH-PROOF.7.4.6.17: the gates GENERATION ITSELF REFUSES ON — exactly `gen_count_kinds`,
-    /// the map `gen_count_predicate_satisfiable` reads for the one generation-side store prune
-    /// there is (`generate_rule`: *"fact_count_at_least predicate unsatisfiable (zero source
-    /// facts)"*). Required by any verdict that claims a target cannot be GENERATED from a given
+    /// SV-EXH-PROOF.7.4.6.17: the gates GENERATION ITSELF REFUSES ON — `gen_count_kinds`, the map
+    /// `gen_count_predicate_satisfiable` reads for the count prune (`generate_rule`:
+    /// *"fact_count_at_least predicate unsatisfiable (zero source facts)"*), and, since
+    /// ENGINE-UNIVERSAL-SERVICES.109, the non-name-binding `latest_fact_attribute_equals` gates of
+    /// the name-gate cohort, which `gen_latest_attribute_gate_satisfiable` prunes on the same way. Required by any verdict that claims a target cannot be GENERATED from a given
     /// entry, rather than merely ranking two ways of generating it.
     ///
     /// ⛔ It is NOT "every positive gate", and that correction is measured, not stylistic. The
@@ -1577,9 +1578,21 @@ struct ReachPrelude {
 struct NameGate {
     /// The fact kind the consumer queries (e.g. `type_name`, `let_name`, `parameter_name`).
     kind: String,
-    /// The required `declaration_family` value, when the gate is `fact_attribute_equals`
-    /// (`None` for a plain `has_fact`).
-    family: Option<String>,
+    /// The required attribute `(key, value)` when the gate is `fact_attribute_equals` /
+    /// `latest_fact_attribute_equals` (`None` for a plain `has_fact`).
+    /// ENGINE-UNIVERSAL-SERVICES.109: the key used to be fixed to `declaration_family` — a gate on any
+    /// other attribute was "not producer-matchable" and its target stayed UNKNOWN (the `verilog_2005`
+    /// certificate's `ansi_port_default_governed_v2005`, gated `latest_fact_attribute_equals(
+    /// ansi_port_header, defaults, yes)`). Now any key the fact kind declares.
+    attribute: Option<(String, UnifiedSemanticValue)>,
+    /// ENGINE-UNIVERSAL-SERVICES.109: does the gate BIND a name? `has_fact(K, $ref)` /
+    /// `fact_attribute_equals(K, $ref, key, V)` read the consumer's own rendered identifier back from
+    /// the store, so the prelude's producer must declare a whole-render name and the consumer
+    /// REPLAYS it (the proven `.4b.2` path, byte-identical). `latest_fact_attribute_equals(K, key,
+    /// V)` binds none — it asks only whether the LATEST K fact carries `key: V` — so any producer of
+    /// such a fact serves, a constant-named branch-start `@emit_fact` included, and the consumer
+    /// renders normally: the prelude only ORDERS the producer immediately before it.
+    binds_name: bool,
     /// `declaration_family` values a co-located `lacks_fact_attribute_equals` forbids — the
     /// chosen producer must NOT emit one of these (e.g. `known_unscoped_block_class_type`
     /// requires a NON-`typedef` class).
@@ -1587,13 +1600,21 @@ struct NameGate {
 }
 
 /// STORE-AWARE-GEN.4b.2: the armed name-coordination carried on a `ReachPrelude` — the `(kind,
-/// family)` the gated consumer's render must match against the live store. The producer that
+/// attribute)` the gated consumer's render must match against the live store. The producer that
 /// declared the name ran first (the single prelude iteration), so a fact of this `(kind,
 /// family)` is present by construction when the consumer renders.
 #[derive(Debug, Clone)]
 struct NameGateArm {
     kind: String,
-    family: Option<String>,
+    /// ENGINE-UNIVERSAL-SERVICES.109: the gate's `(key, value)` requirement (was the
+    /// `declaration_family` value alone). The value is kept as the runtime's own value — the payload
+    /// parser reads `yes` as `Boolean(true)` and `class` as an identifier — and compared the way the
+    /// parser compares it (`semantic_values_match`), so the planner and the parser cannot disagree.
+    attribute: Option<(String, UnifiedSemanticValue)>,
+    /// ENGINE-UNIVERSAL-SERVICES.109: `false` = an ORDERING-only prelude for a gate that binds no
+    /// name (`latest_fact_attribute_equals`): the producer iteration is injected before the consumer
+    /// and the consumer renders normally — no whole-render replay, no head-leaf pin.
+    replay: bool,
     /// STRUCTURED-WITNESS-SYNTH.3 (f3): `true` = the gated consumer's WHOLE render is replaced by
     /// the stored name (`reach_prelude_replay_text` — the proven single-token replay, and the ONLY
     /// behavior outside the structured-witness pass). `false` (structured-witness pass only, for a
@@ -1601,6 +1622,44 @@ struct NameGateArm {
     /// the consumer's leading head leaf to the stored name (`head_pin_spec_for_rule`) and generate
     /// the rest of the body normally.
     whole_render: bool,
+}
+
+impl NameGate {
+    /// ENGINE-UNIVERSAL-SERVICES.109: the `(key, value)` requirement, borrowed.
+    fn attribute_ref(&self) -> Option<(&str, &UnifiedSemanticValue)> {
+        self.attribute
+            .as_ref()
+            .map(|(key, value)| (key.as_str(), value))
+    }
+}
+
+impl NameGateArm {
+    /// ENGINE-UNIVERSAL-SERVICES.109: the `(key, value)` requirement, borrowed.
+    fn attribute_ref(&self) -> Option<(&str, &UnifiedSemanticValue)> {
+        self.attribute
+            .as_ref()
+            .map(|(key, value)| (key.as_str(), value))
+    }
+}
+
+/// ENGINE-UNIVERSAL-SERVICES.109: the runtime's own scalar-or-structural equality for semantic
+/// values — text scalars by text, everything else (`Boolean`, `Null`, …) structurally — so a gate's
+/// `defaults: yes` (`Boolean(true)`) matches the emit's `defaults: yes` exactly as the parser's
+/// predicate does.
+fn semantic_values_equal(left: &UnifiedSemanticValue, right: &UnifiedSemanticValue) -> bool {
+    crate::ast_pipeline::semantic_runtime::semantic_values_match(left, right)
+}
+
+/// ENGINE-UNIVERSAL-SERVICES.109: a semantic value's text when it has one (identifier, string, rule
+/// reference, number); `None` for booleans, null and composites.
+fn semantic_scalar_text(value: &UnifiedSemanticValue) -> Option<&str> {
+    match value {
+        UnifiedSemanticValue::String(text)
+        | UnifiedSemanticValue::Identifier(text)
+        | UnifiedSemanticValue::RuleReference(text)
+        | UnifiedSemanticValue::Number(text) => Some(text.as_str()),
+        _ => None,
+    }
 }
 
 /// STIMULI-SIGNOFF.13.4: the render-time VALUE DRAW a `@gen_predicate:` directive compiles to —
@@ -4065,7 +4124,9 @@ impl<'a> StimuliGenerator<'a> {
                 // on the parser re-check and the gated consumer never witnesses. Force the producer's
                 // root-`Or` to the emitting alternative. Inert for a rule-level emit / single-branch
                 // producer (the regex `capture_open := "("` case) ⇒ byte-identical there.
-                if let Some((or_path, branch_index)) = self.producer_emitting_branch(producer, kind) {
+                if let Some((or_path, branch_index)) =
+                    self.producer_emitting_branch(producer, kind, None)
+                {
                     sub_plan
                         .directives
                         .insert(((*producer).to_string(), or_path), branch_index);
@@ -4189,16 +4250,30 @@ impl<'a> StimuliGenerator<'a> {
     /// rule-level emit, a producer with no top-level `Or`, or no annotations (the regex
     /// `capture_open := "("` case — a single fixed-literal producer with a rule-level emit ⇒ no force ⇒
     /// byte-identical). Pure analysis; parser-agnostic.
-    fn producer_emitting_branch(&self, producer: &str, kind: &str) -> Option<(String, usize)> {
+    fn producer_emitting_branch(
+        &self,
+        producer: &str,
+        kind: &str,
+        attribute: Option<(&str, &UnifiedSemanticValue)>,
+    ) -> Option<(String, usize)> {
         let annotations = self.annotations?;
         let branches = annotations.branch_semantic_annotations.get(producer)?;
+        // ENGINE-UNIVERSAL-SERVICES.109: when the gate requires `(key, value)`, the emitting branch
+        // must carry it — `ansi_port_declaration_v2005` emits `ansi_port_header` from THREE
+        // alternatives and only the `output reg` / `output integer|time` one says `defaults: yes`.
+        // `None` keeps the `.4b.17` first-emitting-branch behaviour byte-identical.
         let branch_index = branches.iter().position(|branch| {
             parse_semantic_runtime_directives(branch.iter())
                 .map(|directives| {
                     directives.iter().any(|directive| {
                         matches!(
                             directive,
-                            SemanticRuntimeDirective::EmitFact(spec) if spec.kind == kind
+                            SemanticRuntimeDirective::EmitFact(spec)
+                                if spec.kind == kind
+                                    && attribute.is_none_or(|(key, required)| {
+                                        Self::producer_attribute(spec, key)
+                                            .is_some_and(|actual| semantic_values_equal(actual, required))
+                                    })
                         )
                     })
                 })
@@ -4280,7 +4355,11 @@ impl<'a> StimuliGenerator<'a> {
                 specs.iter().any(|spec| {
                     spec.kind == kind
                         && Self::producer_family_satisfies_gate(spec, gate)
-                        && (Self::emit_name_is_whole_render(&spec.name)
+                        // ENGINE-UNIVERSAL-SERVICES.109: a gate that binds no name needs no
+                        // whole-render producer name — the fact only has to EXIST with the
+                        // attribute, so a constant-named emit (`name: "header"`) is admissible.
+                        && (!gate.binds_name
+                            || Self::emit_name_is_whole_render(&spec.name)
                             || self.structured_producer_admitted(rule, spec))
                 })
             })
@@ -4302,9 +4381,19 @@ impl<'a> StimuliGenerator<'a> {
         // witnessed). The parser re-check stays the sole witness judge.
         for prefer_clean in [true, false] {
             for (site_rule, site_path) in quantifier_sites.iter().rev() {
-                let Some(body_rule) = self.quantified_body_rule_name(site_rule, site_path) else {
-                    continue;
+                // ENGINE-UNIVERSAL-SERVICES.109: a name-binding gate keeps the proven single
+                // body-rule read (byte-identical). An ORDERING-only gate may host its producer in a
+                // SEQUENCE body — `( comma attribute_instance* ansi_port_declaration )*`, the port
+                // list's separator-led item — so every mandatory rule reference of the body is a
+                // candidate host, in order.
+                let body_rules: Vec<String> = if gate.binds_name {
+                    self.quantified_body_rule_name(site_rule, site_path)
+                        .into_iter()
+                        .collect()
+                } else {
+                    self.quantified_body_rule_names(site_rule, site_path)
                 };
+                for body_rule in body_rules {
                 for producer in &producers {
                     let Some(sub_hops) = self.reach_hops(&body_rule, producer) else {
                         continue;
@@ -4340,11 +4429,26 @@ impl<'a> StimuliGenerator<'a> {
                             sub_plan.directives.entry(site_key).or_insert(branch);
                         }
                     }
+                    // ENGINE-UNIVERSAL-SERVICES.109: an ORDERING-only prelude forces the producer's
+                    // EMITTING alternative — the one whose branch-start `@emit_fact` carries the
+                    // gate's `(key, value)` — exactly as the `.4b.17` count prelude forces a
+                    // branch-local emit; reaching the producer RULE alone renders its shortest
+                    // alternative, which here emits `defaults: no`. Name-binding gates keep their
+                    // proven path byte-identical.
+                    if !gate.binds_name {
+                        if let Some((or_path, branch_index)) =
+                            self.producer_emitting_branch(producer, kind, gate.attribute_ref())
+                        {
+                            sub_plan
+                                .directives
+                                .insert(((*producer).to_string(), or_path), branch_index);
+                        }
+                    }
                     self.trace(
                         TraceLevel::Debug,
                         format_args!(
-                            "STORE-AWARE-GEN.4b name-prelude spec: gated_rule='{}' kind='{}' family={:?} producer='{}' clean_path={} site=('{}','{}') body='{}'",
-                            gated_rule, kind, gate.family, producer, prefer_clean, site_rule, site_path, body_rule
+                            "STORE-AWARE-GEN.4b name-prelude spec: gated_rule='{}' kind='{}' attribute={:?} binds_name={} producer='{}' clean_path={} site=('{}','{}') body='{}'",
+                            gated_rule, kind, gate.attribute, gate.binds_name, producer, prefer_clean, site_rule, site_path, body_rule
                         ),
                     );
                     return Some(ReachPrelude {
@@ -4355,7 +4459,8 @@ impl<'a> StimuliGenerator<'a> {
                         captured: None,
                         name_gate: Some(NameGateArm {
                             kind: kind.to_string(),
-                            family: gate.family.clone(),
+                            attribute: gate.attribute.clone(),
+                            replay: gate.binds_name,
                             // STRUCTURED-WITNESS-SYNTH.3 (f3): outside the structured-witness
                             // pass ALWAYS whole-render (byte-identical proven replay). Inside it,
                             // a MULTI-token consumer (mandatory tail after the head — the
@@ -4366,6 +4471,7 @@ impl<'a> StimuliGenerator<'a> {
                         }),
                         sub_hops: sub_hops.clone(),
                     });
+                }
                 }
             }
         }
@@ -4627,15 +4733,19 @@ impl<'a> StimuliGenerator<'a> {
     /// STORE-AWARE-GEN.4b.2: the `declaration_family` attribute value a producer `@emit_fact` carries
     /// (literal `Identifier`/`String`), if any.
     fn producer_declaration_family(spec: &SemanticFactSpec) -> Option<&str> {
+        Self::producer_attribute(spec, "declaration_family").and_then(semantic_scalar_text)
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.109: the value a producer's `@emit_fact` carries under `key`
+    /// (case-insensitive), `None` when absent.
+    fn producer_attribute<'s>(
+        spec: &'s SemanticFactSpec,
+        key: &str,
+    ) -> Option<&'s UnifiedSemanticValue> {
         spec.attributes
             .iter()
-            .find(|property| property.key.eq_ignore_ascii_case("declaration_family"))
-            .and_then(|property| match &property.value {
-                UnifiedSemanticValue::Identifier(value) | UnifiedSemanticValue::String(value) => {
-                    Some(value.as_str())
-                }
-                _ => None,
-            })
+            .find(|property| property.key.eq_ignore_ascii_case(key))
+            .map(|property| &property.value)
     }
 
     /// STORE-AWARE-GEN.4b.2: may this producer satisfy the consumer's name gate? Its
@@ -4643,8 +4753,11 @@ impl<'a> StimuliGenerator<'a> {
     /// must not be one the gate's `lacks_fact_attribute_equals` forbids.
     fn producer_family_satisfies_gate(spec: &SemanticFactSpec, gate: &NameGate) -> bool {
         let family = Self::producer_declaration_family(spec);
-        if let Some(required) = gate.family.as_deref() {
-            if family != Some(required) {
+        // ENGINE-UNIVERSAL-SERVICES.109: the gate's attribute requirement is read under ITS key.
+        if let Some((key, required)) = gate.attribute_ref() {
+            if !Self::producer_attribute(spec, key)
+                .is_some_and(|actual| semantic_values_equal(actual, required))
+            {
                 return false;
             }
         }
@@ -4866,21 +4979,21 @@ impl<'a> StimuliGenerator<'a> {
     /// the MOST-RECENTLY emitted fact of `(kind, family)` (the prelude's own declaration is the latest
     /// matching fact by construction). Reads the generation store read-only; `None` until the producer
     /// has emitted (the consumer then renders normally and simply does not witness this attempt).
-    fn store_name_for_gate(&self, kind: &str, family: Option<&str>) -> Option<String> {
+    fn store_name_for_gate(
+        &self,
+        kind: &str,
+        attribute: Option<(&str, &UnifiedSemanticValue)>,
+    ) -> Option<String> {
         self.gen_semantic_state
             .facts()
             .iter()
             .rev()
             .find(|fact| {
                 fact.kind.eq_ignore_ascii_case(kind)
-                    && family.is_none_or(|required| {
+                    && attribute.is_none_or(|(key, required)| {
                         fact.attributes.iter().any(|property| {
-                            property.key.eq_ignore_ascii_case("declaration_family")
-                                && match &property.value {
-                                    UnifiedSemanticValue::Identifier(value)
-                                    | UnifiedSemanticValue::String(value) => value == required,
-                                    _ => false,
-                                }
+                            property.key.eq_ignore_ascii_case(key)
+                                && semantic_values_equal(&property.value, required)
                         })
                     })
             })
@@ -4984,6 +5097,57 @@ impl<'a> StimuliGenerator<'a> {
                 _ => return None,
             }
         }
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.109: every rule a quantified body is GUARANTEED to render, in order —
+    /// the single reference `quantified_body_rule_name` reads, or, for a `Sequence` body, each element
+    /// that is a direct rule reference (grouping shells unwrapped). Elements that may not render — an
+    /// `Or`, a nested quantifier, a lookahead, a terminal — contribute nothing, for the reason
+    /// `mandatory_leading_rule_reference` gives: a prelude armed on a rule the body may never produce
+    /// cannot be relied on. Used by the ORDERING-only prelude alone; the name-binding path keeps the
+    /// single read.
+    fn quantified_body_rule_names(&self, rule: &str, node_path: &str) -> Vec<String> {
+        if let Some(single) = self.quantified_body_rule_name(rule, node_path) {
+            return vec![single];
+        }
+        let Some(rule_node) = self.grammar_tree.get(rule) else {
+            return Vec::new();
+        };
+        let Some(ASTNode::Quantified { element, .. }) = self.node_at_path(rule_node, node_path)
+        else {
+            return Vec::new();
+        };
+        let mut body: &ASTNode = element.as_ref();
+        while let ASTNode::Atom {
+            value: ASTValue::Node(inner),
+        } = body
+        {
+            body = inner.as_ref();
+        }
+        let ASTNode::Sequence { elements } = body else {
+            return Vec::new();
+        };
+        let mut names = Vec::new();
+        for element in elements {
+            let mut current: &ASTNode = element;
+            while let ASTNode::Atom {
+                value: ASTValue::Node(inner),
+            } = current
+            {
+                current = inner.as_ref();
+            }
+            if let ASTNode::Atom {
+                value: ASTValue::Token(parts),
+            } = current
+            {
+                if let Some(("rule_reference", referenced)) = Self::extract_token_pair(parts) {
+                    if self.grammar_tree.contains_key(referenced) {
+                        names.push(referenced.to_string());
+                    }
+                }
+            }
+        }
+        names
     }
 
     /// STORE-AWARE-GEN.4b.4: the rule named by `rule`'s MANDATORY-FIRST element, when that element is a
@@ -5214,6 +5378,11 @@ impl<'a> StimuliGenerator<'a> {
         // to the store name the upstream producer iteration just declared (declare-then-use). Read
         // it from the live store so the rendered identifier equals the declared one by construction.
         if let Some(arm) = &prelude.name_gate {
+            // ENGINE-UNIVERSAL-SERVICES.109: an ORDERING-only prelude (a gate that binds no name)
+            // replays nothing — the consumer renders normally behind the injected producer.
+            if !arm.replay {
+                return None;
+            }
             // STRUCTURED-WITNESS-SYNTH.3 (f3): a MULTI-token gated consumer (whole_render=false —
             // structured-witness pass only) cannot express its mandatory chain tail through a
             // whole-render replay; the head-leaf pin (`head_pin_spec_for_rule`, armed by
@@ -5221,7 +5390,7 @@ impl<'a> StimuliGenerator<'a> {
             if !arm.whole_render {
                 return None;
             }
-            return self.store_name_for_gate(&arm.kind, arm.family.as_deref());
+            return self.store_name_for_gate(&arm.kind, arm.attribute_ref());
         }
         // The C2.2 count prelude replays the phase-1-captured render (so the `$ref` value equals the
         // prelude size).
@@ -5257,11 +5426,11 @@ impl<'a> StimuliGenerator<'a> {
             return None;
         }
         let arm = prelude.name_gate.as_ref()?;
-        if arm.whole_render {
+        if !arm.replay || arm.whole_render {
             return None;
         }
         let head_rule = self.mandatory_leading_rule_reference(rule_name)?;
-        let stored_name = self.store_name_for_gate(&arm.kind, arm.family.as_deref())?;
+        let stored_name = self.store_name_for_gate(&arm.kind, arm.attribute_ref())?;
         Some((head_rule, stored_name))
     }
 
@@ -10228,9 +10397,11 @@ impl<'a> StimuliGenerator<'a> {
         // One annotation group (a rule's own annotations, or ONE branch's) read into the three facts the
         // gate is built from: the first positive name gate, the excluded families, the kinds it emits.
         // `None` when the group does not parse (the rule is then left out of the cohort, as before).
-        let read_group = |anns: &[SemanticAnnotation]| -> Option<(Option<(String, Option<String>)>, Vec<String>, Vec<String>)> {
+        // ENGINE-UNIVERSAL-SERVICES.109: a positive gate is `(kind, Option<(key, value)>, binds_name)`;
+        // the value stays a runtime value (`yes` parses as `Boolean(true)`).
+        let read_group = |anns: &[SemanticAnnotation]| -> Option<(Option<(String, Option<(String, UnifiedSemanticValue)>, bool)>, Vec<String>, Vec<String>)> {
             let directives = parse_semantic_runtime_directives(anns.iter()).ok()?;
-            let mut positive: Option<(String, Option<String>)> = None;
+            let mut positive: Option<(String, Option<(String, UnifiedSemanticValue)>, bool)> = None;
             let mut excluded_families: Vec<String> = Vec::new();
             let mut emitted_kinds: Vec<String> = Vec::new();
             for directive in &directives {
@@ -10247,33 +10418,32 @@ impl<'a> StimuliGenerator<'a> {
                 };
                 match spec.name.trim() {
                     "has_fact" if positive.is_none() => {
-                        positive = Some((kind, None));
+                        positive = Some((kind, None, true));
                     }
                     "fact_attribute_equals" if positive.is_none() => {
-                        // args: [kind, $name, declaration_family, value]
-                        let family = match (spec.args.get(2).and_then(&scalar), spec.args.get(3)) {
-                            (Some(key), Some(value)) if key.eq_ignore_ascii_case("declaration_family") => {
-                                scalar(value)
-                            }
+                        // args: [kind, $name, key, value] — ENGINE-UNIVERSAL-SERVICES.109: ANY
+                        // attribute key is producer-matchable (it used to be `declaration_family`
+                        // alone; a gate on another key was left out of the cohort and its target
+                        // could never be witnessed).
+                        let attribute = match (spec.args.get(2).and_then(&scalar), spec.args.get(3)) {
+                            (Some(key), Some(value)) => Some((key, value.clone())),
                             _ => None,
                         };
-                        // Only a `declaration_family` attribute gate is producer-matchable; a gate on a
-                        // different attribute key is left unhandled (no entry ⇒ not in the cohort).
-                        if family.is_some() {
-                            positive = Some((kind, family));
+                        if attribute.is_some() {
+                            positive = Some((kind, attribute, true));
                         }
                     }
                     "latest_fact_attribute_equals" if positive.is_none() => {
-                        // ENGINE-UNIVERSAL-SERVICES.108 — args: [kind, attribute, value]; the
-                        // producer-matchable case is the same `declaration_family` key.
-                        let family = match (spec.args.get(1).and_then(&scalar), spec.args.get(2)) {
-                            (Some(key), Some(value)) if key.eq_ignore_ascii_case("declaration_family") => {
-                                scalar(value)
-                            }
+                        // ENGINE-UNIVERSAL-SERVICES.108 — args: [kind, attribute, value].
+                        // ENGINE-UNIVERSAL-SERVICES.109: any key; the gate binds NO name (it asks
+                        // about the LATEST fact of the kind), so the prelude it earns is
+                        // ordering-only and its producer may carry a constant name.
+                        let attribute = match (spec.args.get(1).and_then(&scalar), spec.args.get(2)) {
+                            (Some(key), Some(value)) => Some((key, value.clone())),
                             _ => None,
                         };
-                        if family.is_some() {
-                            positive = Some((kind, family));
+                        if attribute.is_some() {
+                            positive = Some((kind, attribute, false));
                         }
                     }
                     "lacks_fact_attribute_equals" => {
@@ -10316,7 +10486,9 @@ impl<'a> StimuliGenerator<'a> {
             // merge from every group (an exclusion narrows the free name the generator may render; an
             // emit anywhere makes the rule a self-satisfying producer).
             let mut positive = rule_positive;
-            let mut branch_positives: Vec<Option<(String, Option<String>)>> = Vec::new();
+            let mut branch_positives: Vec<
+                Option<(String, Option<(String, UnifiedSemanticValue)>, bool)>,
+            > = Vec::new();
             let mut all_branches_parse = true;
             if let Some(branches) = annotations.branch_semantic_annotations.get(rule) {
                 for branch in branches {
@@ -10341,7 +10513,7 @@ impl<'a> StimuliGenerator<'a> {
                     positive = branch_positives.into_iter().flatten().next();
                 }
             }
-            if let Some((kind, family)) = positive {
+            if let Some((kind, attribute, binds_name)) = positive {
                 // Skip self-satisfying producers (rule emits the same kind it gates on).
                 if emitted_kinds.iter().any(|emitted| emitted == &kind) {
                     continue;
@@ -10350,7 +10522,8 @@ impl<'a> StimuliGenerator<'a> {
                     rule.clone(),
                     NameGate {
                         kind,
-                        family,
+                        attribute,
+                        binds_name,
                         excluded_families,
                     },
                 );
@@ -10603,10 +10776,17 @@ impl<'a> StimuliGenerator<'a> {
             // SV-EXH-PROOF.7.4.6.17: `gen_count_kinds` ALONE — the exact map the generation-side
             // prune consults (`gen_count_predicate_satisfiable`). `gen_name_gate` is deliberately
             // NOT read here; see `StoreGateScope::GenerationPruned`.
-            StoreGateScope::GenerationPruned => self
-                .gen_count_kinds
-                .get(rule)
-                .is_some_and(|kinds| kinds.iter().any(|kind| !available.contains(kind))),
+            StoreGateScope::GenerationPruned => {
+                self.gen_count_kinds
+                    .get(rule)
+                    .is_some_and(|kinds| kinds.iter().any(|kind| !available.contains(kind)))
+                    // ENGINE-UNIVERSAL-SERVICES.109: the `latest_fact_attribute_equals` gates
+                    // generation now refuses on (`gen_latest_attribute_gate_satisfiable`) — the
+                    // non-name-binding members of the name-gate cohort. Name-binding gates stay out.
+                    || self.gen_name_gate.get(rule).is_some_and(|gate| {
+                        !gate.binds_name && !available.contains(&gate.kind)
+                    })
+            }
             // `SV-CORPUS-GRAD.13c.2x.9`(c1): positive gates only — the union of the name gates the
             // parser enforces and the count gates generation prunes on. `lacks_fact*` never appears
             // in either map, which is precisely what makes this scope right for a parse prediction.
@@ -11906,6 +12086,33 @@ impl<'a> StimuliGenerator<'a> {
             );
             return Err(anyhow!(
                 "STORE-AWARE-GEN: rule '{}' fact_count_at_least predicate unsatisfiable (zero source facts)",
+                rule_name
+            ));
+        }
+
+        // ENGINE-UNIVERSAL-SERVICES.109: a rule gated by `latest_fact_attribute_equals(K, key, V)` is
+        // UNSATISFIABLE when the latest `K` fact in the generation store does not carry `key: V` (or
+        // there is none) — the parser's post predicate, asked of the same store before generating —
+        // so `generate_or` backtracks to an ungated sibling instead of rendering text the parser
+        // will reject. WHY generation must refuse here and not only order a producer: a reach plan's
+        // directives are keyed on `(rule, node_path)`, not on the occurrence, so the MANDATORY FIRST
+        // item of a list is forced into the gated shape exactly like the on-path item the plan aims
+        // at; with this prune the first item's forced alternative fails and falls back to a plain
+        // header, and the ordering prelude's producer then governs the on-path item (measured on
+        // `ansi_port_default_governed_v2005`: every probe read `module\foo (\foo =1.57);endmodule`
+        // — a defaulted first item, no header — `parsed=false`). NOT bypassed by an armed prelude:
+        // the count prune's bypass exists for the count prelude's phase-1 `$ref` capture, which an
+        // ordering prelude never performs. Name-binding gates keep their no-prune rule.
+        if self.store_aware_gen && !self.gen_latest_attribute_gate_satisfiable(rule_name) {
+            self.trace(
+                TraceLevel::Debug,
+                format_args!(
+                    "STORE-AWARE-GEN: rule '{}' latest_fact_attribute_equals predicate unsatisfiable (the latest fact of the kind does not carry the attribute) — backtracking",
+                    rule_name
+                ),
+            );
+            return Err(anyhow!(
+                "STORE-AWARE-GEN: rule '{}' latest_fact_attribute_equals predicate unsatisfiable (the latest fact of the kind does not carry the attribute)",
                 rule_name
             ));
         }
@@ -14064,7 +14271,7 @@ impl<'a> StimuliGenerator<'a> {
                     // prelude silently produced an unusable witness before this fix.
                     if let Some(arm) = &armed_name_gate {
                         let gate_unsatisfied = self
-                            .store_name_for_gate(&arm.kind, arm.family.as_deref())
+                            .store_name_for_gate(&arm.kind, arm.attribute_ref())
                             .is_none();
                         if prelude_result.is_err() || gate_unsatisfied {
                             if let Some(checkpoint) = &quantified_store_checkpoint {
@@ -14085,11 +14292,11 @@ impl<'a> StimuliGenerator<'a> {
                             self.trace(
                                 TraceLevel::Debug,
                                 format_args!(
-                                    "C2 semantic-prelude integrity retry: rule='{}' path='{}' kind='{}' family={:?} first_render={} retry_max_depth={}",
+                                    "C2 semantic-prelude integrity retry: rule='{}' path='{}' kind='{}' attribute={:?} first_render={} retry_max_depth={}",
                                     current_rule,
                                     node_path,
                                     arm.kind,
-                                    arm.family,
+                                    arm.attribute,
                                     if prelude_result.is_ok() {
                                         "ok-without-armed-fact"
                                     } else {
@@ -14109,15 +14316,15 @@ impl<'a> StimuliGenerator<'a> {
                             self.config.max_depth = saved_max_depth;
                             if prelude_result.is_ok()
                                 && self
-                                    .store_name_for_gate(&arm.kind, arm.family.as_deref())
+                                    .store_name_for_gate(&arm.kind, arm.attribute_ref())
                                     .is_none()
                             {
                                 prelude_result = Err(anyhow!(
                                     "Armed name-prelude integrity failure: injected iteration emitted no '{}' fact{} at rule '{}' site '{}'",
                                     arm.kind,
-                                    arm.family
-                                        .as_deref()
-                                        .map(|family| format!(" (family '{family}')"))
+                                    arm.attribute
+                                        .as_ref()
+                                        .map(|(key, value)| format!(" ({key} {value:?})"))
                                         .unwrap_or_default(),
                                     current_rule,
                                     node_path
@@ -15659,6 +15866,35 @@ impl<'a> StimuliGenerator<'a> {
             // `Some(false)` = count < N (unsatisfiable). `Some(true)`/`None` = allow.
             self.gen_semantic_state.evaluate_predicate(&spec) != Some(false)
         })
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.109: is a `latest_fact_attribute_equals(K, key, V)` gate on `rule_name`
+    /// satisfiable against the GENERATION store right now — does the latest `K` fact carry `key: V`?
+    /// Read from the name-gate cohort (a non-binding gate IS such a predicate) and evaluated by the
+    /// same runtime the parser uses, so the two cannot disagree. Rules without such a gate, and
+    /// name-binding gates (which never prune — `StoreGateScope::GenerationPruned`), read `true`.
+    fn gen_latest_attribute_gate_satisfiable(&self, rule_name: &str) -> bool {
+        let Some(gate) = self.gen_name_gate.get(rule_name) else {
+            return true;
+        };
+        if gate.binds_name {
+            return true;
+        }
+        let Some((key, value)) = gate.attribute_ref() else {
+            return true;
+        };
+        let spec = SemanticPredicateSpec {
+            name: "latest_fact_attribute_equals".to_string(),
+            args: vec![
+                UnifiedSemanticValue::Identifier(gate.kind.clone()),
+                UnifiedSemanticValue::Identifier(key.to_string()),
+                value.clone(),
+            ],
+            phase: SemanticPredicatePhase::Post,
+            view: SemanticPredicateContentView::Raw,
+        };
+        // `Some(false)` = the latest fact of the kind is absent or carries another value.
+        self.gen_semantic_state.evaluate_predicate(&spec) != Some(false)
     }
 
     /// STORE-AWARE-GEN.3: emit a rule's `@emit_fact` facts into the generation-time store on rule
@@ -19314,7 +19550,8 @@ mod tests {
         assert!(!gates.contains_key("gated_first_then_free"));
         let every = gates.get("every_alternative_gated").expect("every alternative gated ⇒ the rule is gated");
         assert_eq!(every.kind, "package_name");
-        assert_eq!(every.family, None);
+        assert_eq!(every.attribute, None);
+        assert!(every.binds_name);
         let rule_level = gates.get("rule_level_gated").expect("a rule-level gate gates the rule");
         assert_eq!(rule_level.kind, "parameter_name");
         assert_eq!(rule_level.excluded_families, vec!["typedef".to_string()], "exclusions merge from every alternative");
@@ -22022,22 +22259,22 @@ mod tests {
         // Required family matches.
         assert!(StimuliGenerator::producer_family_satisfies_gate(
             &class_producer,
-            &NameGate { kind: "type_name".to_string(), family: Some("class".to_string()), excluded_families: vec![] },
+            &NameGate { kind: "type_name".to_string(), attribute: Some(("declaration_family".to_string(), UnifiedSemanticValue::Identifier("class".to_string()))), binds_name: true, excluded_families: vec![] },
         ));
         // Required family differs.
         assert!(!StimuliGenerator::producer_family_satisfies_gate(
             &class_producer,
-            &NameGate { kind: "type_name".to_string(), family: Some("covergroup".to_string()), excluded_families: vec![] },
+            &NameGate { kind: "type_name".to_string(), attribute: Some(("declaration_family".to_string(), UnifiedSemanticValue::Identifier("covergroup".to_string()))), binds_name: true, excluded_families: vec![] },
         ));
         // No required family but the producer's family is EXCLUDED (the lacks_fact case).
         assert!(!StimuliGenerator::producer_family_satisfies_gate(
             &class_producer,
-            &NameGate { kind: "type_name".to_string(), family: None, excluded_families: vec!["class".to_string()] },
+            &NameGate { kind: "type_name".to_string(), attribute: None, binds_name: true, excluded_families: vec!["class".to_string()] },
         ));
         // No required family, not excluded → ok.
         assert!(StimuliGenerator::producer_family_satisfies_gate(
             &class_producer,
-            &NameGate { kind: "type_name".to_string(), family: None, excluded_families: vec!["typedef".to_string()] },
+            &NameGate { kind: "type_name".to_string(), attribute: None, binds_name: true, excluded_families: vec!["typedef".to_string()] },
         ));
     }
 
@@ -22065,12 +22302,12 @@ mod tests {
         emit(&mut generator, "cg_b", "covergroup");
 
         assert_eq!(
-            generator.store_name_for_gate("type_name", Some("covergroup")).as_deref(),
+            generator.store_name_for_gate("type_name", Some(("declaration_family", &UnifiedSemanticValue::Identifier("covergroup".to_string())))).as_deref(),
             Some("cg_b"),
             "most-recent covergroup name wins"
         );
         assert_eq!(
-            generator.store_name_for_gate("type_name", Some("class")).as_deref(),
+            generator.store_name_for_gate("type_name", Some(("declaration_family", &UnifiedSemanticValue::Identifier("class".to_string())))).as_deref(),
             Some("cls_a")
         );
         assert_eq!(
@@ -22078,7 +22315,7 @@ mod tests {
             Some("cg_b"),
             "no required family → most-recent fact of the kind"
         );
-        assert_eq!(generator.store_name_for_gate("type_name", Some("nettype")), None);
+        assert_eq!(generator.store_name_for_gate("type_name", Some(("declaration_family", &UnifiedSemanticValue::Identifier("nettype".to_string())))), None);
         assert_eq!(generator.store_name_for_gate("let_name", None), None);
     }
 
@@ -22154,7 +22391,8 @@ mod tests {
             "inner_gated".to_string(),
             NameGate {
                 kind: "type_name".to_string(),
-                family: None,
+                attribute: None,
+                binds_name: true,
                 excluded_families: vec![],
             },
         );
@@ -22249,7 +22487,8 @@ mod tests {
             "gated_alt".to_string(),
             NameGate {
                 kind: "type_name".to_string(),
-                family: Some("class".to_string()),
+                attribute: Some(("declaration_family".to_string(), UnifiedSemanticValue::Identifier("class".to_string()))),
+                binds_name: true,
                 excluded_families: vec![],
             },
         );
@@ -22269,7 +22508,10 @@ mod tests {
             via_prefix.0, "gated_alt",
             "armed on the positive-gated Or alternative the render routes through, not the escape one"
         );
-        assert_eq!(via_prefix.1.family.as_deref(), Some("class"));
+        assert_eq!(
+            via_prefix.1.attribute_ref(),
+            Some(("declaration_family", &UnifiedSemanticValue::Identifier("class".to_string())))
+        );
         assert!(
             generator.name_gate_via_mandatory_prefix("no_gate").is_none(),
             "a mandatory prefix reaching no gate still yields no prelude (no over-reach)"
@@ -22336,7 +22578,8 @@ mod tests {
             "gated_alt".to_string(),
             NameGate {
                 kind: "type_name".to_string(),
-                family: Some("class".to_string()),
+                attribute: Some(("declaration_family".to_string(), UnifiedSemanticValue::Identifier("class".to_string()))),
+                binds_name: true,
                 excluded_families: vec![],
             },
         );
@@ -22355,7 +22598,10 @@ mod tests {
             via_sibling.0, "gated_alt",
             "armed on the off-path sibling's positive name gate"
         );
-        assert_eq!(via_sibling.1.family.as_deref(), Some("class"));
+        assert_eq!(
+            via_sibling.1.attribute_ref(),
+            Some(("declaration_family", &UnifiedSemanticValue::Identifier("class".to_string())))
+        );
         // A host whose off-path siblings are all ungated yields no prelude (no over-reach).
         let clean_hops = vec![("clean_host".to_string(), "root/s2".to_string())];
         assert!(
@@ -22390,7 +22636,8 @@ mod tests {
             "consumer".to_string(),
             NameGate {
                 kind: "type_name".to_string(),
-                family: Some("class".to_string()),
+                attribute: Some(("declaration_family".to_string(), UnifiedSemanticValue::Identifier("class".to_string()))),
+                binds_name: true,
                 excluded_families: vec![],
             },
         );
@@ -29540,6 +29787,209 @@ mod tests {
             "the rendered OR is reachable: {:?}",
             report.unreachable_branch_debt
         );
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.109: build a generator's inputs from EBNF TEXT — the semantic
+    /// suite's own grammar bodies — and write the grammar beside `target/` so the in-process
+    /// interpreter (`parse_harness_interpreter::interpret_parse`) can judge the witnesses.
+    #[cfg(all(feature = "ebnf_dual_run", feature = "generated_parsers"))]
+    fn eus109_grammar_from_text(
+        name: &str,
+        text: &str,
+    ) -> (
+        HashMap<String, ASTNode>,
+        Vec<String>,
+        Option<Annotations>,
+        std::path::PathBuf,
+    ) {
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+        use crate::ebnf_frontend::parse_ebnf_text_to_raw_ast_envelope;
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("target/eus109");
+        std::fs::create_dir_all(&dir).expect("target/eus109");
+        let path = dir.join(format!("{name}.ebnf"));
+        std::fs::write(&path, text).expect("write the synthetic grammar");
+        let envelope =
+            parse_ebnf_text_to_raw_ast_envelope(text, name, None).expect("parse the grammar text");
+        let raw_ast: Vec<JsonValue> = envelope
+            .get("raw_ast")
+            .and_then(|v| v.as_array())
+            .expect("envelope.raw_ast array")
+            .clone();
+        let (grammar_tree, rule_order, annotations) =
+            RustASTPipeline::new(PipelineConfig::default())
+                .transform_from_raw_ast(&raw_ast)
+                .expect("transform_from_raw_ast");
+        (grammar_tree, rule_order, annotations, path)
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.109: the shared judgement — the sample reaches the gated `=1;` item,
+    /// the LATEST header before it is the `reg` producer, and the interpreter accepts the whole text.
+    #[cfg(all(feature = "ebnf_dual_run", feature = "generated_parsers"))]
+    fn eus109_assert_ordered_and_accepted(grammar_path: &std::path::Path, sample: &str) {
+        use crate::parse_harness_interpreter::{InterpretOptions, interpret_parse};
+        let bare_at = sample
+            .find("=1;")
+            .unwrap_or_else(|| panic!("the witness reaches the gated item: {sample:?}"));
+        let prefix = &sample[..bare_at];
+        let last_reg = prefix.rfind("reg ");
+        let last_wire = prefix.rfind("wire ");
+        assert!(
+            last_reg.is_some() && last_reg > last_wire,
+            "the LATEST header before the gated item is the `reg` producer: {sample:?}"
+        );
+        let outcome = interpret_parse(grammar_path, sample, &InterpretOptions::default())
+            .expect("the interpreter runs");
+        assert!(
+            outcome.accepted,
+            "the interpreter accepts the ordered witness {sample:?}: {:?}",
+            outcome.error
+        );
+    }
+
+    #[cfg(all(feature = "ebnf_dual_run", feature = "generated_parsers"))]
+    #[test]
+    fn eus109_latest_attribute_gate_earns_an_ordering_prelude_the_interpreter_accepts() {
+        // ENGINE-UNIVERSAL-SERVICES.109 on the semantic suite's `sem_latest_attr_gate` grammar: the
+        // gate `latest_fact_attribute_equals(hdr, defaults, yes)` binds no name and its key is not
+        // `declaration_family`, so before this leaf `compute_name_gates` left `bare` out of the cohort
+        // and the plannable pass rendered `a=1;` with no header — `parsed=false` forever. Now the
+        // gate is producer-matchable, the plan carries an ORDERING prelude (no replay), and the
+        // rendered witness puts a `reg` header immediately before the gated item.
+        let text = "@entry: true\n@fact_kind: { name: hdr, attributes: [defaults], description: \"A port header; defaults says whether a header-less item may carry one.\" }\nprogram := item+\nitem := reg | wire | bare\n@emit_fact: { kind: hdr, name: header, defaults: yes }\nreg := \"reg \" word \";\" -> { body: $2.body }\n@emit_fact: { kind: hdr, name: header, defaults: no }\nwire := \"wire \" word \";\" -> { body: $2.body }\n@predicate: { name: latest_fact_attribute_equals, args: [hdr, defaults, yes], phase: post }\nbare := word \"=1;\" -> { body: $1.body }\nword := /[a-z]+/ -> { body: $1 }\n";
+        let (grammar_tree, rule_order, annotations, grammar_path) =
+            eus109_grammar_from_text("sem_latest_attr_gate", text);
+        let mut generator =
+            generator_with_annotations(&grammar_tree, &rule_order, annotations.as_ref(), 7);
+        let gate = generator
+            .gen_name_gate
+            .get("bare")
+            .expect("`bare` carries a positive gate the planner can match");
+        assert_eq!(gate.kind, "hdr");
+        assert_eq!(gate.attribute_ref(), Some(("defaults", &UnifiedSemanticValue::Boolean(true))), "the payload parser reads `yes` as a boolean, and the gate keeps it so");
+        assert!(!gate.binds_name, "a latest_ gate binds no name");
+        // The generation-side prune: an empty store refuses the gated rule, so an unplanned render
+        // of `bare` alone fails instead of producing text the parser rejects.
+        assert!(!generator.gen_latest_attribute_gate_satisfiable("bare"));
+        assert!(generator.gen_latest_attribute_gate_satisfiable("reg"));
+
+        assert!(
+            generator.set_reach_plan_for_rule("program", "bare", 16),
+            "`bare` is reachable from `program`"
+        );
+        {
+            let plan = generator.reach_plan.as_ref().expect("plan installed");
+            let prelude = plan
+                .prelude
+                .as_ref()
+                .expect("the plan carries a prelude for the gated target");
+            assert_eq!(prelude.gated_rule, "bare");
+            assert_eq!(prelude.iterations, 1, "single-pass, like every name prelude");
+            let arm = prelude.name_gate.as_ref().expect("a name-gate arm");
+            assert!(!arm.replay, "ordering-only: the consumer renders normally");
+            assert_eq!(arm.attribute_ref(), Some(("defaults", &UnifiedSemanticValue::Boolean(true))));
+        }
+        let attempt = generator.attempt_target_witness("program", None, true);
+        let sample = attempt.result.expect("a witness renders");
+        eus109_assert_ordered_and_accepted(&grammar_path, &sample);
+    }
+
+    #[cfg(all(feature = "ebnf_dual_run", feature = "generated_parsers"))]
+    #[test]
+    fn eus109_ordering_prelude_forces_the_producers_emitting_branch() {
+        // ENGINE-UNIVERSAL-SERVICES.109 — the SystemVerilog shape one level down: the producer's
+        // `@emit_fact` is BRANCH-start on a multi-alternative rule (`ansi_port_declaration_v2005`
+        // emits `ansi_port_header` from three alternatives; only `output reg` says `defaults: yes`).
+        // Reaching the producer RULE alone renders its first, `defaults: no` alternative, so the
+        // ordering prelude must force the alternative whose emit carries the gate's `(key, value)`.
+        let text = "@entry: true\n@fact_kind: { name: hdr, attributes: [defaults], description: \"A header.\" }\nprogram := item+\nitem := header | bare\nheader := @emit_fact: { kind: hdr, name: header, defaults: no } \"wire \" word \";\" -> { kind: \"wire\", body: $2.body }\n        | @emit_fact: { kind: hdr, name: header, defaults: yes } \"reg \" word \";\" -> { kind: \"reg\", body: $2.body }\n@predicate: { name: latest_fact_attribute_equals, args: [hdr, defaults, yes], phase: post }\nbare := word \"=1;\" -> { body: $1.body }\nword := /[a-z]+/ -> { body: $1 }\n";
+        let (grammar_tree, rule_order, annotations, grammar_path) =
+            eus109_grammar_from_text("branch_start_producer", text);
+        let mut generator =
+            generator_with_annotations(&grammar_tree, &rule_order, annotations.as_ref(), 7);
+        assert_eq!(
+            generator.producer_emitting_branch("header", "hdr", Some(("defaults", &UnifiedSemanticValue::Boolean(true)))),
+            Some(("root".to_string(), 1)),
+            "the attribute-aware read picks the `reg` alternative"
+        );
+        assert_eq!(
+            generator.producer_emitting_branch("header", "hdr", None),
+            Some(("root".to_string(), 0)),
+            "CONTROL — without an attribute the `.4b.17` first-emitting-branch read is unchanged"
+        );
+        assert!(generator.set_reach_plan_for_rule("program", "bare", 16));
+        {
+            let plan = generator.reach_plan.as_ref().expect("plan installed");
+            let prelude = plan.prelude.as_ref().expect("an ordering prelude");
+            assert_eq!(
+                prelude
+                    .sub_plan
+                    .directives
+                    .get(&("header".to_string(), "root".to_string()))
+                    .copied(),
+                Some(1),
+                "the prelude's sub-plan forces the producer's emitting alternative"
+            );
+        }
+        let attempt = generator.attempt_target_witness("program", None, true);
+        let sample = attempt.result.expect("a witness renders");
+        eus109_assert_ordered_and_accepted(&grammar_path, &sample);
+    }
+
+    #[cfg(all(feature = "ebnf_dual_run", feature = "generated_parsers"))]
+    #[test]
+    fn eus109_ordering_prelude_hosts_the_producer_in_a_sequence_body_behind_a_mandatory_first_item() {
+        // ENGINE-UNIVERSAL-SERVICES.109 — the port-list shape itself: a MANDATORY first item, then a
+        // `*` whose body is a SEQUENCE (`sep attr* item`, the `comma attribute_instance*
+        // ansi_port_declaration` of `list_of_port_declarations`). Two things had to give: the
+        // prelude host must be found inside a sequence body (`quantified_body_rule_names`), and
+        // the first item — forced into the gated shape by the plan's occurrence-blind directive —
+        // must FAIL generation and fall back to an ungated alternative instead of rendering text
+        // the parser rejects (the `latest_fact_attribute_equals` prune).
+        let text = "@entry: true\n@fact_kind: { name: hdr, attributes: [defaults], description: \"A header.\" }\nprogram := \"(\" item ( sep attr* item )* \")\"\nsep := \",\"\nattr := \"@\"\nitem := plain | header | bare\nplain := word -> { body: $1.body }\nheader := @emit_fact: { kind: hdr, name: header, defaults: no } \"wire \" word \";\" -> { kind: \"wire\", body: $2.body }\n        | @emit_fact: { kind: hdr, name: header, defaults: yes } \"reg \" word \";\" -> { kind: \"reg\", body: $2.body }\n@predicate: { name: latest_fact_attribute_equals, args: [hdr, defaults, yes], phase: post }\nbare := word \"=1;\" -> { body: $1.body }\nword := /[a-z]+/ -> { body: $1 }\n";
+        let (grammar_tree, rule_order, annotations, grammar_path) =
+            eus109_grammar_from_text("sequence_body_host", text);
+        let mut generator =
+            generator_with_annotations(&grammar_tree, &rule_order, annotations.as_ref(), 7);
+        assert_eq!(
+            generator.quantified_body_rule_names("program", "root/s2"),
+            vec!["sep".to_string(), "item".to_string()],
+            "the sequence body's mandatory rule references, in order (`attr*` is not guaranteed)"
+        );
+        assert_eq!(
+            generator.quantified_body_rule_name("program", "root/s2"),
+            None,
+            "CONTROL — the single-reference read never saw a sequence body"
+        );
+        // The diversified route the certificate's carrier pass takes: the target on the `*`
+        // iteration, not the mandatory first item (`install_reach_plan_from_hops`, as
+        // `set_reach_plan_for_rule_mode` installs a BFS plan).
+        let hops = vec![
+            ("program".to_string(), "root/s2/q/s2".to_string()),
+            ("item".to_string(), "root/o2".to_string()),
+        ];
+        generator.install_reach_plan_from_hops(&hops, "bare", 16);
+        {
+            let plan = generator.reach_plan.as_ref().expect("plan installed");
+            let prelude = plan
+                .prelude
+                .as_ref()
+                .expect("the prelude is hosted in the `*` whose body is a sequence");
+            assert_eq!(prelude.site, ("program".to_string(), "root/s2".to_string()));
+            assert_eq!(prelude.gated_rule, "bare");
+        }
+        let attempt = generator.attempt_target_witness("program", None, true);
+        let sample = attempt.result.expect("a witness renders");
+        assert!(
+            sample.starts_with('(') && sample.ends_with(')'),
+            "a whole list renders: {sample:?}"
+        );
+        // The first item was forced toward `bare` and REFUSED by the prune, so it is not `…=1;`.
+        let first_item = sample[1..].split(',').next().unwrap_or("");
+        assert!(
+            !first_item.contains("=1;"),
+            "the mandatory first item falls back to an ungated alternative: {sample:?}"
+        );
+        eus109_assert_ordered_and_accepted(&grammar_path, &sample);
     }
 
     #[test]

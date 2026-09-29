@@ -4,6 +4,10 @@ title: A store-gated target cannot be witnessed from its own rule — the witnes
 answers:
   - "why does a coverage target report never_hit at every depth and every seed"
   - "what does STORE-AWARE-GEN fact_count_at_least predicate unsatisfiable (zero source facts) mean in a gap report"
+  - "what does STORE-AWARE-GEN latest_fact_attribute_equals predicate unsatisfiable mean"
+  - "why does the generator refuse a rule gated on the latest fact attribute when no header precedes it"
+  - "how is a latest_fact_attribute_equals gate witnessed — the ordering prelude"
+  - "why did ansi_port_default_governed_v2005 read UNKNOWN on the verilog_2005 certificate"
   - "why can't a semantic prelude fix a target whose gate needs a fact from above it"
   - "what is a store-entry-blocked witness target"
   - "what does store_entry_raises= on the witness pass summary line count"
@@ -169,3 +173,33 @@ precondition.
 See also [[sv-residual-depth-budget-cause]] (the other residual class — where a budget *was* the
 cause), [[branch-failure-reasons-are-the-witness-why]] (how to read which class you are in), and
 [[closed-loop-residual-ratchet]] (banking the win).
+
+⭐⭐ **A GATE ON THE LATEST FACT'S ATTRIBUTE IS A THIRD KIND, AND IT NEEDS BOTH HALVES**
+(`ENGINE-UNIVERSAL-SERVICES.109`, 2026-09-29). `latest_fact_attribute_equals(K, key, V)` — SV's
+`ansi_port_default_governed_v2005`, gated on the governing `ansi_port_header` saying `defaults: yes` —
+binds no name (it asks about the LATEST `K` fact, not about the consumer's own identifier), and the
+planner had treated every attribute key other than `declaration_family` as "not producer-matchable",
+so the rule read UNKNOWN on the `verilog_2005` certificate at every seed while four pins and a corpus
+row exercised it on the release binary. Two things had to change, and neither alone witnesses it:
+
+1. **An ORDERING-only prelude.** The name-gate cohort now carries the gate's `(key, value)` for any
+   key plus a `binds_name` flag; a non-binding gate admits a constant-named producer (`name:
+   "header"`), forces the producer's EMITTING alternative (the branch whose branch-start `@emit_fact`
+   carries the value — three alternatives emit the kind, one says `yes`), may host the producer in a
+   SEQUENCE quantifier body (`( comma attribute_instance* ansi_port_declaration )*`, read by
+   `quantified_body_rule_names`), and replays nothing: the consumer renders normally, one producer
+   iteration ahead of it.
+2. **A generation-side prune on the same predicate.** A reach plan's directives are keyed on
+   `(rule, node_path)`, not on the occurrence, so the MANDATORY FIRST port item is forced into the
+   gated shape exactly like the on-path item — every probe read `module\foo (\foo =1.57);endmodule`,
+   a defaulted first item with no header. `generate_rule` now refuses a rule whose latest-attribute
+   gate is unsatisfiable against the generation store (the parser's own predicate, asked of the same
+   store), so the forced first item fails and `generate_or` falls back to a plain header; the prelude's
+   producer then governs the on-path item. The prune is NOT bypassed by an armed prelude — the count
+   prune's bypass exists for the count prelude's phase-1 `$ref` capture, which an ordering prelude
+   never performs — and `StoreGateScope::GenerationPruned` counts these gates, so the entry-raise
+   verdict sees them.
+
+Name-binding gates (`has_fact` / `fact_attribute_equals`) keep every proven path byte-identical: the
+single body-rule read, the whole-render producer admission, the replay, and the no-prune rule.
+
