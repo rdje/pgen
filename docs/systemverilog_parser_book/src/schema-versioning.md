@@ -403,6 +403,20 @@ each under the memory guard, sequentially.
 12. **Before the commit**: `bash scripts/check_doctrines.sh` (every registered doctrine, incl.
     `BASELINE-IDENTITY`, which refuses a contract whose declared inputs moved beyond its budget) and
     `bash scripts/check_no_background_jobs.sh`.
+13. **The library test suite under the full feature set, on the same final bytes** (since
+    `SV-CORPUS-GRAD.34`, 2026-09-29; in post chain A2, beside the family umbrellas):
+    `cd rust && cargo test --features "generated_parsers ebnf_dual_run" --lib` — every unit test, ≈ 4 min
+    once the test binary is built (1 310 tests today), under the memory guard. ⛔ **Why a release gate and
+    not a developer courtesy**: several unit tests pin the REAL grammar — the class-B reach-plan test
+    `witness_branch_plan_forces_quantifier_on_real_systemverilog_class_b_target` names a rule, a node path
+    and a branch of `grammars/systemverilog.ebnf` so that a restructure which moves the site fails there
+    rather than silently in a gate stage — and no other gate runs them. Measured: that test was red from
+    `1.0.215` (`.3.42` lifted the inline group it named into `nonrange_lvalue_scope`) through `1.0.246` —
+    twenty releases, each ceremony green, found by an engine leaf's own suite run 22 days later. A red test
+    blocks the release. A test that no longer describes the grammar is re-derived on the measurement (the
+    two vintages' `--emit-raw-ast-json` dumps, `PGEN_REACH_PATH_DUMP=1`'s `REFUSED:` line naming the node that
+    stands at the path), never re-pinned by hand; a red test that describes the grammar correctly is a
+    grammar defect and is fixed in the grammar.
 
 ## Future major version
 

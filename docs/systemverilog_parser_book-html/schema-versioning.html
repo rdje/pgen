@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3d02c0cf.js";
+            window.path_to_searchindex_js = "searchindex-faebb670.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -577,6 +577,20 @@ release.</li>
 <li><strong>Before the commit</strong>: <code>bash scripts/check_doctrines.sh</code> (every registered doctrine, incl.
 <code>BASELINE-IDENTITY</code>, which refuses a contract whose declared inputs moved beyond its budget) and
 <code>bash scripts/check_no_background_jobs.sh</code>.</li>
+<li><strong>The library test suite under the full feature set, on the same final bytes</strong> (since
+<code>SV-CORPUS-GRAD.34</code>, 2026-09-29; in post chain A2, beside the family umbrellas):
+<code>cd rust &amp;&amp; cargo test --features "generated_parsers ebnf_dual_run" --lib</code> — every unit test, ≈ 4 min
+once the test binary is built (1 310 tests today), under the memory guard. ⛔ <strong>Why a release gate and
+not a developer courtesy</strong>: several unit tests pin the REAL grammar — the class-B reach-plan test
+<code>witness_branch_plan_forces_quantifier_on_real_systemverilog_class_b_target</code> names a rule, a node path
+and a branch of <code>grammars/systemverilog.ebnf</code> so that a restructure which moves the site fails there
+rather than silently in a gate stage — and no other gate runs them. Measured: that test was red from
+<code>1.0.215</code> (<code>.3.42</code> lifted the inline group it named into <code>nonrange_lvalue_scope</code>) through <code>1.0.246</code> —
+twenty releases, each ceremony green, found by an engine leaf’s own suite run 22 days later. A red test
+blocks the release. A test that no longer describes the grammar is re-derived on the measurement (the
+two vintages’ <code>--emit-raw-ast-json</code> dumps, <code>PGEN_REACH_PATH_DUMP=1</code>’s <code>REFUSED:</code> line naming the node that
+stands at the path), never re-pinned by hand; a red test that describes the grammar correctly is a
+grammar defect and is fixed in the grammar.</li>
 </ol>
 <h2 id="future-major-version"><a class="header" href="#future-major-version">Future major version</a></h2>
 <p>A schema 1.0.0 milestone will land when the SV annotation campaign completes — that is, when every rule in <code>grammars/systemverilog.ebnf</code> carries either a return annotation or a deliberate decision to remain raw envelope. At that point all shape definitions move to Tier 2 (locked) and no further default fall-through changes are expected.</p>

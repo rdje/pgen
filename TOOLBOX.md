@@ -1828,6 +1828,19 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - **WHAT:** prints the BFS hop chain (`reach_hops`) the planner installs to steer generation toward each target — the entry→target rule path + chosen branch per hop.
 - **WHEN:** a `parsed=true witnessed_target=false` result — to see *which* path stole the bytes.
 - **HOW:** prefix any generation/cert command: `PGEN_REACH_PATH_DUMP=1 ./rust/target/debug/ast_pipeline … 2>&1 | grep -i reach`.
+- ⭐ **BRANCH-target plans print too, and a REFUSED plan names WHY** (`SV-CORPUS-GRAD.34`, 2026-09-29). The
+  witness pass's `set_reach_plan_forcing_quantifiers` (every `branch::rule::path#i` target — the `.7.4.6.11`
+  class-B installer) used to return a bare `false` with no line, so a refused branch target had no dump at all;
+  the founding real-grammar class-B unit test was red for twenty releases on exactly such a `false`, and its
+  cause took a raw-AST diff of two grammar vintages to read. Now every branch plan prints
+  `[reach-path] target='rule@path#i' entry='…' hops=[…] forced_quantifier_sites=[…]` — the hop chain AND the
+  `?`/`*` sites it will force — and a refusal prints
+  `[reach-path] target='rule@path#i' entry='…' REFUSED: <reason>`, the reason re-checked in the installer's
+  own order: the rule is not in the grammar / no node at the path / *the node at 'root/s0/q' in
+  'nonrange_variable_lvalue' is not an OR but a rule reference to 'nonrange_lvalue_scope'* (the `.34` line — a
+  helper-rule lift moved the OR one hop down) / the branch index is out of range / the target is not
+  graph-reachable from the entry (lookahead-only references are not edges). A unit test on the real grammar
+  runs under it as `PGEN_REACH_PATH_DUMP=1 cargo test --features "generated_parsers ebnf_dual_run" --lib <name> -- --nocapture`.
 - ⛔⛔ **RUN THIS BEFORE YOU BLAME THE PLANNER — a probe SAMPLE cannot tell you what the plan ASKED
   for** (`ENGINE-UNIVERSAL-SERVICES.10`, measured). A `witnessed_target=false` sample shows where
   generation *ended up*; the hop dump shows what it was *instructed to do*. They are different

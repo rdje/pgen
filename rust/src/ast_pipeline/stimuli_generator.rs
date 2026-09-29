@@ -3566,6 +3566,28 @@ impl<'a> StimuliGenerator<'a> {
             target_branch_index,
         ) {
             Some((chain, quantifier_sites, hops)) => {
+                // SV-CORPUS-GRAD.34 (OBSERVABILITY-ONLY): `PGEN_REACH_PATH_DUMP=1` prints the
+                // BRANCH-target plan the way `set_reach_plan_for_rule_mode` prints the rule-target
+                // one — the hop chain AND the quantifier sites this plan will force — so "what did
+                // the plan ask for at this site" is answerable for a branch target too. Presence-
+                // gated PRINT only, never a computation change; the crate shadows `eprintln!` ->
+                // trace, so force real stderr with `::std::eprintln!`.
+                if std::env::var_os("PGEN_REACH_PATH_DUMP").is_some() {
+                    let forced_sites: &[(String, String)] = if force_quantifiers {
+                        &quantifier_sites
+                    } else {
+                        &[]
+                    };
+                    ::std::eprintln!(
+                        "  [reach-path] target='{}@{}#{}' entry='{}' hops={:?} forced_quantifier_sites={:?}",
+                        target_rule,
+                        target_node_path,
+                        target_branch_index,
+                        entry_rule,
+                        hops,
+                        forced_sites
+                    );
+                }
                 let mut plan = ActiveReachPlan::from_directives(&chain, bypass_fuel);
                 // SV-EXH-PROOF.7.2.3: snapshot the target site's existing coverage
                 // so reach_target_outcome reports only THIS plan's delta.
@@ -3597,7 +3619,101 @@ impl<'a> StimuliGenerator<'a> {
                 self.reach_plan = Some(plan);
                 true
             }
-            None => false,
+            None => {
+                // SV-CORPUS-GRAD.34 (OBSERVABILITY-ONLY): a REFUSED branch target names WHY under the
+                // same switch. The founding real-grammar class-B test failed for twenty-two days on
+                // a bare `false` whose cause — the OR at the named path had become a rule reference
+                // when `SV-CORPUS-GRAD.3.42` lifted the group — took a raw-AST diff of two grammar
+                // vintages to read. Presence-gated PRINT only; generation is byte-identical.
+                if std::env::var_os("PGEN_REACH_PATH_DUMP").is_some() {
+                    ::std::eprintln!(
+                        "  [reach-path] target='{}@{}#{}' entry='{}' REFUSED: {}",
+                        target_rule,
+                        target_node_path,
+                        target_branch_index,
+                        entry_rule,
+                        self.branch_target_refusal_reason(
+                            entry_rule,
+                            target_rule,
+                            target_node_path,
+                            target_branch_index,
+                        )
+                    );
+                }
+                false
+            }
+        }
+    }
+
+    /// SV-CORPUS-GRAD.34: why `compute_reach_path_with_quantifier_sites` refused a branch target,
+    /// re-checked in the order the installer checks — the rule, the node at the path (and what kind
+    /// of node stands there when it is not an OR), the branch index, the hop chain. Diagnostic text
+    /// read only under `PGEN_REACH_PATH_DUMP`; generation never consults it. GENERAL/parser-agnostic
+    /// — it names node shapes and the caller's own identifiers, no grammar's vocabulary.
+    fn branch_target_refusal_reason(
+        &self,
+        entry_rule: &str,
+        target_rule: &str,
+        target_node_path: &str,
+        target_branch_index: usize,
+    ) -> String {
+        let Some(rule_node) = self.grammar_tree.get(target_rule) else {
+            return format!("rule '{}' is not in the grammar", target_rule);
+        };
+        let Some(node) = self.node_at_path(rule_node, target_node_path) else {
+            return format!("no node at '{}' in '{}'", target_node_path, target_rule);
+        };
+        let ASTNode::Or { alternatives } = node else {
+            return format!(
+                "the node at '{}' in '{}' is not an OR but {}",
+                target_node_path,
+                target_rule,
+                Self::describe_node_kind(node)
+            );
+        };
+        if target_branch_index >= alternatives.len() {
+            return format!(
+                "branch #{} is out of range ({} alternatives at '{}')",
+                target_branch_index,
+                alternatives.len(),
+                target_node_path
+            );
+        }
+        if self.reach_hops(entry_rule, target_rule).is_none() {
+            return format!(
+                "'{}' is not graph-reachable from '{}' (lookahead-only references are not edges)",
+                target_rule, entry_rule
+            );
+        }
+        "no single check refuses it in isolation".to_string()
+    }
+
+    /// SV-CORPUS-GRAD.34: one phrase naming a grammar-tree node's shape for the refusal reason.
+    fn describe_node_kind(node: &ASTNode) -> String {
+        match node {
+            ASTNode::Or { alternatives } => format!("an OR of {} alternatives", alternatives.len()),
+            ASTNode::Sequence { elements } => {
+                format!("a sequence of {} elements", elements.len())
+            }
+            ASTNode::Quantified { quantifier, .. } => format!("a `{}` quantifier", quantifier),
+            ASTNode::Lookahead { positive, .. } => {
+                format!(
+                    "a {} lookahead",
+                    if *positive { "positive" } else { "negative" }
+                )
+            }
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(_) => "a parenthesised group atom".to_string(),
+                ASTValue::Token(parts) => match Self::extract_token_pair(parts) {
+                    Some(("rule_reference", referenced)) => {
+                        format!("a rule reference to '{}'", referenced)
+                    }
+                    Some((token_type, token_value)) => {
+                        format!("a `{}` terminal ({:?})", token_type, token_value)
+                    }
+                    None => "a terminal".to_string(),
+                },
+            },
         }
     }
 
@@ -29770,10 +29886,24 @@ mod tests {
     #[cfg(all(feature = "ebnf_dual_run", feature = "generated_parsers"))]
     #[test]
     fn witness_branch_plan_forces_quantifier_on_real_systemverilog_class_b_target() {
-        // SV-EXH-PROOF.7.4.6.11: the same assertion against the REAL grammar and a REAL
-        // residual target from the `.7.4.6.8` class-B list — `nonrange_variable_lvalue`
-        // branches #0/#1/#2 at `@root/s0/q`. Guards the fix against a grammar restructure
-        // that would move the site (the synthetic test above cannot see that).
+        // SV-EXH-PROOF.7.4.6.11: the same assertion against the REAL grammar and REAL targets, so a
+        // grammar restructure that moves a class-B site fails HERE rather than silently in a
+        // ten-minute gate stage (the synthetic tests above cannot see the grammar).
+        //
+        // SV-CORPUS-GRAD.34 (2026-09-29): it fired, and was heard twenty-two days late. The founding
+        // subject — `nonrange_variable_lvalue`'s inline
+        // `( implicit_class_handle dot | package_scope | class_scope )?` at `root/s0/q`, branches
+        // #0/#1/#2 of the `.7.4.6.8` class-B list — was LIFTED by SV-CORPUS-GRAD.3.42 (`8e8435db9`,
+        // release 1.0.215) into the helper rule `nonrange_lvalue_scope`, so `root/s0/q` became a rule
+        // reference and no OR node (`--emit-raw-ast-json`: `["rule_reference","nonrange_lvalue_scope"],
+        // ["operator","?"]` where the 1.0.214 grammar read `["group_open","("],…,["group_close",")"],
+        // ["operator","?"]`), and `PGEN_REACH_PATH_DUMP=1` on the old plan now reads
+        // `REFUSED: the node at 'root/s0/q' in 'nonrange_variable_lvalue' is not an OR but a rule
+        // reference to 'nonrange_lvalue_scope'`. No ceremony ran the library suite, so the test was
+        // red for twenty releases (item 13 of the SV release ceremony since `.34`). Re-derived on the
+        // measurement, the real grammar now pins BOTH halves of
+        // `compute_reach_path_with_quantifier_sites` — the hop-path half and the intra-rule half —
+        // plus the founding site as a control.
         use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
         use crate::ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope;
 
@@ -29798,23 +29928,108 @@ mod tests {
                 ..StimuliConfig::default()
             },
         );
-
-        let (rule, node_path) = ("nonrange_variable_lvalue", "root/s0/q");
-        assert!(
-            generator.set_reach_plan_forcing_quantifiers(rule, rule, node_path, 1, 16),
-            "the real class-B target {rule}@{node_path}#1 must still resolve to a reach path"
-        );
-        assert_eq!(
+        let forced_sites = |generator: &StimuliGenerator| -> HashMap<(String, String), usize> {
             generator
                 .reach_plan
                 .as_ref()
                 .expect("plan installed")
                 .forced_quantifier_min
-                .get(&(rule.to_string(), "root/s0".to_string()))
+                .clone()
+        };
+
+        // (1) THE HOP-PATH HALF, at the founding site. The class-B mechanism did not leave the
+        // grammar with the lift: the `?` at `nonrange_variable_lvalue@root/s0` still gates the scope
+        // prefix, and the branch target moved one hop down into `nonrange_lvalue_scope@root`. A plan
+        // from the founding rule to the lifted rule's `package_scope` branch must install and force
+        // exactly the site the founding assertion forced — now derived from the HOP's reference-site
+        // path (`quantifier_sites_along_path(hop_rule, hop_site_path)`), not from the target's own.
+        assert!(
+            generator.set_reach_plan_forcing_quantifiers(
+                "nonrange_variable_lvalue",
+                "nonrange_lvalue_scope",
+                "root",
+                1,
+                16
+            ),
+            "the lifted class-B target nonrange_lvalue_scope@root#1 must resolve to a reach path \
+             from nonrange_variable_lvalue"
+        );
+        let forced = forced_sites(&generator);
+        assert_eq!(
+            forced
+                .get(&("nonrange_variable_lvalue".to_string(), "root/s0".to_string()))
                 .copied(),
             Some(1),
-            "the `( implicit_class_handle dot | package_scope | class_scope )?` group at \
-             root/s0 must be forced to expand — that expansion is the whole class-B fix"
+            "the `nonrange_lvalue_scope?` site at nonrange_variable_lvalue@root/s0 must be forced \
+             to expand — the same site the founding assertion forced, reached as a hop"
+        );
+        assert_eq!(
+            forced.len(),
+            1,
+            "no other quantifier sits on that one-hop path: {:?}",
+            forced
+        );
+        generator.clear_reach_plan();
+
+        // (2) THE INTRA-RULE HALF, on a class-B site the grammar still spells inline — the
+        // `.7.4.6.8` shape, an OR whose OWN node path crosses a `/q`. Read from the gap report of
+        // the 1.0.246 grammar (`--gap-report-json`: 15 branch targets under a `/q` in 6 rules, 48
+        // before the lift): `randomize_call`'s
+        // `( lparen ( variable_identifier_list | kw_null )? rparen )?` — IEEE 1800-2017 A.6.7.1 /
+        // §18.7's `randomize( null )` — is an OR under TWO nested `?`. Its own-rule plan (the
+        // witness pass's first attempt, `entry_rule == target_rule`) must force both.
+        assert!(
+            generator.set_reach_plan_forcing_quantifiers(
+                "randomize_call",
+                "randomize_call",
+                "root/s2/q/s1/q",
+                1,
+                16
+            ),
+            "the real class-B target randomize_call@root/s2/q/s1/q#1 must still resolve to a reach path"
+        );
+        let forced = forced_sites(&generator);
+        assert_eq!(
+            forced
+                .get(&("randomize_call".to_string(), "root/s2".to_string()))
+                .copied(),
+            Some(1),
+            "the outer `( lparen … rparen )?` at root/s2 must be forced to expand"
+        );
+        assert_eq!(
+            forced
+                .get(&("randomize_call".to_string(), "root/s2/q/s1".to_string()))
+                .copied(),
+            Some(1),
+            "the inner `( variable_identifier_list | kw_null )?` at root/s2/q/s1 must be forced to \
+             expand — that expansion is the whole class-B fix"
+        );
+        assert_eq!(
+            forced.len(),
+            2,
+            "exactly the two nested optionals are forced, nothing else: {:?}",
+            forced
+        );
+        generator.clear_reach_plan();
+
+        // (3) THE CONTROL — the founding site as it was spelled. A plan naming an OR at
+        // `nonrange_variable_lvalue@root/s0/q` must be REFUSED: since SV-CORPUS-GRAD.3.42 that node
+        // is a rule reference. If this control ever fails the group was re-inlined, and (1) is the
+        // assertion to re-derive.
+        assert!(
+            !generator.set_reach_plan_forcing_quantifiers(
+                "nonrange_variable_lvalue",
+                "nonrange_variable_lvalue",
+                "root/s0/q",
+                1,
+                16
+            ),
+            "nonrange_variable_lvalue@root/s0/q is a rule reference since SV-CORPUS-GRAD.3.42, \
+             not an OR — the founding plan must be refused"
+        );
+        assert!(
+            generator.reach_plan.is_none(),
+            "a refused plan installs nothing"
         );
     }
 
