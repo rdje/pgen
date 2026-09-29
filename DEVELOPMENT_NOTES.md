@@ -1,5 +1,14 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.83 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0178`): registering a number with a proven pattern is mostly deciding which pattern, and the check's first run is a measurement of the check
+
+- **Two patterns, two jobs.** `BASELINE-IDENTITY` answers "did the inputs of this derivation move since it was stamped"; `SV-CORPUS-DENOMINATOR` answers "does every surface still say what the derivation says". The per-frame census needed both, and reusing the verifier for the first (`--stamp` / `--verify` on a JSON outside its register — it accepts any repo-relative path) kept the digest definition singular.
+- **Stamp last.** The engine file is both a surface (its doc comment carries an anchor) and a declared input (its constants feed the deriver), so an anchor edit after the stamp reads as a stale baseline. The order is: edit every surface, then stamp, then run.
+- **Marker and tuple on one line.** "The first code span after the marker" admitted two wrong readings on the author's own four anchors — a wrapped tuple on the next line and a doctrine name in an earlier span. A spelling the check can misread is a spelling it will misread on the day it matters.
+- **A note is not a budget.** The census's engine drift is real (13 and 11 commits over the declared frame-shaping set) and unpriced; printing it with the re-measure command tells a reader how old the number is without inventing a threshold no episode has calibrated.
+- **A surface that says "default" for a constant that stopped being the default is a stale number wearing a word.** The margin table is against the 256 MiB reference; the default has been host-derived since `.69`(a). Fixed where the anchors were placed.
+- **`sed -i ''` is GNU-spelled here.** On this host `sed` is GNU sed, `-i ''` reads the expression as a file, and the `&&` chain after it silently did nothing; the one-line edit that "obviously worked" had not run. Python edits with an asserted match count are what every other edit in this session used, for this reason.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.80 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0177`): a tier decision is a census first, and this leaf's census was wrong three times
 
 - **Grep the workflows before saying which tier runs a test.** Two corrections had already been recorded on this leaf; the surviving sentence still missed a hosted lane wired five days before it was written. The population is small (`.github/workflows/*.yml`, the two aggregate scripts, the ceremony list) and one grep names every reader.

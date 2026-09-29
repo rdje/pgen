@@ -516,7 +516,7 @@ pub fn dedicated_parse_stack_bytes() -> usize {
 /// said the margin was measured "on SystemVerilog and on no other family", which the
 /// census superseded). Debug, 9 of 11 cells: per-frame cost spans **1 961 B**
 /// (`rtl_const_expr`) to **29 046 B** (`verilog_2005`), a **≈15×** spread, so no single
-/// byte floor could have served them all. The margin at the default —
+/// byte floor could have served them all. The margin at the 256 MiB reference —
 /// `budget ÷ (4 096 × B/frame)` — is **2.12×** at its tightest (`verilog_2005`),
 /// 2.4–2.5× for the other SystemVerilog profiles, and 11.7×–31.3× for every
 /// non-SystemVerilog family measured: **SystemVerilog is the binding case by ~5.5×**.
@@ -538,6 +538,11 @@ pub fn dedicated_parse_stack_bytes() -> usize {
 /// cheap-frame families in release are bounded by cost (a cell is reached at
 /// `budget / bytes_per_frame` frames and crossing is Θ(depth²) — `.68`; one release
 /// attempt cost 1.17 GB peak RSS on an 8 KB input — `.84`), and `regex` by `.82`.
+///
+/// ⭐ Per-frame census anchor: `debug 2.12x @ systemverilog/verilog_2005 · spread 14.81x · separation 5.55x · release 16.57x @ systemverilog/verilog_2005 · debug/release 7.83x @ systemverilog/verilog_2005 · measured 3d292d1a5 2026-08-30 (debug) / d5dc08fb1 2026-08-31 (release)`
+/// (`PER-FRAME-CENSUS-CURRENCY`, `.83` — this comment, the book, the SystemVerilog
+/// contract and the knowledge card are held to one derivation of the tracked census
+/// on every commit.)
 ///
 /// ⛔ **IT ONLY EVER SCALES DOWN.** A reservation above the default returns the
 /// requested depth unchanged: raising the first sample raises the depth a parse

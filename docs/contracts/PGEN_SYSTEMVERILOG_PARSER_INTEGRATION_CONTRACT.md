@@ -1119,6 +1119,10 @@ This is the document downstream projects such as Nexsim should read first when d
 > reach first is further away. The safety margin moves the other way and in your favour: above
 > 256 MiB the guard's first stack sample stays at 4 096 frames while the budget keeps growing, so
 > the margin on the worst measured cell goes **2.12× → 3.17×** at 384 MiB.
+> ⭐ Per-frame census anchor: `debug 2.12x @ systemverilog/verilog_2005 · spread 14.81x · separation 5.55x · release 16.57x @ systemverilog/verilog_2005 · debug/release 7.83x @ systemverilog/verilog_2005 · measured 3d292d1a5 2026-08-30 (debug) / d5dc08fb1 2026-08-31 (release)`
+> (`PER-FRAME-CENSUS-CURRENCY`, `ENGINE-UNIVERSAL-SERVICES.83` — the figure above is re-derived from
+> the tracked census on every commit and this line is held equal to it, as are the platform book,
+> the engine's doc comment and the knowledge card.)
 > ⚠️ The derivation is PER-PARSE — this API spawns one thread per call, so `N` concurrent
 > maximally-deep parses can commit up to `N/64` of host memory; set `PGEN_PARSE_STACK_BYTES` smaller
 > if you run high parse concurrency. Measured for scale: 128 concurrent live parse threads at 16 GiB

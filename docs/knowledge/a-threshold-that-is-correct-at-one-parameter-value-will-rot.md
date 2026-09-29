@@ -88,6 +88,11 @@ default the scale factor is exactly 1, so the shipped path is unchanged by const
   is 27 % away), so a value in one mode still cannot be derived from the value in the other. ⇒ **the
   invariance argument survives being measured, and the temptation it removes — carrying one number
   across a parameter — is refuted a second time on a second axis.**
+  ⭐ Per-frame census anchor: `debug 2.12x @ systemverilog/verilog_2005 · spread 14.81x · separation 5.55x · release 16.57x @ systemverilog/verilog_2005 · debug/release 7.83x @ systemverilog/verilog_2005 · measured 3d292d1a5 2026-08-30 (debug) / d5dc08fb1 2026-08-31 (release)`
+  — the four surfaces that quote these figures (this card, the platform book, the engine's doc
+  comment, the SystemVerilog contract) are held to one derivation of the tracked census on every
+  commit by `PER-FRAME-CENSUS-CURRENCY` (`ENGINE-UNIVERSAL-SERVICES.83`), which is the mechanism
+  the "four published surfaces carried that stale sentence" incident above was missing.
 - ⛔⛔ **APPLY THE LAW ONLY WHERE THE PARAMETER ACTUALLY DESCRIBES THE SUBJECT — this is the second
   half of the lesson and it cost a separate defect one commit later.** Once a threshold is a function
   of a parameter, every subject that threshold governs inherits the parameter whether or not it is

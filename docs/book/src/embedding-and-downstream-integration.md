@@ -151,7 +151,7 @@ admitted when this was written needed ≈8 MB / ≈70 MB, more than the 8 MB def
 > slice 1, `-0145`). This paragraph used to quote **2.37×** for SystemVerilog and say the other
 > families were unmeasured; the census superseded both halves. Debug per-frame cost, 9 of 11 cells:
 >
-> | family / profile | B/frame | margin at the 256 MiB default |
+> | family / profile | B/frame | margin at the 256 MiB reference |
 > |---|---|---|
 > | `systemverilog` / `verilog_2005` | 29 046 | **2.12×** |
 > | `systemverilog` / `sv_2023` | 24 903 | 2.47× |
@@ -205,6 +205,14 @@ admitted when this was written needed ≈8 MB / ≈70 MB, more than the 8 MB def
 > ⭐ Note the direction: the margin is `budget ÷ (4 096 × bytes_per_frame)`, so **cheap frames mean
 > wide margins**, while the census's cost is quadratic in `budget ÷ bytes_per_frame`, so **cheap
 > frames also mean expensive cells**. The measurement is cheapest exactly where the risk is highest.
+>
+> ⭐ Per-frame census anchor: `debug 2.12x @ systemverilog/verilog_2005 · spread 14.81x · separation 5.55x · release 16.57x @ systemverilog/verilog_2005 · debug/release 7.83x @ systemverilog/verilog_2005 · measured 3d292d1a5 2026-08-30 (debug) / d5dc08fb1 2026-08-31 (release)`
+> — held equal to a fresh derivation on every commit by the doctrine `PER-FRAME-CENSUS-CURRENCY`
+> (`ENGINE-UNIVERSAL-SERVICES.83`), on this page, the engine's own doc comment, the SystemVerilog
+> contract and the knowledge card alike, with the two tables above held row by row.
+> The margins are against the 256 MiB **reference** reservation (`DEDICATED_PARSE_STACK_BYTES`, the
+> fixed anchor every reservation is expressed as a share of); since `ENGINE-UNIVERSAL-SERVICES.69`(a)
+> and `.87` the *default* is derived from host memory and a larger host widens every margin.
 >
 > ⛔⛔⛔ **AND ONE MORE ABORT SURVIVED ALL OF THAT, ON THE SHIPPED ARTIFACT — FIXED 2026-08-31
 > (`ENGINE-UNIVERSAL-SERVICES.85`).** `.79` made the guard's FIRST sample reachable at every

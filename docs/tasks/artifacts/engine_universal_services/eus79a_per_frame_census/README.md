@@ -14,6 +14,7 @@ eleven.
 | `census_debug_96MiB.txt` | the recorded DEBUG run at the 96 MiB floor |
 | `census_release_96MiB.txt` | the recorded RELEASE run at the same floor |
 | `derive_margins.sh` | turns a recorded census into the MARGIN table, the spread, the tightest cell and the separation — reading the reservation and the headroom divisor out of the Rust source rather than from a literal |
+| `census_identity.json` | ⭐ `.83` — which tree each census was MEASURED on (commit, date, build mode, reservation) and a `BASELINE-IDENTITY` block over the inputs the published margin table is a function of (both census files, the two constant-bearing engine files); read by `scripts/check_per_frame_census_currency.sh`, which holds the four published surfaces to a fresh derivation on every commit and prints the census's engine drift as a note |
 
 ## Running it
 

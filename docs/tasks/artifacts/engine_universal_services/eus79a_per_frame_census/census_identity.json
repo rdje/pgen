@@ -1,0 +1,39 @@
+{
+  "identity": {
+    "_verifier": "bash scripts/check_baseline_identity.sh --verify docs/tasks/artifacts/engine_universal_services/eus79a_per_frame_census/census_identity.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
+    "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
+    "expectations": "confirmed",
+    "confirmed_by": "PGEN-ENGINE-UNIVERSAL-SERVICES-0178 (2026-09-30): derive_margins.sh re-derived every published margin from both census files against the engine's live constants and the four anchors were published from that run",
+    "verified_at_commit": "96537b3bda6d6b8a69773864924f7e2bbb32b058",
+    "inputs": {
+      "docs/tasks/artifacts/engine_universal_services/eus79a_per_frame_census/census_debug_96MiB.txt": "c59db06daa8f67559c0c1145790d4b69de7d45f0d666bb80ddc2db1bd6d9689b",
+      "docs/tasks/artifacts/engine_universal_services/eus79a_per_frame_census/census_release_96MiB.txt": "9e0af14d880a68a704e59e50f55db16ee494c43996a51faa56243d094b926713",
+      "rust/src/ast_pipeline/mod.rs": "2c214fa9e87b6ce59bdd2e03e3ca32bf4a397f9f992adb2be58034ab9714410c",
+      "rust/src/dedicated_parse_stack.rs": "29b0bb47045f7badf08c308b8d4f28336c421c09d34a83bcdef35eefd2df9b70"
+    }
+  },
+  "what_this_is": "The identity record of the per-frame stack-cost census (ENGINE-UNIVERSAL-SERVICES.79(a)) — which tree each census was MEASURED on, and the inputs the PUBLISHED margin table is a function of. Read by scripts/check_per_frame_census_currency.sh (doctrine PER-FRAME-CENSUS-CURRENCY, .83): the `identity` block below is stamped and re-hashed by scripts/check_baseline_identity.sh (one digest definition); `censuses` records the measurement's own vintage, which no re-derivation can refresh — only per_frame_census.sh can.",
+  "censuses": {
+    "census_debug_96MiB.txt": {
+      "measured_at_commit": "3d292d1a5f0f80bf51e52a7688a67aa8a3a8d82d",
+      "measured_on": "2026-08-30",
+      "build_mode": "debug",
+      "reservation_bytes": 100663296,
+      "landed_in": "PGEN-ENGINE-UNIVERSAL-SERVICES-0145"
+    },
+    "census_release_96MiB.txt": {
+      "measured_at_commit": "d5dc08fb1ab626f9e7f2fb1a8b0d7d468218a110",
+      "measured_on": "2026-08-31",
+      "build_mode": "release",
+      "reservation_bytes": 100663296,
+      "landed_in": "PGEN-ENGINE-UNIVERSAL-SERVICES-0151"
+    }
+  },
+  "frame_shaping_inputs_note": "A DECLARED set, not a proven-exhaustive one: the files whose change most directly moves what a generated parser pushes per frame — the code generator that emits the parser functions, the recursion guard, and the dedicated-stack module. The whole crate and the rustc version can move a frame too; the doctrine COUNTS commits touching this set since each census and prints the count as a note, never a failure, because no drift episode has been measured for this quantity and a budget without a measurement would be a guess.",
+  "frame_shaping_inputs": [
+    "rust/src/ast_pipeline/ast_based_generator.rs",
+    "rust/src/ast_pipeline/ast_code_generator.rs",
+    "rust/src/ast_pipeline/mutual_recursion_handler.rs",
+    "rust/src/dedicated_parse_stack.rs"
+  ]
+}
