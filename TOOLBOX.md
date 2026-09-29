@@ -2021,6 +2021,16 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   **15 → 0**, `left_recursion_eliminated` **3 → 4** and rules **1513 → 1537** — the synthesized
   clones coming back. ⛔ The dump still prints the verdict because a future refusal would mean a
   route whose constraint cannot be expressed at all, which is worth seeing rather than inferring.
+  ⭐ **The per-profile proof on BOTH engines is probe P6** (`.50`(c), 2026-09-30):
+  `docs/tasks/artifacts/engine_universal_services/indirect_lr/p6_crossing_profile_gates.ebnf`, six
+  rules with `prim_a` gated `["x", "y"]` and `cast_expr` gated `["x", "z"]` on one route. The dump
+  reads `route=0 … intersection=x donor=false` (synthesized) and `route=1 … intersection=x,z
+  donor=true` (copied verbatim); `probe_profiles.sh` beside it drives 18 (input × profile) cells on
+  the generated parser (scratch slot) and the interpreter, holding each to a pre-registered verdict
+  AND outer `kind`, and exits nonzero on any disagreement (`P6-CROSSING-GATES: OK …`). ⛔ The `kind`
+  column is the load-bearing one: the two suffix routes iterate a byte-identical suffix and differ
+  only in the AST they declare, so a gate copied from the wrong donor shows up as a wrong `kind`
+  under one profile (`m'(n)` under `z` must read `b`), never as a wrong verdict.
 
 
 - ⭐ **`--no-eliminate-indirect-left-recursion` is the A/B switch, and it is a MEASUREMENT switch, not a policy one.** A shipped parser is always generated with the pass on. It exists because every left-recursion counter this repository quotes (`--lint-grammar`'s headline, this survey's census) loses its "before" the moment the pass lands, and a before→after taken from two different binaries is not a measurement.

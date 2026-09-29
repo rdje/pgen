@@ -144,6 +144,62 @@ no cycle guard at all and reaches the same situations through a whole-stack dept
 Tracked as `ENGINE-UNIVERSAL-SERVICES.14`; until it closes, no claim about an un-eliminated cycle
 may rest on the interpreter column alone.
 
+### ⭐ P6 — two CROSSING dialect gates on ONE route: eliminated, and gated per profile on BOTH engines (`ENGINE-UNIVERSAL-SERVICES.50`(c), 2026-09-30)
+
+`p6_crossing_profile_gates.ebnf` is P4's knot with the `.50` shape on it: `prim := prim_a | prim_b`,
+`prim_a` gated `@profiles: ["x", "y"]`, `cast_expr` gated `@profiles: ["x", "z"]`, `ct := prim`. Route 0
+(through `prim_a`) passes BOTH gates — neither list contains the other, the intersection is `{x}`, and
+no rule on the route declares it; route 1 (through `prim_b`) passes only `cast_expr`'s. Before `.50`(b)
+the pass REFUSED route 0 and abandoned the whole candidate; now it synthesizes the intersection:
+
+```text
+[indirect-lr-gate] base='prim' route=0 verdict=gated hops=4 declaring_hops=2 distinct_lists=2 nested=false intersection=x donor=false lists=[["x", "y"], ["x", "z"]]
+[indirect-lr-gate] base='prim' route=1 verdict=gated hops=4 declaring_hops=1 distinct_lists=1 nested=true intersection=x,z donor=true lists=[["x", "z"]]
+```
+
+`probe_profiles.sh` is the profile-aware sibling of `probe.sh`: six inputs × three profiles, both
+oracles, and — the load-bearing column — the OUTER `kind` the typed AST carries, because the two suffix
+routes iterate a byte-identical suffix and differ only in the AST they declare, so a gate copied from the
+wrong donor shows up as a wrong `kind` under one profile and never as a wrong verdict. The matrix is
+pre-registered in the grammar's header and the driver exits nonzero on any disagreement.
+
+```text
+INPUT        PROFILE  GEN          INTERP       AGREE    AST    EXPECT   ROW
+n            x        accept:a     accept:a     yes      same   accept:a ok
+n            y        accept:a     accept:a     yes      same   accept:a ok
+n            z        reject@0     reject@0     yes      -      reject   ok
+m            x        accept:b     accept:b     yes      same   accept:b ok
+m            y        accept:b     accept:b     yes      same   accept:b ok
+m            z        accept:b     accept:b     yes      same   accept:b ok
+n'(n)        x        accept:a     accept:a     yes      same   accept:a ok
+n'(n)        y        reject@0     reject@1     yes      -      reject   ok
+n'(n)        z        reject@0     reject@0     yes      -      reject   ok
+m'(n)        x        accept:a     accept:a     yes      same   accept:a ok
+m'(n)        y        reject@0     reject@1     yes      -      reject   ok
+m'(n)        z        accept:b     accept:b     yes      same   accept:b ok
+n'(n)'(n)    x        accept:a     accept:a     yes      same   accept:a ok
+n'(n)'(n)    y        reject@0     reject@1     yes      -      reject   ok
+n'(n)'(n)    z        reject@0     reject@0     yes      -      reject   ok
+m'(n)'(n)    x        accept:a     accept:a     yes      same   accept:a ok
+m'(n)'(n)    y        reject@0     reject@1     yes      -      reject   ok
+m'(n)'(n)    z        accept:b     accept:b     yes      same   accept:b ok
+P6-CROSSING-GATES: OK (rows=18 oracles=gen+interp every row as pre-registered, every GEN/INTERP cell agrees on verdict and AST)
+```
+
+The two cells that decide it: `n'(n)` under `y` REJECTS (a route-0 gate copied from `prim_a`'s
+`{x, y}` would accept it — `cast_expr` is gated out under `y`), and `m'(n)` under `z` reads outer
+`kind` **b** (a route-0 gate copied from `cast_expr`'s `{x, z}` would stamp `a`). ⭐ Unlike P1, the
+INTERP column is evidence here: the cycle is eliminated, so the `.14` divergence has nothing to bite
+on, and 18 of 18 agreeing is the measurement that nothing survived. ⚠️ `furthest_position` differs
+on the four `y` rejects (GEN `0`, INTERP `1`); the driver compares verdicts, as `probe.sh` does.
+
+⛔ Two things the driver does that `probe.sh` does not, both learned on this run: it composes the slot
+as HEAD's 32-line header + the probe's rules (a whole-file copy is refused by `SCRATCH-SLOT-HEADER`'s
+probe-time tier, `PARSE-HARNESS.11`, which `probe.sh` predates), and its restore rebuilds
+`ast_pipeline` and the debug probe AFTER regenerating the fixture — `make focus_scratch` builds
+`ast_pipeline` before it regenerates, so a restore that only regenerates leaves both binaries
+embedding the probe's parser.
+
 ## Files
 
 | file | what it is |
@@ -153,7 +209,9 @@ may rest on the interpreter column alone.
 | `p3_eliminated_at_consumer_rule.ebnf` | hand-eliminated at `prim` (`constant_primary`) — the target shape |
 | `p4_knot_a_annotated.ebnf` | ⭐ slice 5's acceptance probe — P1 plus the annotations the real grammars carry, so the **engine** eliminates it |
 | `p5_transparent_holder.ebnf` | ⛔ slice 5b — P4 plus an OUTSIDE holder of the transparent rule: the one shape P1–P4 cannot exhibit, and the one that regressed |
+| `p6_crossing_profile_gates.ebnf` | ⭐ `.50`(c) — P4's knot with two CROSSING `@profiles` gates on one route; the matrix its header pre-registers is what `probe_profiles.sh` holds both engines to |
 | `probe.sh` | the dual-oracle driver; restores the scratch slot on any exit |
+| `probe_profiles.sh` | the profile-aware dual-oracle driver for P6 (verdict + outer `kind`, 18 cells, exit code); composes the slot under the header doctrine and restores fixture AND both binaries |
 | `survey/` | slice 4's per-grammar census of the survey instrument |
 
 Every `.ebnf` here names its entry rule `scratch`, so it loads into the scratch slot verbatim

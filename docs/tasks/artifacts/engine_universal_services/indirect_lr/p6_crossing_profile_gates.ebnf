@@ -1,0 +1,41 @@
+# ENGINE-UNIVERSAL-SERVICES.50 — P6: knot A with TWO CROSSING dialect gates on ONE route.
+#
+# The `.50`(c) control as a grammar, so BOTH engines can be driven on it (the pass-level unit test
+# `two_crossing_dialect_gates_on_one_route_still_eliminate_the_cycle` pins the rewrite; this file
+# pins what the rewrite ACCEPTS, per profile, on the generated parser and on the interpreter).
+#
+# Route 0  prim -> prim_a -> cast_expr -> ct -> prim   passes `prim_a` {x, y} AND `cast_expr` {x, z}:
+#          neither list contains the other, the intersection is {x}, and NO rule on the route
+#          declares {x}. Before `.50`(b) `route_profile_gate` REFUSED this route, `?` abandoned the
+#          whole candidate, and the cycle survived — silently, at exit 0.
+# Route 1  prim -> prim_b -> cast_expr -> ct -> prim   passes only `cast_expr`'s gate, so its gate
+#          is {x, z} copied VERBATIM — the fix must not synthesize where a donor exists.
+#
+# The exact shape of SystemVerilog's `constant_primary_sv_2017` (["sv_2017", "verilog_2005"]) and a
+# tagged `constant_cast` (["sv_2017", "sv_2023"]) — the tag `--lint-grammar` itself derives for
+# `SV-CORPUS-GRAD.13e.10`(c4), which is how the defect was found.
+#
+# What the per-profile matrix must read (two-sided — the verdicts AND the OUTER `kind` the AST
+# carries, which is the `prim` alternative that wraps the last cast; `prim_a` is tried first):
+#   x : route 0 and route 1 both live      n'(n) accept kind "a"   m'(n) accept kind "a" (inner "b")
+#   y : `cast_expr` gated out               n'(n) REJECT            m'(n) REJECT  (n, m accept)
+#   z : `prim_a` gated out                  n'(n) REJECT            m'(n) accept kind "b"
+# A route-0 gate copied from `prim_a` ({x, y}) would ACCEPT n'(n) under y; one copied from
+# `cast_expr` ({x, z}) would stamp kind "a" on m'(n) under z, because the two routes iterate a
+# byte-identical suffix and differ only in the AST they declare. The matrix is pre-registered in
+# `probe_profiles.sh`, which drives it on BOTH engines and exits nonzero on any disagreement.
+#
+# The entry rule is named `scratch` so this file loads into the scratch slot verbatim:
+#   cp <this file> grammars/scratch/scratch.ebnf && make -C rust SHELL=/bin/bash focus_scratch
+@entry: true
+scratch := prim
+prim := prim_a -> {kind: "a", body: $1}
+      | prim_b -> {kind: "b", body: $1}
+@profiles: ["x", "y"]
+prim_a := lit_a | cast_expr
+prim_b := lit_b | cast_expr
+@profiles: ["x", "z"]
+cast_expr := ct "'" "(" lit_a ")" -> {type: $1, body: $4}
+ct := prim
+lit_a := "n"
+lit_b := "m"

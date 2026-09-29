@@ -3664,11 +3664,19 @@ above, restored — while `profile_orphans`, the ERROR-class counter such an edi
 goes **11 → 0** and `--lint-grammar` exits **0**. A warning-class counter moving is the only signal,
 and it moves in the direction that makes the grammar declare more than the parser accepts. ⇒ **diff
 the whole lint headline across a `@profiles` edit, not the counter you are aiming at**, and check
-`--report-indirect-lr-plan` if the rule count moved. The engine-side repair is tracked as
-`ENGINE-UNIVERSAL-SERVICES.50`; until it lands, a crossing dialect gate on an eliminated route is a
-trade — one profile's over-acceptance closed, fifteen cycles' derivations lost in two others — and
-`.13e.10`(c4) declined it, shipping its other sixteen gates and leaving the seventeenth pinned and
-watched.
+`--report-indirect-lr-plan` if the rule count moved. ✅ The engine-side repair landed as
+`ENGINE-UNIVERSAL-SERVICES.50`(b) (2026-08-26): the pass now **synthesizes** the intersection onto the
+route's clone instead of refusing it, so `REFUSED-CROSSING` is unreachable and the tagged grammar
+lints `left_recursion_unhandled=0`, `left_recursion_eliminated=4`, 1537 rules — exactly the untagged
+reading; the seventeenth gate then shipped in `1.0.199`. The per-profile proof on BOTH engines is the
+six-rule synthetic P6 (`docs/tasks/artifacts/engine_universal_services/indirect_lr/probe_profiles.sh`,
+`.50`(c)): `PGEN_INDIRECT_LR_GATE_DUMP=1` reads the crossing route's gate as the synthesized `x`
+(`donor=false`) and the non-crossing route's as the verbatim `x,z` (`donor=true`), and the driver holds
+18 (input × profile) cells to a pre-registered verdict AND outer `kind` on the generated parser and
+the interpreter alike, exiting nonzero on any disagreement. Until it landed, a crossing dialect gate
+on an eliminated route was a trade — one profile's over-acceptance closed, fifteen cycles' derivations
+lost in two others — and `.13e.10`(c4) declined it, shipping its other sixteen gates and leaving the
+seventeenth pinned and watched.
 
 ⭐ **Three properties are worth knowing as a grammar author.**
 

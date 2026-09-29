@@ -1,5 +1,14 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.50 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0176`): a leaf whose every item has landed is still open until its heading says so, and the distance was counting it
+
+- **Read the heading against the sections before queueing the leaf.** The resume pointer queued `.50`(c) as *"measure what the fix leaves"*; the leaf's own sections showed (a)–(e) each closed by a named commit and one deferred half-control. The work was one measurement and a heading, not a fix — and a `### ⛔` heading is what the release distance counts.
+- **Pre-register the AST field, not only the verdict.** On an eliminated route the two synthesized suffix routes iterate identical bytes and differ only in the AST they declare, so a gate copied from the wrong donor cannot move a verdict; it moves the outer `kind` under one profile. A verdict-only matrix would have passed a wrong gate.
+- **An instrument's first run measures the instrument.** Seven `TOOL-ERROR` cells were the driver reading `furthest_position=` from the dump mode's reject line, which does not carry it; the verdict now comes from `--parse`. The engine cells were right in run 1 and the table cited is run 2.
+- **The scratch slot has three halves.** The fixture (`git checkout`), the generated parser (`focus_scratch`), and the two BINARIES — `focus_scratch` builds `ast_pipeline` before it regenerates, so a restore that stops at regeneration leaves `ast_pipeline` and the probe embedding the probe's grammar. The driver rebuilds both after the fixture; `probe.sh` still does not.
+- **Compose the slot, never copy over it.** `SCRATCH-SLOT-HEADER`'s probe-time tier refuses a slot whose 32-line header differs from HEAD's; the older driver's whole-file `cp` predates the doctrine. HEAD's header + the probe's rule lines passes it and keeps the manual intact.
+- **The interpreter column is evidence only when the cycle is gone.** On a surviving cycle it disagrees with the generated parser in both directions (`.14`); on P6 its 18-of-18 agreement is itself the proof that elimination happened.
+
 ## 2026-09-29 — ENGINE-UNIVERSAL-SERVICES.82 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0175`): a defect fixed as a side effect is not closed until someone measures the closure
 
 - **Check the route before designing the carry.** The leaf priced carrying a reading across a channel hand-off; the channel no longer existed. `git log -S` on the worker's name found the commit that removed it, and a census of every thread spawn in the engine found one production route, which already carries.
