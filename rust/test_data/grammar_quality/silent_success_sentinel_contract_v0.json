@@ -104,21 +104,19 @@
         "why": "The SVPP-0001 ledger repro. Released FIXED at 1.0.2, so a NONZERO count here means the fix regressed or the detector is misreading."
       },
       {
-        "id": "CAL-2-latent-is-visible",
-        "grammar": "systemverilog",
-        "profile": "sv_2017",
-        "entry_rule": "constraint_primary_sv_2017",
-        "input": "this.x",
-        "expected_sentinels": 1,
-        "why": "THE ARM THAT MATTERS. SV-AST-SHAPE-FIDELITY.2.4 classified this site LATENT: it DOES emit one sentinel under --entry-rule isolation. If this arm reads 0 the detector is BLIND and every clean sweep is worthless."
+        "id": "CAL-2-every-sentinel-renders",
+        "mode": "sentinel_calibration_dump",
+        "expected_sentinels": 10,
+        "why": "THE ARM THAT MATTERS, re-founded 2026-09-30 (DONE-BAR.5c correction). Until then it parsed `this.x` at --entry-rule constraint_primary_sv_2017 and expected the ONE sentinel SV-AST-SHAPE-FIDELITY.2.4 had classified LATENT there; SV-CORPUS-GRAD.3.42 FIXED that site on 2026-09-06 (the `this .` prefix now parses to the correct pair), every other LATENT candidate of the .2.4 table reads 0 today under isolation, and the gate sat MISCALIBRATED for 24 days until the push lane's CI mirror ran sota-exit-gate. A positive control built on a live defect rots when the defect is fixed. This arm asks the probe to write, through the very serializer --parse-dump-ast uses, one root node per roster literal whose content is the Terminal(<literal>) variant the runtime fallback arms emit, and requires EACH literal rendered exactly once: if any reads 0 the dump path is BLIND to it and every clean sweep is worthless.",
+        "founding_site_kept_as_CAL-3": "constraint_primary_sv_2017 / this.x now reads 0 in isolation as well as from the canonical entry; CAL-3 keeps it as the negative control on a real grammar."
       },
       {
-        "id": "CAL-3-latent-is-shadowed",
+        "id": "CAL-3-fixed-site-is-clean",
         "grammar": "systemverilog",
         "profile": "sv_2017",
         "input": "class C; rand int x; constraint cc { this.x < 5; } endclass\n",
         "expected_sentinels": 0,
-        "why": "The same site from the CANONICAL entry, where the general SV expression grammar PEG-shadows it. Pins the LATENT classification itself: were this to become nonzero, a latent site had become reachable and the family's tier must fall."
+        "why": "The founding LATENT site (this.x under constraint_primary) from the CANONICAL entry, where it always read 0. Since SV-CORPUS-GRAD.3.42 (2026-09-06) it reads 0 under --entry-rule isolation too — the site is FIXED, not merely shadowed — so this arm is the negative control on a real grammar: a nonzero here means a runtime fallback arm became reachable on a real class body."
       }
     ]
   },

@@ -388,14 +388,27 @@ the surface that exists, not the surface a charter named.
 
 ⭐ **Calibration is part of the check.** A detector with no *positive* control cannot distinguish a
 clean sweep from a blind one — a zero reads as a pass either way. Three pinned facts must reproduce
-before any verdict is offered: a fixed ledger repro reads 0, a known-latent site reads **1** under
-`--entry-rule` isolation, and that same site reads 0 from the canonical entry. If they do not, the
-gate prints `MISCALIBRATED` and refuses.
+before any verdict is offered: a fixed ledger repro reads 0; the probe's **synthetic sentinel dump**
+(`parseability_probe --sentinel-calibration-dump`, one root node per roster literal written
+through the very serializer the AST dump uses) renders **every** literal exactly once; and the
+gate's founding site reads 0 from the canonical entry. If they do not, the gate prints
+`MISCALIBRATED` and refuses.
+
+⛔ **The positive control used to be a live defect, and that is the instructive part
+(`DONE-BAR.5c` correction, 2026-09-30).** Until then the arm parsed a known-latent SystemVerilog
+site (`this.x` under `--entry-rule constraint_primary_sv_2017`) and expected the one sentinel it
+rendered in isolation. `SV-CORPUS-GRAD.3.42` fixed that site on 2026-09-06, every other latent
+candidate of the founding table reads 0 today, and the gate sat `MISCALIBRATED` for 24 days —
+unnoticed, because only `sota-exit-gate` runs it and nothing between pushes replays that. A control
+built on a defect vanishes when the defect is fixed, at exactly the moment the sweep matters most;
+a control built on the serializer cannot rot. The founding site stays as the *negative* control,
+and its contract entry says it is fixed, not shadowed.
 
 ⚠️ **What it does and does not prove.** The dynamic arm proves *"not reached by 25 validated samples
-at the pinned seed"* — **not** unreachability. Reachability is entry-relative, which is exactly what
-the calibration arm demonstrates: the same rule is clean canonically and corrupt in isolation. The
-gate prints this bound in its own output rather than letting a green imply more than it earned.
+at the pinned seed"* — **not** unreachability. Reachability is entry-relative, which is what the
+founding calibration site demonstrated while it existed: the same rule was clean canonically and
+corrupt in isolation. The gate prints this bound in its own output rather than letting a green
+imply more than it earned.
 
 ⭐ **And it binds a tier.** Existing was not enough: a gate whose verdict enters no status
 computation can go red while every tracker row stays green. Since `DONE-BAR.5e` the four

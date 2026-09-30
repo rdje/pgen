@@ -173,12 +173,43 @@ class Sweeper:
                 "runtime_fallback_arms_present": present}
 
     # -- arm 2: calibration ----------------------------------------------
+    def sentinel_calibration_dump(self, tag):
+        """DONE-BAR.5c correction (2026-09-30): the POSITIVE control that cannot rot. The probe
+        writes, through the very serializer `--parse-dump-ast` uses, one root node per roster
+        literal whose content is the `Terminal(<literal>)` variant the runtime fallback arms
+        emit. The real latent site the arm was founded on (`constraint_primary_sv_2017`,
+        `this.x`) was FIXED by SV-CORPUS-GRAD.3.42 on 2026-09-06, and every other latent
+        candidate of the .2.4 table reads 0 today, so a live-defect control no longer exists —
+        and a control that vanishes when a defect is fixed leaves the gate MISCALIBRATED at
+        exactly the moment the sweep matters most."""
+        df = os.path.join(self.work, f"{tag}.json")
+        if os.path.exists(df):
+            os.remove(df)
+        cmd = [self.probe, "--sentinel-calibration-dump", df] + self.all_sentinels
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        except subprocess.TimeoutExpired:
+            return False, {}, "calibration dump timed out"
+        if r.returncode != 0 or not os.path.exists(df):
+            return False, {}, (r.stderr or r.stdout).strip()[-200:]
+        dump = open(df, encoding="utf-8", errors="replace").read()
+        return True, self.count_sentinels(dump), ""
+
     def calibration_arm(self):
         arms = []
         for fact in self.c["calibration"]["facts"]:
-            ok, counts, detail = self.parse_dump(
-                fact["grammar"], fact["input"], f"cal_{fact['id']}",
-                fact.get("profile"), fact.get("entry_rule"))
+            if fact.get("mode") == "sentinel_calibration_dump":
+                ok, counts, detail = self.sentinel_calibration_dump(f"cal_{fact['id']}")
+                # Every roster literal must be rendered exactly once, or the counter is
+                # blind to that literal; a total alone could hide a missing one behind a
+                # duplicate. Recorded on the arm so the summary can name the miss.
+                missing = [s for s in self.all_sentinels if counts.get(s, 0) != 1]
+                if ok and missing:
+                    ok, detail = False, "not rendered exactly once: " + ", ".join(missing)
+            else:
+                ok, counts, detail = self.parse_dump(
+                    fact["grammar"], fact["input"], f"cal_{fact['id']}",
+                    fact.get("profile"), fact.get("entry_rule"))
             total = sum(counts.values())
             arms.append({
                 "id": fact["id"], "parsed": ok,
