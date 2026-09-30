@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — `git commit` commits the index, not the files named in the last `git add` (`PGEN-SV-CORPUS-GRAD-0422`)
+
+- **The instance.** Two data files and a tree note staged for one commit stayed staged when its doctrine run refused; the next commit (`ee32ed8d1`, a different tree's docs) committed the whole index and carried them unnamed. Corrected forward by a naming commit; the sequencing rule: `git reset` the index (or `git stash --keep-index` nothing — just `git restore --staged`) before staging the NEXT commit's set after a refused attempt, and read `git status --short` for stray `M ` rows before every commit.
+- promotion: declined (a git mechanic, recorded here as the instance; the pre-commit discipline is `COMMIT.md`'s "stage intended files only").
+
 ## 2026-09-30 — SVPP-EXPANSION.5(d) (`PGEN-SVPP-EXPANSION-0028`): a diagnosis that lands on a construct the tree already owns is a re-read, not a fix
 
 - **Grep the trees for the construct before building the fix.** The repro, the bisect and the fix shape were all re-derived in an hour and matched a 21-day-old record line for line; the ceremony's item 11 even names this exact UVM line as an owned condition. One `grep -rn 'const local' docs/tasks` at the first rejection line would have saved the hour — and the withdrawal.
