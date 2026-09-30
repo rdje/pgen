@@ -2862,12 +2862,20 @@ audit_regex_pcre2_compile_oracle_surface() {
   assert_file_contains \
     "rust/src/regex_compile_validation.rs" \
     'pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileValidationError> {'
+  # CI-PARITY-GATE-ROT.67 (2026-09-30): since ENGINE-UNIVERSAL-SERVICES.112 slice 2 the PCRE2 compile
+  # contract is the regex FAMILY's post-parse hook (rust/src/families/regex.rs), applied by the derived
+  # registry template to every accepted parse of that family — the embedding API dispatches through the
+  # same template and carries no regex-specific call of its own. The invariant is unchanged: an accepted
+  # regex parse is still held to the compile contract on every public path.
+  assert_file_contains \
+    "rust/src/families/regex.rs" \
+    'validate_regex_compile_contract(sample).map_err(|err| err.message)'
+  assert_file_contains \
+    "rust/src/families/regex.rs" \
+    '    post_parse,'
   assert_file_contains \
     "rust/src/parser_registry.rs" \
-    'validate_regex_compile_contract(&owned_sample).map_err(|err| err.message)'
-  assert_file_contains \
-    "rust/src/embedding_api.rs" \
-    'validate_regex_compile_contract(&owned_input)'
+    '(hooks.post_parse)(&owned_sample)'
 
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
