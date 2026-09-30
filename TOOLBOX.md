@@ -1014,6 +1014,23 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   read-only over the arena, so it observes the graph the process was already going to run. ⇒ **use
   3.3b when you want the production parse's memory and 3.3 when you want the memo's contents; the
   two numbers are not about the same parse.**
+- ⛔⛔ **`parse_from(entry)` / `parse_full_from(entry)` ROUTE THE PARSE TOO — onto the PROTOCOL graph,
+  by design of the generator** (`RGX-0078.5.i.7`: the entry-relative path pins `bare_parse = false`,
+  because the fused cascade graph is compiled for the canonical entry). So an `--entry-rule RULE`
+  parse measures the protocol graph, and — from `f04f5b807` (2026-09-28, `ENGINE-UNIVERSAL-SERVICES.112`
+  slice 2) until `.116` (2026-09-30) — so did EVERY registry parse with no entry requested, because the
+  derived registry template called `parse_full_from(GRAMMAR_ENTRY_RULE)` for the canonical entry: the
+  shipped `--parse`, the corpus runs and the embedding API all ran the slower, protocol graph while
+  every verdict and AST stayed byte-identical (the two graphs are twins by contract, so no sweep could
+  see it; `PARSE-COST-RATCHET` runs under `PGEN_REPORT_MEMO_STATS`, i.e. on the protocol graph BY
+  CONSTRUCTION, so it cannot see a graph-selection change either). The registry now calls
+  `parse_full()` for the canonical entry and `parse_full_from(RULE)` only for an explicit one. ⭐ The
+  two graphs leave a DETERMINISTIC fingerprint in this instrument: the fused MTB graph builds values
+  once over the derivation tape, the protocol graph allocates a `ParseNode` per rule frame, so the
+  same input reads FEWER `nodes=` on the fused graph —
+  `docs/tasks/artifacts/engine_universal_services/eus116_default_graph/probe.sh <probe>` parses one
+  deep input per family twice (default, and under `PGEN_REPORT_MEMO_STATS=1`, protocol by construction)
+  and prints `DEFAULT-GRAPH: … verdict=FUSED|PROTOCOL`; equal counts are the regression.
 - **OUTPUT (TWO lines per parse, on stderr — the second was added by leg 3):**
   ```
   === PARSE FOOTPRINT (arena + AST-owned heap) [systemverilog]: nodes=N (X.XX MB @ 48 B) ·

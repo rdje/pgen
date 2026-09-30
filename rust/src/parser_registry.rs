@@ -513,6 +513,48 @@ impl GeneratedParserRegistryEntry {
     }
 }
 
+/// `ENGINE-UNIVERSAL-SERVICES.116` — WHICH GRAPH a registry parse runs is decided HERE, by the entry
+/// the caller asked for, and it is the one fact about a parse no verdict sweep can see.
+///
+/// Every generated parser carries two graphs that are twins in verdict and AST: the fused bare-parse
+/// cascade graph — `parse()` computes `bare_parse` from the observability consumers and enters it at
+/// every plan sub-root; the speed campaign's product (`RGX-0078.5.i.7`) — and the protocol graph,
+/// which every diagnostic consumer runs and which `parse_from(entry)` PINS by clearing `bare_parse`
+/// (the cascade is compiled for the canonical entry). `.112` slice 2 (`f04f5b807`, 2026-09-28)
+/// replaced the hand-typed rows' `None => parse_full_<name>()` with `parse_full_from(GRAMMAR_ENTRY_RULE)`
+/// for every parse, on the generator's own doc line that `parse_from` is *behavior-identical to
+/// `parse()` for single-entry grammars* — true of the verdict, false of the graph — so for two days
+/// every registry parse, the embedding API's included, ran the protocol graph. Measured on the release
+/// probe of `72f28a0a1`: a default parse and a `PGEN_REPORT_MEMO_STATS=1` parse (protocol by
+/// construction) read the SAME arena node count (`return_annotation` 21 536 / `systemverilog` 342 213
+/// at 1 024 nesting levels) and `/usr/bin/sample` showed `parse_*` frames and no `cascade_*` frame.
+///
+/// The rule, fixed in one place: NO entry requested ⇒ the artifact's own `parse_full()` (the canonical
+/// entry, the graph chosen by the observability consumers); an EXPLICIT entry ⇒ `parse_full_from(entry)`
+/// (the protocol graph, by the generator's design). `canonical_entry_parse_runs_the_fused_graph_and_an_explicit_entry_the_protocol_graph`
+/// holds the behaviour and `registry_lanes_dispatch_through_parse_full_at` holds the template's three
+/// lanes on this dispatch. ⛔ The fused graph is a fast path no gate proves is SELECTED: the cost
+/// ratchet measures under `PGEN_REPORT_MEMO_STATS` (protocol by construction) and every sweep compares
+/// verdicts the two graphs share — which is why the lock lives here, on the choice itself.
+pub trait FullParse<'input> {
+    /// The artifact's canonical full-input parse (`parse_full()`): begins at `GRAMMAR_ENTRY_RULE`, graph
+    /// chosen by the observability consumers (fused when none is armed).
+    fn parse_full(&mut self) -> crate::ast_pipeline::ParseResult<ParseNode<'input>>;
+    /// The entry-relative full-input parse (`parse_full_from(entry)`): the protocol graph, always.
+    fn parse_full_from(&mut self, entry: &str) -> crate::ast_pipeline::ParseResult<ParseNode<'input>>;
+}
+
+/// The one dispatch every registry lane uses — see [`FullParse`].
+pub fn parse_full_at<'input, P: FullParse<'input>>(
+    parser: &mut P,
+    entry: Option<&str>,
+) -> crate::ast_pipeline::ParseResult<ParseNode<'input>> {
+    match entry {
+        None => parser.parse_full(),
+        Some(rule) => parser.parse_full_from(rule),
+    }
+}
+
 /// Run `f` inline, or on a dedicated-stack thread when the family asks for one on this input.
 fn run_for_family<T, F>(hooks: &FamilyHooks, sample: &str, f: F) -> Result<T, String>
 where
@@ -551,6 +593,16 @@ macro_rules! generated_parser_row {
             impl<'input> crate::families::ParseTarget for Parser<'input> {
                 fn semantic_runtime_state_mut(&mut self) -> &mut crate::ast_pipeline::SemanticRuntimeState {
                     Parser::semantic_runtime_state_mut(self)
+                }
+            }
+
+            // `ENGINE-UNIVERSAL-SERVICES.116` — the two entry points the one dispatch chooses between.
+            impl<'input> FullParse<'input> for Parser<'input> {
+                fn parse_full(&mut self) -> crate::ast_pipeline::ParseResult<ParseNode<'input>> {
+                    Parser::parse_full(self)
+                }
+                fn parse_full_from(&mut self, entry: &str) -> crate::ast_pipeline::ParseResult<ParseNode<'input>> {
+                    Parser::parse_full_from(self, entry)
                 }
             }
 
@@ -611,12 +663,13 @@ macro_rules! generated_parser_row {
                             250,
                         )
                     });
-                    let entry_rule = entry.as_deref().unwrap_or(<Parser<'static>>::GRAMMAR_ENTRY_RULE);
+                    // `.116`: the canonical entry goes through `parse_full()` (the fused graph when no
+                    // observability consumer is armed); only an explicit entry takes `parse_full_from`.
                     let result = with_rule_entry_count_dump!(
                         <Parser<'static>>::GRAMMAR_NAME,
                         parser,
                         Parser,
-                        parser.parse_full_from(entry_rule).map(|_| ())
+                        parse_full_at(&mut parser, entry.as_deref()).map(|_| ())
                     );
                     // ENGINE-UNIVERSAL-SERVICES.67(b) — the arena leg of the parse footprint; must
                     // precede the arena's drop.
@@ -660,8 +713,7 @@ macro_rules! generated_parser_row {
                     if enable_coverage {
                         parser.enable_coverage();
                     }
-                    let entry_rule = entry.as_deref().unwrap_or(<Parser<'static>>::GRAMMAR_ENTRY_RULE);
-                    let parsed = parser.parse_full_from(entry_rule).map_err(|err| err.to_string())?;
+                    let parsed = parse_full_at(&mut parser, entry.as_deref()).map_err(|err| err.to_string())?;
                     (hooks.post_parse)(&owned_sample)?;
                     if enable_coverage {
                         eprintln!(
@@ -696,8 +748,7 @@ macro_rules! generated_parser_row {
                         return Ok((false, std::collections::HashSet::new()));
                     }
                     parser.enable_coverage();
-                    let entry_rule = entry.as_deref().unwrap_or(<Parser<'static>>::GRAMMAR_ENTRY_RULE);
-                    Ok(match parser.parse_full_from(entry_rule) {
+                    Ok(match parse_full_at(&mut parser, entry.as_deref()) {
                         Ok(_) => (true, parser.exercised_rule_names()),
                         Err(_) => (false, std::collections::HashSet::new()),
                     })
@@ -1032,6 +1083,94 @@ mod tests {
             "the DECLARED gap (the ast_json and cover lanes carry no footprint report) moved from 2 \
              to {unwired_other}; a new unwired parse lane must be a decision, not a drift"
         );
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.116` — **the canonical entry runs the FUSED graph, an explicit entry
+    /// the PROTOCOL graph, and [`super::parse_full_at`] — the dispatch every registry lane uses — chooses
+    /// by the entry alone.** The two graphs are twins in verdict and AST (asserted here), and they differ
+    /// in what they allocate: the fused MTB graph builds values once over the derivation tape, the
+    /// protocol graph allocates a `ParseNode` per rule frame, so the arena's node count is the graph's
+    /// fingerprint. RED control, measured 2026-09-30 on the `.112` slice-2 template (every lane through
+    /// `parse_full_from`): `fused == protocol` (21 536 == 21 536 on a 1 024-level input) and this test
+    /// fails on its last assertion.
+    #[cfg(feature = "generated_parsers")]
+    #[test]
+    fn canonical_entry_parse_runs_the_fused_graph_and_an_explicit_entry_the_protocol_graph() {
+        use crate::ast_pipeline::{runtime_logger_box, NodeArena};
+        use crate::generated_parsers::return_annotation::ReturnAnnotationParser as Parser;
+
+        // The parse runs where every registry parse runs — on the engine's dedicated parse stack
+        // (`run_for_family`'s default, `FamilyHooks::NONE.dedicated_stack`): a libtest thread's 2 MiB
+        // stack is a thread this module did not create, which the guard leaves at the depth the parser
+        // asked for (`.79`(b)(c)), and 64 nesting levels of the debug parser overflow it (SIGABRT,
+        // measured on this test's first run).
+        let measured = crate::dedicated_parse_stack::run_on_dedicated_parse_stack_with_reservation(
+            "eus116-graph-fingerprint",
+            crate::dedicated_parse_stack::dedicated_parse_stack_bytes(),
+            move || {
+                let input = format!("-> {}$1{}", "(".repeat(64), ")".repeat(64));
+                let parse = |entry: Option<&str>, direct: bool| {
+                    let arena = NodeArena::new();
+                    let mut parser =
+                        Parser::new(&input, &arena, runtime_logger_box("eus116.return_annotation"));
+                    let parsed = if direct {
+                        parser.parse_full()
+                    } else {
+                        super::parse_full_at(&mut parser, entry)
+                    }
+                    .unwrap_or_else(|err| panic!("the nested annotation parses (entry={entry:?}): {err}"));
+                    let ast = super::parse_node_to_json(&parsed).expect("the AST serializes");
+                    (arena.footprint().census.nodes, ast)
+                };
+                let fused = parse(None, false);
+                let direct = parse(None, true);
+                let protocol = parse(Some(<Parser<'static>>::GRAMMAR_ENTRY_RULE), false);
+                (fused, direct, protocol)
+            },
+        )
+        .unwrap_or_else(|err| match err {
+            crate::dedicated_parse_stack::DedicatedParseStackError::Spawn(io) => {
+                panic!("the dedicated parse stack could not be spawned: {io}")
+            }
+            crate::dedicated_parse_stack::DedicatedParseStackError::Panic(payload) => {
+                std::panic::resume_unwind(payload)
+            }
+        });
+        let ((fused, ast_fused), (direct, ast_direct), (protocol, ast_protocol)) = measured;
+
+        assert_eq!(ast_fused, ast_protocol, "the two graphs are twins in AST by contract");
+        assert_eq!(ast_fused, ast_direct, "the dispatch with no entry IS the artifact's own parse_full()");
+        assert_eq!(fused, direct, "no entry requested ⇒ parse_full(): the same arena census as a direct call");
+        assert!(
+            fused < protocol,
+            "the canonical entry must run the FUSED graph, which allocates fewer arena nodes than the \
+             protocol graph on the same input — fused={fused} protocol={protocol}; equal counts are the \
+             `.112` slice-2 regression (every lane through parse_full_from)"
+        );
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.116` — the template's three lanes dispatch through the ONE function
+    /// that chooses the graph; a lane calling `parse_full_from` directly is the slice-2 shape restated.
+    #[test]
+    fn registry_lanes_dispatch_through_parse_full_at() {
+        let src = include_str!("parser_registry.rs");
+        let template_start = src.find("macro_rules! generated_parser_row").expect("the template exists");
+        let template = &src[template_start..];
+        for lane in ["detail", "ast_json", "cover"] {
+            let head = format!("pub(super) fn {lane}(");
+            let start = template.find(&head).unwrap_or_else(|| panic!("the template has a `{lane}` lane"));
+            let end = template[start..].find("\n            }\n").map(|i| start + i).unwrap_or(template.len());
+            let body = &template[start..end];
+            assert!(
+                body.contains("parse_full_at(&mut parser, entry.as_deref())"),
+                "the `{lane}` lane must dispatch through parse_full_at"
+            );
+            assert!(
+                !body.contains(".parse_full_from("),
+                "the `{lane}` lane calls parse_full_from directly — the `.112` slice-2 shape that put the \
+                 canonical entry on the protocol graph"
+            );
+        }
     }
 
     // PARSE-HARNESS.2 — the scratch-register slot is authoritative BY CONSTRUCTION: this test proves

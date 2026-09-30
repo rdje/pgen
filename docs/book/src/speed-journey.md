@@ -643,3 +643,23 @@ guardrail, the strict same-session geomean ratchet for any future perf-touching
 change, and the preserved floor probe that lets any later session re-prove the
 sub-microsecond claim with one five-second sweep. The method was the protagonist of
 this story; the method is also what knew when to stop.
+
+## Postscript (2026-09-30) — the graph that ships is the graph you lock
+
+The fused bare-parse graph is entered by one flag, `bare_parse`, which `parse()` computes
+from the observability consumers and which the entry-relative `parse_from(entry)` pins to
+`false` (the cascade is compiled for the canonical entry). On 2026-09-28
+`ENGINE-UNIVERSAL-SERVICES.112` slice 2 derived the parser registry from the artifacts and
+served every family through one template — `parse_full_from(GRAMMAR_ENTRY_RULE)` — so for
+two days every registry parse, the embedding API's included, ran the **protocol** graph.
+Nothing noticed, and the reason is the campaign's own success: the two graphs are twins
+by contract, so every verdict sweep and AST identity sweep read *unchanged*; the cost
+ratchet measures under `PGEN_REPORT_MEMO_STATS`, which is the protocol graph by
+construction; and the speed guardrails are the regex family's. It was found sideways, by a
+memory leaf whose quadratic term had "vanished" (`.84` — it had not; the parse had moved to
+the graph that does not hold the error live per frame). `.116` put the canonical entry back
+on `parse_full()`, held it with a registry unit test that tells the graphs apart by arena
+node count (the fused graph builds values once over the derivation tape; the protocol graph
+allocates a node per rule frame), and left a probe that reads the same fingerprint off a
+shipped binary. The lesson belongs beside *the corpus-MAX guardrail* above: **a fast path
+that no gate proves is selected is a fast path one refactor away from being unselected**.

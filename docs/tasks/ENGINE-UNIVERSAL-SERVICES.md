@@ -19008,6 +19008,17 @@ fixes no defect and the `TASK-ACCEPTANCE` gate does not evaluate it either — n
 - ✅ **MEASURED on `.85`**: the vacuous pass came first; `PGEN_PARSE_COST_REMEASURE=1` then produced
   an actual reading (advisory 41 968 → 44 521 ms). The change under test adds work to EVERY
   guard-visible rule entry — precisely the hot path this doctrine exists to watch.
+- ⛔⛔ **(e) A SECOND BLIND SPOT, STRUCTURAL AND NOT CLOSABLE BY WIDENING THE IDENTITY SET — found by
+  `.116` (2026-09-30).** The ratchet's instrument (`stimuli/sv/corpus_parse_cost.py`) reads
+  `PGEN_REPORT_MEMO_STATS`, which clears `bare_parse` and runs the PROTOCOL graph by construction
+  (`TOOLBOX.md` §3.3b). So a change in WHICH graph the default parse selects — `.112` slice 2 moved every
+  registry parse from the fused cascade graph to the protocol graph for two days, `f04f5b807` →
+  `.116` — is invisible to this gate even with `rust/src` in its inputs: its numbers are protocol-graph
+  numbers on both sides, identical by design. The fingerprint that does see a graph change is the arena
+  node count of a DEFAULT parse against a forced-protocol parse of the same input
+  (`docs/tasks/artifacts/engine_universal_services/eus116_default_graph/probe.sh`), and the lock that
+  holds it is a registry unit test, not this ratchet. (a)–(c) stand; this item records that the
+  ratchet's population has a graph axis the identity set cannot express.
 - ⛔ **WHY IT MATTERS MORE THAN A MISSING INPUT.** `TOOLBOX.md` 3.7 instructs the engineer to run it
   *"before and after ANY change that can touch the parse hot path"*, so the one population it must
   cover is the one it structurally cannot see. Same shape as `.80` (the ordinary-commit tier runs no
@@ -19493,7 +19504,7 @@ Pre-registration (written before the edit, with two dated amendments):
   sampled interval published as a boundary, the same error, one hour later. It was bisected instead
   (`bisect_boundary.sh`, tracked): **7 211 / 7 212**.
 
-### ⛔ `.84` — **A DEEPLY NESTED INPUT COSTS PEAK RSS QUADRATIC IN ITS NESTING DEPTH ON `return_annotation` — 1 174 MB FOR AN 8 KB FILE — WHILE THE AST ARENA GROWS LINEARLY AND THE ALLOCATION HIGH-WATER STAYS UNDER 7 MB, SO THE MEMORY IS IN NEITHER OF THE TWO PLACES `.67` TAUGHT US TO LOOK** (`todo`, ROUTED + PARKED — opened 2026-08-31 by `.79`(a) slice 2b / `PGEN-ENGINE-UNIVERSAL-SERVICES-0151`)
+### ⛔ `.84` — **A DEEPLY NESTED INPUT COSTS PEAK RSS QUADRATIC IN ITS NESTING DEPTH ON `return_annotation` — 1 174 MB FOR AN 8 KB FILE — WHILE THE AST ARENA GROWS LINEARLY AND THE ALLOCATION HIGH-WATER STAYS UNDER 7 MB, SO THE MEMORY IS IN NEITHER OF THE TWO PLACES `.67` TAUGHT US TO LOOK** (`todo` — ✅ **(a)–(d) DONE 2026-09-30, `PGEN-ENGINE-UNIVERSAL-SERVICES-0185`: the instrument was right and the leaf had read two REFUSED parses; the WHERE is the emitted `create_contextual_error` materialising the whole rule stack per failed alternative, held live one per frame by the fused cascade; the term is ENGINE-tier and was MASKED for two days by `.116`'s graph regression, not fixed; (e) the fix, ROUTED + PARKED behind the SV lane with the reason measured**; opened 2026-08-31 by `.79`(a) slice 2b / `PGEN-ENGINE-UNIVERSAL-SERVICES-0151`)
 
 - ⭐ **HOW IT WAS FOUND, and it was not being looked for.** `.79`(a)'s first RELEASE census run was
   killed by `run_with_memory_guard.sh` — *"tree RSS 12561MB > budget 12288MB"* — while measuring the
@@ -19555,6 +19566,58 @@ Pre-registration (written before the edit, with two dated amendments):
   0.6 % — and not an absolute byte count from the large ones. An under-read biases the exponent
   DOWNWARD, so the quadratic conclusion is the conservative one.
 
+
+#### ⛔ `.84` (a)+(b)+(c)+(d) — **THE INSTRUMENT WAS FINE AND THE LEAF READ TWO REFUSED PARSES AS ONE; THE QUADRATIC TERM IS REAL, IT IS THE ERROR CHANNEL — `create_contextual_error` MATERIALISES THE WHOLE RULE STACK PER FAILED ALTERNATIVE AND THE FUSED CASCADE HOLDS ONE SUCH ERROR LIVE PER FRAME — AND IT WAS *MASKED*, NOT FIXED, BY `.116`'s GRAPH REGRESSION** (2026-09-30, `PGEN-ENGINE-UNIVERSAL-SERVICES-0185`; INSTRUMENT + TRACKER tier, no code change on this leaf; the fix is (e), routed)
+
+- ✅ **(a) THE INSTRUMENT QUESTION, ANSWERED: `parse_alloc_census_probe`'s counters are correct — the
+  leaf's "`alloc_calls` IDENTICAL (34 441 913) for two inputs" was two REFUSED parses.** Re-run of the
+  Aug 29 census binary (`rust/target/eus84/parse_alloc_census_probe.aug29`, built at `0e3bc12cf`) on
+  today's 2 048- and 4 096-level inputs: **rc 1** on both — *"Parser did not consume full input at
+  position 3 [recursion ceiling CONTACTED: this host's parse stack ran out at 4096 parser frames,
+  refusing 19649 rule entries …]"* — because that registry ran the parse INLINE on the probe's 8 MiB
+  main thread with the pre-`-0142` compiled first sample, and a refusal at a fixed ceiling does a fixed
+  amount of work whatever the input (34 441 902 parse allocations, 270 GB churn, 31–35 s, on both). The
+  1 024-level input, which that binary ACCEPTS (rc 0), reads `peak_live` **62.92 MB** — not the "under
+  7 MB" the leaf published from the two refused runs. ⇒ the "64×–171× gap" compared a refused census
+  parse against an accepted probe parse; retracted. Today's registry runs every family on the
+  host-derived dedicated stack by default (`families::FamilyHooks::NONE.dedicated_stack = host_dedicated`),
+  so the census probe now measures the deep shapes the leaf is about: measured on the rebuilt census probe (`.116`'s fused graph, dedicated stack): 1 024 / 2 048 / 4 096 levels all **rc 0**, `nodes=2059 / 4107 / 8203`, `peak_live` **69 535 026 / 273 083 699 / 1 084 403 396 B** (66.3 / 260.4 / 1 034.2 MB — ×3.93, ×3.97 per doubling: the LIVE allocation is quadratic), and `peak_live / (probe peak RSS − 7.9 MB floor)` = **0.869 / 0.845 / 0.889** — inside `.67`'s 0.584–1.230 band. The instrument relationship the leaf said this shape *breaks* holds; what broke was the comparison.
+- ✅ **(b) WHERE, from the two instruments that can say (`tape_histogram.py`, new, on the accepted
+  1 024-level run of the Aug 29 binary):** LIVE at the snapshot — `class=15 [16384, 32768)
+  live_bytes=50368000 live_count=2049 share=0.7634`: **2 049 live allocations of 16–32 KiB, one per
+  live parser frame** (2 frames per nesting level on that graph + 1), 76 % of the peak; the TAPE —
+  294 049 allocations ≥ 8 KiB in FOUR sizes, `8192 × 73 103 · 16384 × 72 950 · 32768 × 72 641 · 65536 ×
+  72 027` with `lifetime_events median=1` — 73 k `Vec`-doubling chains, one per FAILED ALTERNATIVE,
+  each growing to the frame depth × 16 B. `/usr/bin/sample` names the site: top of stack
+  `create_contextual_error` (696 samples) under `cascade_match_expression` /
+  `cascade_match_primary_expression`, then `RawVec::finish_grow` → `realloc`. The emitted
+  `create_contextual_error` (every generated parser) collects `rule_stack: Vec<&'static str>` over the
+  WHOLE `recursion_guard.rule_id_stack` — Θ(depth) bytes per error — and the fused cascade keeps the
+  losing alternative's error alive while the winning alternative recurses, so at depth `D` there are
+  `D` live errors of `Θ(D)` bytes each: **Θ(D²) live bytes**, the quadratic term, in the memo-leg /
+  transient class the `.67` instruments were documented not to see. Peak RSS is LARGER than
+  `peak_live` because each chain's four doubling steps are freed to size classes the next, larger
+  chain cannot reuse.
+- ✅ **(c) ENGINE, not the grammar; and SystemVerilog was linear for a reason that is now measurable.**
+  `grammars/return_annotation.ebnf` changed once in the window (`8c58582e2`, a dead annotation
+  removed — every generated parser byte-identical), so the grammar is not the variable. The site is
+  the generator's emitted error constructor and the cascade's error lifetime — engine tier, every
+  family. SystemVerilog on the same fused graph and shape (1 024 levels, rebuilt census probe): the tape holds **300 003** rows ≥ 8 KiB in the same doubling sizes (`8192 × 61 403 · 16384 × 60 193 · 32768 × 57 798 · 65536 × 52 982 · 131072 × 43 381`), `alloc_bytes` **19 468 238 474** (18.1 GB of churn for a 2 090-byte file, `alloc_calls` 1 072 933) — SV CONSTRUCTS the same depth-sized errors, ~60 per nesting level — but `lifetime_events median=1`, `peak_live` 43.3 MB, and the live classes at the peak are FOUR memo tables (4–16 MiB), no per-frame class: SV's cascade frees the losing error at once, so its memory is linear while its TIME carries the same Θ(depth) term per failure that `.68` attributes to the guard scan. ⇒ the CONSTRUCTION is engine-wide; the RETENTION is the shape `return_annotation`'s cascade emits for its alternation.
+- ✅ **(d) DISCHARGED by the book's existing rule, restated with today's floor.** `inside-parser-performance.md`
+  already refuses the ratio for small files (*"the ratio is not measurable for small files, and PGEN's
+  own instrument says so"* — `parse_rss_distribution.py` excludes and COUNTS them); the published
+  2 595× / 8 158× describe files ≥ 20 KB above a 14.7–18.9 MB floor. Today's floor on the release probe, 3 runs each: `-> $1` (5 bytes) → **7.9 MB** peak RSS; `module m; endmodule` (20 bytes, `sv_2017`) → **19.0 MB** — so a 2 KB `return_annotation` file at 27 MB (protocol) or 84 MB (fused) is 10 000×–40 000× its own size, a number that describes the floor and the shape, not an ingestion rate; the ≥ 20 KB rule stands.
+- ⛔⛔ **THE "FIX" THAT WAS NOT ONE.** Today's release probe reads the `return_annotation` ladder
+  **27.1 / 45.7 / 84.2 MB** (1.69× / 1.84×) — linear — because since `f04f5b807` (2026-09-28) every
+  registry parse ran the PROTOCOL graph, which does not hold the losing error per frame. `.116`
+  restores the fused graph; measured AFTER on the rebuilt release probe (`memory_depth_ladder.sh`, load 11–12): `return_annotation` **84.2 / 316.1 / 1 171.7 MB** (3.75×, 3.71× — within 0.3 % of the leaf's 84.3 / 316.6 / 1 174.1) and `systemverilog` **103.0 / 186.5 / 348.3 MB** (1.81×, 1.87× — the Aug 31 control back to 1.7 %, from today's protocol-graph 134.6 / 243.3 / 460.9). The
+  quadratic term is back where the shipped graph is, exactly as this leaf recorded it.
+- **OWES (e), ROUTED + PARKED behind the SV lane with the reason measured:** make the cascade's error
+  channel cost O(1) per failed alternative — the rule stack materialised once, at the error that
+  ESCAPES the parse, not at every speculative failure (the regex family's `.5.i.7` *"fifth fix"* is the
+  shape: a `Copy` internal error converted at the boundary). SystemVerilog is LINEAR in memory on the same
+  shape, so this does not block the SV release; the annotation parsers never see 1 024-level nesting
+  in a grammar file. It sits with `.68` (whose cycle-guard scan is the TIME twin of this term).
 
 ### ✅ `.80` — **THE ORDINARY-COMMIT TIER RUNS NO `cargo test` AT ALL, SO THE THREE `.78` LOCKS WERE RED FOR TWO DAYS WITH EVERY GATE GREEN. ⛔⛔ ITS FIRST HEADLINE — *"THE TARGET THAT WOULD HAVE CAUGHT THEM IS NEVER INVOKED"* — IS **WITHDRAWN AS FALSE**, REFUTED BY A DIRECTOR CHALLENGE ONE COMMIT LATER** (**`done`** 2026-09-30, `PGEN-ENGINE-UNIVERSAL-SERVICES-0177` — the tier DECIDED on the census below: the selected set stays without `cargo test`, the surface is held at the release, push and flagship cadences, and a staged-scoped pre-commit arm is PRICED AND DECLINED; opened 2026-08-30 by `.78`'s fix / `PGEN-ENGINE-UNIVERSAL-SERVICES-0140`, CORRECTED SAME DAY / `PGEN-ENGINE-UNIVERSAL-SERVICES-0141`)
 
@@ -22347,6 +22410,17 @@ cross) and a new blocking doctrine.
   - [x] **ADDRESSED (verified)** — 11 parser artifacts each gained EXACTLY the identity surface — `GRAMMAR_NAME` / `GRAMMAR_PROFILES` / `GRAMMAR_ENTRY_RULE` and their doc comments (`systemverilog` `["sv_2017", "sv_2023", "verilog_2005"]`, `regex` `["pcre2", "relaxed"]`, every other family `[]`); 10 `.json` sidecars moved only their `generated_at` timestamp; every other artifact byte-identical; no line removed anywhere (`DIFF-GENERATED: OK`); the two generator tests green; `cargo build --features "generated_parsers ebnf_dual_run"` (debug: ast_pipeline + parseability_probe; the lowmem release probe published at rust/target/release/parseability_probe) — clean.
   - [x] **NO REGRESSION** — the generator's 107-test module green; every family re-derives byte-identically under the reproducibility gate on the regenerated tree (`bash scripts/check_generated_reproducibility.sh --rebaseline` → every family re-derives byte-identically from the working tree (11 rows: the annotation pair, the ebnf seed and the 11-2 families), the baseline re-recorded on the new emission digest); the cost ratchet re-measured on the pinned 192-file sample with the republished release probe: every BINDING metric unchanged — the rebaseline promoted no `FELL` / `ROSE` note (entries, committed and memo_hits identical to `1.0.246`'s promoted baseline), only the identity rows re-stamped on the new generated-parser digest; the LR-family share re-derived over 16 336 files reads the identical 2.641 %; `parse-cost-ratchet: OK (identity fresh for: generated parser, grammar raw ast, instrument, sample inputs; 192 pinned sample files)`; the wall-clock ADVISORY (does not bind, machine-dependent by construction) was promoted with the baseline at 52 804 ms against `1.0.246`'s 43 278 ms (+22 %: the re-measure ran minutes after a 10-minute release build on the same host) and the confirming ratchet run then read 51 905 ms (−1.7 %) against it — the binding counters, which are what the ratchet holds, did not move by one entry; `bash scripts/check_doctrines.sh` → doctrines: ALL 44 enforced doctrines PASS.; ZERO grammar bytes.
   - [x] **LOCKSTEP** — this record + `docs/TASK_TREE.md` + `MEMORY.md` + `CHANGES.md` + `DEVELOPMENT_NOTES.md` + the platform book's embedding chapter (the artifact's identity surface named) + `rust/Makefile` (`reseed_ebnf`; `regenerate_generated_parsers` now runs the seed and the scratch slot) + the platform book's gate-flow chapter (the regeneration note) + `TOOLBOX.md` §1.10's ROUTING line unchanged (the ceilings still stand until slice 3).
+- ⛔⛔ **SLICE 2 CORRECTED BY `.116` (2026-09-30).** The one template served the canonical entry through
+  `parse_full_from(GRAMMAR_ENTRY_RULE)`, on the generator's own word that `parse_from` is *"behavior-identical
+  to `parse()` for single-entry grammars"* — true of the verdict and the AST, FALSE of the graph: the
+  entry-relative path pins `bare_parse = false` (`RGX-0078.5.i.7`), so from `f04f5b807` until `.116` every
+  registry parse — `--parse`, the corpus runs, the embedding API — ran the PROTOCOL graph, not the fused
+  cascade graph the speed campaign ships. The AST identity sweeps that pinned this slice (`ast_moved=0
+  verdict_moved=0` on 5 281 files) could not see it, because the two graphs are twins in AST by contract.
+  Measured on the release probe of `72f28a0a1`: a default parse and a `PGEN_REPORT_MEMO_STATS=1` parse read
+  the SAME arena node count (`return_annotation` 21 536 / `systemverilog` 342 213 at 1 024 levels) and
+  `/usr/bin/sample` showed `parse_*` frames and no `cascade_*` frame. The template now calls `parse_full()`
+  for the canonical entry; `.116` holds it with a unit test and records the cost of the two days.
 - **SLICE 2 — MEASURED (`PGEN-ENGINE-UNIVERSAL-SERVICES-0167`, 2026-09-28; ENGINE + BUILD tier — `rust/build.rs`, `rust/src/lib.rs`, `rust/src/parser_registry.rs`, `rust/src/families/{mod,systemverilog,regex}.rs`, the generator's two uniform accessors, `scripts/check_engine_neutrality.sh` + its register; ZERO grammar bytes).** THE REGISTRY IS DERIVED AND THE ENGINE NAMES NO LANGUAGE: `build.rs` lists `generated/*_parser.rs` (plus the `PGEN_<NAME>_PARSER_PATH` overrides, names taken from the listing) and writes three files into `OUT_DIR` — the module includes (`lib.rs` includes them; the annotation pair keeps its snake_case compat aliases inside its modules), the registry table (`fn derived_rows()`, one `generated_parser_row!` per artifact under its own cfg; the `ebnf` seed under the `ebnf_dual_run` feature) and the family-hook module list (`src/families/<name>.rs` present ⇒ that family's `HOOKS`). ONE template serves every artifact — `parse_full_from(GRAMMAR_ENTRY_RULE)`, the profile resolved through the artifact's own alias map and default (the generator now emits `grammar_default_profile()` / `resolve_grammar_profile_alias()` for EVERY parser: `None` / identity where the grammar declares none), the trace rules, the call-count dashboard, the entry / outcome dumps, the arena footprint report and the `furthest_position` augmentation applied uniformly — replacing 13 hand-copied `parse_with_<family>*` sets, 9 typed dispatch matches, the typed `use` list and the 15-row static table (115 items dropped). What is genuinely per-family lives in `rust/src/families/`: `systemverilog.rs` (the standard-library preload, per-profile bundle map; through a `ParseTarget` trait every instantiated parser implements — a parser borrows its input and arena, so it can never be type-erased as `Any`) and `regex.rs` (every parse on a 64 MiB dedicated-stack thread; the PCRE2 compile contract after an accepted parse), reached only through `FamilyHooks` (`pre_check` / `dedicated_stack` / `pre_parse` / `post_parse`, all no-ops by default) keyed on the artifact's `GRAMMAR_NAME`. The two `builtin_*` meta rows: `builtin_return_annotation` aliases the generated return_annotation row (a strict subset), while `builtin_semantic_annotation` keeps its OWN row on the engine's hand-written bootstrap surface (`UnifiedSemanticAST::parse_bootstrap`, permissive and marker-based — the contract the annotation pair is seeded through); the registry test `builtin_semantic_parseability_adapter_accepts_marker_and_raw_inputs` caught the first draft aliasing it to the generated parser (42 / 43, one failure), which is what the test exists for. The public registry surface is unchanged in every signature (34 call sites outside the registry compile untouched, one probe re-pointed at the neutral `parse_and_cover`); three behaviours WIDEN, pre-registered: every parser honours a requested profile through its own alias map (the hand-copied sets did so for three), `parse_sample_ast_json_with_coverage` / `_from_entry` answer for every registered parser (before: one and two), and the entry-count dumps run on the bool lane too. Generated bytes moved once more (the two accessors): every parser gained exactly the two uniform accessors (+9 lines; +4 where the grammar declares aliases or a default), the sidecars moved timestamps, every other artifact byte-identical. BEHAVIOUR PINNED: the AST identity sweeps against the slice-1 probe — `AST-IDENTITY-SWEEP: profile=sv_2017 files=1499 both_accepted=1103 identical=1103 ast_moved=0 verdict_moved=0 b`, `profile=sv_2023 files=1499 both_accepted=1134 identical=1134 ast_moved=0 verdict_moved=0 both_nonaccepting`, `profile=verilog_2005 files=2283 both_accepted=2283 identical=2283 ast_moved=0 verdict_moved=0 both_nonacceptin` — the slice-1 probe as arm A, the slice-2 probe as arm B: no tree and no verdict moved on 1 499 + 1 499 + 2 283 files; the registry + lib tests — the registry's 43 tests green (`43 passed; 0 failed; 1 ignored`, the footprint census re-pinned to the template's three lanes), the whole library suite under the full feature set `1277 passed; 1 failed; 28 ignored` — the one failure the pre-existing `SV-CORPUS-GRAD.34` test and nothing else (the full library suite under the full feature set had not been run since at least 2026-09-06 — no ceremony runs it — and its first run found ONE pre-existing failure, `witness_branch_plan_forces_quantifier_on_real_systemverilog_class_b_target`, bisected by grammar vintage to `8e8435db9` (`.3.42`, 2026-09-06) and confirmed on HEAD's untouched engine in a control worktree: routed as **`SV-CORPUS-GRAD.34`** with the ceremony gap; slice 2's chain tolerates exactly that one failure and nothing else); reproducibility `bash scripts/check_generated_reproducibility.sh --rebaseline` → 11 rows re-derive byte-identically from the working tree (the annotation pair, the ebnf seed, nine families incl. the scratch slot), the baseline re-recorded on the new emission digest; the cost ratchet on the new parser digest the parse-cost ratchet re-measured on the republished release probe: no `FELL` / `ROSE` note (entries, committed and memo_hits identical), the identity re-stamped on the new generated-parser digest, the LR-family share the identical 2.641 %; `parse-cost-ratchet: OK (identity fresh for: generated parser, grammar raw ast, instrument, sample inputs; 192 pinned sample files)`; the pipeline lane the preprocess-to-parse lane on the rebuilt probe `PIPELINE-LANE: files=16336 pass=12486 fail=3573 pp_fail=277 timeout=0 crash=0 wall_s=656 probe=rust/target/debug/parseab` — every count identical to `1.0.246`; `PIPELINE-MOVERS rows_before=16336 rows_after=16336 moved=0 added=0 lost=0`; readjudication re-derived (`rows=6911 missing_lane_rows=0`, every stratum identical); `PIPELINE-LANE-CURRENCY: OK`; the shape / equivalence / semantic gates and the family umbrellas — `ast_shape_contract_gate` 18 / 18, the equivalence gate (interpreter ≡ generated, stimuli corpus seeds 0/7/42, CERTIFIED byte-identical) 4 / 4, the semantic-directive suite 2 / 2; nine family umbrellas `rc 0` (annotation-differential parity, return parity, stimuli-module parity, RTL const-expr cert, regex closure, VHDL closure, the three SVPP umbrellas); the SV formal umbrella `rc 2` on EXACTLY the pre-existing `SV-CORPUS-GRAD.24`(d) condition (`external_corpus_backed_proof_totals_drift=count=2`, status drift 4, `uvm_pkg`) and nothing else. `ENGINE-NEUTRALITY`: `parser_registry.rs` 80 → 0, `lib.rs` 5 → 0 (promoted by `--rebaseline`), the register's `per-family` rule widened to a family's OWN name, profiles and rules (its script exempted the name only; `sv_keyword_versions.rs` 6 → 0 and the re-classed `rtl_frontend` contract probe 15 → 0 follow from the rule the §10 text always stated; an eleventh self-test arm proves the exemption GREEN); the remaining non-zero ceilings are `embedding_api.rs` 37 (slice 3), `main.rs` 1 / `parseability_probe.rs` 13 / `parse_harness_equivalence.rs` 20 (`.113`). ⭐ **The tolerated failure is RETIRED 2026-09-29 (`SV-CORPUS-GRAD.34`, `PGEN-SV-CORPUS-GRAD-0419`)**: the test was re-derived on the measurement — `.3.42` had lifted the OR it named into `nonrange_lvalue_scope` — and the library suite joins the SV release ceremony as item 13.
 - **Acceptance checklist (`TASK-ACCEPTANCE`), slice 2:**
   - [x] **REPRODUCE / ISSUE** — `bash scripts/check_engine_neutrality.sh --census` on `e97d0763f`: `parser_registry.rs` 80 and `lib.rs` 5 production-code language tokens — the typed `use` list, the 15-row table, nine dispatch matches with one arm per family, and two genuinely per-family bodies (the SV stdlib preload, the regex worker + compile contract) hand-copied into thirteen helper sets; `git ls-files rust/src/parser_registry.rs rust/src/lib.rs rust/build.rs | wc -l` → 3, the three engine files that typed the list.
@@ -22544,3 +22618,120 @@ cross) and a new blocking doctrine.
 - **REPRODUCE / ISSUE (measured 2026-09-06).** `stimuli/sv/run_adjudication_repros.py`'s `arm` = a `>`-separated chain of `kind` values (`_kind_chain_present`), negatable; `rust/test_data/ast_shape_contract/systemverilog_v1.json` samples assert `expected_json_object_keys_present` / `expected_json_object_string_values` at the TOP level of the rule under test. On `control_inline_alt_lift_this_prefixes.sv` the 1.0.214 tree carries 4 `<invalid_sequence_access>` (7 on `sv_2023`) and the 1.0.215 tree 0, yet every expressible `arm` (`dynamic_array_new`) holds on BOTH, and a shape sample on `ps_or_hierarchical_array_identifier` would read keys `{scope, name}` on both. Only the btf corruption was pinnable (`!block_event>block`), because the wrong node happened to carry a `kind`. `SV-CORPUS-GRAD.3.42` measured the move with the corpus AST identity sweep (`docs/tasks/artifacts/sv_corpus_grad/inline_alt_lift/ast_identity_sweep.py`, TOOLBOX §1.5e) — a two-BINARY instrument that cannot stand as a per-commit pin.
 - **FIX (priced, not built).** Either (a) an `arm` claim form that pins a JSON-pointer path to a string/JSON value (`/scope/0/kind=this`, `!…/select=<invalid_sequence_access>`) in the pin runner — one file, a sibling of `_kind_chain_present` in `arm_failures`; or (b) an AST-shape contract sample field `expected_json_pointer_values` evaluated by `ast_shape_contract.rs` for every family — the engine-universal form. (b) is the right home (the contract is the shape oracle every family runs at `ast_shape_contract_gate`); (a) is cheaper and SV-only. Either must be able to go RED on the 1.0.214 tree (the interpreter on `git show 15de0cd1:grammars/systemverilog.ebnf`, forever).
 - **ADDRESSED / NO REGRESSION** — pending. PARKED behind the SV lane lock (director 2026-08-21) as instrument hardening: the `.3.42` fix itself is held by the census (`INLINE-ALT-CENSUS: exposed=0` on the shipped grammar, re-runnable on every commit), the four `.3.42` pins' verdicts, the btf `arm`, and the release's corpus-sweep record.
+
+### ✅✅ `.116` — **EVERY REGISTRY PARSE RAN THE PROTOCOL GRAPH FOR TWO DAYS: `.112` SLICE 2's ONE TEMPLATE CALLED `parse_full_from(GRAMMAR_ENTRY_RULE)` FOR THE CANONICAL ENTRY, AND THE GENERATOR PINS `bare_parse = false` ON EVERY ENTRY-RELATIVE PARSE — SO `--parse`, THE CORPUS RUNS AND THE EMBEDDING API ALL LEFT THE FUSED CASCADE GRAPH, WITH EVERY VERDICT AND AST BYTE-IDENTICAL AND NO GATE ABLE TO SEE IT** (**`done`** 2026-09-30, `PGEN-ENGINE-UNIVERSAL-SERVICES-0185`; ENGINE (registry) + TEST + BOOK tier — `rust/src/parser_registry.rs`; ZERO grammar / codegen / generated bytes, no release; opened 2026-09-30 by `.84`(a)/(b)'s instrument work, which found its quadratic term "gone" on today's binary and chased why instead of closing on it)
+
+- ⭐ **HOW IT WAS FOUND, and it was not being looked for.** `.84` recorded peak RSS QUADRATIC in nesting
+  depth on `return_annotation` (84.3 / 316.6 / 1 174.1 MB at 1 024 / 2 048 / 4 096 levels, release
+  probe, 2026-08-31). Re-run today on the release probe of `72f28a0a1`
+  (`memory_depth_ladder.sh`): **27.1 / 45.7 / 84.2 MB** — linear, 1.69× / 1.84× per doubling — and the
+  SystemVerilog control moved the OTHER way, 101.3 / 181.7 / 338.2 → **134.6 / 243.3 / 460.9 MB**. A
+  quadratic term does not vanish and a linear control does not grow a third without a cause, and the
+  cause was found with the toolbox, not filed: `/usr/bin/sample` (1 ms, 8 s) on today's probe shows
+  **`parse_*` frames and NOT ONE `cascade_*` frame** on both families (`return_annotation` 16 384 levels:
+  protocol frames 2 647, cascade 0; `systemverilog` 4 096 levels: protocol 5 933, cascade 0), while the
+  Aug 29 census binary on disk (`parse_alloc_census_probe`, built at `0e3bc12cf`) samples
+  **261 423 `cascade_match_*` frames and 25 protocol** on the same `return_annotation` shape. The parse
+  had moved graphs.
+- ⛔⛔ **WHY + WHERE (tool-backed).** `git log -S'bare_parse' 0e3bc12cf..HEAD -- rust/src rust/build.rs`
+  names exactly ONE commit: `f04f5b807` (`.112` slice 2, 2026-09-28). Its diff replaces the hand-typed
+  rows' `None => parser.parse_full_<name>()` / `Some(e) => parser.parse_full_from(e)` with ONE template
+  that calls `parser.parse_full_from(entry_rule)` where `entry_rule = entry.unwrap_or(GRAMMAR_ENTRY_RULE)`
+  — in all three lanes (`detail` `:619`, `ast_json` `:664`, `cover` `:700`). The generated `parse_from`
+  (emitter `ast_based_generator.rs:2320`, since `bbd6a6aa6` / `RGX-0078.5.i.7`, 2026-07-15) is
+  `self.bare_parse = false;` by design — *"`parse_from` (entry-relative) always clears the flag"* — while
+  `parse()` computes `bare_parse = !coverage_enabled && !logger_enabled && !counters_observed &&
+  !report_memo_stats_enabled()` and enters the fused cascade at every plan sub-root
+  (`if parser.bare_parse { return parser.cascade_<rule>() … }`). The `parse_from` doc comment
+  (`GRAMMAR-WELLFORMED.H.12.8.4.3`) reads *"behavior-identical to `parse()` for single-entry grammars"*:
+  true of the verdict and the AST, FALSE of the graph — and slice 2 built on that sentence. The embedding
+  API (`embedding_api.rs:1281`, `registry::parse_sample_detail_with_profile`) goes through the same
+  `detail` lane, so the Nexsim path was on the protocol graph too.
+- ⛔ **WHY NO GATE SAW IT — three reasons, each a property, none a slip.** (1) The two graphs are twins in
+  verdict and AST BY CONTRACT (`TOOLBOX.md` §1.6 / §1.7 hold them byte-identical), so `.112`'s own
+  verification — the AST identity sweeps, `ast_moved=0 verdict_moved=0` over 5 281 files — could not see
+  a graph change by construction. (2) `PARSE-COST-RATCHET` measures under `PGEN_REPORT_MEMO_STATS`, which
+  clears `bare_parse`: its numbers are protocol-graph numbers on BOTH sides of any change (`.86`(e), new).
+  (3) The speed guardrails (the regex corpus-MAX / geomean ratchets) are the regex family's, and regex has
+  its own worker path. ⇒ nothing in the tree pinned *which graph the default parse selects*.
+- ⭐⭐ **THE FINGERPRINT that DOES tell the graphs apart, deterministic and in-process:** the fused MTB
+  graph builds values ONCE over the derivation tape, the protocol graph allocates a `ParseNode` per rule
+  frame, so `PGEN_REPORT_PARSE_FOOTPRINT`'s `nodes=` differs on the same input. **BEFORE, on
+  `72f28a0a1`'s release probe** (`docs/tasks/artifacts/engine_universal_services/eus116_default_graph/probe.sh`):
+  `DEFAULT-GRAPH: family=return_annotation levels=1024 default_nodes=21536 protocol_nodes=21536
+  verdict=PROTOCOL` · `family=systemverilog … default_nodes=342213 protocol_nodes=342213
+  verdict=PROTOCOL` · `DEFAULT-GRAPH: FAIL`, rc 1 — the default parse and the forced-protocol parse are
+  the same parse. (The Aug 29 census binary read `nodes=2057` for the same `return_annotation` input on
+  the fused graph.)
+- ✅ **THE FIX — registry tier, ONE dispatch, ZERO generated bytes.** `rust/src/parser_registry.rs`: a
+  `FullParse<'input>` trait (`parse_full` / `parse_full_from`) implemented for every artifact inside the
+  template, and `parse_full_at(&mut parser, entry)` — `None ⇒ parser.parse_full()` (the canonical entry,
+  the graph chosen by the observability consumers), `Some(rule) ⇒ parser.parse_full_from(rule)` (the
+  protocol graph, by the generator's design) — called by all three lanes (`detail`, `ast_json`, `cover`)
+  in place of `parse_full_from(entry_rule)`. The pre-`.112` rows' `None => parse_full_<name>()` arm is
+  thereby restored for every family, derived. ⛔ NOT changed: the generator's `parse_from` (its
+  `bare_parse = false` is the cascade's own contract — compiled for the canonical entry — and its doc
+  comment's *"behavior-identical"* is corrected in (c) below with the generator's next touch, because a
+  comment edit regenerates eleven artifacts and would muddy this leaf's A/B).
+- ✅ **THE LOCKS — two unit tests in `parser_registry::tests`, run in the suite the ceremony (item 13),
+  the push lane and the flagship run.** (1) `canonical_entry_parse_runs_the_fused_graph_and_an_explicit_entry_the_protocol_graph`
+  — on the engine's dedicated parse stack, a 64-level `return_annotation` input parsed three ways:
+  `parse_full_at(None)`, the direct `parse_full()`, and `parse_full_at(Some(GRAMMAR_ENTRY_RULE))`; asserts
+  the three ASTs identical (twins by contract), `fused == direct`, and `fused < protocol` (the graph's
+  fingerprint). ⭐ RED CONTROL DRIVEN, not assumed: with the `None` arm scratch-routed through
+  `parse_full_from` (the slice-2 shape) the test FAILS — `assertion left == right failed: no entry
+  requested ⇒ parse_full(): the same arena census as a direct call · left: 1376 · right: 139`
+  (`test result: FAILED. 0 passed; 1 failed`); restored, `3 passed; 0 failed` beside
+  `parse_paths_all_report_footprint`. ⚠️ Its first run overflowed libtest's 2 MiB thread (SIGABRT) — a
+  thread this module did not create keeps the depth its parser asked for (`.79`(b)(c)), which is the
+  ruling, not a defect; the test now runs its parse where every registry parse runs. (2)
+  `registry_lanes_dispatch_through_parse_full_at` — the template's three lanes call `parse_full_at(&mut
+  parser, entry.as_deref())` and none calls `.parse_full_from(` directly (the shape this leaf removed).
+- ✅✅ **MEASURED AFTER, on the rebuilt release probe and census probe (same host, load 7–12).**
+  - The fingerprint: `DEFAULT-GRAPH: family=return_annotation levels=1024 default_nodes=2059
+    protocol_nodes=21536 verdict=FUSED` · `family=systemverilog levels=1024 default_nodes=197712
+    protocol_nodes=342213 verdict=FUSED` · `DEFAULT-GRAPH: OK (2 families …)`, rc 0 — the default
+    parse allocates **10.5×** (annotation) / **1.73×** (SV) fewer arena nodes than the forced-protocol
+    parse of the same input; before, both read equal. `/usr/bin/sample` on the rebuilt probe,
+    SystemVerilog 4 096 levels: **1 791 `cascade_*` frames** (was 0) beside 3 476 protocol frames
+    (the cycle-participating spine keeps its guard frame by design).
+  - The cost of the two days, A/B interleaved (`abab_timing.sh`: the preserved `72f28a0a1` release
+    probe as *before*, the rebuilt one as *after*, 3 rounds ABAB, medians, the three heaviest
+    accepted files of the `PARSE-COST-RATCHET` sample, `--profile sv_2017`, load ≈ 7):
+    | file | wall before → after | ratio | peak RSS before → after | ratio |
+    |---|---|---|---|---|
+    | `t_math_wallace_mul.v` | 0.38 s → 0.28 s | **0.74** | 287.6 → 182.2 MB | **0.63** |
+    | `t_case_huge_sub3.v` | 0.18 s → 0.15 s | **0.83** | 157.7 → 104.2 MB | **0.66** |
+    | `t_func_crc.v` | 0.18 s → 0.16 s | **0.89** | 164.1 → 146.0 MB | **0.89** |
+    ⇒ the protocol graph cost the shipped SV parser **12–26 % wall and 11–37 % peak RSS** on these
+    shapes; on the `.84` ladder the SV control went 134.6 / 243.3 / 460.9 MB (protocol, today) →
+    **103.0 / 186.5 / 348.3 MB** (fused, after), back to 1.7 % of its 2026-08-31 reading.
+  - ⛔ And the term this leaf was found through is BACK where the shipped graph is:
+    `return_annotation` **84.2 / 316.1 / 1 171.7 MB** at 1 024 / 2 048 / 4 096 levels (within 0.3 %
+    of `.84`'s founding 84.3 / 316.6 / 1 174.1) — `.84` was masked, not fixed; its (a)–(d) are
+    discharged in its own section today and (e) owns the fix.
+- ⛔ **WHAT THE TWO DAYS TOUCHED, censused.** Every registry parse from `f04f5b807` (2026-09-28
+  19:02) to this commit: the operator `--parse` / `--parse-dump-ast`, `stimuli/run_external_corpus.sh`
+  and the preprocess→parse lane (`.113`'s `PIPELINE-LANE … pass=12486` was a protocol-graph run —
+  verdict-identical by contract, its `wall_s=744` not comparable to earlier runs), the embedding API
+  (`2.0.0` / `2.1.0`), and the `.112` slice-2/3 AST identity sweeps. NOT touched: the parse harness
+  (`parse_harness.rs:477` kept its own `None => parse_full()` arm, so the differential / combinator /
+  semantic-directive suites ran the fused graph throughout), the stimuli generator, every tracked
+  number measured before 2026-09-28 (release `1.0.246`'s ceremony ran the morning of the 28th, before
+  `-0167`). No SV release shipped in the window (contract identity `1.0.246` unchanged), so nothing
+  published to Nexsim carries a protocol-graph measurement.
+- **OWES — ROUTED + OWNED:** (c) the generator's `parse_from` doc comment says *"behavior-identical to
+  `parse()`"* and is not; corrected — together with the question whether an explicit entry should ALSO
+  compute `bare_parse` (safe if every plan sub-root has its cascade twin; the fusibility census §5.3
+  decides) — with the next generator-touching leaf, because a comment edit regenerates all eleven
+  artifacts (`.72` paid 127 bytes × 11 for exactly this). (d) `PARSE-COST-RATCHET` cannot see a graph
+  change (`.86`(e)); the lock is the registry test, and the probe is the operator's instrument.
+
+#### Acceptance Checklist (enforced) — `.116` (`PGEN-ENGINE-UNIVERSAL-SERVICES-0185`)
+- [x] **REPRODUCE / ISSUE** — on `72f28a0a1`'s release probe, `bash docs/tasks/artifacts/engine_universal_services/eus116_default_graph/probe.sh ./rust/target/release/parseability_probe` → `DEFAULT-GRAPH: family=return_annotation levels=1024 default_nodes=21536 protocol_nodes=21536 verdict=PROTOCOL` · `family=systemverilog levels=1024 default_nodes=342213 protocol_nodes=342213 verdict=PROTOCOL` · `DEFAULT-GRAPH: FAIL`, rc 1; `/usr/bin/sample` (1 ms, 8 s) on the same probe, SV 4 096 levels: `cascade_=0 protocol=5933` frames.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `rust/src/parser_registry.rs`, the `.112` slice-2 template's three lanes (`detail` / `ast_json` / `cover`), each `parser.parse_full_from(entry_rule)` with `entry_rule = entry.unwrap_or(GRAMMAR_ENTRY_RULE)`; the generated `parse_from` (`ast_based_generator.rs:2320`, `self.bare_parse = false;`, since `bbd6a6aa6`). WHY: the entry-relative path pins the protocol graph by the cascade's design, and the template took it for the canonical entry too; `git log -S'bare_parse' 0e3bc12cf..HEAD -- rust/src rust/build.rs` → exactly `f04f5b807`. The instrument that located it: `/usr/bin/sample` on the Aug 29 census binary (`261423` `cascade_match_*` frames on the same shape where today's probe had `0`), and `PGEN_REPORT_PARSE_FOOTPRINT=1`'s `nodes=` reading equal on the default and the `PGEN_REPORT_MEMO_STATS=1` parse.
+- [x] **FIX** — ENGINE (registry) tier, ZERO generated bytes: `FullParse<'input>` + `parse_full_at(&mut parser, entry)` — `None ⇒ parse_full()`, `Some(rule) ⇒ parse_full_from(rule)` — called by all three lanes; two unit tests. No lower tier: the grammar and the generator are unchanged; the generator's `parse_from` contract stands (its doc comment is (c), routed).
+- [x] **ADDRESSED (verified)** — the same probe on the rebuilt release probe: `DEFAULT-GRAPH: family=return_annotation levels=1024 default_nodes=2059 protocol_nodes=21536 verdict=FUSED` · `family=systemverilog levels=1024 default_nodes=197712 protocol_nodes=342213 verdict=FUSED` · `DEFAULT-GRAPH: OK (2 families …)`, rc 0; `/usr/bin/sample` on the rebuilt probe, SV 4 096 levels: `cascade_=1791 protocol=3476`; interleaved A/B (`abab_timing.sh`, 3 rounds ABAB, medians): wall ×0.74 / 0.83 / 0.89 and peak RSS ×0.63 / 0.66 / 0.89 on `t_math_wallace_mul.v` / `t_case_huge_sub3.v` / `t_func_crc.v`; the `.84` ladder's SV control 134.6 / 243.3 / 460.9 → 103.0 / 186.5 / 348.3 MB. Locks: `test parser_registry::tests::canonical_entry_parse_runs_the_fused_graph_and_an_explicit_entry_the_protocol_graph ... ok`, `registry_lanes_dispatch_through_parse_full_at ... ok` (`test result: ok. 3 passed; 0 failed`), RED control driven: `assertion left == right failed … left: 1376 right: 139`, `test result: FAILED. 0 passed; 1 failed`.
+- [x] **NO REGRESSION** — the SV corpus lane re-run sandboxed on the rebuilt probe at the tracked parameters: `16336 parsed — pass=10022 fail=6314 timeout=0 crash=0` and `CORPUS-VERDICT-DIFF: tracked_rows=16336 rerun_rows=16336 common=16336 only_tracked=0 only_rerun=0 moved=0` (the tracked census is `-0163`'s, release `1.0.246`, itself a fused-graph run); the two graphs' ASTs asserted identical by the lock; `parse_paths_all_report_footprint ... ok` (the template's lane census unchanged); `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` → rc 0, `GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS`; ZERO grammar / codegen / generated bytes (`GENERATED-REPRODUCIBILITY` tier 1 byte-identical with HEAD's source); the release distance unchanged at 13 (`--check` holds; neither leaf SV-opened). `bash scripts/check_doctrines.sh` on the staged set → `doctrines: ALL 45 enforced doctrines PASS.` (1 m 24 s); `make -C rust SHELL=/bin/bash mdbook_docs_gate` rc 0.
+- [x] **LOCKSTEP** — `TOOLBOX.md` §3.3b (the entry-relative path is the protocol graph; the two-day window; the probe), `docs/book/src/embedding-and-downstream-integration.md` (the one template's dispatch, twice), `docs/book/src/parse-harness.md`, `docs/book/src/speed-journey.md` (postscript), this leaf, `.84`, `.86`(e), `.112`'s correction note, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`. No contract / ledger / schema / release: the API's behaviour (verdict, AST) is unchanged; its cost returns to the pre-`-0167` figures.
+- [x] **NEUTRALITY TIER** — N/A for a capability; the dispatch names no language (`ENGINE-NEUTRALITY` holds `parser_registry.rs` at 0 production-code language tokens; the lock's `return_annotation` is a meta grammar in a test).

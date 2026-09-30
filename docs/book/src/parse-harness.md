@@ -198,11 +198,14 @@ small, reviewable, one-time registration:
 
 The one design subtlety worth calling out: a *scratch* grammar's entry-rule name changes every time
 you overwrite the body. Every generated parser carries its canonical entry as `GRAMMAR_ENTRY_RULE`
-(beside `GRAMMAR_NAME` and `GRAMMAR_PROFILES`), and the registry's template dispatches through
-`parse_full_from(GRAMMAR_ENTRY_RULE)` for every grammar — so the registration is **stable across
-arbitrary probe grammars**: the registry never types the probe grammar's entry-rule name, it reads it
-from the artifact. An explicit `--entry-rule RULE` routes through `parse_full_from(RULE)`, so you can
-inspect a non-entry rule (for example a shadowed alternative) in isolation.
+(beside `GRAMMAR_NAME` and `GRAMMAR_PROFILES`), and the registry's template dispatches through the
+artifact's own `parse_full()` — which begins at that entry and runs the fused bare-parse graph — for
+every grammar, so the registration is **stable across arbitrary probe grammars**: the registry never
+types the probe grammar's entry-rule name. An explicit `--entry-rule RULE` routes through
+`parse_full_from(RULE)`, so you can inspect a non-entry rule (for example a shadowed alternative) in
+isolation — on the protocol graph, which the generator pins for every entry-relative parse
+(`ENGINE-UNIVERSAL-SERVICES.116` records the two days on which the template used that path for the
+canonical entry too).
 
 ### Why this is trustworthy — "by construction"
 

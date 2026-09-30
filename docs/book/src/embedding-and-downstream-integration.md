@@ -61,8 +61,16 @@ developer-architecture chapter.
 
 Since slice 2 (2026-09-28) the parser registry the API and the operator tools dispatch through is
 **derived**: `build.rs` lists `generated/*_parser.rs`, writes the module includes and the registry
-table, and every artifact is served by ONE template (`parse_full_from(GRAMMAR_ENTRY_RULE)`, the
-profile resolved through the artifact's own alias map and default). What is genuinely per-family —
+table, and every artifact is served by ONE template (the artifact's own `parse_full()` for the
+canonical entry — the fused bare-parse graph — and `parse_full_from(RULE)` only for an explicitly
+requested entry, which the generator pins to the protocol graph; the profile resolved through the
+artifact's own alias map and default). ⛔ From slice 2 until `ENGINE-UNIVERSAL-SERVICES.116`
+(2026-09-30) the template called `parse_full_from(GRAMMAR_ENTRY_RULE)` for every parse, so every
+registry parse — this API's included — ran the protocol graph: verdicts and ASTs byte-identical (the
+two graphs are twins by contract), the cost not. A registry unit test now holds the canonical entry
+on the fused graph, and the default-graph probe under
+`docs/tasks/artifacts/engine_universal_services/eus116_default_graph/` tells the two apart by arena
+node count on a shipped binary. What is genuinely per-family —
 the SystemVerilog standard-library preload, the regex worker stack and PCRE2 compile contract — lives
 in `rust/src/families/<name>.rs`, reached only through a hook table keyed on `GRAMMAR_NAME`.
 
@@ -916,7 +924,9 @@ The parser registry is the in-process discovery and routing seam used by several
 
 Since `ENGINE-UNIVERSAL-SERVICES.112` slice 2 (2026-09-28) the registry is **derived**: `build.rs`
 lists the generated parser artifacts and writes the registry table, one template serves every
-artifact (its name, entry, profiles, default and alias map read from the artifact itself), and the
+artifact (its name, entry, profiles, default and alias map read from the artifact itself; the
+canonical entry through `parse_full()`, the fused graph — an explicit entry through
+`parse_full_from(RULE)`, the protocol graph — since `.116`), and the
 only per-family code the engine links — the SystemVerilog standard-library preload, the regex
 dedicated stack and PCRE2 compile contract — lives under `rust/src/families/`, reached through a hook
 table keyed on the artifact's `GRAMMAR_NAME`. `registered_grammars()` and `registered_profiles()`

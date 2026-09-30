@@ -1,5 +1,15 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.116 + .84 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0185`): a fast path no gate proves is SELECTED is one refactor from being unselected, and a memory term that "vanishes" has moved, not gone
+
+- **Chase the vanished term before closing on it.** `.84`'s quadratic RSS read linear today; the cheap reading was "fixed by something since". Sampling both binaries showed the parse had changed GRAPHS — the defect was masked by a larger one two days old.
+- **A verdict sweep cannot see a graph change when the graphs are twins by contract.** `.112` slice 2 pinned itself with `ast_moved=0 verdict_moved=0` on 5 281 files and was still a 12–26 % speed regression on the shipped path. The fingerprint that sees the graph is what it ALLOCATES (arena nodes), not what it answers.
+- **The cost ratchet is the protocol graph by construction.** `PGEN_REPORT_MEMO_STATS` clears `bare_parse`; the ratchet's numbers are protocol-graph numbers on both sides of any change, so `.86`'s identity-set gap is not its only blind spot.
+- **"Behavior-identical" in a doc comment is a claim about ONE axis.** The generator's `parse_from` is verdict-identical to `parse()` and graph-different; slice 2 built on the sentence. The lock now sits on the choice itself, not on the sentence.
+- **Two refused parses compared against an accepted one look like an instrument defect.** `.84`'s "identical `alloc_calls`" and "peak_live under 7 MB" were rc 1 runs at a fixed ceiling; the census probe's own exit code said so. Read rc before reading the number.
+- **Read RC and the graph before quoting a ladder.** The Aug 31 ladder and today's differ by binary AND by graph; only the rebuilt binary on the restored graph reproduces the founding numbers (to 0.3 %), which is what makes them founding.
+- **A libtest thread is a thread the engine did not create.** The first run of the new lock overflowed 2 MiB on a 64-level input in debug; the guard leaves foreign threads at the depth the parser asked for by ruling, so a test parses where the registry parses — on the dedicated stack.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.91 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0183`): a constraint the generator imposes is checked where the generator can name the rules, not where rustc names the constant
 
 - **Bank the BEFORE on the binary you are about to replace.** The pre-change `ast_pipeline` was still on disk from the previous slice; one lint and one codegen run on the control grammar recorded the exact defect (two `const RULE_SYM_X` lines) before the rebuild made it unreproducible.
