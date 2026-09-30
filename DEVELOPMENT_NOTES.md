@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.40 closure correction (`PGEN-ENGINE-UNIVERSAL-SERVICES-0192`): a number written before the command printed it is a hand-derived number, whatever it is later checked against
+
+- **The instance.** The `.40` closure drafts said "10 → 9" on the assumption that closing an `SV-CORPUS-GRAD`-found engine leaf moves the distance; the counter reads *opened … by*, not *found … by*, and `.40` was never in it. The script printed `items=10` twice in the same commit's log; the drafts and the commit message were written first and not re-read against it.
+- **The discipline (standing, not new — promotion declined):** run `scripts/report_sv_release_distance.sh` and copy its printed line into the banner, the leaf and the commit; a draft carries a placeholder for that number until the line exists. The check that passed (`--check`) guards the derived block and the history row, not prose — prose is guarded only by reading.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.40 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0191`): one question, one predicate — and one control per field of the record
 
 - **Two callers asking the same question must call the same function.** Tier 1 and the self-record guard both asked "does the baseline describe this tree?" and computed it differently; the gate then stayed RED after proving itself green. The fix is not a second loop that happens to agree today but ONE predicate both read, so the next field added to the record cannot split them again.
