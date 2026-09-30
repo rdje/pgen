@@ -22348,7 +22348,7 @@ cross) and a new blocking doctrine.
   moved committed count is conserved one for one and every entries-riser lies in the introduced sub-graph.
 - **ROUTING EVIDENCE lives in the opening tree** (`docs/tasks/SV-CORPUS-GRAD.md`, *ROUTING EVIDENCE*, `.3.31` → `.92`).
 
-### ⛔ `.93` — **THE GENERATED LAYOUT SKIPPER ACCEPTS AN UNTERMINATED BLOCK COMMENT — `/*` with no `*/` before EOF is consumed as layout, so a file that is nothing but `/*` PARSES; measured on `SV-CORPUS-GRAD.3.35` and routed here** (`todo`, ROUTED + PARKED, not SV-blocking — opened 2026-09-04 by `SV-CORPUS-GRAD.3.35` / `PGEN-SV-CORPUS-GRAD-0364`)
+### ✅✅ `.93` — **THE GENERATED LAYOUT SKIPPER ACCEPTS AN UNTERMINATED BLOCK COMMENT — `/*` with no `*/` before EOF is consumed as layout, so a file that is nothing but `/*` PARSES; measured on `SV-CORPUS-GRAD.3.35` and routed here** (**`done`** 2026-09-30, `PGEN-ENGINE-UNIVERSAL-SERVICES-0186` — CLOSED ON MEASUREMENT: the fix this leaf priced LANDED as `.107` (`b7b20a641`, 2026-09-15, with `SV-CORPUS-GRAD.3.62`, ledger `SV-0107`), and every probe this leaf pre-registered reads as the fix requires on today's release probe; the heading had stayed `todo` for fifteen days and counted in the release distance; opened 2026-09-04 by `SV-CORPUS-GRAD.3.35` / `PGEN-SV-CORPUS-GRAD-0364`)
 
 - ⭐ **HOW IT WAS FOUND.** The axis-2 bar's 21 `unexplained_accepts_invalid` rows were triaged by construct; sv2v `test/error/block_comment_eof.sv` — a file whose whole content is `/*` and a newline — is ACCEPTED by the release probe under every profile (`parse_full passed`, an EMPTY description). IEEE 1800-2017 §5.4 (`docs/systemverilog/2017/md/section-5-lexical-conventions.md:58`): *"A block comment shall start with /* and end with */."* The grammar's own `block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//` requires the terminator — and never sees these bytes.
 - ✅ **WHY + WHERE (read in the emitted parser's generator, not inferred):** `rust/src/ast_pipeline/ast_based_generator.rs` emits a LAYOUT SKIPPER with built-in comment arms unless the grammar claims the introducer as a non-comment token (`CommentArmSuppression`, `:96-115`; `claims_block_comment`, `:6907`). The block-comment arm (`regex_block_comment_arm`, `:7585-7600`, and the terminal twin `:7726`; the scanner at `:9416-9426`) advances past `/*` and `while i + 1 < len && !(bytes[i] == b'*' && bytes[i + 1] == b'/') { i += 1; }` then `if i + 1 < len { i += 2; }` — at EOF without `*/` the loop simply ends and the bytes are consumed as layout. Nothing about that is SystemVerilog: every grammar that leaves `/*` to the skipper accepts an unterminated comment. Probes: `/*\n` ACCEPT, `/*/\nmodule t; endmodule\n` ACCEPT, `/* x` (no newline) REJECT — the newline matters because the trailing scan differs, which is a second smell.
@@ -22356,6 +22356,23 @@ cross) and a new blocking doctrine.
 - **WHY PARKED:** one corpus row; the fix is engine-tier (the grammar cannot see layout bytes), so it is not a grammar slice and not an SV release blocker; a Rust change carries its own ceremony (clippy, the generated-parser reproducibility baseline, every family's regeneration).
 - **ROUTING EVIDENCE lives in the opening tree** (`docs/tasks/SV-CORPUS-GRAD.md`, *ROUTING EVIDENCE*, `.3.35` → `.93`).
 - ⭐ **THE FIX WAS BUILT, VALIDATED AND REVERTED on 2026-09-09** (recorded in `SV-CORPUS-GRAD.3.56`'s `.3.57` session history, demoted there from `MEMORY.md`): `consume_layout_for_terminal` / `consume_layout_for_regex` in `rust/src/ast_pipeline/ast_based_generator.rs` AND `rust/src/parse_harness_interpreter.rs` track whether `*/` was found, reset the cursor and STOP if not — the three negative tests reject, `ast_moved=0`, 0 regressions on the three SV lanes. Reverted because it moves ALL 10 parsers' layout skipper and needs per-family `make -C rust focus_<grammar>` regeneration (NOT `regenerate_generated_parsers`) + a full rebuild + every family's gates: the ceremony this leaf owes, in a focused ENGINE session.
+- ✅✅ **CLOSED ON MEASUREMENT 2026-09-30 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0186`; TRACKER tier, no code change).** The
+  PRICED fix above — *the skipper's block-comment arm refuses at EOF without `*/`, leaving the cursor at
+  `/*`* — is exactly what `.107` shipped on 2026-09-15 at the four sites (both emitted arms, both
+  interpreter twins), engine-wide, with the three pre-registered SV corpus movers and a byte-identical
+  re-derivation of the untouched families; this leaf's heading was never flipped. Re-run today on the
+  release probe of `fd1f51881` (`--profile sv_2017`; the three profiles agree on the two shapes tried
+  under all of them), this leaf's OWN controls: RED `/*\n` → `parse_full rejected … did not consume full
+  input at position 0 furthest_position=0`, rc 1; RED `/*/\nmodule t; endmodule\n` → rejected at 0, rc 1;
+  RED `/* x` → rejected at 0, rc 1 (was *"REJECT one byte short for the wrong reason"* — the cursor now
+  stays on the `/*`); RED `module t; endmodule /*` → `position 20 furthest_position=19`, rc 1 (`.107`'s
+  own numbers); GREEN `module t; endmodule /* done */\n` → `parse_full passed`, rc 0; GREEN
+  `module t; /* x */ endmodule\n` → passed, rc 0. The founding corpus row sv2v
+  `test/error/block_comment_eof.sv` → rejected at 49, rc 1, and its tracked adjudication row reads
+  `fail must_reject match`. ⚠️ The `.3.35` pin this leaf named (`invalid_unterminated_block_comment.sv`)
+  resolves to no file under `stimuli/` or `rust/test_data/` today — the corpus row and `.107`'s
+  `SV-0107` ledger entry are the witnesses; nothing else is owed. Distance: an SV-opened engine leaf
+  closed, 13 → 12 (engine 8 → 7); the history row recorded.
 
 ### ✅✅ `.94` — **`done`** 2026-09-04 (landed with `PGEN-SV-CORPUS-GRAD-0366`, leaf `SV-CORPUS-GRAD.3.37`) — **`PARSE-COST-RATCHET` HAD NO SHAPE FOR AN ADMITTED ALTERNATIVE NET OF RETIRED WORK: two keyword terminals the standard requires (`null` as a primary, `local ::` as a class qualifier) are tried at every position their ordered choice reaches and almost never match, while two footnote re-spellings in the same tree retire more entries than they move and `committed` FALLS — the terminal identities need `committed` flat, containment refuses any fall, the profile-split predicate refuses a rise on a pre-existing name. A ninth coded invariant, `declared_alternatives_net_of_retired_work`, with eight ground-truth controls.**
 

@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.93 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0186`): a leaf that priced a fix is not closed by the leaf that ships it unless someone flips the heading
+
+- **A distance is only as honest as its headings.** `.107` fixed `.93`'s defect and cited the same corpus row; the tracker gained one DONE and kept one `todo`, and the derived distance counted the ghost for fifteen days. When closing a leaf, grep the tree for every other leaf that names the same symptom or row.
+- **Close on the leaf's OWN controls.** `.93` had pre-registered four RED and two GREEN shapes; re-running those — not `.107`'s — is what makes "closed on measurement" a statement about this leaf.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.116 + .84 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0185`): a fast path no gate proves is SELECTED is one refactor from being unselected, and a memory term that "vanishes" has moved, not gone
 
 - **Chase the vanished term before closing on it.** `.84`'s quadratic RSS read linear today; the cheap reading was "fixed by something since". Sampling both binaries showed the parse had changed GRAPHS — the defect was masked by a larger one two days old.
