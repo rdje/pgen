@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.40 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0191`): one question, one predicate — and one control per field of the record
+
+- **Two callers asking the same question must call the same function.** Tier 1 and the self-record guard both asked "does the baseline describe this tree?" and computed it differently; the gate then stayed RED after proving itself green. The fix is not a second loop that happens to agree today but ONE predicate both read, so the next field added to the record cannot split them again.
+- **A control that exercises one member of a set proves nothing about the others.** `.39`'s demonstration zeroed `parser_sha`, the field its guard read; `emission_sha` was outside the arm for a month. The self-test now carries one arm per declared field — including a NO-CHURN arm for the field no predicate compares, so the recording is provably keyed on exactly what tier 1 reads.
+- **Price the arms where they run.** Each recording arm costs a full tier 2; the self-test is invoked by one Makefile target and by nothing on the commit or push path, checked before adding them (`grep` over the doctrine enforcer, the mirror, the workflows).
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.98 correction (`PGEN-ENGINE-UNIVERSAL-SERVICES-0190`): a filtered acceptance run is not the module
 
 - **A family filter proves the new tests; the module's other tests are the regression suite for the arm.** `.98` accepted on the spacing filter (12 green) and broke a standing pin in the same module that the filter never ran; the CI mirror's `lib-unit-test-gate` found it two commits later. The minimum scope for an engine change is the module, and the full lib suite before the commit when the module is a shared service.

@@ -8,6 +8,8 @@ answers:
   - "a check has never failed — does that mean it works"
   - "how do I map a generated artifact's names back to the source that produced them"
   - "should I reuse the shipped name classifier or ask the structure"
+  - "why does the reproducibility doctrine stay red after a green tier 2"
+  - "a control proved one field of a record — does it prove the others"
 tags: [predicates, populations, generated-artifacts, gates, evidence, diagnosis]
 date: 2026-08-20
 status: current
@@ -63,3 +65,12 @@ The general checks, before reusing any predicate:
   been taken is untested, not proven.
 - **Prefer the structure the artifact came from over the names it was given** →
   [[one-metric-name-two-predicates-is-a-contract-defect]].
+
+**The same trap, restated for a CONTROL (`ENGINE-UNIVERSAL-SERVICES.40`, closed 2026-09-30,
+`PGEN-ENGINE-UNIVERSAL-SERVICES-0191`).** `.39` proved the reproducibility gate's self-recording by
+zeroing one recorded `parser_sha` — the one field its freshness guard read — while tier 1 keyed on
+`emission_sha`, a field the guard never read; the two "is the baseline current?" predicates
+disagreed, and the doctrine sat RED after a green tier 2 whenever only the emission digest moved.
+A control that exercises one member of a set proves nothing about the others: the fix is ONE shared
+predicate for both callers, and one self-test arm per declared field of the record (the two a
+predicate compares must be re-recorded; the one no predicate compares must not churn the file).

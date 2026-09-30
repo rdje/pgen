@@ -295,6 +295,26 @@ artifact_out() {
 }
 
 # emission_sha — the digest tier 1 keys on. DERIVED from git, so it cannot rot into a hand-list.
+# `ENGINE-UNIVERSAL-SERVICES.40` (2026-09-30): tier 1 and the `--verify` self-record guard ask the
+# SAME question — "does the baseline describe this tree?" — and until this leaf they computed it
+# two ways: tier 1 compared `emission_sha` AND every family row, `baseline_current()` compared the
+# family rows ONLY. So a change that moved nothing but the emission digest (a Makefile probe target,
+# a generator comment) left tier 1 RED after a complete green tier 2, because the guard saw "nothing
+# to record" — measured live 2026-08-20 (`SV-CORPUS-GRAD.13c.2w`): 11/11 byte-identical, `TIER 2 OK`,
+# tier 1 RED until `--rebaseline` was typed. The predicates below are the ONE definition both
+# callers use, so they cannot diverge on WHAT is compared; tier 1 keeps its own wording per case.
+recorded_emission_sha() { sed -n 's/.*"emission_sha": "\([0-9a-f]*\)".*/\1/p' "$BASELINE"; }
+emission_recorded_matches_live() { [ "$(recorded_emission_sha)" = "$(emission_sha)" ]; }
+# family_row_matches <fam> — rc 0 iff the recorded row equals the artifact on disk; rc 1 if the row
+# is MISSING (empty parser or input sha), rc 2 if it MOVED. The caller decides the wording.
+family_row_matches() {
+  local fam="$1" rec_p rec_i p j
+  rec_p=$(sed -n "s/.*\"$fam\": { \"parser_sha\": \"\([0-9a-f]*\)\".*/\1/p" "$BASELINE")
+  rec_i=$(sed -n "s/.*\"$fam\":.*\"input_sha\": \"\([0-9a-f]*\)\".*/\1/p" "$BASELINE")
+  [ -n "$rec_p" ] && [ -n "$rec_i" ] || return 1
+  p=$(artifact_rel "$fam"); j="$GENERATED/${fam}.json"
+  [ "$(sha_file "$p")" = "$rec_p" ] && [ "$(input_sha_file "$j")" = "$rec_i" ] || return 2
+}
 emission_sha() {
   local files
   files=$(git ls-files 'rust/src/ast_pipeline/*.rs' 'rust/src/ast_pipeline/**/*.rs' rust/Makefile 2>/dev/null | LC_ALL=C sort)
@@ -599,13 +619,13 @@ write_baseline() {
 # read-only-looking invocation.
 baseline_current() {
   [ -f "$BASELINE" ] || return 1
-  local fam rec_p rec_i p j
+  # `.40`: the emission digest is part of "current" — it is the first thing tier 1 compares.
+  emission_recorded_matches_live || return 1
+  local fam p j
   for fam in "${PAIR[@]}" "${FAMILIES[@]}" "${SEED[@]}"; do
     p=$(artifact_rel "$fam"); j="$GENERATED/${fam}.json"
     [ -f "$p" ] && [ -f "$j" ] || continue
-    rec_p=$(sed -n "s/.*\"$fam\": { \"parser_sha\": \"\([0-9a-f]*\)\".*/\1/p" "$BASELINE")
-    rec_i=$(sed -n "s/.*\"$fam\":.*\"input_sha\": \"\([0-9a-f]*\)\".*/\1/p" "$BASELINE")
-    [ "$(sha_file "$p")" = "$rec_p" ] && [ "$(input_sha_file "$j")" = "$rec_i" ] || return 1
+    family_row_matches "$fam" || return 1
   done
   return 0
 }
@@ -661,11 +681,11 @@ tier1() {
   fi
 
   local recorded_emission live_emission
-  recorded_emission=$(sed -n 's/.*"emission_sha": "\([0-9a-f]*\)".*/\1/p' "$BASELINE")
+  recorded_emission=$(recorded_emission_sha)
   [ -n "$recorded_emission" ] || die "$BASELINE carries no emission_sha — it is malformed, and comparing against an empty string would PASS by construction"
   live_emission=$(emission_sha)
 
-  if [ "$recorded_emission" != "$live_emission" ]; then
+  if ! emission_recorded_matches_live; then
     # ⛔ SAY WHAT MOVED, and do not overstate it. The identity covers the code generator AND the
     # recipe that invokes it (flags, the `-o` spelling), and it is deliberately over-inclusive — so
     # a change here means "the artifacts MAY no longer be what this tree produces", not "they are
@@ -684,7 +704,8 @@ tier1() {
     local rec_p rec_i
     rec_p=$(sed -n "s/.*\"$fam\": { \"parser_sha\": \"\([0-9a-f]*\)\".*/\1/p" "$BASELINE")
     rec_i=$(sed -n "s/.*\"$fam\":.*\"input_sha\": \"\([0-9a-f]*\)\".*/\1/p" "$BASELINE")
-    if [ -z "$rec_p" ] || [ -z "$rec_i" ]; then
+    local row_rc=0; family_row_matches "$fam" || row_rc=$?   # `.40`: the ONE predicate the self-record guard reads too
+    if [ "$row_rc" = 1 ]; then
       breach "$fam has no recorded row in $BASELINE, so its reproducibility is UNPROVEN while its siblings' is. Re-record with \`make -C rust SHELL=/bin/bash generated_reproducibility_rebaseline\`."
       continue
     fi
@@ -692,7 +713,7 @@ tier1() {
     local j="$GENERATED/${fam}.json"
     [ -f "$p" ] && [ -f "$j" ] || { breach "$p or $j is absent while other artifacts are present — the tree is half-generated"; continue; }
     local live_p live_i; live_p=$(sha_file "$p"); live_i=$(input_sha_file "$j")
-    if [ "$live_p" != "$rec_p" ] || [ "$live_i" != "$rec_i" ]; then
+    if [ "$row_rc" = 2 ]; then
       breach "$fam moved since it was last PROVEN to re-derive from HEAD (parser ${live_p:0:12}… vs ${rec_p:0:12}…, input ${live_i:0:12}… vs ${rec_i:0:12}…).
       Tier 1 detects MOVEMENT; only tier 2 can say whether the new state is correct:
         make -C rust SHELL=/bin/bash generated_reproducibility_gate"
@@ -756,6 +777,41 @@ PY
   cp "$T/baseline.orig" "$BASELINE"
   arm "REFUSE(2): unknown argument"                    2 bash "$0" --nonsense
   arm "GREEN control again: baseline restored"         0 bash "$0"
+
+  # ── `ENGINE-UNIVERSAL-SERVICES.40` — ONE ARM PER DECLARED BASELINE FIELD, through the RECORDING
+  # path. `.39` proved the self-record on `parser_sha` alone, the one field `baseline_current()`
+  # read; `emission_sha` sat outside the arm and the guard stayed blind to it for a month. Each arm
+  # below perturbs one field, runs a complete `--verify` (tier 2 re-derives every artifact — the
+  # price of a real recording), and asserts what tier 1 reads AFTER: a field a predicate compares
+  # must be re-recorded (tier 1 GREEN); the field no predicate compares (`verified_at_commit`,
+  # informational — tier 1 only prints it) must NOT churn the file. `--verify` writes the real
+  # baseline; the block restores `baseline.orig` at its end, as the arms above do.
+  record_arm() { # record_arm <name> <field: emission|parser|commit> <expect-rewritten: 1|0>
+    local name="$1" expect_rewritten="$3"
+    python3 - "$BASELINE" "$T/baseline.orig" "$2" <<'PY'
+import re, sys
+p, orig, how = sys.argv[1], sys.argv[2], sys.argv[3]
+s = open(orig).read()
+if how == "emission": s = re.sub(r'"emission_sha": "[0-9a-f]+"', '"emission_sha": "deadbeef"', s)
+if how == "parser":   s = re.sub(r'("json": \{ "parser_sha": ")[0-9a-f]+', r'\1' + "0"*64, s)
+if how == "commit":   s = re.sub(r'"verified_at_commit": "[0-9a-f]+"', '"verified_at_commit": "' + "0"*40 + '"', s)
+open(p, "w").write(s)
+PY
+    cp "$BASELINE" "$T/baseline.perturbed"
+    arm "$name (--verify completes)"                   0 bash "$0" --verify
+    if [ "$expect_rewritten" = 1 ]; then
+      arm "$name (tier 1 GREEN after)"                 0 bash "$0"
+    else
+      arms=$((arms + 1))
+      if cmp -s "$BASELINE" "$T/baseline.perturbed"; then printf '  ✓ %-46s the file was left untouched\n' "$name (no churn)"
+      else printf '  ✗ %-46s the file was REWRITTEN for a field no predicate compares\n' "$name (no churn)" >&2; bad=$((bad + 1)); fi
+    fi
+  }
+  record_arm "RECORDS: stale emission_sha re-recorded"   emission 1
+  record_arm "RECORDS: moved parser_sha re-recorded"     parser   1
+  record_arm "NO CHURN: stale verified_at_commit alone"  commit   0
+  cp "$T/baseline.orig" "$BASELINE"
+  arm "GREEN control after the recording arms"         0 bash "$0"
 
   # ── `ENGINE-UNIVERSAL-SERVICES.32` — the generator-currency refusal path ────────────────────────
   # ⛔ EXIT CODE CANNOT DISCRIMINATE HERE: a NOT-EVALUATED note returns 0, exactly like a pass, which
