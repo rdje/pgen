@@ -80,14 +80,22 @@ echo "[2] SITE CENSUS — source sites (lint) reconciled against emitted sites (
 NEG="$(grep -o 'profile_gated_negative_lookaheads=[0-9]*' "$LINT" | grep -o '[0-9]*$' | head -1)"
 POS="$(grep -o 'profile_gated_positive_lookaheads=[0-9]*' "$LINT" | grep -o '[0-9]*$' | head -1)"
 printf '    lint notes: negative=%s positive=%s   (a note is one (rule, path, PROFILE) triple)\n' "$NEG" "$POS"
-expect "negative notes"  "$NEG" "7"
+# ENGINE-UNIVERSAL-SERVICES.46 closure (2026-09-30, PGEN-ENGINE-UNIVERSAL-SERVICES-0195): the three
+# population pins below are CENSUS SNAPSHOTS, not invariants — 7 / 5 / 5 was the 2026-08-25 grammar
+# (release 1.0.2xx of that day); nine grammar releases since (git log --since=2026-08-26 -S'!' --
+# grammars/systemverilog.ebnf) grew the gated-negative-lookahead population to 20 notes over 10
+# rules and 30 emitted wrappers, and every semantic arm of this audit (the universe, the NARROWING /
+# POSITIVE / SELECTION / UNSPECIFIED / UNDECLARED probes) holds on every one of them. Re-pinned at
+# today's derived census; a future move of these three rows is a population change to be named,
+# and the semantic rows below are the invariant.
+expect "negative notes"  "$NEG" "20"
 expect "positive notes"  "$POS" "1"
 grep -o "rule '[a-z_]*' is LIVE under profile '[^']*'" "$LINT" \
     | sed "s/rule '//; s/' is LIVE under profile '/  ×  /; s/'$//" | sort > "$WORK/notes.txt"
 echo "    the (rule × profile) pairs the notes cover:"
 sed 's/^/      /' "$WORK/notes.txt"
 DISTINCT_RULES="$(sed 's/  ×.*//' "$WORK/notes.txt" | sort -u | wc -l | tr -d ' ')"
-expect "distinct RULES carrying a note" "$DISTINCT_RULES" "5"
+expect "distinct RULES carrying a note" "$DISTINCT_RULES" "10"
 
 if [[ -r "$EMITTED" ]]; then
     EMIT_N="$(grep -c 'profile_gate_bypass_applies(&' "$EMITTED")"
@@ -97,7 +105,7 @@ if [[ -r "$EMITTED" ]]; then
     # first alternative, so that one source site is emitted TWICE. The lint counts SOURCE sites; the
     # parser emits per INLINED site. A reader comparing the two numbers without this line reads a
     # missing repair.
-    expect "emitted wrappers (4 source negative sites, one inlined twice)" "$EMIT_N" "5"
+    expect "emitted wrappers (was: 4 source negative sites, one inlined twice)" "$EMIT_N" "30"
     grep -o 'profile_gate_bypass_applies(&\[[^]]*\], *[a-z]*)' "$EMITTED" \
         | sed 's/profile_gate_bypass_applies(//' | sort | uniq -c | sed 's/^/      /'
     echo "      ⇒ every wrapper carries when_undeclared=true, and four carry the vacuous profile"

@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.46 closed on measurement (`PGEN-ENGINE-UNIVERSAL-SERVICES-0195`): a hand-pinned population count is a snapshot, and a control that pins one must say so
+
+- **The instance.** The site audit's 17 semantic rows were green and its 3 population pins (7 / 5 / 5, the 2026-08-25 grammar) were not — nine grammar releases had grown the gated-negative-lookahead population to 20 / 10 / 30. Re-derived at today's census with the reason written above the pins; the semantic rows are the invariant, the counts document the population.
+- **A `done`-under-open heading is found by re-reading, not by the counter.** The distance counter reads single-`⛔` SV-opened headings; this three-`⛔` heading was invisible to it for 36 days.
+- promotion: declined (the re-read discipline is the standing `MEMORY.md` rule; the count-vs-invariant distinction is `size-the-population-by-provenance-before-choosing-gate-or-ratchet`'s).
+
 ## 2026-09-30 — `git commit` commits the index, not the files named in the last `git add` (`PGEN-SV-CORPUS-GRAD-0422`)
 
 - **The instance.** Two data files and a tree note staged for one commit stayed staged when its doctrine run refused; the next commit (`ee32ed8d1`, a different tree's docs) committed the whole index and carried them unnamed. Corrected forward by a naming commit; the sequencing rule: `git reset` the index (or `git stash --keep-index` nothing — just `git restore --staged`) before staging the NEXT commit's set after a refused attempt, and read `git status --short` for stray `M ` rows before every commit.
