@@ -120,6 +120,22 @@ Both corrections are held by a control the census refuses to run without — a g
 to the defect is a profile appearing in no `@profiles` list. Without it, "regex reports 0" and "the
 instrument never tested regex's shipping profile" are the same output.
 
+⭐ **Since `ENGINE-UNIVERSAL-SERVICES.47` (2026-09-30) that corrected context is the linter's ONE
+profile context**, built by `extract_profile_context_with_default` on the unfiltered grammar and read
+by every cross-profile arm — the `profile_orphans` arm (ERROR-class, gating), the lookahead arm,
+`--report-sample-parity` and `--dump-rule-profiles`. Until then the orphan arm was the one reader
+left on the filtered context: `grammars/regex.ebnf` linted `profile_orphans=0 (error; profiles=[])`,
+an empty universe under which the arm's own `>= 2` guard skipped it on every commit, and the same
+five-rule control read the same. Sized before the counter was moved, because it blocks: over every
+tracked grammar the correction changed exactly one reading — regex, evaluated for the first time over
+`profiles=["pcre2", "relaxed"]`, **0 orphans** — while SystemVerilog stays 0 over its three profiles
+and VHDL, whose only declared profile is its default, is skipped honestly on a universe of one. The
+orphan arm has its own control now (`default_profile_orphan_control.ebnf`, driven by
+`probe_orphan_context.sh` beside it): a universal rule whose only production is a `["relaxed"]`-gated
+rule reads `profile_orphans=1 (error; profiles=["pcre2", "relaxed"])` at rc 1, where the old context
+read 0 at rc 0. The `>= 2` guard is kept — a profile orphan needs an "elsewhere" — re-derived from the
+corrected universe rather than deleted.
+
 ### The lookahead-slot arm (`template_binds_lookahead_child`)
 
 A lookahead (`!x`, `&x`, `!( … )`) is a **child** of the sequence it stands in. It derives nothing —

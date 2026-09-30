@@ -1,5 +1,14 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.47 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0182`): a blocking counter is moved only after the population is sized, and a context built in one place cannot be corrected in another
+
+- **`profiles=[]` on a grammar with ten gates is the instrument saying it did not run.** The zero beside it was never a verdict; reading the universe before reading the count is what turned a month-old "clean" into an unevaluated arm.
+- **Size the ERROR-class move first, over every grammar, on the same command.** The leaf refused to guess whether this was a one-liner or a campaign; the table said one reading moved and in the evaluated direction. Without the table, a correct fix would still have been an unsized gamble on a gate that blocks.
+- **When two arms build the same context, they will disagree about it.** `.46`(d) corrected the lookahead arm's context privately and routed the orphan arm; one helper, read by every cross-profile consumer, is the form that cannot drift — and the census found two more readers (`--report-sample-parity`, `--dump-rule-profiles`) the moment the definition was singular.
+- **A default profile is the profile a gated rule is absent from, so no list ever names it.** Building a universe from `@profiles` lists is structurally blind to the one profile every parse runs under; the widening is the directive itself, not a heuristic.
+- **Keep the guard, re-derive its input.** The `>= 2` skip encodes a real precondition ("satisfiable elsewhere"); deleting it would have manufactured orphans on VHDL. Feeding it the corrected universe kept VHDL honest and let regex through.
+- **A backtick inside `bash -c '…'` is not a character, it is a syntax error that the guard reports as exit 2.** The first rebuild ran nothing; the log's `unexpected EOF` was the whole diagnosis.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.73 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0181`): bake the data, never the path — and measure the severity before believing the routing note
 
 - **A routing note's severity is a guess until one command hides the dependency.** Renaming `parser_libs/` on the same binary turned "answers differently at exit 0" into a verdict flip on two `must_accept` corpus rows, with a diagnostic that named the wrong cause. The measurement took a minute and decided the whole shape of the fix.

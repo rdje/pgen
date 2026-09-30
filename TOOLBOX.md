@@ -1921,6 +1921,16 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   #   [warn]  … rule 'casting_type' is left-recursive (cycle: …) and PGEN's LR-elimination pass did NOT eliminate it …
   #   [note]  ... and 12 more always-succeeds-alternative notes (set PGEN_LINT_DUMP_ALL=1 to print all 52)
   ```
+- ⭐ **`profile_orphans` and the `profiles=[…]` it prints are read off the UNFILTERED grammar widened
+  by `@default_profile`** (`ENGINE-UNIVERSAL-SERVICES.47`, 2026-09-30). Before that the arm read the
+  grammar AFTER the load-time profile filter, so on a grammar declaring a default (regex, vhdl) the
+  gated rules and their `@profiles` lists were already gone: regex linted `profile_orphans=0 (error;
+  profiles=[])` — an EMPTY universe on which the arm's own `>= 2` guard skipped it, an unevaluated
+  ERROR-class counter reading as a clean grammar. Now regex reads `profiles=["pcre2", "relaxed"]` and
+  is evaluated (0 orphans); vhdl reads `profiles=["vhdl_1076_2019"]`, a universe of one with no
+  "elsewhere", and is skipped honestly. ⛔ If `profiles=[]` ever prints for a grammar that declares
+  `@profiles` or `@default_profile`, the arm did not run — read that before reading the 0. The control
+  is `docs/tasks/artifacts/engine_universal_services/profile_gate_neg_lookahead/probe_orphan_context.sh`.
 - ⛔ **A LINT-GREEN GRAMMAR CAN STILL FAIL TO COMPILE, and the lint does not know it (measured,
   `SV-CORPUS-GRAD.3.30`, 2026-09-03).** Two rules whose names differ only by case — `udp_sym_x` and
   `udp_sym_X` — lint clean and parse identically at the interpreter (it keys rules by name), and the
@@ -1964,6 +1974,12 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - **WHAT:** (SV-CORPUS-GRAD.7, parser-agnostic) machine-readable per-profile RULE INVENTORY — for every rule of the UNFILTERED grammar: its declared `@profiles` set (absent = universal) and its DERIVED per-profile satisfiability (`derive_rule_profiles` — the same transitive computation the profile-orphan lint gates on). Deterministic JSON (sorted rules + profile lists).
 - **WHEN:** the external-corpus rule-coverage instrument's denominator ("which rules can a corpus run under profile P ever exercise?" — see `stimuli/sv/corpus_rule_coverage.py`); adjudicating whether an unfired/unwitnessed rule is a corpus gap vs N/A-for-profile; auditing a profile-gating edit's satisfiability effect (the `.3.1` interface-class class).
 - **HOW:** `./rust/target/debug/ast_pipeline grammars/<g>.ebnf --dump-rule-profiles /tmp/rule_profiles.json`
+- ⭐ **`profiles` includes the grammar's `@default_profile`** (`ENGINE-UNIVERSAL-SERVICES.47`): the
+  universe is the one the lint's orphan arm and `--report-sample-parity` read, so a grammar with a
+  default plus a gated dialect (regex) gets a column for the profile that ships (`pcre2`) beside the
+  gated one — under it the `["relaxed"]`-gated rules are `satisfiable_under` nothing, which is the fact
+  a consumer sizing "what can a default-profile run exercise" needs. Grammars without a default (the
+  SystemVerilog family) are unchanged.
 - **OUTPUT:** `{"grammar", "profiles", "rule_count", "rules": {rule: {"declared_profiles": [...]|null, "satisfiable_under": [...]}}}` — for systemverilog: 1,466 rules; satisfiable_under sv_2017=1,343 / sv_2023=1,362 / verilog_2005=1,115 (the sv_2017/v2005 counts equal the cert-coverage canonical totals — the two instruments cross-confirm).
 - ⭐⭐ **`branch_satisfiable_under` — the BRANCH-level companion, and the one you want for any per-branch fact** (SV-CORPUS-GRAD.13e.11(a)). Each rule also carries `branch_count` and `branch_satisfiable_under`: **one profile set per TOP-LEVEL ALTERNATIVE, in body order** — the same index space `branch_semantic_annotations` uses, so the two join on the index. Same fixpoint (`derive_branch_profiles` reuses `compute_sat_by_profile`/`node_satisfiable`), so there is no second model to drift; a non-`Or` body yields exactly one entry, so the join is total.
 - ⛔⛔ **`satisfiable_under` OVER-REPORTS FOR ANY BRANCH-LEVEL QUESTION, BY CONSTRUCTION — this is the trap the field exists to close.** `@profiles` is RULE-level, so a rule stays live under P as long as SOME alternative survives the filter, while its other alternatives are dead there. **Measured on SystemVerilog:** 43 of the 52 `@sample` annotations are branch-level; joining them against `satisfiable_under` reports **8 defects over 115 checks and all 8 are false positives**, while the branch-level join reports **0 over 101**. The 8 are exactly the 7 `SV-CORPUS-GRAD.13e.9` adjudicated by hand as *"branch DEAD under v2005 — sample honest"* plus the 1 `-0305` created. ⇒ **if your fact is per-branch, join per-branch.**
@@ -2459,6 +2475,12 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   grammar** under exactly the profiles that sample's own BRANCH is satisfiable in, and prints one
   `SAMPLE-PROFILE-PARITY:` headline. rc 0 clean, rc 1 on any defect or unjoinable rule. Read-only;
   no codegen, no `rustc`, no registered parser.
+- ⭐ **The universe it checks against includes the grammar's `@default_profile`**
+  (`ENGINE-UNIVERSAL-SERVICES.47`, 2026-09-30): it is the ONE profile context the lint's orphan and
+  lookahead arms and `--dump-rule-profiles` read, so a sample on a rule live under the profile that
+  ships is checked under that profile too. Before, the universe was the `@profiles` lists alone, and
+  regex read `profiles=1` — `relaxed`, the gated dialect — never `pcre2`, the profile every parse runs
+  under unless one is requested.
 - **WHEN:** you added or narrowed a `@profiles` dialect. An `@sample` is a **single profile-blind
   string**, and declaring a dialect NARROWS the accepted language — so every sample already written
   against the wider language becomes a candidate defect the moment the narrower profile exists.

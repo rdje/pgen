@@ -1555,6 +1555,30 @@ pub fn extract_profile_context(
     (rule_profiles, universe.into_iter().collect())
 }
 
+/// `ENGINE-UNIVERSAL-SERVICES.47` — [`extract_profile_context`] widened by the grammar's
+/// `@default_profile`: the ONE context every cross-profile reader uses (the lint's orphan and
+/// lookahead arms, `--report-sample-parity`, `--dump-rule-profiles`). A gated rule's `@profiles`
+/// list names the profiles it is PRESENT in, never the one it is absent from, so a universe built
+/// from the lists alone omits exactly the profile every parse runs under when none is requested —
+/// regex's `pcre2` — and an arm evaluated over `{relaxed}` alone never tests the profile that
+/// ships. ⛔ Call it on the UNFILTERED annotations: the load-time profile filter deletes the gated
+/// rules together with their lists, and the orphan arm read that emptied context for a month
+/// (`profile_orphans=0 (error; profiles=[])` on `grammars/regex.ebnf`, an unevaluated arm reading
+/// as a clean grammar). A malformed `@default_profile` is the frontend's error to raise; here it is
+/// simply not added.
+pub fn extract_profile_context_with_default(
+    annotations: &Annotations,
+) -> (HashMap<String, Vec<String>>, Vec<String>) {
+    let (declared, universe) = extract_profile_context(annotations);
+    let mut set: std::collections::BTreeSet<String> = universe.into_iter().collect();
+    if let Ok(Some(default_profile)) =
+        crate::ast_pipeline::semantic_runtime::compile_default_profile(annotations)
+    {
+        set.insert(default_profile.trim().to_ascii_lowercase());
+    }
+    (declared, set.into_iter().collect())
+}
+
 /// ANNOTATION-COMPOSITION.2: detect @profiles ORPHANS — a rule PRESENT under a profile but NOT
 /// satisfiable there (every production references a rule the profile filter removed → dangling).
 /// A rule is reported under `profile` only if it IS satisfiable under some OTHER profile, so a

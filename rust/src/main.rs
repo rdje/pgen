@@ -4337,7 +4337,7 @@ fn run_report_sample_parity(
 ) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
         collect_profile_samples, derive_branch_profiles, derive_rule_profiles,
-        extract_profile_context, profiles_requiring_sample,
+        extract_profile_context_with_default, profiles_requiring_sample,
     };
 
     let Some(annotations) = grammar.annotations.as_ref() else {
@@ -4348,7 +4348,10 @@ fn run_report_sample_parity(
         );
         return Ok(());
     };
-    let (declared, all_profiles) = extract_profile_context(annotations);
+    // ENGINE-UNIVERSAL-SERVICES.47 — the universe includes the `@default_profile`: a sample on a
+    // rule live under the shipping default was never checked under it while the universe was built
+    // from `@profiles` lists alone (regex read `profiles=1`, `relaxed` only).
+    let (declared, all_profiles) = extract_profile_context_with_default(annotations);
     let rule_satisfiable = derive_rule_profiles(
         &grammar.grammar_tree,
         &grammar.rule_order,
@@ -4476,12 +4479,14 @@ fn run_report_sample_parity(
 
 fn run_dump_rule_profiles(unfiltered_grammar: &LoadedGrammar, out_path: &str) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
-        derive_branch_profiles, derive_rule_profiles, extract_profile_context,
+        derive_branch_profiles, derive_rule_profiles, extract_profile_context_with_default,
     };
     use std::collections::BTreeMap;
 
+    // ENGINE-UNIVERSAL-SERVICES.47 — the same default-widened universe the lint reads, so the dump
+    // carries a column for the profile that ships (regex's `pcre2`), not only the gated dialects.
     let (declared, all_profiles) = match unfiltered_grammar.annotations.as_ref() {
-        Some(ann) => extract_profile_context(ann),
+        Some(ann) => extract_profile_context_with_default(ann),
         None => (HashMap::new(), Vec::new()),
     };
     let satisfiable = derive_rule_profiles(
@@ -4698,7 +4703,6 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         detect_unbound_fact_kinds, detect_uncompilable_regex_terminals,
         detect_undefined_references, detect_unreachable_rules,
     };
-    use pgen::ast_pipeline::semantic_directive_registry::parse_semantic_string_list;
     let g = &grammar.grammar_tree;
     let order = &grammar.rule_order;
     // GRAMMAR-WELLFORMED.A2.6: the left-recursion verdict is DERIVED from the elimination pass's own
@@ -4753,34 +4757,25 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         .map(detect_unbound_fact_kinds)
         .unwrap_or_default();
 
-    // ANNOTATION-COMPOSITION.2: extract each rule's @profiles set from the annotations (same
-    // shape the generator filters by) + the profile universe, then sweep for profile orphans.
-    let mut rule_profiles: HashMap<String, Vec<String>> = HashMap::new();
-    let mut profile_universe: std::collections::BTreeSet<String> = Default::default();
-    if let Some(ann) = grammar.annotations.as_ref() {
-        for (rule, entries) in &ann.semantic_annotations {
-            for annotation in entries {
-                let is_profiles = annotation.name().map(|n| n.trim().to_ascii_lowercase())
-                    == Some("profiles".to_string());
-                if !is_profiles {
-                    continue;
-                }
-                if let Some(list) = parse_semantic_string_list(annotation.ast().payload_text()) {
-                    let profs: Vec<String> = list
-                        .into_iter()
-                        .map(|v| v.trim().to_ascii_lowercase())
-                        .filter(|v| !v.is_empty())
-                        .collect();
-                    if !profs.is_empty() {
-                        for p in &profs {
-                            profile_universe.insert(p.clone());
-                        }
-                        rule_profiles.insert(rule.clone(), profs);
-                    }
-                }
-            }
-        }
-    }
+    // ANNOTATION-COMPOSITION.2 / ENGINE-UNIVERSAL-SERVICES.47: ONE profile context for every arm
+    // that reasons ACROSS profiles — each rule's `@profiles` set (the shape the generator filters
+    // by) and the profile universe — read off the UNFILTERED grammar and widened by
+    // `@default_profile`. ⛔⛔ It used to be read off `grammar.annotations`, the grammar AFTER the
+    // load-time profile filter: on a grammar declaring a default the filter has already DELETED
+    // the gated rules and their `@profiles` lists, so the universe came back EMPTY and the orphan
+    // arm below — ERROR-class and gating — was skipped by its own `>= 2` guard on every commit.
+    // Measured on HEAD before this: `grammars/regex.ebnf` linted `profile_orphans=0 (profiles=[])`,
+    // an unevaluated arm reading as a clean grammar, and `.46`(b)'s five-rule control the same. The
+    // default profile joins the universe because a gated rule's list names the profiles it is
+    // PRESENT in, never the one it is absent from — for regex that is `pcre2`, the profile every
+    // parse runs under unless one is requested. `.46`(d) built exactly this context for the
+    // lookahead arm; the two arms now share it, so they cannot disagree about the universe.
+    let (rule_profiles, all_profiles): (HashMap<String, Vec<String>>, Vec<String>) =
+        unfiltered_grammar
+            .annotations
+            .as_ref()
+            .map(pgen::ast_pipeline::grammar_wellformedness::extract_profile_context_with_default)
+            .unwrap_or_default();
     // GRAMMAR-WELLFORMED.H.17.2 — a regex terminal that does not COMPILE makes its rule match
     // nothing on any input, forever. Decidable from the grammar text alone, so it is caught here
     // rather than at parse time, where the engine reports it at [PGEN][LOW] on the speculative-parse
@@ -4804,10 +4799,19 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         &unfiltered_grammar.rule_order,
         unfiltered_grammar.annotations.as_ref(),
     );
-    let all_profiles: Vec<String> = profile_universe.into_iter().collect();
-    // A profile-specific orphan needs ≥2 profiles to exist (the "satisfiable elsewhere" test).
+    // A profile-specific orphan needs ≥2 profiles to exist (the "satisfiable elsewhere" test) — the
+    // guard is kept, re-derived from the CORRECTED universe (`.47`(c)): a grammar whose only
+    // declared profile is its default (vhdl) has no "elsewhere" and is honestly skipped, while a
+    // grammar with a default plus a gated dialect (regex) now evaluates BOTH. ⛔ The arm runs on the
+    // UNFILTERED tree, like every other cross-profile arm: the filtered view has the gated rules
+    // removed, so a rule satisfiable only through them could never be seen as an orphan.
     let orphans = if all_profiles.len() >= 2 {
-        detect_profile_orphans(g, order, &rule_profiles, &all_profiles)
+        detect_profile_orphans(
+            &unfiltered_grammar.grammar_tree,
+            &unfiltered_grammar.rule_order,
+            &rule_profiles,
+            &all_profiles,
+        )
     } else {
         Vec::new()
     };
@@ -4846,35 +4850,17 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     // corrections this arm reported regex clean over 95 `!` sites without ever testing the profile
     // that ships. ⚠️ Alias TARGETS add nothing further — the semantic validator already requires
     // every `@profile_alias` target to be a declared profile (a `@profiles` entry or the default).
-    // ⚠️ ROUTED, NOT FIXED HERE: `detect_profile_orphans` above reads the FILTERED context and the
-    // narrow universe, and is skipped entirely below 2 profiles — so on any grammar declaring a
-    // default it has never evaluated the shipping profile either. That arm is ERROR-class and
-    // GATING, so correcting it moves a blocking counter and needs its own sized slice:
-    // `ENGINE-UNIVERSAL-SERVICES.47`.
-    let (unfiltered_rule_profiles, unfiltered_profile_universe) = unfiltered_grammar
-        .annotations
-        .as_ref()
-        .map(pgen::ast_pipeline::grammar_wellformedness::extract_profile_context)
-        .unwrap_or_default();
-    let lookahead_profiles: Vec<String> = {
-        let mut set: std::collections::BTreeSet<String> =
-            unfiltered_profile_universe.into_iter().collect();
-        if let Some(ann) = unfiltered_grammar.annotations.as_ref()
-            && let Ok(Some(default_profile)) =
-                pgen::ast_pipeline::semantic_runtime::compile_default_profile(ann)
-        {
-            set.insert(default_profile.trim().to_ascii_lowercase());
-        }
-        set.into_iter().collect()
-    };
-    let gated_lookaheads = if lookahead_profiles.is_empty() {
+    // ✅ `.47` FIXED the orphan arm the same way: both arms now read the ONE context built above
+    // (unfiltered, default-widened), so the universe this note describes is the universe the
+    // orphan arm evaluates too.
+    let gated_lookaheads = if all_profiles.is_empty() {
         Vec::new()
     } else {
         detect_profile_gated_lookaheads(
             &unfiltered_grammar.grammar_tree,
             &unfiltered_grammar.rule_order,
-            &unfiltered_rule_profiles,
-            &lookahead_profiles,
+            &rule_profiles,
+            &all_profiles,
         )
     };
     let gated_lookaheads_negative = gated_lookaheads

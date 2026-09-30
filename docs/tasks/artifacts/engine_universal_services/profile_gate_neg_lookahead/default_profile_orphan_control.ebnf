@@ -1,0 +1,36 @@
+# ENGINE-UNIVERSAL-SERVICES.47 (b) — THE CONTROL FOR THE ORPHAN ARM'S CONTEXT.
+#
+# `default_profile_universe_control.ebnf` (`.46`(b)) is the shape for the LOOKAHEAD arm. The ORPHAN
+# arm needs its own: a rule that is PRESENT under the profile that ships (it carries no `@profiles`
+# list, so it is universal) and yet cannot be derived there, because its only production references
+# a rule gated to another profile.
+#
+#   `a` is universal; its one production is `gated`; `gated` is `@profiles: ["relaxed"]`.
+#   Under `pcre2` — the `@default_profile`, the profile every parse runs under unless one is
+#   requested — `a` is present and unsatisfiable: a PROFILE ORPHAN, the ERROR-class finding
+#   `--lint-grammar` exists to block on.
+#
+# Before `.47` the lint built its profile context from the FILTERED grammar (the gated rule and its
+# `@profiles` list already deleted by the load-time default filter) and never added the default to
+# the universe, so this grammar read `profile_orphans=0 (error; profiles=[])` and rc 0 — the
+# `>= 2` guard skipped the arm on an empty universe. After `.47` the context is the unfiltered
+# grammar widened by the default, and it reads `profile_orphans=1 (error; profiles=["pcre2", "relaxed"])`
+# and rc 1, naming `a` under `pcre2` with the derived fix `@profiles: ["relaxed"]`.
+#
+#   narrow universe  {}                -> 0 findings, rc 0   (the instrument is blind, and says "clean")
+#   widened universe {pcre2, relaxed}  -> 1 finding,  rc 1   (the defect, under `pcre2`)
+#
+# Driven by `probe_orphan_context.sh` beside this file, which asserts the AFTER reading.
+@default_profile: pcre2
+
+@entry: true
+top := trivia a trivia                            -> {kind: "t"}
+     | trivia b trivia                            -> {kind: "t"}
+
+a := gated                                        -> {kind: "a"}
+b := trivia "x"                                   -> {kind: "b"}
+
+@profiles: ["relaxed"]
+gated := trivia "'"                               -> {kind: "gated"}
+
+trivia := /[ \t\r\n]*/
