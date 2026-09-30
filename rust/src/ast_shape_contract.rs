@@ -107,6 +107,21 @@ pub struct AstShapeContractSample {
     pub expected_json_object_keys_present: Vec<String>,
     #[serde(default)]
     pub expected_json_object_string_values: BTreeMap<String, String>,
+    /// `ENGINE-UNIVERSAL-SERVICES.97` — NESTED shape pins, by RFC 6901 JSON pointer, engine-universal.
+    /// Each pointer (`/scope/0/kind`) must RESOLVE on the sample's whole typed JSON and equal the
+    /// given JSON value exactly (a string, number, bool, null, array or object — compared as JSON).
+    /// The two key-level claims above see only the ROOT object's keys, so a corruption whose node
+    /// carries no `kind` of its own — `scope: {name: {kind: "dot"}, scope: {kind: "this"}, select:
+    /// "<invalid_sequence_access>"}` where the correct tree is `scope: [{kind: "this"}, {kind:
+    /// "dot"}]` — was invisible to them and to every `kind`-chain claim (the kinds `this` and `dot`
+    /// are present in the wrong node too). A pointer names WHERE a value must sit.
+    #[serde(default)]
+    pub expected_json_pointer_values: BTreeMap<String, serde_json::Value>,
+    /// `ENGINE-UNIVERSAL-SERVICES.97` — pointers that must NOT resolve (the corrupted node's
+    /// `/scope/select`, `/scope/name`): a pin on the ABSENCE of the wrong shape, because a
+    /// shape that gains a key silently is the class this leaf was opened on.
+    #[serde(default)]
+    pub expected_json_pointer_absent: Vec<String>,
     pub current_content_kind: ContentKind,
     pub drift_status: String,
     pub drift_tracked_in: String,
@@ -153,6 +168,40 @@ impl ContentKind {
             ParseContent::Quantified(_, _) => ContentKind::Quantified,
         }
     }
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.97` — evaluate the JSON-pointer claims of one sample against its
+/// whole typed JSON. Pure over `serde_json::Value` so the RED and GREEN shapes the leaf was opened on
+/// pin it directly (`json_pointer_claims_*` tests); every family's manifest runner calls it through
+/// [`run_manifest`]. Returns one human-readable detail per failed claim; empty means every claim held.
+pub fn check_json_pointer_claims(
+    value: &serde_json::Value,
+    expected_values: &BTreeMap<String, serde_json::Value>,
+    expected_absent: &[String],
+) -> Vec<String> {
+    let mut details = Vec::new();
+    for (pointer, expected) in expected_values {
+        match value.pointer(pointer) {
+            Some(actual) if actual == expected => {}
+            Some(actual) => details.push(format!(
+                "pointer '{}' value mismatch: expected {}, got {}",
+                pointer, expected, actual
+            )),
+            None => details.push(format!(
+                "pointer '{}' does not resolve (expected {})",
+                pointer, expected
+            )),
+        }
+    }
+    for pointer in expected_absent {
+        if let Some(actual) = value.pointer(pointer) {
+            details.push(format!(
+                "pointer '{}' must not resolve, but holds {}",
+                pointer, actual
+            ));
+        }
+    }
+    details
 }
 
 /// One sample's assertion outcome.
@@ -711,6 +760,34 @@ where
                 }
             }
 
+            // `ENGINE-UNIVERSAL-SERVICES.97` — the pointer claims read the WHOLE typed JSON of the
+            // rule under test (object or array carrier), not the root object's key set.
+            if !sample.expected_json_pointer_values.is_empty()
+                || !sample.expected_json_pointer_absent.is_empty()
+            {
+                match &parsed.content {
+                    ParseContent::Shaped(shaped) => {
+                        let whole = shaped.to_serde_value();
+                        let failures = check_json_pointer_claims(
+                            &whole,
+                            &sample.expected_json_pointer_values,
+                            &sample.expected_json_pointer_absent,
+                        );
+                        if !failures.is_empty() {
+                            details.extend(failures);
+                            structural_passed = false;
+                        }
+                    }
+                    _ => {
+                        details.push(format!(
+                            "json-pointer claims need a shaped (JSON) carrier; observed={:?}",
+                            observed
+                        ));
+                        structural_passed = false;
+                    }
+                }
+            }
+
             if !structural_passed {
                 report.aligned_samples_with_failed_assertions.push(format!(
                     "sample '{}' aligned but structural assertions failed: {}",
@@ -743,6 +820,75 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `ENGINE-UNIVERSAL-SERVICES.97` — the founding pair, verbatim from the leaf: the 1.0.214 tree's
+    /// `scope` object (`{name: {kind: "dot"}, scope: {kind: "this"}, select: "<invalid_sequence_access>"}`)
+    /// versus the correct pair since 1.0.215 (`[{kind: "this"}, {kind: "dot"}]`). Both carry the kinds
+    /// `this` and `dot`, so a `kind`-keyed claim holds on BOTH; the pointer claims hold on the correct
+    /// tree only. RED first: the claims must FAIL on the corrupted shape, by name.
+    #[test]
+    fn json_pointer_claims_go_red_on_the_1_0_214_shape_and_green_on_the_correct_pair() {
+        let corrupted = serde_json::json!({
+            "name": {"name": {"body": "arr"}, "root": [], "scope": []},
+            "scope": {"name": {"kind": "dot"}, "scope": {"kind": "this"}, "select": "<invalid_sequence_access>"}
+        });
+        let correct = serde_json::json!({
+            "name": {"name": {"body": "arr"}, "root": [], "scope": []},
+            "scope": [{"kind": "this"}, {"kind": "dot"}]
+        });
+        let mut expected = BTreeMap::new();
+        expected.insert("/scope/0/kind".to_string(), serde_json::json!("this"));
+        expected.insert("/scope/1/kind".to_string(), serde_json::json!("dot"));
+        expected.insert("/name/name/body".to_string(), serde_json::json!("arr"));
+        let absent = vec!["/scope/select".to_string(), "/scope/name".to_string()];
+
+        let red = check_json_pointer_claims(&corrupted, &expected, &absent);
+        assert_eq!(
+            red.len(),
+            4,
+            "the corrupted shape must fail exactly the two positional claims and the two absence claims: {red:?}"
+        );
+        assert!(red.iter().any(|d| d.contains("'/scope/0/kind' does not resolve")), "{red:?}");
+        assert!(red.iter().any(|d| d.contains("'/scope/1/kind' does not resolve")), "{red:?}");
+        assert!(
+            red.iter().any(|d| d.contains("'/scope/select' must not resolve, but holds \"<invalid_sequence_access>\"")),
+            "{red:?}"
+        );
+        assert!(red.iter().any(|d| d.contains("'/scope/name' must not resolve")), "{red:?}");
+
+        let green = check_json_pointer_claims(&correct, &expected, &absent);
+        assert!(green.is_empty(), "the correct pair must satisfy every claim: {green:?}");
+
+        // A value mismatch is reported as a mismatch, not as an unresolved pointer.
+        let mut wrong = BTreeMap::new();
+        wrong.insert("/scope/0/kind".to_string(), serde_json::json!("dot"));
+        let mismatch = check_json_pointer_claims(&correct, &wrong, &[]);
+        assert_eq!(mismatch.len(), 1);
+        assert!(mismatch[0].contains("value mismatch: expected \"dot\", got \"this\""), "{mismatch:?}");
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.97` — a manifest that spells the new fields loads, and one that omits
+    /// them loads with empty claims (the fields are additive for every family's manifest).
+    #[test]
+    fn json_pointer_claim_fields_are_optional_in_the_manifest_schema() {
+        let with: AstShapeContractSample = serde_json::from_value(serde_json::json!({
+            "name": "s", "input": "x", "rule_under_test": "r", "declared_annotation": "",
+            "expected_content_kind": "json_object", "current_content_kind": "json_object",
+            "drift_status": "aligned", "drift_tracked_in": "",
+            "expected_json_pointer_values": {"/scope/0/kind": "this", "/n": 3},
+            "expected_json_pointer_absent": ["/scope/select"]
+        })).expect("the sample deserializes");
+        assert_eq!(with.expected_json_pointer_values.len(), 2);
+        assert_eq!(with.expected_json_pointer_values["/n"], serde_json::json!(3));
+        assert_eq!(with.expected_json_pointer_absent, vec!["/scope/select".to_string()]);
+        let without: AstShapeContractSample = serde_json::from_value(serde_json::json!({
+            "name": "s", "input": "x", "rule_under_test": "r", "declared_annotation": "",
+            "expected_content_kind": "json_object", "current_content_kind": "json_object",
+            "drift_status": "aligned", "drift_tracked_in": ""
+        })).expect("a manifest without the fields still loads");
+        assert!(without.expected_json_pointer_values.is_empty());
+        assert!(without.expected_json_pointer_absent.is_empty());
+    }
 
     // BRANCH-BROADCAST-FIX.2 — the cross-extractor mirrors the pipeline's
     // whole-body-group broadcast: a trailing annotation on `( A | B )` yields
@@ -1296,8 +1442,16 @@ mod tests {
                 "property_case_item" => parser
                     .parse_property_case_item()
                     .map_err(|err| err.to_string()),
-                _ => parser
-                    .parse_full_systemverilog_file()
+                // `ENGINE-UNIVERSAL-SERVICES.97`: every other `rule_under_test` parses AS that
+                // rule through the generated entry-relative FULL parse (`parse_full_from`, the
+                // `--entry-rule` dump's own path, with its trailing-layout / full-consumption
+                // check), and an unknown name falls back to the canonical entry exactly as the
+                // former `parse_full_systemverilog_file()` arm did — measured: the manifest's
+                // 41 rules are the 40 arms above plus the root. The three `eus97_*` samples
+                // (`ps_or_hierarchical_array_identifier`, `nonrange_variable_lvalue`,
+                // `constraint_primary`) ride this arm.
+                other => parser
+                    .parse_full_from(other)
                     .map_err(|err| err.to_string()),
             }
         });

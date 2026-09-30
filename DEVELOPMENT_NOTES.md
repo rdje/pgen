@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.97 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0187`): a claim that keys on a name cannot see a value in the wrong place; a pointer can
+
+- **A `kind`-chain is a presence claim, not a position claim.** The corrupted and the correct tree both contain `this` and `dot`; only the address differs. Pin nested shapes by JSON pointer, and pin the ABSENCE of the wrong key too — a shape that silently gains `select` is the class this leaf was opened on.
+- **The RED arm comes from git, through the interpreter.** A historical binary is not needed to keep a pin honest: the interpreter reads any grammar revision (`git show <commit>:grammars/x.ebnf`) and is byte-identical to the generated parser by the differential gate, so the probe can fail on 1.0.214 forever without archiving a build.
+- **Census the dispatch before generalising it.** Replacing a hand-typed fallback with `parse_full_from(other)` was safe only because the manifest's 41 rules were the 40 arms plus the root; the count was read, not assumed.
+- **Insert into a hand-formatted JSON as text.** A `json.dump` round-trip of the SV manifest rewrote 2 262 lines for a 76-line addition; the file's own 1-space style was mimicked instead, and the diff is the samples and one comma.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.93 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0186`): a leaf that priced a fix is not closed by the leaf that ships it unless someone flips the heading
 
 - **A distance is only as honest as its headings.** `.107` fixed `.93`'s defect and cited the same corpus row; the tracker gained one DONE and kept one `todo`, and the derived distance counted the ghost for fifteen days. When closing a leaf, grep the tree for every other leaf that names the same symptom or row.

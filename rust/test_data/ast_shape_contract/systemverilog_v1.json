@@ -141,7 +141,8 @@
   "2026-05-17 POST-SV-AUDIT.2.4a (PGEN-POST-SV-AUDIT-0005): net_alias Cat-A raw-envelope -> {lvalues:[$2,$4,$5::2*]} clean list (probe-verified [a,b,c]); 5 number rules (unsigned_number/non_zero_unsigned_number/binary_value/octal_value/hex_value) inline-alt-$N defensive structural fix via named *_tail rules (annotation unchanged; corruption structurally present but UNREACHABLE via systemverilog_file root — all numeric top-level constructs rejected in every profile, a pre-existing SV-root coverage limitation, separate from this fix, out of audit scope). Inventory count unchanged (net_alias return_object text-only change; *_tail rules un-annotated). Schema 1->2, release/contract 1.0.115->1.0.116. NO PGEN_RELEASED_PARSER_BUG_LEDGER row (number-rule corruption not consumer-reproducible; net_alias is a clean Cat-A improvement) — tracked via POST_SV_AUDIT_LEDGER + Schema-Versioning + contract AST-Shape-Corrections. net_alias sample added.",
   "2026-05-17 POST-SV-AUDIT.2.4b (PGEN-POST-SV-AUDIT-0006): 11 structured-per-iteration Cat-A rules fixed by factoring the repeated multi-field unit into named record rules (interface/port/variable/tf_variable/variable_port _identifier_decl; let/property/sequence _named_arg; assignment_pattern_entry) + extraction-spread; list_of_* now clean flat [{name,dims[,init]}] / {kind,items:[...]} record lists; *_list_of_arguments mixed head + [$2::2*]/[$3::2*] tails & named_only items:[...]; parameter_port_list type_only items:[$4,$5::3*]; assignment_pattern named entries:[$3,$4::2*]. Probe-verified reachable list_of_*_identifiers path: clean {name,dims,init} record list, 0 invalid_sequence_access, 0 raw separator-envelope, no leftover {first,rest} structured envelope. Inventory 2290->2299 / 999->1008 (+9 annotated record rules — count CHANGES, documented; unlike pure Cat-A). Schema 2->3, release/contract 1.0.116->1.0.117. NOT bug-ledger (Cat-A structured, no <invalid_sequence_access> corruption). Unreachable-via-SV-root rules (let/property/sequence args, parameter_port_list type_only, assignment_pattern named) carry the same honest defensive-disposition as .2.4a number rules (proven idiom + clean regen + shape-contract lock). structured_decls sample added.",
   "2026-09-07 SV-CORPUS-GRAD.3.45 (PGEN-SV-CORPUS-GRAD-0374, release 1.0.219, ledger SV-0092, schema 30 -> 31): sixteen samples, one per newly typed alternative of the partial-typing residue (assignment_pattern structure / array / replication; block_data_type integer_atom / struct_union / enum / virtual_interface; case_statement matches / inside; clocking_declaration global; clocking_event_sv_2017 expression; list_of_path_delay_expressions two / three / six / twelve; property_case_item default), each parsed AS its rule through a new test-only dispatch arm (seven arms). The nettype alias form (net_type_declaration_sv_2017's alias alternative, typed in 1.0.219 and winning its tie through a negative lookahead on the data-type alternative) takes NO sample: its `net_type_identifier` is store-gated on a declared nettype and a standalone parse has no store, so the alias shape is held by the pins control_nettype_alias_sv2017.sv / _sv2023.sv (arms net_type>nettype / nettype>nettype) and the corpus AST identity sweep. 40 -> 56 samples.",
-  "2026-09-07 SV-CORPUS-GRAD.3.46 (PGEN-SV-CORPUS-GRAD-0375, release 1.0.220, ledger SV-0093, schema 31 -> 32): one sample, block_data_type alternative 1 (`logic [7:0]`), locking data_type's own `kind: \"integer_vector\"` on the block-scoped integer-vector declaration — the one integer-vector shape the grammar still emitted without a kind after 1.0.219. A REPLACEMENT of the {base, signing, dims} node's key set; consumers discriminate the block_data body by `kind` on every alternative from this schema on. The nettype alias-head guard change of the same release adds no sample: it moves no accepted tree (only an LRM-illegal `nettype <nettype> x with f;` stops parsing)."
+  "2026-09-07 SV-CORPUS-GRAD.3.46 (PGEN-SV-CORPUS-GRAD-0375, release 1.0.220, ledger SV-0093, schema 31 -> 32): one sample, block_data_type alternative 1 (`logic [7:0]`), locking data_type's own `kind: \"integer_vector\"` on the block-scoped integer-vector declaration — the one integer-vector shape the grammar still emitted without a kind after 1.0.219. A REPLACEMENT of the {base, signing, dims} node's key set; consumers discriminate the block_data body by `kind` on every alternative from this schema on. The nettype alias-head guard change of the same release adds no sample: it moves no accepted tree (only an LRM-illegal `nettype <nettype> x with f;` stops parsing).",
+  "2026-09-30 ENGINE-UNIVERSAL-SERVICES.97 (PGEN-ENGINE-UNIVERSAL-SERVICES-0187; no release, no schema move): the contract gains two ENGINE-UNIVERSAL sample fields — `expected_json_pointer_values` (RFC 6901 pointer -> exact JSON value on the rule's whole typed JSON) and `expected_json_pointer_absent` (pointers that must not resolve) — and three SV samples (57 -> 60) pin the lifted `this .` prefix as the PAIR `[{kind: \"this\"}, {kind: \"dot\"}]` at ps_or_hierarchical_array_identifier, nonrange_variable_lvalue and constraint_primary (SV-CORPUS-GRAD.3.42, release 1.0.215). Every kind-keyed claim held on the 1.0.214 corruption too (`scope: {name: {kind: \"dot\"}, scope: {kind: \"this\"}, select: \"<invalid_sequence_access>\"}`); these fail on it (docs/tasks/artifacts/engine_universal_services/eus97_json_pointer_pins/probe.sh: RED on the 1.0.214 grammar through the interpreter, GREEN on HEAD) and hold here. The SV test's fallback dispatch arm now parses an unmatched rule_under_test AS that rule through parse_full_from (the --entry-rule dump's path); the root still resolves to the canonical entry. No existing sample changed."
  ],
  "samples": [
   {
@@ -1128,6 +1129,80 @@
    "current_content_kind": "json_object",
    "drift_status": "aligned",
    "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "eus97_this_prefix_array_identifier_pair",
+   "input": "this.arr",
+   "rule_under_test": "ps_or_hierarchical_array_identifier",
+   "declared_annotation": "{scope: $1, name: $2} over the lifted this-prefix helper (SV-CORPUS-GRAD.3.42, release 1.0.215)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "scope",
+    "name"
+   ],
+   "expected_json_object_string_values": {},
+   "expected_json_pointer_values": {
+    "/scope/0/kind": "this",
+    "/scope/1/kind": "dot",
+    "/name/name/body": "arr"
+   },
+   "expected_json_pointer_absent": [
+    "/scope/select",
+    "/scope/name"
+   ],
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "ENGINE-UNIVERSAL-SERVICES.97 (PGEN-ENGINE-UNIVERSAL-SERVICES-0187): the NESTED shape pin. Until release 1.0.214 `foreach (this.arr[i])`'s scope carried the host's template wrapped around `this .` — `{name: {kind: \"dot\"}, scope: {kind: \"this\"}}` — and every kind-keyed claim held on it; since 1.0.215 (SV-CORPUS-GRAD.3.42) scope is the pair `[{kind: \"this\"}, {kind: \"dot\"}]`. The pointer claims fail on the 1.0.214 tree (eus97_json_pointer_pins/probe.sh, RED forever) and hold here."
+  },
+  {
+   "name": "eus97_this_prefix_nonrange_lvalue_pair",
+   "input": "this.arr",
+   "rule_under_test": "nonrange_variable_lvalue",
+   "declared_annotation": "{scope: $1, name: $2, select: $3} over the lifted this-prefix helper (SV-CORPUS-GRAD.3.42, release 1.0.215)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "scope",
+    "name",
+    "select"
+   ],
+   "expected_json_object_string_values": {},
+   "expected_json_pointer_values": {
+    "/scope/0/kind": "this",
+    "/scope/1/kind": "dot"
+   },
+   "expected_json_pointer_absent": [
+    "/scope/select",
+    "/scope/name"
+   ],
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "ENGINE-UNIVERSAL-SERVICES.97: `this.arr = new[4];` — the 1.0.214 tree carried `scope: {…, select: \"<invalid_sequence_access>\"}` in an ACCEPTING file; the root key set {scope, name, select} is the SAME on both trees (the corruption sits one level down), which is why only a pointer pin sees it."
+  },
+  {
+   "name": "eus97_this_prefix_constraint_primary_pair",
+   "input": "this.x",
+   "rule_under_test": "constraint_primary",
+   "declared_annotation": "{kind: \"sv_2017\", body: $1} over the lifted this-prefix helper (SV-CORPUS-GRAD.3.42, release 1.0.215)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "body"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "sv_2017"
+   },
+   "expected_json_pointer_values": {
+    "/body/scope/0/kind": "this",
+    "/body/scope/1/kind": "dot",
+    "/body/name/name/body": "x"
+   },
+   "expected_json_pointer_absent": [
+    "/body/scope/select",
+    "/body/scope/name"
+   ],
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "ENGINE-UNIVERSAL-SERVICES.97: `solve this.x before this.y;` / `disable soft this.x;` — the corruption two levels down (`/body/scope`), where the root-key claim and the `kind: \"sv_2017\"` string claim both hold on the 1.0.214 tree."
   }
  ]
 }
