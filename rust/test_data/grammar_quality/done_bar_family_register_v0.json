@@ -53,7 +53,7 @@
       "leg3_surface": null
     },
     "regex": {
-      "claimed_status": "In Progress",
+      "claimed_status": "Provisional (corpus pending)",
       "gate_prefixes": [
         "regex_"
       ],

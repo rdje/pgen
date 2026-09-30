@@ -1349,9 +1349,19 @@ mod tests {
 
     /// `ENGINE-UNIVERSAL-SERVICES.112` slice 3: the tests resolve families and profiles the way a
     /// host does — through the registry — instead of naming enum variants the API no longer has.
+    ///
+    /// `.112` CORRECTED (`PGEN-ENGINE-UNIVERSAL-SERVICES-0194`, 2026-09-30): a family is registered
+    /// only when its generated parser is compiled in, so every test that resolves one is gated on
+    /// `generated_parsers` — `embedding_api_gate` runs this module WITHOUT the feature first (the
+    /// stability posture the cold bootstrap builds in), and slice 3 left fifteen registry-resolving
+    /// tests in that run: `sota-exit-gate` on `50a97d00c` read `22 passed; 15 failed` there while
+    /// the featured run read 37/0. The feature-independent surface (annotation families, backends,
+    /// limits, error codes) stays under test in both runs.
+    #[cfg(feature = "generated_parsers")]
     fn fam(name: &str) -> GrammarFamily {
         GrammarFamily::from_str(name).unwrap_or_else(|err| panic!("family {name}: {}", err.message))
     }
+    #[cfg(feature = "generated_parsers")]
     fn prof(family: &str, spelling: &str) -> GrammarProfile {
         fam(family).profile(spelling).unwrap_or_else(|err| panic!("profile {family}/{spelling}: {}", err.message))
     }
@@ -1681,6 +1691,7 @@ mod tests {
         assert_eq!(diagnostic.code, "E_INVALID_ARGUMENT");
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn named_grammar_entry_rejects_unknown_profile() {
         let outcome =
@@ -1695,6 +1706,7 @@ mod tests {
         assert_eq!(diagnostic.code, "E_UNSUPPORTED_PROFILE");
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn from_str_and_as_str_aliases_are_stable() {
         assert_eq!(
@@ -1735,6 +1747,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn parser_embedding_contract_exposes_profile_matrix() {
         let contract = parser_embedding_api_contract();
@@ -1806,6 +1819,7 @@ mod tests {
         assert_eq!(regex_contract.frontend_json_artifact, "generated/regex.json");
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn regex_parser_integration_contract_metadata_is_stable() {
         let manifest = regex_parser_integration_contract_manifest();
@@ -2378,6 +2392,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn regex_parser_integration_contract_named_surface_accepts_regex_aliases() {
         let outcome = parse_grammar_profile_named("regex", "regex", "a|b");
@@ -2389,6 +2404,7 @@ mod tests {
         assert_ne!(maybe_code, Some("E_UNSUPPORTED_PROFILE"));
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn regex_parser_integration_contract_enforces_limits_before_backend_availability() {
         let result =
@@ -2397,6 +2413,7 @@ mod tests {
         assert_eq!(diagnostic.code, "E_INPUT_TOO_LARGE");
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn parser_embedding_convenience_sv2017_matches_profile_entry_point() {
         let input = "module m; endmodule";
@@ -2414,6 +2431,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn parser_embedding_convenience_sv2023_matches_profile_entry_point() {
         let input = "module m; endmodule";
@@ -2431,6 +2449,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn parser_embedding_convenience_vhdl_matches_profile_entry_point() {
         let input = "entity e is end entity;";
@@ -2448,6 +2467,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn parser_embedding_convenience_regex_matches_profile_entry_point() {
         let input = "a|b";
@@ -2465,6 +2485,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn parser_embedding_rejects_profile_grammar_mismatch() {
         let outcome = parse_grammar_profile(
@@ -2480,6 +2501,7 @@ mod tests {
         assert_eq!(diagnostic.code, "E_UNSUPPORTED_PROFILE");
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn parser_embedding_rejects_regex_profile_grammar_mismatch() {
         let outcome = parse_grammar_profile(fam("regex"), prof("systemverilog", "sv_2017"), "a|b");
@@ -2491,6 +2513,7 @@ mod tests {
         assert_eq!(diagnostic.code, "E_UNSUPPORTED_PROFILE");
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn parser_embedding_enforces_input_limits() {
         let limits = ParseLimits { max_input_bytes: 4 };
@@ -2515,6 +2538,7 @@ mod tests {
         assert!(options.max_ast_bytes.is_none());
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn parser_embedding_ast_dump_rejects_zero_max_ast_bytes() {
         let outcome = parse_grammar_profile_ast_dump(
@@ -2534,6 +2558,7 @@ mod tests {
         assert_eq!(diagnostic.code, "E_INVALID_LIMITS");
     }
 
+    #[cfg(feature = "generated_parsers")]
     #[test]
     fn parser_embedding_ast_dump_named_rejects_unknown_profile() {
         let outcome = parse_grammar_profile_ast_dump_named(

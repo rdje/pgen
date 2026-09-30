@@ -1,5 +1,20 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — the shared generator binary carries the feature set of whoever built it last (recorded with the director callout commit, `PGEN-DONE-BAR-0027`)
+
+- **Four doctrines went red on an unchanged tree.** `annotation_contract_gate` rebuilt `rust/target/debug/ast_pipeline` without `ebnf_dual_run`; the next doctrine run failed `SV-RULE-FIRE-PARTITION`, `SV-CONTRACT-CURRENCY`, `EBNF-ALTERNATIVE-PARITY` and `PIPELINE-LANE-CURRENCY` together, each blaming its subject. One full-feature rebuild later, 45/45. The same binary, narrowed the same way an hour earlier, had made the interpreter refuse every grammar file; and a probe built before a regeneration read 66 sentinels from a parser that no longer existed. Promoted: `a-shared-debug-binary-carries-the-feature-set-of-whoever-built-it-last`.
+
+## 2026-09-30 — the first local `sota-exit-gate` run in weeks: six refusals, three classes, none of them the tree's parsers
+
+- **Run the aggregate locally before the mirror when the mirror has never been seen green.** 4.9 h bought the whole population at once: a stability gate's no-feature run that slice 3 of `.112` had broken (`-0194`), a jq `add` over an empty list the first time the replay-gap debt reached zero (`.68`), and a family tier that ROSE once the sentinel gate read green — a mismatch the gate reports and never resolves (`-0027`). The mirror would have shown them one at a time, five hours apiece.
+- **A tier can move up and still go red.** The family-status gate compares the computed status with the register's claim in both directions; a claim left behind by an improvement is the same mismatch as a claim run ahead of it. Moving the claim is a deliberate, tracked act — the register plus the book's derived block.
+- **`add` over an empty jq array is `null`.** A gate that has only ever seen a non-empty list has a boundary it never met; the day the list empties is the day the lane improved. `(add // [])`.
+- **The stability gate's first run is the cold posture.** `cargo test --lib embedding_api` without `generated_parsers` is what a bare clone can run; a test that resolves a family through the registry belongs under the feature, and the feature-independent surface is what that run proves.
+
+## 2026-09-30 — the shared generator binary carries the feature set of whoever built it last (recorded with the director callout commit, `PGEN-DONE-BAR-0027`)
+
+- **Four doctrines went red on an unchanged tree.** `annotation_contract_gate` rebuilt `rust/target/debug/ast_pipeline` without `ebnf_dual_run`; the next doctrine run failed `SV-RULE-FIRE-PARTITION`, `SV-CONTRACT-CURRENCY`, `EBNF-ALTERNATIVE-PARITY` and `PIPELINE-LANE-CURRENCY` together, each blaming its subject. One full-feature rebuild later, 45/45. The same binary, narrowed the same way an hour earlier, had made the interpreter refuse every grammar file; and a probe built before a regeneration read 66 sentinels from a parser that no longer existed. Promoted: `a-shared-debug-binary-carries-the-feature-set-of-whoever-built-it-last`.
+
 ## 2026-09-30 — DONE-BAR.5c correction (`PGEN-DONE-BAR-0026`) + ENGINE-UNIVERSAL-SERVICES.118 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0192`): a positive control built on a live defect rots when the defect is fixed, and a miscalibrated gate hides the finding it was built for
 
 - **Calibrate a detector on a synthetic input it cannot lose.** The sentinel gate's positive control was a real latent site; a later leaf fixed the site and the gate refused every sweep as miscalibrated for 24 days. The control now goes through the serializer the sweep reads, one root node per roster literal, each required exactly once — nothing to fix, nothing to rot.

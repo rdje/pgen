@@ -609,7 +609,7 @@ jq '
         by_dependency: (
             (.targets // [])
             | map(.depends_on // [])
-            | add
+            | (add // [])
             | sort
             | group_by(.)
             | map({

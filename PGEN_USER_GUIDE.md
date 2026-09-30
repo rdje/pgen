@@ -3870,12 +3870,11 @@ the regex parser mdBook changelog index.
 
 Current measured operational baseline:
 - family status:
-  - `In Progress`
-  - demoted off `Done` on 2026-07-29 (`DONE-BAR.2b`): the family-status gate computes
-    `In Progress` because the CURRENT stimuli surface records `final_targets=31` against the
-    grown 276-production grammar (closure must be re-earned), and the vendored 2,189-case PCRE2
-    oracle corpus is not yet wired into any invoked conformance lane. The published status line
-    above is held equal to the live tracker row by the same doctrine check.
+  - `Provisional (corpus pending)`
+  - raised from `In Progress` on 2026-09-30 (`DONE-BAR.5e` tier move, `PGEN-DONE-BAR-0027`): the family-status gate computes `Provisional (corpus pending)` — the formal exhaustive closure surface is green and 10 of the 11 closure criteria hold now that the silent-success sentinel gate is calibrated and green (`DONE-BAR.5c` correction, `ENGINE-UNIVERSAL-SERVICES.118`); the one unmet criterion is leg 3, external-corpus conformance (`leg3_surface` is null — the vendored 2,189-case PCRE2 oracle corpus is not yet wired into an invoked conformance lane, the SystemVerilog precedent being `DONE-BAR.3b`). The published status line above is held equal to the live tracker row by the same doctrine check.
+  - history: demoted off `Done` on 2026-07-29 (`DONE-BAR.2b`) when the stimuli surface recorded
+    `final_targets=31` against the grown 276-production grammar; that closure has since been
+    re-earned (the closure gate reads its surface green).
   - the operational numbers below are the dated 2026-04-era baseline that backed the earlier
     claim, retained as history:
 - parser-backed family proof:

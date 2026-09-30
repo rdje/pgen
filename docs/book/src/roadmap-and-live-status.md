@@ -71,7 +71,7 @@ are not restated here, so there is no second copy to drift.
 | `systemverilog` | Mostly Done | external-standard | *(none declared)* |
 | `systemverilog_preprocessor` | Provisional (corpus pending) | external-standard | *(none declared)* |
 | `vhdl` | Provisional (corpus pending) | external-standard | *(none declared)* |
-| `regex` | In Progress | external-standard | *(none declared)* |
+| `regex` | Provisional (corpus pending) | external-standard | *(none declared)* |
 | `return_annotation` | Mostly Done | pgen | *(none declared)* |
 | `rtl_frontend` | Mostly Done | unadjudicated | *(none declared)* |
 | `rtl_const_expr` | Mostly Done | unadjudicated | *(none declared)* |
@@ -125,7 +125,7 @@ the tree it is derived from.
 |---|---|---:|:-:|:-:|:-:|---:|
 | [`ebnf`](../../ebnf_parser_book/src/status-and-distance.md) | In Progress | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
 | [`json`](../../json_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
-| [`regex`](../../regex_parser_book/src/status-and-distance.md) | In Progress | 0 of 3 | ⚠️ | ⛔ | ⛔ | 5 |
+| [`regex`](../../regex_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⛔ | ⛔ | 5 |
 | [`return_annotation`](../../return_annotation_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
 | [`rtl_const_expr`](../../rtl_const_expr_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
 | [`rtl_frontend`](../../rtl_frontend_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 0 |
@@ -164,7 +164,7 @@ Leg 1 is the stimuli-generator proof, leg 2 is *gates green and invoked* — eve
 | `platform` | 3 | platform expansion around the parsers - a linter, an elaborator workbench, MCP control - rather than a parser |
 | **Total** | **63** | of the 114 trees the index carries |
 
-⚠️ **These counts are an UPPER BOUND, and the reason is measured.** A tree's status is prose in two places — the index row and the tree file's own metadata — and they DISAGREE on 3 of the 114 rows while 5 index rows carry no status word this reader recognises. Every one of those is counted OPEN, because over-reporting how much is left is the only safe direction for a page that says how much is left. Reconciling them is `DONE-BAR-VISIBILITY.8`; raising the item from a TREE to a LEAF is `DONE-BAR-VISIBILITY.7`.
+⚠️ **These counts are an UPPER BOUND, and the reason is measured.** A tree's status is prose in two places — the index row and the tree file's own metadata — and they DISAGREE on 3 of the 114 rows while 6 index rows carry no status word this reader recognises. Every one of those is counted OPEN, because over-reporting how much is left is the only safe direction for a page that says how much is left. Reconciling them is `DONE-BAR-VISIBILITY.8`; raising the item from a TREE to a LEAF is `DONE-BAR-VISIBILITY.7`.
 
 <!-- END DERIVED -->
 

@@ -33,7 +33,7 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 
 <!-- BEGIN DERIVED: scripts/report_family_status.sh regex --markdown -->
 
-**Claimed status:** `In Progress` · **language owner:** `external-standard` · **standard:** PCRE2 (recognized reference implementation, vendored under regex_corpus_bundle/third_party/upstream/pcre2)
+**Claimed status:** `Provisional (corpus pending)` · **language owner:** `external-standard` · **standard:** PCRE2 (recognized reference implementation, vendored under regex_corpus_bundle/third_party/upstream/pcre2)
 
 **Distance to `Done`: 3 of the 3 legs are not met.**
 
