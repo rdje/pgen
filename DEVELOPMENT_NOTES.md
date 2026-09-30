@@ -1,5 +1,14 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.91 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0183`): a constraint the generator imposes is checked where the generator can name the rules, not where rustc names the constant
+
+- **Bank the BEFORE on the binary you are about to replace.** The pre-change `ast_pipeline` was still on disk from the previous slice; one lint and one codegen run on the control grammar recorded the exact defect (two `const RULE_SYM_X` lines) before the rebuild made it unreproducible.
+- **One key, two readers.** The lint's collision arm and the generator's naming sites both call `rule_constant_key`; a lint that re-implemented `to_uppercase()` would have agreed with the generator only until one of them changed.
+- **Refuse twice, at the two doors.** The lint catches the class for authors who lint; the generator's refusal catches the caller who never did — and it names the rules, which rustc cannot.
+- **Size a new ERROR class before making it gate.** A shell census over every grammar read 0 collisions, so the arm blocks nothing on day one; the convention (`<name>_upper`) that kept the class out is now documented beside the counter that enforces it.
+- **A control that counts must count what it checked.** The probe's first GREEN line said 18 grammars read zero when 13 were checked and 5 exempt; the corrected line separates the two.
+- **`--generate-parser` is a flag, not the default.** A codegen invocation without it loads zero rules and reports success; the BEFORE run had to be repeated with the generator's real flags to mean anything.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.47 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0182`): a blocking counter is moved only after the population is sized, and a context built in one place cannot be corrected in another
 
 - **`profiles=[]` on a grammar with ten gates is the instrument saying it did not run.** The zero beside it was never a verdict; reading the universe before reading the count is what turned a month-old "clean" into an unevaluated arm.

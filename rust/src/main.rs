@@ -4699,9 +4699,9 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     use pgen::ast_pipeline::grammar_wellformedness::{
         classify_left_recursion, detect_always_succeeds_alternatives,
         detect_lookahead_slot_templates, detect_nonterminating_rules, detect_nullable_repetition,
-        detect_ordered_choice_shadowing, detect_profile_gated_lookaheads, detect_profile_orphans,
-        detect_unbound_fact_kinds, detect_uncompilable_regex_terminals,
-        detect_undefined_references, detect_unreachable_rules,
+        detect_case_colliding_rule_names, detect_ordered_choice_shadowing,
+        detect_profile_gated_lookaheads, detect_profile_orphans, detect_unbound_fact_kinds,
+        detect_uncompilable_regex_terminals, detect_undefined_references, detect_unreachable_rules,
     };
     let g = &grammar.grammar_tree;
     let order = &grammar.rule_order;
@@ -4799,6 +4799,12 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         &unfiltered_grammar.rule_order,
         unfiltered_grammar.annotations.as_ref(),
     );
+    // ENGINE-UNIVERSAL-SERVICES.91 — rule names equal under the generator's constant key
+    // (`to_uppercase()`): they collapse onto one `RULE_…` identifier and the parser does not
+    // compile. Decidable from the rule list alone, so it is caught HERE, by rule name, instead of
+    // at rustc, by constant name (`SV-CORPUS-GRAD.3.30`: six `error[E0592]` after a green lint).
+    // On the UNFILTERED order — codegen emits every rule, gated or not.
+    let case_collisions = detect_case_colliding_rule_names(&unfiltered_grammar.rule_order);
     // A profile-specific orphan needs ≥2 profiles to exist (the "satisfiable elsewhere" test) — the
     // guard is kept, re-derived from the CORRECTED universe (`.47`(c)): a grammar whose only
     // declared profile is its default (vhdl) has no "elsewhere" and is honestly skipped, while a
@@ -4909,7 +4915,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         )
     };
     println!(
-        "grammar lint: '{}' ({} rules) — {}, non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), undefined_references={} (error), uncompilable_regex_terminals={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?}), profile_gated_negative_lookaheads={} (note — the guard is STILL ENFORCED under the gating profile since ENGINE-UNIVERSAL-SERVICES.46 (c); reported because the reading is non-obvious), profile_gated_positive_lookaheads={} (note — the path is DEAD under the gating profile; monotonic, deliberately not bypassed), template_binds_lookahead_child={} (error)",
+        "grammar lint: '{}' ({} rules) — {}, non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), undefined_references={} (error), uncompilable_regex_terminals={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?}), profile_gated_negative_lookaheads={} (note — the guard is STILL ENFORCED under the gating profile since ENGINE-UNIVERSAL-SERVICES.46 (c); reported because the reading is non-obvious), profile_gated_positive_lookaheads={} (note — the path is DEAD under the gating profile; monotonic, deliberately not bypassed), template_binds_lookahead_child={} (error), case_colliding_rule_names={} (error)",
         grammar.grammar_name,
         g.len(),
         left_recursion_headline,
@@ -4925,7 +4931,8 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         all_profiles,
         gated_lookaheads_negative,
         gated_lookaheads_positive,
-        lookahead_slot_templates.len()
+        lookahead_slot_templates.len(),
+        case_collisions.len()
     );
     // QUANT-PLUS-ITER.2: name the resolved entry rule. Until this landed no surface at
     // default verbosity reported a grammar's start symbol at all, so a helper rule
@@ -5030,9 +5037,14 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     for issue in &lookahead_slot_templates {
         println!("  [error] {}", issue.message());
     }
+    // ENGINE-UNIVERSAL-SERVICES.91 — never capped: every collision names the rules to rename.
+    for issue in &case_collisions {
+        println!("  [error] {}", issue.message());
+    }
 
     if nonterm.is_empty()
         && lookahead_slot_templates.is_empty()
+        && case_collisions.is_empty()
         && orphans.is_empty()
         && shadow.is_empty()
         && unreachable.is_empty()
@@ -5055,6 +5067,12 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
             problems.push(format!(
                 "{} template(s) binding a lookahead child",
                 lookahead_slot_templates.len()
+            ));
+        }
+        if !case_collisions.is_empty() {
+            problems.push(format!(
+                "{} rule-name collision(s) under case folding",
+                case_collisions.len()
             ));
         }
         if !orphans.is_empty() {

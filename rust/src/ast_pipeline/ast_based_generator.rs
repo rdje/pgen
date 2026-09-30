@@ -1344,6 +1344,24 @@ impl AstBasedGenerator {
         entry_rule: &str,
         filename: &str,
     ) -> Result<TokenStream> {
+        // ENGINE-UNIVERSAL-SERVICES.91 — refuse HERE, by RULE NAME, what would otherwise fail at
+        // rustc by CONSTANT NAME: two rules equal under `rule_constant_key` collapse onto one
+        // `RULE_…` identifier (`error[E0592]`). `--lint-grammar` has the same arm; this is the belt
+        // for a grammar that reaches generation past an older lint or a caller that never linted.
+        let collisions =
+            crate::ast_pipeline::grammar_wellformedness::detect_case_colliding_rule_names(rule_order);
+        if !collisions.is_empty() {
+            return Err(anyhow::anyhow!(
+                "codegen REFUSED for grammar '{}': {} rule-name collision(s) under the RuleId constant key — {}",
+                self.grammar_name,
+                collisions.len(),
+                collisions
+                    .iter()
+                    .map(|issue| issue.message())
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            ));
+        }
         // Generate rule ID constants
         let rule_constants = self.generate_rule_constants(rule_order);
 
@@ -1422,7 +1440,7 @@ impl AstBasedGenerator {
             .iter()
             .enumerate()
             .map(|(i, name)| {
-                let const_name = format_ident!("RULE_{}", name.to_uppercase());
+                let const_name = format_ident!("RULE_{}", crate::ast_pipeline::grammar_wellformedness::rule_constant_key(name));
                 let id = i as u16;
                 quote! {
                     const #const_name: RuleId = #id;
@@ -1458,7 +1476,7 @@ impl AstBasedGenerator {
                 .iter()
                 .enumerate()
                 .map(|(row, name)| {
-                    let const_name = format_ident!("THIN_ROW_{}", name.to_uppercase());
+                    let const_name = format_ident!("THIN_ROW_{}", crate::ast_pipeline::grammar_wellformedness::rule_constant_key(name));
                     quote! {
                         const #const_name: usize = #row;
                     }
@@ -4280,7 +4298,7 @@ impl AstBasedGenerator {
         };
         let body = self.generate_rule_body_inner(rule_name, &body_ast, filename)?;
         self.inline_emission_stack.borrow_mut().pop();
-        let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
+        let rule_const = format_ident!("RULE_{}", crate::ast_pipeline::grammar_wellformedness::rule_constant_key(rule_name));
         let negative_case_policy = self.rule_negative_case_policy(rule_name);
         let negative_case_enabled = negative_case_policy.invalid_case;
         let negative_case_strict = negative_case_policy.negative;
@@ -4310,7 +4328,7 @@ impl AstBasedGenerator {
         // emitted module constant, not a fresh copy of the `-o` path at every site.
         let file_label = source_label_ident();
         let method_name = format_ident!("parse_{}", rule_name);
-        let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
+        let rule_const = format_ident!("RULE_{}", crate::ast_pipeline::grammar_wellformedness::rule_constant_key(rule_name));
 
         crate::pgen_trace_debug!(
             "        ↳   Entering rule processing block - File: {}:{}",
@@ -5662,7 +5680,7 @@ impl AstBasedGenerator {
             // own emission derives (`generate_rule_constants` invariant:
             // rule id = RULE_NAMES index) — lets the winning-branch action
             // lookup skip the rule-name String hash.
-            let branch_effect_rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
+            let branch_effect_rule_const = format_ident!("RULE_{}", crate::ast_pipeline::grammar_wellformedness::rule_constant_key(rule_name));
             let branch_start_effect_application: TokenStream =
                 if self.rule_has_branch_start_effects(rule_name) {
                     quote! {

@@ -1,0 +1,20 @@
+# ENGINE-UNIVERSAL-SERVICES.91 — THE CASE-COLLISION CONTROL.
+#
+# Two rules whose names differ only by case: `sym_x` and `sym_X`. The generator names each rule's
+# `RuleId` constant `RULE_<NAME>` with the name UPPERCASED, so both collapse onto `RULE_SYM_X` and the
+# generated parser fails at rustc with `error[E0592]: duplicate definitions` — exactly what
+# `SV-CORPUS-GRAD.3.30`'s fourteen UDP table-symbol terminals (`udp_sym_x` / `udp_sym_X`, …) did on
+# 2026-09-03 after `--lint-grammar` had exited 0 on them.
+#
+#   before `.91`:  lint rc 0, no arm for the class; codegen emits `const RULE_SYM_X` twice; rustc E0592
+#   after  `.91`:  lint `case_colliding_rule_names=1 (error)` rc 1 naming both rules;
+#                  codegen REFUSES by rule name before a byte is emitted
+#
+# Driven by `probe.sh` beside this file, which asserts the AFTER readings.
+@entry: true
+top := trivia sym_x trivia sym_X trivia          -> {kind: "t"}
+
+sym_x := "x"                                     -> {kind: "lower"}
+sym_X := "X"                                     -> {kind: "upper"}
+
+trivia := /[ \t\r\n]*/

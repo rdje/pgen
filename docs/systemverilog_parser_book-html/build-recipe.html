@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-27fa3338.js";
+            window.path_to_searchindex_js = "searchindex-15e672b0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -241,6 +241,7 @@ cargo build --release --features generated_parsers,sv_2017
 <li>Downstream consumers should treat the generated backend as <strong>required</strong> for real host integration.</li>
 <li>Startup should inspect <code>parser_embedding_api_contract().supports_systemverilog_generated_backend</code> to verify the backend is available.</li>
 <li>Build-time generated-parser discovery is mediated by <code>rust/build.rs</code>, not by direct use of internal parser modules.</li>
+<li><strong>The standard-library bundle is in the binary</strong> (embedding API <code>2.1.0</code>, <code>ENGINE-UNIVERSAL-SERVICES.73</code>): the <code>std::</code> predefined classes (<code>process</code>, <code>semaphore</code>, <code>mailbox</code>) are preloaded from <code>parser_libs/sv_&lt;profile&gt;_std/package/std.facts.json</code> embedded at build time, so no directory has to travel with the binary. <code>PGEN_PARSER_LIBS_DIR=&lt;dir&gt;</code> overrides it; a directory named there without the bundle refuses the parse by name. Before <code>2.1.0</code> a moved tree silently parsed with no stdlib and rejected <code>mailbox m;</code>.</li>
 </ul>
 <p>See <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> § “Build / Availability Requirements” for the full list.</p>
 

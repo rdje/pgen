@@ -48,6 +48,14 @@ independent axis. (This is literature-grounded, not invented; sources at the end
    PGEN stands").
 4. **No dangling references, no profile orphans.** Every referenced rule is defined, and every rule
    present under a language profile (e.g. `sv_2017` vs `sv_2023`) is actually satisfiable under it.
+4a. **No two rule names that differ only by case.** The generator names every rule's `RuleId`
+   constant `RULE_<NAME>` with the name uppercased, so `udp_sym_x` and `udp_sym_X` collapse onto one
+   identifier and the generated parser does not compile (`error[E0592]`) — after a green lint, which
+   is how `SV-CORPUS-GRAD.3.30` met it on 2026-09-03 with fourteen IEEE 1800-2017 A.5.3 table
+   symbols. Since `ENGINE-UNIVERSAL-SERVICES.91` (2026-09-30) `--lint-grammar` reports
+   `case_colliding_rule_names` as an ERROR naming the rules, and codegen refuses the grammar by rule
+   name before emitting a byte; both read the same key definition (`rule_constant_key`), so they
+   cannot disagree. The convention for a legitimate pair is `<name>_upper`.
 4b. **Profile narrowing is MONOTONIC — gating a rule out of a profile only ever REMOVES strings from
    the language, never ADDS them.** This is the axis a profiled grammar lives or dies on. PGEN
    **violated it at one construct** until `ENGINE-UNIVERSAL-SERVICES.46`: a `@profiles` gate made

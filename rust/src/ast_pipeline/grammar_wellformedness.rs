@@ -118,6 +118,14 @@ pub enum WellformednessIssue {
     /// nothing references, i.e. a secondary entry such as a `*_multi_entry_root`). A dead rule;
     /// a well-formed grammar has none (Hopcroft–Ullman "no useless symbols" — the reachable half).
     UnreachableRule { rule: String },
+    /// ERROR (ENGINE-UNIVERSAL-SERVICES.91): two or more rules whose names are EQUAL under the
+    /// generator's rule-constant key ([`rule_constant_key`], `to_uppercase()`) — they collapse onto
+    /// ONE `RULE_<KEY>` identifier and the generated parser does not compile
+    /// (`error[E0592]: duplicate definitions`). Measured 2026-09-03 (`SV-CORPUS-GRAD.3.30`): fourteen
+    /// UDP table-symbol terminals spelled as IEEE 1800-2017 A.5.3 spells them (`udp_sym_x` /
+    /// `udp_sym_X`, …) linted green and failed six times at rustc; the grammar's convention since is
+    /// `<name>_upper`. `rules` are in grammar order; `key` is the shared constant key.
+    CaseCollidingRuleNames { key: String, rules: Vec<String> },
     /// ERROR (UNDEFINED-REF-DIAGNOSTICS.2, the F6 residual): `rule` REFERENCES `referenced`,
     /// which is neither DEFINED in the grammar nor one of codegen's native builtins
     /// (`NATIVE_UNRESOLVED_REFERENCE_BUILTINS`). Codegen silently synthesizes a never-matching
@@ -300,6 +308,12 @@ impl WellformednessIssue {
                     rule, profile, profile, fix
                 )
             }
+            WellformednessIssue::CaseCollidingRuleNames { key, rules } => format!(
+                "grammar well-formedness ERROR: rules {} differ only by case — the generator names every rule's RuleId constant `RULE_{}` (the name uppercased), so they collapse onto ONE identifier and the parser cannot compile (`error[E0592]: duplicate definitions with name RULE_{}`). Rename one; the convention is `<name>_upper` (e.g. `udp_sym_x` / `udp_sym_x_upper`).",
+                rules.iter().map(|r| format!("'{}'", r)).collect::<Vec<_>>().join(" / "),
+                key,
+                key
+            ),
             WellformednessIssue::UnreachableRule { rule } => format!(
                 "grammar well-formedness ERROR: rule '{}' is DEFINED but UNREACHABLE from any entry/root by transitive reference — a dead rule (a well-formed grammar has no useless symbols). Remove it, or reference it from a reachable rule, or make it a top-level entry.",
                 rule
@@ -721,6 +735,29 @@ pub(crate) fn collect_node_rule_refs(node: &ASTNode, out: &mut HashSet<String>) 
 /// root → not flagged; only referenced-but-unreachable dead ISLANDS are caught — false negatives
 /// are safe, false positives would wrongly reject a good grammar). References to undefined
 /// (external/include) rules are ignored. Deterministic (iterates `rule_order`).
+/// `ENGINE-UNIVERSAL-SERVICES.91` — THE ONE DEFINITION of the key the generator names a rule's
+/// `RuleId` constant by (`RULE_<KEY>`). The lint's collision arm and the generator's own refusal
+/// both read it, so the two cannot disagree about what collides.
+pub fn rule_constant_key(rule_name: &str) -> String {
+    rule_name.to_uppercase()
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.91` — every group of two or more rules that share a
+/// [`rule_constant_key`] (differ only by case). ERROR class: the generated parser cannot compile.
+/// Runs on the UNFILTERED rule order — codegen emits the FULL grammar, so a rule gated out of the
+/// requested profile still gets its constant. PURE; parser-agnostic.
+pub fn detect_case_colliding_rule_names(rule_order: &[String]) -> Vec<WellformednessIssue> {
+    let mut by_key: std::collections::BTreeMap<String, Vec<String>> = Default::default();
+    for rule in rule_order {
+        by_key.entry(rule_constant_key(rule)).or_default().push(rule.clone());
+    }
+    by_key
+        .into_iter()
+        .filter(|(_, rules)| rules.len() >= 2)
+        .map(|(key, rules)| WellformednessIssue::CaseCollidingRuleNames { key, rules })
+        .collect()
+}
+
 pub fn detect_unreachable_rules(
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],

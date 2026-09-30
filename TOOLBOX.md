@@ -1937,9 +1937,16 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   generator then emits ONE `RULE_UDP_SYM_X` constant twice: `error[E0592]: duplicate definitions`,
   six of them, at the debug build. The grammar's hash-suffixed keyword pairs (`kw_s_a0f1490a` /
   `kw_S_02aa629c`; the `x`/`X` pair this note first cited was orphaned by `SV-CORPUS-GRAD.3.63` and
-  deleted by `.3.64`, release `1.0.232`) are the standing workaround; name such twins `<name>_upper` until
-  `ENGINE-UNIVERSAL-SERVICES.91` adds the refusing lint arm. ⇒ after a grammar edit that adds rules,
-  the debug `ast_pipeline` build is part of the measurement, not a formality.
+  deleted by `.3.64`, release `1.0.232`) are the standing workaround; name such twins `<name>_upper`.
+  ✅ **Since `ENGINE-UNIVERSAL-SERVICES.91` (2026-09-30) the lint REFUSES the class**:
+  `case_colliding_rule_names=N (error)` names every group of rules equal under the generator's own
+  constant key (`rule_constant_key`, the name uppercased — ONE definition, read by the lint and by
+  the generator), and codegen itself refuses such a grammar by rule name before emitting a byte, so
+  a grammar that reaches generation past an older lint still fails with the rule names rather than
+  at rustc with the constant name. Control: `docs/tasks/artifacts/engine_universal_services/eus91_case_collision/probe.sh`
+  (the synthetic pair; the SV grammar with `.3.30`'s spelling restored; every tracked grammar at 0).
+  ⇒ after a grammar edit that adds rules, the debug `ast_pipeline` build is still part of the
+  measurement for every OTHER class the lint cannot see.
 
 ### 5.2 `--dump-gen-ast` (+ `--dump-gen-ast-pretty`)
 - **WHAT:** dump the **normalized generation-input AST** — the grammar IR the parser/stimuli generators actually consume (post LR-elimination etc.).

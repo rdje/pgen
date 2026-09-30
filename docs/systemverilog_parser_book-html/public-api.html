@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-27fa3338.js";
+            window.path_to_searchindex_js = "searchindex-15e672b0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -327,6 +327,16 @@ measured pre-fix (<code>SV-CORPUS-GRAD.8c.3</code>, 2026-07-22), a ~400-deep par
 because the ceiling needs ≈8 MB of real stack in release (≈70 MB in debug) to be reachable.
 A parser-worker panic likewise surfaces as <code>E_PARSE_FAILURE</code>, never a host abort. Host code
 needs no change; the guarantee holds on any caller thread, including small worker-pool stacks.</p>
+<h2 id="standard-library-bundle-embedding-api-210"><a class="header" href="#standard-library-bundle-embedding-api-210">Standard-library bundle (embedding API <code>2.1.0</code>)</a></h2>
+<p>Every SystemVerilog parse begins by preloading the IEEE 1800 §G.2 predefined classes (<code>process</code>,
+<code>semaphore</code>, <code>mailbox</code>) as <code>type_name</code> facts, so <code>mailbox m;</code> resolves without user code declaring
+the class. Since <code>2.1.0</code> (<code>ENGINE-UNIVERSAL-SERVICES.73</code>) the bundle is embedded in the binary from
+the tracked <code>parser_libs/sv_{2017,2023}_std/package/std.facts.json</code>; no run-time path is involved.
+<code>PGEN_PARSER_LIBS_DIR=&lt;dir&gt;</code> substitutes <code>&lt;dir&gt;/sv_&lt;profile&gt;_std/package/std.facts.json</code>, and a
+directory named there that lacks the bundle makes the parse fail with a <code>ParseDiagnostic</code> whose
+message names the knob, the bundle and the expected path — it never falls back to an empty stdlib.
+Before <code>2.1.0</code> the bundle was resolved from a compile-time absolute path and its absence was silent:
+<code>15.4--mailbox-{blocking,non-blocking}.sv</code> (both <code>must_accept</code>) were rejected on a moved tree.</p>
 <h2 id="source-pointer"><a class="header" href="#source-pointer">Source pointer</a></h2>
 <p>The authoritative source for the public API is <code>rust/src/embedding_api.rs</code>. The contract document <code>rust/docs/EMBEDDING_API_CONTRACT.md</code> describes the stability policy in full.</p>
 
