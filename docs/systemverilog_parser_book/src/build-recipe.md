@@ -82,5 +82,6 @@ Per the integration contract:
 - Downstream consumers should treat the generated backend as **required** for real host integration.
 - Startup should inspect `parser_embedding_api_contract().supports_systemverilog_generated_backend` to verify the backend is available.
 - Build-time generated-parser discovery is mediated by `rust/build.rs`, not by direct use of internal parser modules.
+- **The standard-library bundle is in the binary** (embedding API `2.1.0`, `ENGINE-UNIVERSAL-SERVICES.73`): the `std::` predefined classes (`process`, `semaphore`, `mailbox`) are preloaded from `parser_libs/sv_<profile>_std/package/std.facts.json` embedded at build time, so no directory has to travel with the binary. `PGEN_PARSER_LIBS_DIR=<dir>` overrides it; a directory named there without the bundle refuses the parse by name. Before `2.1.0` a moved tree silently parsed with no stdlib and rejected `mailbox m;`.
 
 See `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` § "Build / Availability Requirements" for the full list.

@@ -80,7 +80,7 @@ use std::str::FromStr;
 /// address space, not a practical limit.
 /// ⛔ No API surface or schema change, and the generated artifacts are byte-identical — the
 /// change is one clamp in `dedicated_parse_stack::derive_parse_stack_reservation`.
-pub const EMBEDDING_API_VERSION: &str = "2.0.0";
+pub const EMBEDDING_API_VERSION: &str = "2.1.0";
 
 /// Stable schema version for serialized embedding API metadata.
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 3;

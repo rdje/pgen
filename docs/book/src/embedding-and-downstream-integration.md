@@ -26,7 +26,7 @@ This matters especially for:
 
 ### Current API surface
 
-The embedding API version is **`1.3.2`**. The supported grammar families and their selectable
+The embedding API version is **`2.1.0`**. The supported grammar families and their selectable
 profile strings are:
 
 - **SystemVerilog** — `sv_2017`, `sv_2023`, and the strict **`verilog_2005`** (IEEE 1364-2005 Verilog
@@ -65,6 +65,29 @@ table, and every artifact is served by ONE template (`parse_full_from(GRAMMAR_EN
 profile resolved through the artifact's own alias map and default). What is genuinely per-family —
 the SystemVerilog standard-library preload, the regex worker stack and PCRE2 compile contract — lives
 in `rust/src/families/<name>.rs`, reached only through a hook table keyed on `GRAMMAR_NAME`.
+
+### The SystemVerilog standard-library bundle is IN the binary (embedding API `2.1.0`)
+
+IEEE 1800 §G.2's predefined `std::` classes — `process`, `semaphore`, `mailbox` — are not declared by
+user code, so before every SystemVerilog parse the family preloads their `type_name` facts from a
+bundle (`parser_libs/sv_2017_std/package/std.facts.json`, and the `sv_2023` twin) into the semantic
+store, where the grammar's `has_fact(type_name, …)` checks see them. Since `2.1.0`
+(`ENGINE-UNIVERSAL-SERVICES.73`) that bundle is **embedded in the binary at build time** from the
+tracked source; nothing is resolved from a path at run time, so a binary works wherever it is
+deployed. ⛔ Before `2.1.0` the bundle was resolved from a compile-time absolute path and a missing
+directory was a silent `Ok(())`: a binary built at one path and run after the tree moved parsed with
+an EMPTY stdlib and **rejected LRM-legal input** — `mailbox m;` at module scope, and the shipped-corpus
+rows `sv-tests/tests/chapter-15/15.4--mailbox-{blocking,non-blocking}.sv` (both `must_accept`), went
+`parse_full passed` → `Parser did not consume full input` on the same binary with the bundle hidden,
+with a diagnostic that named the wrong cause and never the bundle. One override exists:
+`PGEN_PARSER_LIBS_DIR=<dir>` reads `<dir>/sv_<profile>_std/package/std.facts.json` instead (the
+tracked `parser_libs/` is one such directory); a directory named there that does not hold the bundle
+**refuses the parse** with a diagnostic naming the knob, the bundle and the expected path — never a
+fallback to an empty stdlib, which was the defect. The engine side is neutral
+(`ast_pipeline::library::read_artifact_text`, an artifact read from in-memory JSON through the same
+schema check as the on-disk reader); the bundle and its profile map are the family's
+(`rust/src/families/systemverilog/mod.rs`), and a unit test holds the embedded bundle equal to the
+tracked source record for record.
 
 ### Reading source files — `pgen::source_text`
 

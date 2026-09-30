@@ -9,13 +9,26 @@
 //! pre-`.113` CLI spellings are declared below — the engine spells none of them.
 //!
 //! `SV-EXH-PROOF.3.3.4.b.6.2.37.2` — the standard-library preload: before a parse begins, the
-//! facts of `<repo_root>/parser_libs/sv_<profile>_std/package/std.facts.json` (checked in by
-//! `.37.1`) are pushed into the parser's semantic runtime state, so the LRM §G.2 `std::`
+//! facts of the profile's bundle (`parser_libs/sv_<profile>_std/package/std.facts.json`, checked in
+//! by `.37.1`) are pushed into the parser's semantic runtime state, so the LRM §G.2 `std::`
 //! predefined classes (process / semaphore / mailbox) are visible to the `has_fact(type_name, X)`
-//! checks for the duration of the parse without user code declaring them. A missing bundle is a
-//! no-op (single-file behaviour); a read error surfaces as `Err`.
+//! checks for the duration of the parse without user code declaring them.
+//!
+//! ⛔ `ENGINE-UNIVERSAL-SERVICES.73` — **the bundle is EMBEDDED in the binary, never resolved from a
+//! path at run time.** The previous form joined `env!("CARGO_MANIFEST_DIR")` with `../parser_libs`
+//! at run time and returned `Ok(())` when the directory was not there — so a binary built at path
+//! A and run after the tree moved to path B parsed with an EMPTY stdlib, silently, and REJECTED
+//! LRM-legal input: `mailbox m;` at module scope, and the shipped-corpus rows
+//! `sv-tests/tests/chapter-15/15.4--mailbox-{blocking,non-blocking}.sv` (both `must_accept`), went
+//! `parse_full passed` → `Parser did not consume full input` with the bundle hidden, on the same
+//! binary. Now the two tracked bundles are baked in with `include_str!` (the compile-time path is
+//! used exactly once, at build time, which is the harmless class `.73`'s census identified), an
+//! operator may point [`STDLIB_OVERRIDE_ENV`] at a directory holding `<bundle_dir>/package/std.facts.json`
+//! instead, and a bundle missing THERE is a refusal that names the knob, the bundle and the path —
+//! there is no silent `Ok(())` path left.
 
 use super::{FamilyHooks, ParseTarget};
+use crate::ast_pipeline::SemanticFactRecord;
 use crate::preprocessing_stage::{
     LegacyFlag, LegacyTarget, PreprocessingStage, StageOptionSpec, StageOutput, StageRequest,
 };
@@ -144,31 +157,111 @@ fn stdlib_bundle_dir(normalized_profile: Option<&str>) -> &'static str {
     }
 }
 
-fn preload_stdlib(parser: &mut dyn ParseTarget, normalized_profile: Option<&str>) -> Result<(), String> {
-    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let Some(repo_root) = manifest_dir.parent() else {
-        return Ok(());
-    };
-    let stdlib_path = repo_root
-        .join("parser_libs")
-        .join(stdlib_bundle_dir(normalized_profile));
-    if !stdlib_path.is_dir() {
-        return Ok(());
+/// `ENGINE-UNIVERSAL-SERVICES.73` — the two tracked bundles, baked into the binary at build time.
+/// `include_str!` re-runs the build when the tracked file moves, and the path is consumed HERE, at
+/// compile time, and nowhere at run time.
+const STDLIB_SV_2017_JSON: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../parser_libs/sv_2017_std/package/std.facts.json"
+));
+const STDLIB_SV_2023_JSON: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../parser_libs/sv_2023_std/package/std.facts.json"
+));
+
+/// The one operator override for the standard-library bundle: a directory holding
+/// `<bundle_dir>/package/std.facts.json` for the profile being parsed (the tracked `parser_libs/`
+/// is one such directory). Unset, the bundle embedded in this binary is used. Set to a directory
+/// that does not hold the bundle, the parse is REFUSED by name — the operator asked for something
+/// this binary cannot honour, and a silent fallback is the defect `.73` removed.
+pub const STDLIB_OVERRIDE_ENV: &str = "PGEN_PARSER_LIBS_DIR";
+
+fn embedded_stdlib_json(normalized_profile: Option<&str>) -> &'static str {
+    match stdlib_bundle_dir(normalized_profile) {
+        "sv_2023_std" => STDLIB_SV_2023_JSON,
+        _ => STDLIB_SV_2017_JSON,
     }
-    match crate::ast_pipeline::library::read_artifact(&stdlib_path, "package", "std") {
-        Ok(records) => {
-            let state = parser.semantic_runtime_state_mut();
-            for record in records {
-                state.push_fact_record(record);
-            }
-            Ok(())
+}
+
+/// The stdlib fact records for a profile: from `override_dir` when one is named (a bundle missing
+/// THERE is an error), else from the bundle embedded in this binary.
+pub(crate) fn resolve_stdlib_records(
+    normalized_profile: Option<&str>,
+    override_dir: Option<&std::path::Path>,
+) -> Result<Vec<SemanticFactRecord>, String> {
+    use crate::ast_pipeline::library::{read_artifact, read_artifact_text};
+    let bundle = stdlib_bundle_dir(normalized_profile);
+    if let Some(root) = override_dir {
+        let dir = root.join(bundle);
+        return read_artifact(&dir, "package", "std").map_err(|e| {
+            format!(
+                "SV stdlib preload REFUSED: {STDLIB_OVERRIDE_ENV}={} names no readable bundle \
+                 for the {bundle} profile bundle (expected {}/package/std.facts.json): {:?}. \
+                 Unset {STDLIB_OVERRIDE_ENV} to use the bundle embedded in this binary.",
+                root.display(),
+                dir.display(),
+                e
+            )
+        });
+    }
+    read_artifact_text(embedded_stdlib_json(normalized_profile), "package", "std").map_err(|e| {
+        format!(
+            "SV stdlib preload failed: the {bundle} bundle EMBEDDED in this binary is unreadable \
+             ({:?}) — the tracked parser_libs source was malformed when this binary was built",
+            e
+        )
+    })
+}
+
+fn preload_stdlib(parser: &mut dyn ParseTarget, normalized_profile: Option<&str>) -> Result<(), String> {
+    let override_dir = std::env::var_os(STDLIB_OVERRIDE_ENV).map(std::path::PathBuf::from);
+    let records = resolve_stdlib_records(normalized_profile, override_dir.as_deref())?;
+    let state = parser.semantic_runtime_state_mut();
+    for record in records {
+        state.push_fact_record(record);
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod stdlib_tests {
+    use super::{STDLIB_OVERRIDE_ENV, resolve_stdlib_records, stdlib_bundle_dir};
+    use crate::ast_pipeline::library::read_artifact;
+    use std::path::{Path, PathBuf};
+
+    fn tracked_root() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().join("parser_libs")
+    }
+
+    /// `.73` — the embedded bundle IS the tracked source, record for record, for every profile
+    /// spelling the family maps to a bundle; a divergence here is a binary shipping a different
+    /// stdlib than the tree it was built from.
+    #[test]
+    fn embedded_bundle_equals_the_tracked_source_for_every_profile() {
+        for profile in [None, Some("sv_2017"), Some("sv_2023"), Some("verilog_2005")] {
+            let embedded = resolve_stdlib_records(profile, None).expect("the embedded bundle parses");
+            let from_tree = read_artifact(&tracked_root().join(stdlib_bundle_dir(profile)), "package", "std")
+                .expect("the tracked bundle reads");
+            assert_eq!(embedded, from_tree, "profile {profile:?}: embedded bundle != tracked source");
+            assert!(!embedded.is_empty(), "profile {profile:?}: the stdlib bundle carries no facts");
         }
-        Err(crate::ast_pipeline::library::LibraryError::NotFound(_)) => Ok(()),
-        Err(other) => Err(format!(
-            "SV stdlib preload failed (path={}): {:?}",
-            stdlib_path.display(),
-            other
-        )),
+    }
+
+    /// `.73` — a named override is honoured, and a bundle missing there is refused BY NAME rather
+    /// than degrading to an empty stdlib (the defect this leaf removed).
+    #[test]
+    fn an_override_directory_is_honoured_and_a_bundle_missing_there_is_refused_by_name() {
+        let from_override = resolve_stdlib_records(Some("sv_2017"), Some(&tracked_root()))
+            .expect("the tracked parser_libs/ is a valid override root");
+        assert_eq!(from_override, resolve_stdlib_records(Some("sv_2017"), None).unwrap());
+
+        let empty = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/eus73_empty_override");
+        std::fs::create_dir_all(&empty).unwrap();
+        let err = resolve_stdlib_records(Some("sv_2017"), Some(&empty))
+            .expect_err("a named override without the bundle must refuse, never fall back");
+        for needle in [STDLIB_OVERRIDE_ENV, "sv_2017_std", "REFUSED", "std.facts.json"] {
+            assert!(err.contains(needle), "the refusal must name `{needle}`: {err}");
+        }
     }
 }
 

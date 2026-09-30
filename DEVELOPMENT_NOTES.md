@@ -1,5 +1,14 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.73 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0181`): bake the data, never the path — and measure the severity before believing the routing note
+
+- **A routing note's severity is a guess until one command hides the dependency.** Renaming `parser_libs/` on the same binary turned "answers differently at exit 0" into a verdict flip on two `must_accept` corpus rows, with a diagnostic that named the wrong cause. The measurement took a minute and decided the whole shape of the fix.
+- **A compile-time path has exactly one harmless use: consumption by the compiler.** `include_str!` reads the tracked bundle at build time and nothing is resolved at run time; the leaf's own census had already classified that shape as the harmless one among 37 sites. Resolving the same path at run time was the defect.
+- **An override that cannot be honoured must refuse, not fall back.** The old code had three silent `Ok(())` arms; an operator who names a directory has said where the bundle is, and an empty stdlib in that situation is the original defect wearing a knob.
+- **Split the neutral half from the family half and say which is which.** Reading an artifact from in-memory text is engine work; which bundle a profile maps to is the family's. The tier-1 directive form was priced against a census of one bundle owner and left as the step for the day a second grammar needs it.
+- **Prove equivalence by the records, not by a corpus sweep.** A test holding embedded == tracked, record for record, is a proof that every parse's store starts identical; the AST byte-identity is its control. The corpus lane re-runs at the next release on these bytes anyway.
+- **A stale version line hides beside the thing you came to edit.** The book said `1.3.2` while the constant said `2.0.0`; nothing checked it because the currency doctrines hold the regex pair and the status rows, not this line.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.42 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0180`): a leaf whose items were all discharged elsewhere is closed by naming the discharging commits, not by re-doing them
 
 - **Adjudicate from history, as the leaf said.** `git log -S` on the assertion's message returned exactly two commits — its birth and the `.46`(d) rewrite — and the rewrite's own comment records the whole chain. The reading the leaf feared (a codegen regression) was refuted by the history, not by the test's wording.

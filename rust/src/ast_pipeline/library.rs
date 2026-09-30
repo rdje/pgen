@@ -177,6 +177,24 @@ pub fn read_artifact(
     parse_artifact_json(&v, kind, name)
 }
 
+/// `ENGINE-UNIVERSAL-SERVICES.73` — read an artifact from JSON TEXT already in memory (a bundle a
+/// family embeds at build time with `include_str!`), through the same `format_version` and schema
+/// check as [`read_artifact`], so an embedded bundle and an on-disk one are the same records by
+/// construction. Neutral: it knows nothing about which family's bundle it is parsing.
+pub fn read_artifact_text(
+    text: &str,
+    kind: &str,
+    name: &str,
+) -> Result<Vec<SemanticFactRecord>, LibraryError> {
+    let v: serde_json::Value = serde_json::from_str(text).map_err(|e| {
+        LibraryError::Parse(format!(
+            "embedded artifact kind={} name={} is not valid JSON: {}",
+            kind, name, e
+        ))
+    })?;
+    parse_artifact_json(&v, kind, name)
+}
+
 fn build_artifact_json(
     kind: &str,
     name: &str,

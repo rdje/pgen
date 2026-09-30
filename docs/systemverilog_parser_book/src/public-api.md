@@ -162,6 +162,18 @@ because the ceiling needs ≈8 MB of real stack in release (≈70 MB in debug) t
 A parser-worker panic likewise surfaces as `E_PARSE_FAILURE`, never a host abort. Host code
 needs no change; the guarantee holds on any caller thread, including small worker-pool stacks.
 
+## Standard-library bundle (embedding API `2.1.0`)
+
+Every SystemVerilog parse begins by preloading the IEEE 1800 §G.2 predefined classes (`process`,
+`semaphore`, `mailbox`) as `type_name` facts, so `mailbox m;` resolves without user code declaring
+the class. Since `2.1.0` (`ENGINE-UNIVERSAL-SERVICES.73`) the bundle is embedded in the binary from
+the tracked `parser_libs/sv_{2017,2023}_std/package/std.facts.json`; no run-time path is involved.
+`PGEN_PARSER_LIBS_DIR=<dir>` substitutes `<dir>/sv_<profile>_std/package/std.facts.json`, and a
+directory named there that lacks the bundle makes the parse fail with a `ParseDiagnostic` whose
+message names the knob, the bundle and the expected path — it never falls back to an empty stdlib.
+Before `2.1.0` the bundle was resolved from a compile-time absolute path and its absence was silent:
+`15.4--mailbox-{blocking,non-blocking}.sv` (both `must_accept`) were rejected on a moved tree.
+
 ## Source pointer
 
 The authoritative source for the public API is `rust/src/embedding_api.rs`. The contract document `rust/docs/EMBEDDING_API_CONTRACT.md` describes the stability policy in full.
