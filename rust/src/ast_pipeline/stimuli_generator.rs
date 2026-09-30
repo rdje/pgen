@@ -15596,6 +15596,19 @@ impl<'a> StimuliGenerator<'a> {
                     // which separator can the repetition NOT absorb as the start of one more
                     // iteration — asked of the sub-pattern's FIRST set; an unknown first set
                     // (`None`) keeps the conservative no-guard answer.
+                    //
+                    // `.98` CORRECTED (`PGEN-ENGINE-UNIVERSAL-SERVICES-0190`, 2026-09-30): the
+                    // whitespace-only exemption the class arm carries holds here too. regex-syntax
+                    // lowers a single-codepoint class (`[ ]`, `[\t]`) to a `Literal`, so `[ ]+`
+                    // reaches THIS arm — and (C) as shipped answered it `Some("\n")`, the injected
+                    // newline the class arm's comment calls actively harmful. A whitespace-only
+                    // sub-pattern of ANY shape (`[ ]+`, `(?: |\t)+`, `(?:\r?\n)+`) self-separates
+                    // exactly as a whitespace-only class does. Found by the CI mirror's
+                    // `lib-unit-test-gate` (`whitespace_only_greedy_tail_gets_no_separator`), the
+                    // first full run of the suite after `.98`.
+                    if Self::hir_is_whitespace_only(&rep.sub) {
+                        return None;
+                    }
                     match (
                         Self::hir_can_start_with(&rep.sub, ' '),
                         Self::hir_can_start_with(&rep.sub, '\n'),
@@ -15608,6 +15621,30 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
         None
+    }
+
+    /// `.98` correction (`-0190`) — does every match of `hir` consist of whitespace only (the
+    /// class arm's `regex_class_is_whitespace_only`, lifted to any HIR shape)? A zero-width
+    /// node is vacuously whitespace-only; a compound node is iff every part is.
+    fn hir_is_whitespace_only(hir: &Hir) -> bool {
+        match hir.kind() {
+            HirKind::Empty | HirKind::Look(_) => true,
+            HirKind::Literal(literal) => {
+                !literal.0.is_empty()
+                    && std::str::from_utf8(&literal.0)
+                        .map(|text| {
+                            text.chars()
+                                .all(|c| c == ' ' || ('\u{09}'..='\u{0d}').contains(&c))
+                        })
+                        .unwrap_or(false)
+            }
+            HirKind::Class(class) => Self::regex_class_is_whitespace_only(class),
+            HirKind::Capture(capture) => Self::hir_is_whitespace_only(&capture.sub),
+            HirKind::Repetition(rep) => Self::hir_is_whitespace_only(&rep.sub),
+            HirKind::Concat(subs) | HirKind::Alternation(subs) => {
+                subs.iter().all(Self::hir_is_whitespace_only)
+            }
+        }
     }
 
     /// `ENGINE-UNIVERSAL-SERVICES.98` (C) — can a match of `hir` BEGIN with `ch`? `Some(false)`
@@ -26428,6 +26465,24 @@ mod tests {
     /// The class arm returned `None` for it (no `Class` under the repetition) and the rendered
     /// `` `M\<LF> `` swallowed the next token (union certificate, every seed, with the grammar's
     /// `@sample: "`FOO\n"` removed).
+    /// `.98` CORRECTED (`-0190`): the whitespace-only exemption holds in the compound arm (C).
+    /// RED on `-0188`..`-0189` (`[ ]+` → `Some("\n")`, `[\t]+` → `Some(" ")`), alongside the
+    /// standing `whitespace_only_greedy_tail_gets_no_separator` the CI mirror caught it with.
+    #[test]
+    fn eus98_whitespace_only_compound_greedy_tail_gets_no_separator() {
+        use StimuliGenerator as G;
+        // A single-codepoint class is lowered to a Literal by regex-syntax, so these reach (C).
+        assert_eq!(G::regex_terminal_trailing_separator(r"[ ]+", " "), None);
+        assert_eq!(G::regex_terminal_trailing_separator(r"[\t]+", "\t"), None);
+        // Compound whitespace-only tails of other shapes.
+        assert_eq!(G::regex_terminal_trailing_separator(r"(?: |\t)+", " "), None);
+        assert_eq!(G::regex_terminal_trailing_separator(r"(?:\r?\n)+", "\n"), None);
+        assert_eq!(G::regex_terminal_trailing_separator(r"(?:[ \t]|\r?\n)*", " "), None);
+        // Content-bearing compound tails keep (C)'s first-set answer.
+        assert_eq!(G::regex_terminal_trailing_separator(r"(?:a|b)+", "a"), Some(" "));
+        assert_eq!(G::regex_terminal_trailing_separator(r"(?: |[a-z])+", "a"), Some("\n"));
+    }
+
     #[test]
     fn eus98_greedy_alternation_tail_gets_the_separator_its_first_set_cannot_absorb() {
         let opaque = "`(?:[^\\\\\\r\\n]|\\\\\\r?\\n|\\\\[^\\r\\n])*";

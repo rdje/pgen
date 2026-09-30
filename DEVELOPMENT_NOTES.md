@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.98 correction (`PGEN-ENGINE-UNIVERSAL-SERVICES-0190`): a filtered acceptance run is not the module
+
+- **A family filter proves the new tests; the module's other tests are the regression suite for the arm.** `.98` accepted on the spacing filter (12 green) and broke a standing pin in the same module that the filter never ran; the CI mirror's `lib-unit-test-gate` found it two commits later. The minimum scope for an engine change is the module, and the full lib suite before the commit when the module is a shared service.
+- **A sibling arm owes every exemption the arm beside it carries.** (C) asked the class arm's question of a compound tail and skipped the class arm's first answer (whitespace-only ⇒ no guard); grep the module for the predicate you are bypassing before adding an arm.
+- **A regex library's normalisation is part of the input shape.** `[ ]` is a `Literal`, not a `Class`, in regex-syntax 0.8; a predicate keyed on `HirKind::Class` alone silently misses every single-codepoint class.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.117 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0189`): a refactor of what the build REQUIRES is verified from a bare tree, and an attribute binds across blank lines
 
 - **A warm tree cannot see a bootstrap defect.** `.112`'s AST identity sweeps, every `cargo test` and every clippy run since ran on trees whose `generated/` had existed for months; the only instrument that walks the cold chain is a tracked-files-only export (the CI mirror's, or `git archive HEAD | tar -x` on the repo volume). A change to what the build requires — a build-script panic, a mandatory artifact — owes that run in the same slice.

@@ -245,6 +245,10 @@ This matters for **line-oriented grammars** — in the SystemVerilog preprocesso
 `[ \t]+` run would push the macro name onto the next line and break the directive (a sample the parser then
 rejects). Whitespace classes that already include `\n` (e.g. `[ \t\r\n]+`) and content-bearing open classes
 (e.g. a `[^\n]*` line-comment body, which still needs a real newline to self-terminate) are unaffected.
+The exemption holds for a whitespace-only run of **any shape**, not only a character class: a
+single-character class such as `[ ]+` (which the regex library reads as a literal), `(?: |\t)+`,
+`(?:\r?\n)+`. The compound-tail rule below asks its first-set question only after this exemption
+(`ENGINE-UNIVERSAL-SERVICES.98` correction, 2026-09-30 — the CI mirror caught `[ ]+` receiving a newline).
 
 ### A token's first character never decides its right boundary; a `/` never spells a comment
 
