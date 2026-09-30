@@ -1012,45 +1012,53 @@ audit_embedding_api_surface() {
   assert_file_matches \
     "rust/src/embedding_api.rs" \
     'pub const EMBEDDING_API_VERSION: &str = "[0-9]+\.[0-9]+\.[0-9]+";'
+  # CI-PARITY-GATE-ROT.67 (2026-09-30) — ENGINE-UNIVERSAL-SERVICES.112 slices 2/3 (2026-09-28/29)
+  # made the API NEUTRAL: the regex family's versioned constants, its wire spellings and its
+  # convenience entry points moved to rust/src/families/regex.rs, GrammarFamily / GrammarProfile
+  # became newtypes resolved through the derived registry (no serde renames, no per-family enum
+  # arms), and the per-family contract became `FamilyContract` fields every family fills. The
+  # invariants below are the SAME — the public surface still DECLARES these, well-formed — pinned
+  # at the spelling and location the tree carries; the slice did not tell this roster (the class
+  # `.1` / `.46` / OPS-MEMSAFE.5's correction admitted before).
   assert_file_matches \
-    "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "[0-9]+\.[0-9]+\.[0-9]+";'
+    "rust/src/families/regex.rs" \
+    'pub const INTEGRATION_CONTRACT_VERSION: &str = "[0-9]+\.[0-9]+\.[0-9]+";'
   assert_file_matches \
-    "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "[0-9]+\.[0-9]+\.[0-9]+";'
+    "rust/src/families/regex.rs" \
+    'pub const PARSER_RELEASE_VERSION: &str = "[0-9]+\.[0-9]+\.[0-9]+";'
   assert_file_contains \
-    "rust/src/embedding_api.rs" \
-    'pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;'
+    "rust/src/families/regex.rs" \
+    'pub const AST_DUMP_SCHEMA_VERSION: u32 = 1;'
   assert_file_contains \
-    "rust/src/embedding_api.rs" \
-    '#[serde(rename = "regex")]'
+    "rust/src/families/regex.rs" \
+    'const FAMILY: &str = "regex";'
   assert_file_contains \
-    "rust/src/embedding_api.rs" \
-    '#[serde(rename = "regex_default")]'
+    "rust/src/families/regex.rs" \
+    'const PROFILE: &str = "regex_default";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'pub struct ParseDiagnosticLocation {'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'pub supports_regex_generated_backend: bool,'
+    'pub generated_backend_required_feature: String,'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'pub stable_diagnostic_location_fields: Vec<String>,'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'pub regex_parser_release_version: String,'
+    'pub parser_release_version: String,'
   assert_file_contains \
-    "rust/src/embedding_api.rs" \
+    "rust/src/families/regex.rs" \
     'pub fn parse_regex_default(input: &str) -> GrammarParseOutcome {'
   assert_file_contains \
-    "rust/src/embedding_api.rs" \
+    "rust/src/families/regex.rs" \
     'pub fn parse_regex_default_ast_dump('
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'GrammarFamily::Regex => parse_generated_regex(input),'
+    'registry::parse_sample_detail_with_profile(grammar.as_str(), input, profile.name)'
   assert_file_contains \
-    "rust/src/embedding_api.rs" \
-    'fn regex_generated_backend_enabled() -> bool {'
+    "rust/src/families/regex.rs" \
+    'generated_backend_required_feature: "generated_parsers".to_string(),'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'fn regex_parser_integration_contract_metadata_is_stable() {'
@@ -1112,7 +1120,7 @@ audit_embedding_api_surface() {
     'Provide a stable, versioned surface for external projects embedding PGEN annotation parsing and selected grammar parsing'
   assert_file_contains \
     "rust/docs/EMBEDDING_API_CONTRACT.md" \
-    '`parse_regex_default(...)`'
+    '`pgen::families::regex::embed::parse_regex_default(...)`'
   assert_file_contains \
     "rust/docs/EMBEDDING_API_CONTRACT.md" \
     '`parse_regex_default_ast_dump(...)`'
@@ -1121,10 +1129,10 @@ audit_embedding_api_surface() {
     '`make -C rust regex_parser_integration_contract_gate`'
   assert_file_contains \
     "rust/docs/EMBEDDING_API_CONTRACT.md" \
-    '`GrammarFamily`: `systemverilog | vhdl | regex`'
+    '`GrammarFamily`: a resolved registered family (`GrammarFamily::registered()` lists them'
   assert_file_contains \
     "rust/docs/EMBEDDING_API_CONTRACT.md" \
-    '`GrammarProfile`: `sv_2017 | sv_2023 | verilog_2005 | vhdl_1076_2019 | regex_default`'
+    '`GrammarProfile`: a resolved profile of a family'
   assert_file_contains \
     "rust/docs/EMBEDDING_API_CONTRACT.md" \
     '`ParseDiagnostic`: stable `code` + human-readable `message` + optional `location`.'
@@ -1140,7 +1148,7 @@ audit_embedding_api_surface() {
 
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
-    '- `regex`: `regex_default`'
+    '- `regex`: `pcre2` (default), `relaxed`; `regex_default` and `regex` are grammar-declared aliases of `pcre2`'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     '- `parse_regex_default(...)`'

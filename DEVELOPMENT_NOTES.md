@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — CI-PARITY-GATE-ROT.67 (`PGEN-CI-PARITY-GATE-ROT-0067`): size the whole population before fixing the first refusal a stopping audit reports
+
+- **A stopping audit reports one failure and hides the rest.** Replaying every needle of the function with the helpers' own semantics turned "one constant moved" into fifteen stale pins in one pass — one edit, one re-run, instead of fifteen mirror runs of an hour each.
+- **A refactor that moves a public spelling owes every hand-kept roster that pins it.** `.112` moved the regex family's surface deliberately and updated the docs, the contracts and the tests; the mirror's audit is the one reader it did not know existed. The `git log -S` on the retired name is the census that finds the move; the roster's own comment dates its last update.
+
 ## 2026-09-30 — OPS-MEMSAFE.5 correction (`PGEN-OPS-MEMSAFE-0010`): a file the director's directive names is still a file a hand-kept roster has to be told about
 
 - **A new tracked doc is an allowlist event.** The mirror's top-level docs audit compares `git ls-files` verbatim against a roster; a directive-mandated record created a day earlier was a drift to it, correctly. Admit the file in the same commit that creates it, with the evidence the roster's comments ask for.

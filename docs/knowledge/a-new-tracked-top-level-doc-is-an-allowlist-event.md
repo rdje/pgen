@@ -1,11 +1,13 @@
 ---
 id: a-new-tracked-top-level-doc-is-an-allowlist-event
-title: A new tracked top-level doc is an allowlist event — admit it to the CI mirror's roster in the commit that creates it
+title: A new tracked top-level doc is an allowlist event, and a moved public spelling is a needle event — update the CI mirror's hand-kept rosters in the commit that moves the tree
 answers:
   - "why did ci_workflow_local_gate fail with top-level docs allowlist drift detected"
   - "what to do when the local CI mirror reports a docs allowlist drift"
   - "where is the roster of allowed docs/*.md files"
   - "why did the push lane go red before the push"
+  - "why did ci_workflow_local_gate fail with file content drift detected in rust/src/embedding_api.rs"
+  - "what to do when the CI mirror's embedding API surface audit pins a constant that moved"
 tags: [ci, ci_workflow_local_gate, allowlist, docs, push-lane, ops]
 date: 2026-09-30
 status: current
@@ -31,6 +33,7 @@ or update the tracked policy deliberately`.
   or on an operator's `make -C rust SHELL=/bin/bash ci_workflow_local_gate`. So a drift is
   invisible for up to 300 commits and surfaces exactly when the push is due — read the
   mirror's log for the first refusing audit (it stops at the first), not just its exit code.
+- **The same holds for every hand-kept needle roster in the mirror.** `audit_embedding_api_surface` pins ~140 spellings across the API, its contract doc and the user guide with `assert_file_contains` / `assert_file_matches`; `ENGINE-UNIVERSAL-SERVICES.112` moved fifteen of them (`CI-PARITY-GATE-ROT.67`) and the mirror refused at the first. Size the population first — replay every needle with the helpers' own `grep -F` / `grep -E` — then re-point each invariant to where the tree carries it; never delete the invariant.
 - **Replay the audit's comparison before re-running the mirror** — the reverify command above
   extracts the roster verbatim and compares it to the same `git ls-files … | sort` the audit
   uses; a green replay costs a second, the mirror costs hours (it replays `sota-exit-gate`).
