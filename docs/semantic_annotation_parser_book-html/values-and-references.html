@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-858d40cc.js";
+            window.path_to_searchindex_js = "searchindex-23741765.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1dfc6798.js"></script>
@@ -282,7 +282,8 @@ typed ASTs moved — because a key that had swallowed the arrow could never fini
 <p>The value language includes a full expression sublanguage — useful for <code>@predicate</code>, <code>@constraint</code>,
 and computed metadata:</p>
 <ul>
-<li><strong>arithmetic</strong> — <code>+ - * / % // **</code> with unary <code>+ - ! ~</code>, e.g. <code>base * 2 + offset</code>;</li>
+<li><strong>arithmetic</strong> — <code>+ - * / % // **</code> with unary <code>+ - ! ~</code>, e.g. <code>base * 2 + offset</code>. A <code>**</code>
+binds as a <code>power</code> node whose <code>exponent</code> is the unary operand (<code>a ** b</code> → <code>{type: "power", base: a, exponent: b}</code>); a lone operand collapses to itself;</li>
 <li><strong>logical</strong> — <code>||</code>, <code>&amp;&amp;</code>, <code>!</code>, and implication <code>=&gt;</code>, e.g. <code>enabled &amp;&amp; (debug || test)</code>;</li>
 <li><strong>comparison</strong> — <code>== != &lt; &gt; &lt;= &gt;= === !== &lt;=&gt; ~= =~ !~</code>, e.g. <code>x &gt; 0</code>;</li>
 <li><strong>conditional</strong> (ternary) — <code>cond ? a : b</code>, e.g. <code>enabled ? "on" : "off"</code>;</li>
@@ -291,6 +292,14 @@ and computed metadata:</p>
 <li><strong>qualified name</strong> — dotted <code>a.b.c</code>;</li>
 <li><strong>lambda</strong> — <code>(params) =&gt; body</code> or <code>p =&gt; body</code>.</li>
 </ul>
+<p><strong>Typed shapes, and a 2026-09-30 correction.</strong> A comparison renders <code>{type: "comparison", left, operator, right}</code> with <code>operator</code> the operator string and <code>right</code> the operand; a lambda renders
+<code>{type: "lambda", parameters, body}</code> with <code>parameters</code> a flat list of parameter nodes (<code>[]</code> for
+<code>() =&gt; …</code>); a function type <code>{type: "function_type", parameters, return_type}</code> likewise; an
+expression without a tail collapses to its operand. Until <code>ENGINE-UNIVERSAL-SERVICES.118</code>
+(ledger <code>SEMANN-0002</code>) the exponent, the comparison’s <code>right</code>, the lambda’s <code>body</code> and the function
+type’s <code>return_type</code> rendered the <code>&lt;invalid_sequence_access&gt;</code> sentinel — each rule read a position
+beyond its body — and the parenthesised lambda rendered its raw sequence; the silent-success
+sentinel gate caught it the moment its own calibration was repaired.</p>
 <h2 id="reference-values"><a class="header" href="#reference-values">Reference values</a></h2>
 <p>References point at things outside the literal value:</p>
 <div class="table-wrapper">

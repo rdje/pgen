@@ -90,7 +90,9 @@ which is what the ten shapes above are asking for whenever they turn up in that 
 The value language includes a full expression sublanguage — useful for `@predicate`, `@constraint`,
 and computed metadata:
 
-- **arithmetic** — `+ - * / % // **` with unary `+ - ! ~`, e.g. `base * 2 + offset`;
+- **arithmetic** — `+ - * / % // **` with unary `+ - ! ~`, e.g. `base * 2 + offset`. A `**`
+  binds as a `power` node whose `exponent` is the unary operand (`a ** b` → `{type: "power",
+  base: a, exponent: b}`); a lone operand collapses to itself;
 - **logical** — `||`, `&&`, `!`, and implication `=>`, e.g. `enabled && (debug || test)`;
 - **comparison** — `== != < > <= >= === !== <=> ~= =~ !~`, e.g. `x > 0`;
 - **conditional** (ternary) — `cond ? a : b`, e.g. `enabled ? "on" : "off"`;
@@ -98,6 +100,16 @@ and computed metadata:
   `has_fact(type_name, $head)` or `calculate(base * 2 + offset)`;
 - **qualified name** — dotted `a.b.c`;
 - **lambda** — `(params) => body` or `p => body`.
+
+**Typed shapes, and a 2026-09-30 correction.** A comparison renders `{type: "comparison", left,
+operator, right}` with `operator` the operator string and `right` the operand; a lambda renders
+`{type: "lambda", parameters, body}` with `parameters` a flat list of parameter nodes (`[]` for
+`() => …`); a function type `{type: "function_type", parameters, return_type}` likewise; an
+expression without a tail collapses to its operand. Until `ENGINE-UNIVERSAL-SERVICES.118`
+(ledger `SEMANN-0002`) the exponent, the comparison's `right`, the lambda's `body` and the function
+type's `return_type` rendered the `<invalid_sequence_access>` sentinel — each rule read a position
+beyond its body — and the parenthesised lambda rendered its raw sequence; the silent-success
+sentinel gate caught it the moment its own calibration was repaired.
 
 ## Reference values
 

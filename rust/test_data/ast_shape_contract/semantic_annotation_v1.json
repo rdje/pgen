@@ -39,11 +39,128 @@
       "current_content_kind": "json_object",
       "drift_status": "aligned",
       "drift_tracked_in": "PGEN: per-family semantic_annotation regeneration follow-up"
+    },
+    {
+      "name": "eus118_power_exponent_is_the_unary_node",
+      "input": "@x: a**b",
+      "rule_under_test": "semantic_annotation",
+      "declared_annotation": "{type: \"power\", base: $1, exponent: $3}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": [
+        "type",
+        "name",
+        "value"
+      ],
+      "expected_json_object_string_values": {
+        "type": "semantic_annotation"
+      },
+      "expected_json_pointer_values": {
+        "/value/left/left/type": "power",
+        "/value/left/left/exponent/type": "unary",
+        "/value/left/left/exponent/operand/name": "b",
+        "/value/left/left/base/operand/name": "a"
+      },
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
+      "drift_tracked_in": "ENGINE-UNIVERSAL-SERVICES.118 (PGEN-ENGINE-UNIVERSAL-SERVICES-0193): RED on the parent — `exponent` was the string `<invalid_sequence_access>` (power_expr read $3 over a two-element body), so `/value/left/left/exponent/type` did not resolve; GREEN on the explicit-branch form"
+    },
+    {
+      "name": "eus118_comparison_right_is_the_operand",
+      "input": "@x: a < b",
+      "rule_under_test": "semantic_annotation",
+      "declared_annotation": "{type: \"comparison\", left: $1, operator: $2, right: $3}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": [
+        "type",
+        "name",
+        "value"
+      ],
+      "expected_json_object_string_values": {
+        "type": "semantic_annotation"
+      },
+      "expected_json_pointer_values": {
+        "/value/operands/0/operands/0/operand/type": "comparison",
+        "/value/operands/0/operands/0/operand/operator": "<",
+        "/value/operands/0/operands/0/operand/right/type": "arithmetic",
+        "/value/operands/0/operands/0/operand/left/type": "arithmetic"
+      },
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
+      "drift_tracked_in": "ENGINE-UNIVERSAL-SERVICES.118 (PGEN-ENGINE-UNIVERSAL-SERVICES-0193): RED on the parent — `right` was the string `<invalid_sequence_access>` and `operator` the whole optional group; GREEN on the explicit-branch form"
+    },
+    {
+      "name": "eus118_lambda_parameters_are_a_flat_list",
+      "input": "@x: (p, q) => p",
+      "rule_under_test": "semantic_annotation",
+      "declared_annotation": "{type: \"lambda\", parameters: $3, body: $9}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": [
+        "type",
+        "name",
+        "value"
+      ],
+      "expected_json_object_string_values": {
+        "type": "semantic_annotation"
+      },
+      "expected_json_pointer_values": {
+        "/value/type": "lambda",
+        "/value/parameters/0/name": "p",
+        "/value/parameters/1/name": "q",
+        "/value/body/name": "p"
+      },
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
+      "drift_tracked_in": "ENGINE-UNIVERSAL-SERVICES.118 (PGEN-ENGINE-UNIVERSAL-SERVICES-0193): RED on the parent — the parenthesised alternative carried no return object and rendered the raw nine-element sequence; GREEN on the three-arm form over the lifted lambda_parameter_list"
+    },
+    {
+      "name": "eus118_empty_lambda_parameters",
+      "input": "@x: () => 1",
+      "rule_under_test": "semantic_annotation",
+      "declared_annotation": "{type: \"lambda\", parameters: [], body: $7}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": [
+        "type",
+        "name",
+        "value"
+      ],
+      "expected_json_object_string_values": {
+        "type": "semantic_annotation"
+      },
+      "expected_json_pointer_values": {
+        "/value/type": "lambda",
+        "/value/body/type": "integer"
+      },
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
+      "drift_tracked_in": "ENGINE-UNIVERSAL-SERVICES.118 (PGEN-ENGINE-UNIVERSAL-SERVICES-0193): the empty-list arm; `parameters` is `[]` (pinned by the keys the object carries — a pointer into an empty array cannot resolve)"
+    },
+    {
+      "name": "eus118_function_type_return_type_is_the_type",
+      "input": "@x: Map<(A) => B>",
+      "rule_under_test": "semantic_annotation",
+      "declared_annotation": "{type: \"function_type\", parameters: $3, return_type: $9}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": [
+        "type",
+        "name",
+        "value"
+      ],
+      "expected_json_object_string_values": {
+        "type": "semantic_annotation"
+      },
+      "expected_json_pointer_values": {
+        "/value/parameters/0/0/type": "function_type",
+        "/value/parameters/0/0/return_type/name": "B",
+        "/value/parameters/0/0/parameters/0/name": "A"
+      },
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
+      "drift_tracked_in": "ENGINE-UNIVERSAL-SERVICES.118 (PGEN-ENGINE-UNIVERSAL-SERVICES-0193): RED on the parent — `return_type` was the string `<invalid_sequence_access>`; GREEN on the explicit-branch form over the lifted function_type_parameter_list. The path passes through generic_type's nested `parameters`, noted in the leaf as out of scope"
     }
   ],
   "declared_annotation_inventory": {
     "pipeline_inventory_artifact": "generated/semantic_annotation_return_annotations.json",
-    "extracted_at": "2026-08-23",
+    "extracted_at": "2026-09-30",
     "optional_grammar_json_crosscheck": "generated/semantic_annotation.json",
     "annotations": [
       {
@@ -203,6 +320,12 @@
         "normalized_text": "{type: \"comparison\", left: $1, operator: $2, right: $3}"
       },
       {
+        "rule": "comparison_expression",
+        "branch_index": 1,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$1"
+      },
+      {
         "rule": "comparison_op",
         "branch_index": 11,
         "annotation_type": "return_scalar",
@@ -350,7 +473,25 @@
         "rule": "function_type",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"function_type\", parameters: [$3, $4*], return_type: $10}"
+        "normalized_text": "{type: \"function_type\", parameters: $3, return_type: $9}"
+      },
+      {
+        "rule": "function_type",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"function_type\", parameters: [], return_type: $7}"
+      },
+      {
+        "rule": "function_type_parameter_list",
+        "branch_index": 0,
+        "annotation_type": "return_array",
+        "normalized_text": "[$1, $2*]"
+      },
+      {
+        "rule": "function_type_parameter_more",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$4"
       },
       {
         "rule": "generic_type",
@@ -396,15 +537,39 @@
       },
       {
         "rule": "lambda_expression",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"lambda\", parameters: $3, body: $9}"
+      },
+      {
+        "rule": "lambda_expression",
         "branch_index": 1,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"lambda\", parameters: [$3, $4*], body: $10}"
+        "normalized_text": "{type: \"lambda\", parameters: [], body: $7}"
+      },
+      {
+        "rule": "lambda_expression",
+        "branch_index": 2,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"lambda\", parameters: [$1], body: $5}"
       },
       {
         "rule": "lambda_parameter",
         "branch_index": 1,
         "annotation_type": "return_scalar",
         "normalized_text": "$1"
+      },
+      {
+        "rule": "lambda_parameter_list",
+        "branch_index": 0,
+        "annotation_type": "return_array",
+        "normalized_text": "[$1, $2*]"
+      },
+      {
+        "rule": "lambda_parameter_more",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$4"
       },
       {
         "rule": "logical_and_expr",
@@ -731,6 +896,12 @@
         "normalized_text": "{type: \"power\", base: $1, exponent: $3}"
       },
       {
+        "rule": "power_expr",
+        "branch_index": 1,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$1"
+      },
+      {
         "rule": "precedence_associativity",
         "branch_index": 3,
         "annotation_type": "return_scalar",
@@ -878,7 +1049,7 @@
         "rule": "semantic_version",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"semantic_version\", major: $1, minor: $2, patch: $3, prerelease: $4, build: $5}"
+        "normalized_text": "{type: \"semantic_version\", major: $1, minor: $3, patch: $5, prerelease: $6, build: $7}"
       },
       {
         "rule": "set_element",
@@ -1053,6 +1224,18 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"url_reference\", url: $1}"
+      },
+      {
+        "rule": "version_build",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
+        "rule": "version_prerelease",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
       },
       {
         "rule": "version_range",

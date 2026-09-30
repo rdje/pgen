@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-858d40cc.js";
+            window.path_to_searchindex_js = "searchindex-23741765.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1dfc6798.js"></script>
@@ -217,6 +217,17 @@ through the annotation proof spine and the normative docs.</p>
 <p>The thirteen control slices SC-01…SC-13 are each gate-enforced (per-slice contract gates with
 differential bootstrap/generated parity checks).</p>
 <h2 id="notable-shape-changes"><a class="header" href="#notable-shape-changes">Notable shape changes</a></h2>
+<h3 id="2026-09-30--five-expression-shapes-rendered-a-sentinel-or-a-raw-sequence-fixed-ledger-semann-0002"><a class="header" href="#2026-09-30--five-expression-shapes-rendered-a-sentinel-or-a-raw-sequence-fixed-ledger-semann-0002">2026-09-30 — five expression shapes rendered a sentinel or a raw sequence; FIXED (ledger <code>SEMANN-0002</code>)</a></h3>
+<p><code>power_expr</code>, <code>comparison_expression</code>, <code>lambda_expression</code>, <code>function_type</code> and the unreachable
+<code>semantic_version</code> read a positional <code>$N</code> beyond their body, so every taken <code>**</code>, comparison tail,
+lambda and function type carried <code>&lt;invalid_sequence_access&gt;</code> (or, for the parenthesised lambda,
+the raw sequence) inside a parse that reported success — since 2025-09-01. The silent-success
+sentinel gate caught it the moment its own calibration was repaired. Each shape now carries the
+declared object: <code>exponent</code> / <code>right</code> / <code>body</code> / <code>return_type</code> are the operand nodes, <code>operator</code> the
+operator string, <code>parameters</code> a flat list (<code>[]</code> when empty), a version’s components their own atoms.
+An expression without a tail collapses to its operand exactly as before. Fixed by
+<code>ENGINE-UNIVERSAL-SERVICES.118</code> (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0193</code>); regression-locked by
+four pinned samples in the shape-contract manifest and by the sentinel gate.</p>
 <h3 id="2026-06-10--whole-body-group-branch-shapes-restored-ledger-semann-0001"><a class="header" href="#2026-06-10--whole-body-group-branch-shapes-restored-ledger-semann-0001">2026-06-10 — whole-body-group branch shapes RESTORED (ledger <code>SEMANN-0001</code>)</a></h3>
 <p>A 2026-05-14 engine refinement (the inner→outer branch-index remap) collapsed whole-body parens-group
 branch annotations onto branch 0, so <strong>43</strong> of this grammar’s declared branch annotations (inventory

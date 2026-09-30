@@ -359,8 +359,22 @@ arithmetic_expression := multiplicative_expr (additive_op multiplicative_expr)*
 multiplicative_expr := power_expr (multiplicative_op power_expr)*
     -> {type: "multiplicative", left: $1, operations: [$2*]}
 
-power_expr := unary_expr ("**" unary_expr)?
+# ENGINE-UNIVERSAL-SERVICES.118 (2026-09-30): four return objects in this grammar read a
+# positional $N beyond their body (ast_return_transform.rs:226 / :514 answer that with the
+# fallthrough `<invalid_sequence_access>`, on the interpreter and the generated parser alike):
+# power_expr's `exponent: $3` over a two-element body (the optional group is ONE element),
+# comparison_expression's `right: $3` likewise, lambda_expression's `body: $10` and
+# function_type's `return_type: $10` over nine-element bodies (their `parameters: [$3, $4*]`
+# also mis-indexed a whitespace token). Found by the silent-success sentinel gate's dynamic arm
+# once its calibration was re-founded (DONE-BAR.5c correction). The fix is the EXPLICIT-BRANCH
+# form: the arm with the tail names its fields in-range, the arm without it passes through, so
+# no return object ever reaches into an absent optional (reaching in renders
+# `<invalid_array_access>` / null inside a larger expression — measured on `a && b`).
+# Parameter lists are lifted into named rules that return the parameter alone.
+power_expr := unary_expr "**" unary_expr
     -> {type: "power", base: $1, exponent: $3}
+  | unary_expr
+    -> $1
 
 unary_expr := unary_op? primary_expr
     -> {type: "unary", operator: $1, operand: $2}
@@ -400,8 +414,10 @@ logical_not_expr := "!"? comparison_expression
     -> {type: "logical_not", negated: $1, operand: $2}
 
 # Comparison expressions
-comparison_expression := additive_comparison_expr (comparison_op additive_comparison_expr)?
+comparison_expression := additive_comparison_expr comparison_op additive_comparison_expr
     -> {type: "comparison", left: $1, operator: $2, right: $3}
+  | additive_comparison_expr
+    -> $1
 
 additive_comparison_expr := multiplicative_expr (additive_op multiplicative_expr)*
     -> {type: "arithmetic", left: $1, operations: [$2*]}
@@ -441,10 +457,21 @@ spread_argument := "..." /\s*/ annotation_value
     -> {type: "spread", value: $3}
 
 # Lambda expressions
-lambda_expression := 
-    "(" /\s*/ (lambda_parameter (/\s*/ "," /\s*/ lambda_parameter)*)? /\s*/ ")" /\s*/ "=>" /\s*/ annotation_value |
-    lambda_parameter /\s*/ "=>" /\s*/ annotation_value
-    -> {type: "lambda", parameters: [$3, $4*], body: $10}
+lambda_expression :=
+    "(" /\s*/ lambda_parameter_list /\s*/ ")" /\s*/ "=>" /\s*/ annotation_value
+    -> {type: "lambda", parameters: $3, body: $9}
+  | "(" /\s*/ ")" /\s*/ "=>" /\s*/ annotation_value
+    -> {type: "lambda", parameters: [], body: $7}
+  | lambda_parameter /\s*/ "=>" /\s*/ annotation_value
+    -> {type: "lambda", parameters: [$1], body: $5}
+
+# ENGINE-UNIVERSAL-SERVICES.118: the lifted parameter list — `[$1, $2*]` spreads the lifted
+# parameters, never the separators.
+lambda_parameter_list := lambda_parameter lambda_parameter_more*
+    -> [$1, $2*]
+
+lambda_parameter_more := /\s*/ "," /\s*/ lambda_parameter
+    -> $4
 
 lambda_parameter := identifier_literal | destructuring_parameter
     -> $1
@@ -481,8 +508,17 @@ union_type := type_reference (/\s*/ "|" /\s*/ type_reference)+
 intersection_type := type_reference (/\s*/ "&" /\s*/ type_reference)+
     -> {type: "intersection_type", types: [$1, $2*]}
 
-function_type := "(" /\s*/ (type_reference (/\s*/ "," /\s*/ type_reference)*)? /\s*/ ")" /\s*/ "=>" /\s*/ type_reference
-    -> {type: "function_type", parameters: [$3, $4*], return_type: $10}
+function_type := "(" /\s*/ function_type_parameter_list /\s*/ ")" /\s*/ "=>" /\s*/ type_reference
+    -> {type: "function_type", parameters: $3, return_type: $9}
+  | "(" /\s*/ ")" /\s*/ "=>" /\s*/ type_reference
+    -> {type: "function_type", parameters: [], return_type: $7}
+
+# ENGINE-UNIVERSAL-SERVICES.118: the lifted parameter-type list (see lambda_parameter_list).
+function_type_parameter_list := type_reference function_type_parameter_more*
+    -> [$1, $2*]
+
+function_type_parameter_more := /\s*/ "," /\s*/ type_reference
+    -> $4
 
 array_type := type_reference /\s*/ "[" /\s*/ "]"
     -> {type: "array_type", element_type: $1}
@@ -670,8 +706,20 @@ time_unit := "ns" | "μs" | "ms" | "s" | "m" | "h" | "nanoseconds" | "microsecon
 version_value := semantic_version | version_range
     -> $1
 
-semantic_version := /(\d+)\.(\d+)\.(\d+)(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?/
-    -> {type: "semantic_version", major: $1, minor: $2, patch: $3, prerelease: $4, build: $5}
+# ENGINE-UNIVERSAL-SERVICES.118: `$1..$5` over ONE regex atom are not capture groups — $1 is the
+# whole match and $2..$5 render `<invalid_sequence_access>` (measured in --entry-rule isolation:
+# major "1.2.3", the rest sentinels). The rule is unreachable today (`version_value` has no
+# caller), so this is a latent site fixed for the census's sake: each component is its own atom.
+semantic_version := version_number "." version_number "." version_number version_prerelease? version_build?
+    -> {type: "semantic_version", major: $1, minor: $3, patch: $5, prerelease: $6, build: $7}
+
+version_number := /\d+/
+
+version_prerelease := "-" /[a-zA-Z0-9.-]+/
+    -> $2
+
+version_build := "+" /[a-zA-Z0-9.-]+/
+    -> $2
 
 version_range := 
     ">=" semantic_version |

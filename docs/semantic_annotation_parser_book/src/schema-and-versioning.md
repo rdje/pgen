@@ -37,6 +37,19 @@ differential bootstrap/generated parity checks).
 
 ## Notable shape changes
 
+### 2026-09-30 — five expression shapes rendered a sentinel or a raw sequence; FIXED (ledger `SEMANN-0002`)
+
+`power_expr`, `comparison_expression`, `lambda_expression`, `function_type` and the unreachable
+`semantic_version` read a positional `$N` beyond their body, so every taken `**`, comparison tail,
+lambda and function type carried `<invalid_sequence_access>` (or, for the parenthesised lambda,
+the raw sequence) inside a parse that reported success — since 2025-09-01. The silent-success
+sentinel gate caught it the moment its own calibration was repaired. Each shape now carries the
+declared object: `exponent` / `right` / `body` / `return_type` are the operand nodes, `operator` the
+operator string, `parameters` a flat list (`[]` when empty), a version's components their own atoms.
+An expression without a tail collapses to its operand exactly as before. Fixed by
+`ENGINE-UNIVERSAL-SERVICES.118` (`PGEN-ENGINE-UNIVERSAL-SERVICES-0193`); regression-locked by
+four pinned samples in the shape-contract manifest and by the sentinel gate.
+
 ### 2026-06-10 — whole-body-group branch shapes RESTORED (ledger `SEMANN-0001`)
 
 A 2026-05-14 engine refinement (the inner→outer branch-index remap) collapsed whole-body parens-group
