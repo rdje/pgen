@@ -444,6 +444,14 @@ audit_root_markdown_surface() {
 
 audit_top_level_docs_surface() {
   local -a expected_top_level_docs=(
+    # OPS-MEMSAFE.5 correction (2026-09-30, PGEN-OPS-MEMSAFE-0010) — the same deliberate admission
+    # `.1` and `.46` performed: docs/ARTIFACT_CLEANUP.md is the director's §8 artifact-cleanup RECORD
+    # (session directive §8: "track this in docs/ARTIFACT_CLEANUP.md"), created by OPS-MEMSAFE.5 on
+    # 2026-09-29 without this roster being told; the audit was RIGHT, and this is the policy update.
+    # Verified before admission: `git log -- docs/ARTIFACT_CLEANUP.md` → one commit (707d276a2),
+    # referenced by the directive that mandates it. Not a stray. ⚠️ ORDER IS LOAD-BEARING: `sort`
+    # places it first.
+    "docs/ARTIFACT_CLEANUP.md"
     "docs/AST_GENERATOR_ARCHITECTURE.md"
     "docs/ast_transformation_pipeline.md"
     "docs/BOOTSTRAP_MODE_SPECIFICATION.md"

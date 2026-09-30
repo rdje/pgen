@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — OPS-MEMSAFE.5 correction (`PGEN-OPS-MEMSAFE-0010`): a file the director's directive names is still a file a hand-kept roster has to be told about
+
+- **A new tracked doc is an allowlist event.** The mirror's top-level docs audit compares `git ls-files` verbatim against a roster; a directive-mandated record created a day earlier was a drift to it, correctly. Admit the file in the same commit that creates it, with the evidence the roster's comments ask for.
+- **The push lane is where the full mirror is exercised.** Between pushes (300 commits) nothing runs the surface audits, so a roster drift stays invisible until the lane fires; the first audit to refuse was the second of thirty-three — read the mirror's log before reading its exit code.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.98 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0188`): a separator decision keyed on the token's first character is keyed on the wrong end, and a generator should ask the parser's own predicate what a comment is
 
 - **A deferral must hand the join rule the fact it deferred on.** The regex said "a word char may not follow"; the deferral then recorded a shape that said "not fusable" because of a backtick two characters earlier. When one step defers to another, the deferred fact travels with it — or the second step contradicts the first.
