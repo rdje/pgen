@@ -58,7 +58,26 @@ their trees give; (b) rule them out of the distance (the counter then reads the 
 work as 0); or (c) leave both and read the distance as *legs + bar rows + 2 SV leaves + 5 parked*.
 Until ruled, the default is (c) and I do not work them.
 
+## 5. The push lane is blocked on `SVPP-EXPANSION.5`(d) — a ruling you have had since 2026-09-09
+
+The full CI mirror (directive 16's gate before any push) replays `sota-exit-gate`; its required
+`sv_parser_family_status_gate` runs the SV formal-exhaustive-closure gate, whose external-corpus proof
+surface forbids parse failures, and the two UVM triage cases fail in both profiles on the one
+construct the ruling is about: `const local uvm_event_pool events = new("events");`
+(`uvm_transaction.svh:443`). The parser rejects it LRM-correctly (Annex A's `const`-first class
+property takes a `constant_expression`, and `new` is a reserved word since the 2026-09-04 Annex B
+fix); every commercial simulator accepts it; your 2026-08-10 bounding ruling's operative test asks
+whether a change makes the parser reject what the ecosystem writes — and this rejection takes the
+whole UVM library with it. I built and measured the widening (one arm on `class_property`,
+constructor first) and withdrew it before regenerating, because the record marks it your call.
+
+**Options, unchanged from the 2026-09-09 question:** (a) the documented tool-extension arm, ON by
+default, with a deviation record — recommended; (b) the arm behind the `SV-PARSE-STRICT` knob, OFF
+by default, so the strict profile keeps the letter. Either lands as an SV release under the
+ceremony; until one does, the mirror cannot be green and the push (313 commits) waits. Everything
+else in the queue continues meanwhile.
+
 ## What I am asking
 
 Nothing blocks. Items 1 and 3 are closed; item 2's fix is parked by the lane lock by its own text.
-Two open calls: the cold-chain / `sota-exit-gate` cadence in item 3, and the parked-but-counted five in item 4.
+Three open calls, in urgency order: item 5 (the `.5`(d) ruling — it blocks the push), item 4 (the parked-but-counted five), item 3 (the cold-chain / `sota-exit-gate` cadence).

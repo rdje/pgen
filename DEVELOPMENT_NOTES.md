@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — SVPP-EXPANSION.5(d) (`PGEN-SVPP-EXPANSION-0028`): a diagnosis that lands on a construct the tree already owns is a re-read, not a fix
+
+- **Grep the trees for the construct before building the fix.** The repro, the bisect and the fix shape were all re-derived in an hour and matched a 21-day-old record line for line; the ceremony's item 11 even names this exact UVM line as an owned condition. One `grep -rn 'const local' docs/tasks` at the first rejection line would have saved the hour — and the withdrawal.
+- **A director call is not pre-empted by a good argument.** The standing ruling's operative test points one way and the recommendation was already on file; the widening still changes what the parser accepts, so it was measured, recorded and withdrawn rather than committed.
+- **A required CI check that fails on an owned condition turns a ruling into a lane blocker.** The ceremony tolerates a RED "owned by name"; the aggregate does not. Recorded as the fifth surface waiting on `.5`(d) so the next reader knows the push lane is one of them.
+
 ## 2026-09-30 — the shared generator binary carries the feature set of whoever built it last (recorded with the director callout commit, `PGEN-DONE-BAR-0027`)
 
 - **Four doctrines went red on an unchanged tree.** `annotation_contract_gate` rebuilt `rust/target/debug/ast_pipeline` without `ebnf_dual_run`; the next doctrine run failed `SV-RULE-FIRE-PARTITION`, `SV-CONTRACT-CURRENCY`, `EBNF-ALTERNATIVE-PARITY` and `PIPELINE-LANE-CURRENCY` together, each blaming its subject. One full-feature rebuild later, 45/45. The same binary, narrowed the same way an hour earlier, had made the interpreter refuse every grammar file; and a probe built before a regeneration read 66 sentinels from a parser that no longer existed. Promoted: `a-shared-debug-binary-carries-the-feature-set-of-whoever-built-it-last`.
