@@ -3447,8 +3447,22 @@ required_unguarded_generated_artifacts() {
   #     hard `error: couldn't read …` and the whole crate fails to compile.
   # Only the literal form can break the build, and grepping for exactly that form means this check
   # can never drift away from what `lib.rs` actually does.
-  (cd "$ROOT_DIR" && grep -oE 'include!\("\.\./\.\./generated/[a-z_]+\.rs"\)' rust/src/lib.rs 2>/dev/null) |
-    sed -E 's|.*(generated/[a-z_]+\.rs).*|\1|' | sort -u
+  #
+  # CI-PARITY-GATE-ROT.67 addendum (2026-09-30): since ENGINE-UNIVERSAL-SERVICES.112 slice 2 the
+  # registry is DERIVED — `lib.rs` includes only the build-written `$OUT_DIR` modules, and the hard
+  # requirement moved into `rust/build.rs`, which PANICS by name for the two meta parsers every
+  # build needs (`for required in ["return_annotation", "semantic_annotation"]`). The literal-form
+  # grep therefore derived an EMPTY set, the preflight reported `generated/ artifacts present` over
+  # an export with no `generated/` at all, preparation never ran, and the first replay that compiles
+  # the crate died in the build script (`generated/return_annotation_parser.rs is missing`) — the
+  # exact cascade this function exists to prevent, back under a different door. The set is now the
+  # UNION of both derivations, each read from the file that enforces it, so neither form can drift.
+  {
+    (cd "$ROOT_DIR" && grep -oE 'include!\("\.\./\.\./generated/[a-z_]+\.rs"\)' rust/src/lib.rs 2>/dev/null) |
+      sed -E 's|.*(generated/[a-z_]+\.rs).*|\1|'
+    (cd "$ROOT_DIR" && grep -oE 'for required in \[("[a-z_]+"(, )?)+\]' rust/build.rs 2>/dev/null) |
+      grep -oE '"[a-z_]+"' | tr -d '"' | sed -E 's|^(.*)$|generated/\1_parser.rs|'
+  } | sort -u
 }
 
 prepare_generated_artifacts() {

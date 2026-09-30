@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.117 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0189`): a refactor of what the build REQUIRES is verified from a bare tree, and an attribute binds across blank lines
+
+- **A warm tree cannot see a bootstrap defect.** `.112`'s AST identity sweeps, every `cargo test` and every clippy run since ran on trees whose `generated/` had existed for months; the only instrument that walks the cold chain is a tracked-files-only export (the CI mirror's, or `git archive HEAD | tar -x` on the repo volume). A change to what the build requires — a build-script panic, a mandatory artifact — owes that run in the same slice.
+- **Deleting the item under a `#[cfg]` deletes its attribute too.** A Rust attribute binds to the next item across any number of blank lines; left behind, it silently gates whatever follows and shows only in the configuration that makes it false. The scan `eus117_bare_clone/orphan_cfg_scan.py` names every attribute-blank-item site under `rust/src` (two on the parent, both refactor residue); run it after any deletion under an attribute.
+- **Fix the first refusal, then run the instrument again.** Two defects sat one behind the other; the first fix's proof run was the second's discovery. A cold-path claim is answerable only by the chain completing, not by the first step passing.
+- **A second name for the same fact is withdrawn before it ships.** The first fix for the stray attribute emitted a derived `has_any_generated_parser` cfg from `build.rs` and keyed the arms on it; it compiled the cold chain and was then withdrawn — under the feature the pair is mandatory, so the cfg could never differ from the feature. Name the fact once.
+
 ## 2026-09-30 — CI-PARITY-GATE-ROT.67 (`PGEN-CI-PARITY-GATE-ROT-0067`): size the whole population before fixing the first refusal a stopping audit reports
 
 - **A stopping audit reports one failure and hides the rest.** Replaying every needle of the function with the helpers' own semantics turned "one constant moved" into fifteen stale pins in one pass — one edit, one re-run, instead of fifteen mirror runs of an hour each.

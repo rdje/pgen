@@ -1190,11 +1190,18 @@ fn parse_generated_semantic(input: &str) -> Result<(), ParseDiagnostic> {
 // structured diagnostic — an embedding boundary must never abort the host
 // (the same contract the regex RGX-0085 worker established; the regex path
 // keeps its own worker + nesting pre-check, untouched).
-#[cfg(all(
-    feature = "generated_parsers",
-    any(has_generated_systemverilog_parser, has_generated_vhdl_parser)
-))]
-
+// `ENGINE-UNIVERSAL-SERVICES.117` (2026-09-30): the two arms below are keyed on the feature ALONE,
+// as they have been since 2026-02-18. Until this commit a stray per-family attribute
+// (`#[cfg(all(feature = "generated_parsers", any(has_generated_systemverilog_parser,
+// has_generated_vhdl_parser)))]`, `a49061655`) sat above the first arm, separated from it by a
+// blank line: the item it had belonged to was deleted and the attribute left behind, and a Rust
+// attribute binds to the NEXT item across any number of blank lines. So the first arm existed
+// only when an SV or VHDL parser was registered and the second only without the feature — and
+// under the full feature set with only the two meta parsers present (every cold clone's bootstrap
+// state) NEITHER existed and the crate did not compile (`error[E0425]: cannot find function
+// generated_backend_enabled`, measured in the CI mirror's export). A warm tree, whose `generated/`
+// carries every family, could not see it. The control that goes RED on the parent commit:
+// `docs/tasks/artifacts/engine_universal_services/eus117_bare_clone/orphan_cfg_scan.py`.
 #[cfg(feature = "generated_parsers")]
 fn generated_backend_enabled() -> bool {
     true

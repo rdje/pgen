@@ -66,16 +66,32 @@ fn main() {
             }
         }
     }
-    // The two meta parsers every build needs: their absence is a build error with the remedy,
-    // never a silent cfg-off (a clean checkout must run `make regenerate_generated_parsers`).
-    for required in ["return_annotation", "semantic_annotation"] {
-        if !names.contains(required) {
-            panic!(
-                "generated/{}_parser.rs is missing — run `make -C rust SHELL=/bin/bash regenerate_generated_parsers` first",
-                required
-            );
+    // The two meta parsers every `generated_parsers` build needs: their absence is a build error
+    // with the remedy, never a silent cfg-off (a clean checkout must run
+    // `make regenerate_generated_parsers`).
+    //
+    // ⛔ ONLY under the `generated_parsers` feature (`ENGINE-UNIVERSAL-SERVICES.117`, 2026-09-30).
+    // `regex_parser_bootstrap` — the first step of `regenerate_generated_parsers` on a cold clone —
+    // builds `ast_pipeline` with `--features ebnf_dual_run` and NO generated parser at all: the
+    // annotation pair does not exist yet, annotations route through the hand-rolled bootstrap
+    // surface by design, and `lib.rs` gates the whole `generated_parsers` module on the feature.
+    // `.112` slice 2 (`f04f5b807`) made this panic unconditional, so a bare tracked tree could not
+    // build the generator that emits the parsers the panic demanded — measured by the CI mirror's
+    // export (a tracked-files-only worktree): `error: failed to run custom build command for pgen`
+    // / `generated/return_annotation_parser.rs is missing` at `make regenerate_generated_parsers`'s
+    // first cargo invocation. Cargo exports `CARGO_FEATURE_<NAME>` to a build script for every
+    // enabled feature, which is the build script's only honest view of the feature set.
+    if env::var("CARGO_FEATURE_GENERATED_PARSERS").is_ok() {
+        for required in ["return_annotation", "semantic_annotation"] {
+            if !names.contains(required) {
+                panic!(
+                    "generated/{}_parser.rs is missing — run `make -C rust SHELL=/bin/bash regenerate_generated_parsers` first",
+                    required
+                );
+            }
         }
     }
+    println!("cargo:rerun-if-env-changed=CARGO_FEATURE_GENERATED_PARSERS");
     // Family COMPONENT modules (`.112` slice 2 / `.113`): `src/families/<name>.rs` or
     // `src/families/<name>/mod.rs` present ⇒ that family's `HOOKS` (and, through them, its
     // preprocessing stage). The map is name → the module's root file.
