@@ -1966,6 +1966,14 @@ pub struct DirectedDualityOutcome {
     pub learned_groups: usize,
 }
 
+/// `ENGINE-UNIVERSAL-SERVICES.98` (B) — which comment introducers a `/`-boundary must never be
+/// allowed to spell for this grammar (see `StimuliGenerator::comment_introducer_guard`).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct CommentIntroducerGuard {
+    line_comment: bool,
+    block_comment: bool,
+}
+
 pub struct StimuliGenerator<'a> {
     grammar_name: String,
     grammar_tree: &'a HashMap<String, ASTNode>,
@@ -2106,6 +2114,9 @@ pub struct StimuliGenerator<'a> {
     // boundaries ONLY when the left tail terminal is itself fusable — a structural literal whose tail
     // happens to be a letter (e.g. `(?C`, `(?(R`) is NOT fusable and must stay adjacent to its arg.
     last_terminal_word_shaped: bool,
+    // `ENGINE-UNIVERSAL-SERVICES.98` (B): the comment-introducer fusion guard, derived once on demand
+    // from codegen's own comment-arm predicate (see `comment_introducer_guard`).
+    comment_introducer_guard: std::sync::OnceLock<CommentIntroducerGuard>,
     // LEXICAL-ANNOTATIONS.6: >0 while generating the body of an ATOMIC lexical-token rule (return is
     // `$text`/`$0` = `MatchedText`, or the rule carries a `@transform` directive). Such a rule is ONE
     // flat token by construction, so every internal word-boundary join is suppressed while it is on the
@@ -2429,6 +2440,7 @@ impl<'a> StimuliGenerator<'a> {
             witness_certificates: Vec::new(),
             regex_content_forbidden: HashSet::new(),
             last_terminal_word_shaped: false,
+            comment_introducer_guard: std::sync::OnceLock::new(),
             atomic_token_depth: 0,
             last_terminal_from_atomic_rule: false,
             gen_semantic_state,
@@ -15471,6 +15483,7 @@ impl<'a> StimuliGenerator<'a> {
         // minimal separator, derived from the regex itself (parser-agnostic). Conservative: only
         // known-open tails trigger a guard, so self-delimiting terminals (fixed literals, closing
         // delimiters) are untouched.
+        let mut deferred_open_tail = false;
         let result = match Self::regex_terminal_trailing_separator(pattern, &candidate) {
             // LEXICAL-ANNOTATIONS.5 — successor-aware deferral. When the terminal's tail needs a
             // SPACE and the candidate ends with a lexical word char, do NOT bake it here: the join
@@ -15482,7 +15495,10 @@ impl<'a> StimuliGenerator<'a> {
             // `(?P>NAME )` / `(?(COND ))`) and at end-of-sample. The `"\n"` guard (non-word open
             // classes like `[^\n]*` comments — which the join rule's word-char test cannot catch)
             // and candidates ending in a non-word char keep the eager guard.
-            Some(" ") if Self::ends_with_lexical_word_char(&candidate) => candidate,
+            Some(" ") if Self::ends_with_lexical_word_char(&candidate) => {
+                deferred_open_tail = true;
+                candidate
+            }
             Some(sep) => {
                 let mut out = candidate;
                 out.push_str(sep);
@@ -15495,7 +15511,18 @@ impl<'a> StimuliGenerator<'a> {
         // deferral above hands a multi-token render's fusable word tail (`8 min`) to the join
         // rule, so the recorded state must say the tail IS fusable (the whole-string check read
         // it as non-fusable and the join never fired — the vhdl `8 min`+`to` → `8 minto` class).
-        self.last_terminal_word_shaped = Self::tail_word_shaped(&result);
+        //
+        // `ENGINE-UNIVERSAL-SERVICES.98` (A): a DEFERRED open tail is fusable BY THE REGEX'S OWN
+        // WORD, whatever precedes the trailing word run. `tail_word_shaped` reads `` `abc `` (from
+        // `` /`abc\b/ ``) as NOT word-shaped because a backtick precedes the run — the
+        // `(?C`-literal protection of LEXICAL-ANNOTATIONS.5.2 — so the deferral handed the
+        // separator to a join rule that then refused to insert it, and `` `abc `` + `def` rendered
+        // `` `abcdef `` (fourteen SystemVerilog `kw_dir_*` tokens, five union-residual rules, three
+        // seeds' `sample_parse_failures`; SV-CORPUS-GRAD.3.39). The trailing `\b` (or a greedy
+        // open class) is the regex asserting that a word char may NOT follow, which is exactly
+        // the fact the join rule needs; the literal protection is untouched because a fixed
+        // literal never reaches the deferral arm.
+        self.last_terminal_word_shaped = deferred_open_tail || Self::tail_word_shaped(&result);
         result
     }
 
@@ -15557,10 +15584,86 @@ impl<'a> StimuliGenerator<'a> {
                     if !Self::regex_class_contains(class, '\n') {
                         return Some("\n");
                     }
+                } else {
+                    // `ENGINE-UNIVERSAL-SERVICES.98` (C): a greedy unbounded repetition over a
+                    // COMPOUND sub-pattern — an alternation, a concat, a group — is an open tail
+                    // too, and the only one the class arm above could not see. The SystemVerilog
+                    // `opaque_directive_line` tail `(?:[^\\\r\n]|\\\r?\n|\\[^\r\n])*` absorbs
+                    // any non-newline text through its first branch and a line CONTINUATION
+                    // (`\\` + newline) through its second, so a rendered `` `M\<LF> `` swallowed
+                    // every token the generator emitted after it; the grammar carried
+                    // `@sample: "`FOO\n"` to hide it. The question is the same as for a class —
+                    // which separator can the repetition NOT absorb as the start of one more
+                    // iteration — asked of the sub-pattern's FIRST set; an unknown first set
+                    // (`None`) keeps the conservative no-guard answer.
+                    match (
+                        Self::hir_can_start_with(&rep.sub, ' '),
+                        Self::hir_can_start_with(&rep.sub, '\n'),
+                    ) {
+                        (Some(false), _) => return Some(" "),
+                        (Some(true), Some(false)) => return Some("\n"),
+                        _ => {}
+                    }
                 }
             }
         }
         None
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.98` (C) — can a match of `hir` BEGIN with `ch`? `Some(false)`
+    /// means no match of `hir` starts with `ch` (so `ch` cannot open one more iteration of a
+    /// repetition over `hir`); `None` means the analysis does not know and the caller must stay
+    /// conservative. Nullable prefixes are looked through (`\r?\n` can start with `\n`).
+    fn hir_can_start_with(hir: &Hir, ch: char) -> Option<bool> {
+        match hir.kind() {
+            HirKind::Empty | HirKind::Look(_) => Some(false),
+            HirKind::Literal(literal) => {
+                let mut buf = [0u8; 4];
+                let encoded = ch.encode_utf8(&mut buf).as_bytes();
+                Some(literal.0.starts_with(encoded))
+            }
+            HirKind::Class(class) => Some(Self::regex_class_contains(class, ch)),
+            HirKind::Capture(capture) => Self::hir_can_start_with(&capture.sub, ch),
+            HirKind::Repetition(rep) => Self::hir_can_start_with(&rep.sub, ch),
+            HirKind::Alternation(alts) => {
+                let mut any_unknown = false;
+                for alt in alts {
+                    match Self::hir_can_start_with(alt, ch) {
+                        Some(true) => return Some(true),
+                        Some(false) => {}
+                        None => any_unknown = true,
+                    }
+                }
+                if any_unknown { None } else { Some(false) }
+            }
+            HirKind::Concat(parts) => {
+                for part in parts {
+                    match Self::hir_can_start_with(part, ch) {
+                        Some(true) => return Some(true),
+                        None => return None,
+                        Some(false) => {
+                            if !Self::hir_is_nullable(part) {
+                                return Some(false);
+                            }
+                        }
+                    }
+                }
+                Some(false)
+            }
+        }
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.98` (C) — can `hir` match the empty string?
+    fn hir_is_nullable(hir: &Hir) -> bool {
+        match hir.kind() {
+            HirKind::Empty | HirKind::Look(_) => true,
+            HirKind::Literal(literal) => literal.0.is_empty(),
+            HirKind::Class(_) => false,
+            HirKind::Capture(capture) => Self::hir_is_nullable(&capture.sub),
+            HirKind::Repetition(rep) => rep.min == 0 || Self::hir_is_nullable(&rep.sub),
+            HirKind::Alternation(alts) => alts.iter().any(Self::hir_is_nullable),
+            HirKind::Concat(parts) => parts.iter().all(Self::hir_is_nullable),
+        }
     }
 
     /// Whether every member of a regex character class is an ASCII whitespace char
@@ -16054,8 +16157,66 @@ impl<'a> StimuliGenerator<'a> {
             && Self::starts_with_lexical_word_char(segment)
         {
             output.push(' ');
+        } else if self.config.enforce_word_boundary_spacing
+            && self.atomic_token_depth == 0
+            && !segment_from_atomic_rule
+            && self.comment_introducer_would_fuse(output.as_str(), segment)
+        {
+            // `ENGINE-UNIVERSAL-SERVICES.98` (B): a `/` on the left and a `/` or `*` on the right
+            // re-lex as a comment introducer (`///x`, `a/*b`) in every grammar whose parser treats
+            // `//` / `/*` as layout — the SystemVerilog `timeunit_separator_slash` literal followed by
+            // the `line_comment` sample rendered `///x`, the grammar's own trivia swallowed it and the
+            // `/` was gone (`sv_cert_recognized_union_gate` seed 0 / 42). Gated by codegen's own
+            // comment-arm predicate, see `comment_introducer_guard`.
+            output.push(' ');
         }
         output.push_str(segment);
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.98` (B) — would appending `segment` to `output` create a comment
+    /// introducer across the token boundary that this grammar's parser reads as LAYOUT?
+    fn comment_introducer_would_fuse(&self, output: &str, segment: &str) -> bool {
+        if !output.ends_with('/') {
+            return false;
+        }
+        let Some(first) = segment.chars().next() else {
+            return false;
+        };
+        let guard = self.comment_introducer_guard();
+        (first == '/' && guard.line_comment) || (first == '*' && guard.block_comment)
+    }
+
+    /// The two comment introducers whose fusion this grammar's parser would read as layout —
+    /// DERIVED from the same two facts codegen derives its layout-skipper arms from, so the
+    /// generator agrees with the parser it feeds by construction rather than by a second opinion:
+    /// (1) the grammar skips layout (no `@whitespace_sensitive` facet — a sensitive grammar emits no
+    /// skipper and `//` means whatever its rules say), and (2) the grammar does NOT claim the
+    /// introducer as a non-comment token (`comment_arm_suppression_for_grammar`, the predicate that
+    /// decides whether the skipper's `//` / `/*` arms are emitted at all). Computed once, on the
+    /// first `/`-adjacency the join rule sees (the predicate clones the annotations).
+    fn comment_introducer_guard(&self) -> CommentIntroducerGuard {
+        *self.comment_introducer_guard.get_or_init(|| {
+            let layout = self
+                .annotations
+                .and_then(|annotations| {
+                    super::semantic_runtime::compile_layout_sensitivity(annotations)
+                        .ok()
+                        .flatten()
+                })
+                .unwrap_or_default();
+            if layout != super::semantic_runtime::LayoutSensitivity::default() {
+                return CommentIntroducerGuard::default();
+            }
+            let suppression = super::ast_based_generator::comment_arm_suppression_for_grammar(
+                &self.grammar_name,
+                self.grammar_tree,
+                self.annotations,
+            );
+            CommentIntroducerGuard {
+                line_comment: !suppression.claims_line_comment,
+                block_comment: !suppression.claims_block_comment,
+            }
+        })
     }
 
     /// LEXICAL-ANNOTATIONS.5.2: append `generated` to a concat scope's `output` while tracking the
@@ -26150,6 +26311,147 @@ mod tests {
             "branch literal hint should register branch success, got {:?}",
             group.success_counts
         );
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.98` — a generator with the shipped lexical-faithfulness default
+    /// (`enforce_word_boundary_spacing: true`); `simple_generator` opts out of it, so the join rule
+    /// under test would never run there.
+    fn spacing_generator<'a>(
+        grammar_tree: &'a HashMap<String, ASTNode>,
+        rule_order: &'a [String],
+        seed: u64,
+    ) -> StimuliGenerator<'a> {
+        StimuliGenerator::new(
+            "test".to_string(),
+            grammar_tree,
+            rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(seed),
+                max_depth: 8,
+                enforce_word_boundary_spacing: true,
+                ..StimuliConfig::default()
+            },
+        )
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.98` (A) — a regex token that begins with a NON-word character and
+    /// ends in `\b` must still be separated from a following word token. Before the fix
+    /// `` `abc `` + `def` rendered `` `abcdef `` (the SystemVerilog `kw_dir_*` class) while
+    /// `abc` + `def` rendered `abc def` — the token's FIRST character decided its right boundary.
+    #[test]
+    fn eus98_punctuation_led_word_boundary_token_is_separated_from_a_following_word() {
+        for (pattern, expected) in [("`abc\\b", "`abc def"), ("`[a-z]+", "`abc def")] {
+            let mut grammar_tree = HashMap::new();
+            grammar_tree.insert(
+                "s".to_string(),
+                ASTNode::Sequence {
+                    elements: vec![token("rule_reference", "t"), token("rule_reference", "w")],
+                },
+            );
+            grammar_tree.insert("t".to_string(), token("regex", pattern));
+            grammar_tree.insert("w".to_string(), token("regex", "def\\b"));
+            let rule_order = vec!["s".to_string(), "t".to_string(), "w".to_string()];
+            let mut generator = spacing_generator(&grammar_tree, &rule_order, 7);
+            let value = generator.generate_many(1, None).expect("the three-rule grammar generates");
+            // `[a-z]+` draws a random word; compare the shape, not the letters.
+            let got = value[0].as_str();
+            let (left, right) = got.split_once(' ').unwrap_or((got, ""));
+            assert!(
+                left.starts_with('`') && !left.is_empty() && right == "def",
+                "pattern {pattern:?}: expected a separated rendering shaped like {expected:?}, got {got:?}"
+            );
+        }
+        // The control the class was measured against: the same tokens without the backtick.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "s".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "t"), token("rule_reference", "w")],
+            },
+        );
+        grammar_tree.insert("t".to_string(), token("regex", "abc\\b"));
+        grammar_tree.insert("w".to_string(), token("regex", "def\\b"));
+        let rule_order = vec!["s".to_string(), "t".to_string(), "w".to_string()];
+        let mut generator = spacing_generator(&grammar_tree, &rule_order, 7);
+        let value = generator.generate_many(1, None).expect("the control generates");
+        assert_eq!(value[0], "abc def");
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.98` (B) — a `/` literal followed by a token beginning with `/`
+    /// or `*` must be separated when this grammar's parser reads `//` / `/*` as layout (the
+    /// comment-defining `cmt` rule keeps codegen's comment arm), and must NOT be when the grammar
+    /// claims the introducer as a token of its own (a literal `"//x"`), where `///x` re-lexes as
+    /// `/` + `//x` exactly as rendered.
+    #[test]
+    fn eus98_slash_is_separated_from_a_following_comment_introducer_only_where_it_is_layout() {
+        let build = |cmt: ASTNode| {
+            let mut grammar_tree = HashMap::new();
+            grammar_tree.insert(
+                "s".to_string(),
+                ASTNode::Sequence {
+                    elements: vec![token("rule_reference", "slash"), token("rule_reference", "cmt")],
+                },
+            );
+            grammar_tree.insert("slash".to_string(), token("quoted_string", "/"));
+            grammar_tree.insert("cmt".to_string(), cmt);
+            grammar_tree
+        };
+        let rule_order = vec!["s".to_string(), "slash".to_string(), "cmt".to_string()];
+
+        // Comment-defining `cmt` (an unbounded tail after `//`): the parser's `//` arm stays, so
+        // `///x` would be swallowed as a comment before the `/` the parser expects — separate.
+        let layout_tree = build(token("regex", "//x[^\\n]*"));
+        let mut generator = spacing_generator(&layout_tree, &rule_order, 11);
+        let value = generator.generate_many(1, None).expect("generates");
+        assert!(
+            value[0].starts_with("/ //x"),
+            "a comment-introducing `//` must not be spelled across the `/` boundary: {:?}",
+            value[0]
+        );
+        let block_tree = build(token("regex", "\\*[^\\n]*"));
+        let mut generator = spacing_generator(&block_tree, &rule_order, 11);
+        let value = generator.generate_many(1, None).expect("generates");
+        assert!(value[0].starts_with("/ *"), "`/*` across the boundary: {:?}", value[0]);
+
+        // A grammar that CLAIMS `//` as a token (a fixed literal): the arm is suppressed, `///x`
+        // re-lexes as `/` + `//x`, and the generator must leave it fused (the status quo).
+        let claiming_tree = build(token("quoted_string", "//x"));
+        let mut generator = spacing_generator(&claiming_tree, &rule_order, 11);
+        let value = generator.generate_many(1, None).expect("generates");
+        assert_eq!(value[0], "///x", "a claimed `//` token is not layout and must stay adjacent");
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.98` (C) — a greedy repetition over an ALTERNATION is an open tail:
+    /// the SystemVerilog `opaque_directive_line` tail absorbs any non-newline text and a
+    /// backslash-newline continuation, so only a bare newline separates it from what follows.
+    /// The class arm returned `None` for it (no `Class` under the repetition) and the rendered
+    /// `` `M\<LF> `` swallowed the next token (union certificate, every seed, with the grammar's
+    /// `@sample: "`FOO\n"` removed).
+    #[test]
+    fn eus98_greedy_alternation_tail_gets_the_separator_its_first_set_cannot_absorb() {
+        let opaque = "`(?:[^\\\\\\r\\n]|\\\\\\r?\\n|\\\\[^\\r\\n])*";
+        assert_eq!(
+            StimuliGenerator::regex_terminal_trailing_separator(opaque, "`M\\\n"),
+            Some("\n"),
+            "a continuation-ended opaque line needs a bare newline the repetition cannot open with"
+        );
+        assert_eq!(StimuliGenerator::regex_terminal_trailing_separator(opaque, "`M"), Some("\n"));
+        // An alternation whose branches cannot start with a space gets the space (deferred by the
+        // join rule when the candidate ends in a word char, as for a class tail).
+        assert_eq!(
+            StimuliGenerator::regex_terminal_trailing_separator("x(?:[a-z]|-)*", "xa-b"),
+            Some(" ")
+        );
+        // A compound tail that can open with BOTH separators stays unguarded (the conservative
+        // answer the class arm already gives for `[^x]*`-style tails that absorb everything).
+        assert_eq!(
+            StimuliGenerator::regex_terminal_trailing_separator("x(?:[ \\n]|q)*", "xq"),
+            None
+        );
+        // Unchanged class behaviour beside it.
+        assert_eq!(StimuliGenerator::regex_terminal_trailing_separator("[a-z]+", "abc"), Some(" "));
+        assert_eq!(StimuliGenerator::regex_terminal_trailing_separator("[^\\n]*", "abc def"), Some("\n"));
     }
 
     #[test]

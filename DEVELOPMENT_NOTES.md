@@ -1,5 +1,14 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.98 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0188`): a separator decision keyed on the token's first character is keyed on the wrong end, and a generator should ask the parser's own predicate what a comment is
+
+- **A deferral must hand the join rule the fact it deferred on.** The regex said "a word char may not follow"; the deferral then recorded a shape that said "not fusable" because of a backtick two characters earlier. When one step defers to another, the deferred fact travels with it — or the second step contradicts the first.
+- **The parser's layout predicate is the generator's, too.** Whether `//` is a comment is codegen's decision (`comment_arm_suppression_for_grammar`); calling the same predicate from the stimuli generator makes the two agree by construction. A second opinion would have drifted the day a grammar claimed `//`.
+- **Derive on first use.** The predicate clones the annotations; 44 generator constructions in the crate made an eager derivation the wrong default. A `OnceLock` computed on the first `/`-adjacency costs nothing on the runs that never see one.
+- **A test helper that opts out of the feature under test passes vacuously.** `simple_generator` disables word-boundary spacing; the first draft of the tests would have been green on the pre-fix code. Read the helper before trusting the red.
+- **An acceptance test that removes the workaround finds what the workaround hid.** The leaf enumerated two holes; the fifteen samples had been covering three. The third (a repetition over an alternation) surfaced only because the acceptance was run with every sample gone, not with the two the diagnosis named.
+- **The declarative workaround is the acceptance test.** Removing the fifteen `@sample`s on a scratch copy and re-running the certificate is what shows the engine fix carries the weight the samples carried — on the tracked grammar the samples stay until the SV lane edits it.
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.97 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0187`): a claim that keys on a name cannot see a value in the wrong place; a pointer can
 
 - **A `kind`-chain is a presence claim, not a position claim.** The corrupted and the correct tree both contain `this` and `dot`; only the address differs. Pin nested shapes by JSON pointer, and pin the ABSENCE of the wrong key too — a shape that silently gains `select` is the class this leaf was opened on.

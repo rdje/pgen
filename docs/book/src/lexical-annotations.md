@@ -246,6 +246,29 @@ This matters for **line-oriented grammars** — in the SystemVerilog preprocesso
 rejects). Whitespace classes that already include `\n` (e.g. `[ \t\r\n]+`) and content-bearing open classes
 (e.g. a `[^\n]*` line-comment body, which still needs a real newline to self-terminate) are unaffected.
 
+### A token's first character never decides its right boundary; a `/` never spells a comment
+
+Two holes in the boundary tracking were measured on three-rule grammars and closed together
+(`ENGINE-UNIVERSAL-SERVICES.98`, 2026-09-30; found through SystemVerilog's compiler directives):
+
+- **Punctuation-led open-tail tokens.** A regex token that *begins* with a non-word character and
+  ends in `\b` (or a greedy open class) — `` /`celldefine\b/ `` — had its separator deferred to the
+  join rule and then recorded as *not fusable*, because the word-shape check saw a backtick before the
+  trailing word run (the rule that keeps a structural literal like `(?C` glued to its argument). So
+  `` `abc `` + `def` rendered `` `abcdef `` while `abc` + `def` rendered `abc def`, and fourteen
+  directive keywords needed a hand-written `@sample: "`name "` each. The regex's own trailing
+  assertion now marks the tail fusable, whatever precedes the run; fixed literals never take that
+  path, so `(?C1` is unchanged.
+- **Comment introducers across a boundary.** The join rule separated word-char boundaries only, so a
+  `/` literal followed by a token beginning with `/` or `*` rendered `///x` / `a/*b`, which every
+  parser that treats `//` and `/*` as layout reads as one comment — the SystemVerilog
+  `timeunit_separator_slash` lost its `/` to the grammar's own trivia. The join rule now inserts a
+  space there, gated by the **same two facts the code generator derives its layout skipper's comment
+  arms from**: the grammar declares no `@whitespace_sensitive` facet, and it does not claim `//` /
+  `/*` as a non-comment token (a grammar that does — a literal `"//x"` — keeps `///x`, which its
+  parser re-lexes as `/` + `//x` exactly as rendered). The generator and the parser it feeds agree by
+  construction, not by a second opinion.
+
 Enforcement is part of the **lexical-faithfulness mode**, which is **on by default**. Negative-test
 generation — which deliberately produces malformed lexical surface — opts out, and then follow
 restrictions (and all other faithfulness guards) are not applied. The certificate-coverage gate
