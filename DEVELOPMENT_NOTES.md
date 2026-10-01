@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-01 — SV-CORPUS-GRAD.37 / SVPP-EXPANSION.5(d) (`PGEN-SV-CORPUS-GRAD-0423`): a standing ruling is an answer, and asking for it a third time is being stuck
+
+- **The bounding ruling already decided this class.** The 2026-08-10 ruling puts one test first — does the change make the parser reject input the ecosystem actually writes? — and names the Annex-A-letter argument as the thing it overrides. The 2026-09-09 "director call" was my own hedge between two spellings of the same answer; three weeks and one more escalation later the director's "looks like you are stuck" said so. When a standing ruling's operative test answers the question, apply it, record that it was applied, and move; escalate the ruling itself only when no standing ruling reaches it.
+- **A withdrawn fix is cheap; a wrong one is not — but a fix withdrawn against a standing ruling is a day lost.** The widening was built, measured and withdrawn on 2026-09-30 and rebuilt on 2026-10-01; the measurements carried over, the regeneration and the ceremony did not.
+- **The ceremony scripts of the previous release are the template, and they survived the §8 sweep because the sweep kept recent scratch.** `rust/target/s371/*.sh` → `rust/target/sv37/` with one path substituted; the "before" artifacts (the previous probe, the four result tables) snapshotted BEFORE the build chain publishes the new probe.
+- promotion: declined (the ruling discipline is `feedback_sv_strict_lrm_compliance_default`'s own bounding section, read today; the escalation lesson is recorded there by the director's words, not by a new card).
+
 ## 2026-09-30 — ENGINE-UNIVERSAL-SERVICES.46 closed on measurement (`PGEN-ENGINE-UNIVERSAL-SERVICES-0195`): a hand-pinned population count is a snapshot, and a control that pins one must say so
 
 - **The instance.** The site audit's 17 semantic rows were green and its 3 population pins (7 / 5 / 5, the 2026-08-25 grammar) were not — nine grammar releases had grown the gated-negative-lookahead population to 20 / 10 / 30. Re-derived at today's census with the reason written above the pins; the semantic rows are the invariant, the counts document the population.

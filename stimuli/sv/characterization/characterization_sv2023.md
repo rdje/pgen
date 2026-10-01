@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `a9c393d41801a90e647773a006e2ad72aa178b9e65de257094dc20155c64d0b9` |
-| grammar | `grammars/systemverilog.ebnf` | `a41a2c6236e6025b905942a9bb945f7caf46861cc8af7ff85a8d57385fc0f05e` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `3fe3b12fe98f1947b9b0d0eb5dda18f25d000be50278bcd8d742b1ffa6576a75` |
-| generated parser | `generated/systemverilog_parser.rs` | `d404dd1b15a211cb2f31d8ce3a63e76003291cecf4d08c59009f735c8b73b17b` |
+| parse binary | `rust/target/release/parseability_probe` | `928d210e5b7bccdce92475a495784593514a96feddce350d725f3421a30f3cb3` |
+| grammar | `grammars/systemverilog.ebnf` | `75cef4b3163c63f321c917a113170fc48011122ed3bf2d833a31521e05505d63` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `08b6d48fd676200f7b0107dc8fa41ace54c85ed85b9a031b5140d8b1fc556e06` |
+| generated parser | `generated/systemverilog_parser.rs` | `c8f0900c324aadd8aabbc3e748bb913e541f614cdd52ffa8c59be364d9c524ad` |
 | results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `9755a7d270570a2e138f0892bbc9326b752b3d14c1354493cab0d1bc35fd857d` |
 | positions (output) | `stimuli/sv/characterization/positions_sv2023.tsv` | `d2ffb553ba3691aa94c8ca38c7ddede29f2ab28e8f2182769c41c2afe75a418c` |
 
-Measured at `HEAD` = `7ac640e94+dirty` (2026-09-24).
+Measured at `HEAD` = `a5df3ef24+dirty` (2026-09-30).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -65,7 +65,7 @@ Measured at `HEAD` = `7ac640e94+dirty` (2026-09-24).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `5.76` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `14.10` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 

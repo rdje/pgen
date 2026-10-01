@@ -1888,7 +1888,21 @@ class_new := ( class_scope )? kw_new_c2a6b03f ( lparen list_of_arguments rparen 
 
 class_property := property_qualifier* data_declaration
                        -> {kind: "decl",  qualifiers: $1, body: $2}
-               | kw_const_b42f3f6f class_item_qualifier* data_type const_identifier ( assign constant_expression )? semi
+# SV-CORPUS-GRAD.37 (2026-10-01, release 1.0.247) — the TOOL-EXTENSION arm the director's 2026-08-10
+# bounding ruling admits (the operative test: a change must not make the parser reject input the
+# ecosystem actually writes). Annex A A.1.9 gives the const-first class property only
+# `const { class_item_qualifier } data_type const_identifier [ = constant_expression ] ;`, and
+# `new(…)` is no constant_expression — yet the reference library writes it
+# (uvm_transaction.svh:443 `const local uvm_event_pool events = new("events");`) and every simulator
+# accepts it, as §8.19's prose does ("global constant class properties include an initial value as
+# part of their declaration"). Until the reserved-word set became Annex B (e0a324964, 2026-09-04)
+# `new` was an unreserved identifier and the line slipped through as a function call; once reserved
+# the arm had no path and uvm_pkg.sv — and everything built on UVM — was rejected at this line
+# (SVPP-EXPANSION.5(d), open 2026-09-09 → 2026-10-01). `class_new` is tried first: `new` can never
+# begin a constant_expression now, and a constant_expression can never begin with `new`. The
+# `local const …` order already parsed through data_declaration's class_new initializer; this arm
+# gives the `const local …` order the same reading. Recorded as a named deviation in the SV book.
+               | kw_const_b42f3f6f class_item_qualifier* data_type const_identifier ( assign ( class_new | constant_expression ) )? semi
                        -> {kind: "const", qualifiers: $2, data_type: $3, name: $4, init: $5}
 
 @predicate: { name: fact_attribute_equals, args: [type_name, $body, declaration_family, class], phase: post }

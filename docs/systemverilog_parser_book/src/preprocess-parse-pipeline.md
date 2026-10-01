@@ -591,17 +591,18 @@ and the number is now on the table for the leaf that decides how a per-file lane
   `/* … */` (`uvm_tlm_imps.svh` keeps older macro versions in one) and expanded macro uses inside
   others. The expansion is now 3 020 226 bytes, every changed hunk audited inside a comment, and
   scr1 / friscv / VeeR accept on both profiles.
-- UVM's `uvm_pkg.sv` — the unit-level reading of that suite — currently **rejects** at
-  `src/base/uvm_transaction.svh:443`, `const local uvm_event_pool events = new("events");`, on both
-  profiles. That is not a preprocessing defect: IEEE 1800-2017 A.2.7 gives a `const`-first class
-  property only the alternative
-  `const { class_item_qualifier } data_type const_identifier [ = constant_expression ] ;`, and
-  `new(…)` is not a `constant_expression` (the `local const …` order is derivable through
-  `data_declaration`, which admits a `class_new` initializer). Every commercial simulator accepts
-  the UVM spelling; PGEN accepted it too until the release of 2026-09-04 made `local` a reserved
-  word (it had lexed as an identifier and the line mis-parsed into an accept). The policy question
-  — a documented tool-extension arm for a construct the de-facto standard library relies on, versus
-  the letter of Annex A — is open in `docs/tasks/SVPP-EXPANSION.md` (`.5`).
+- UVM's `uvm_pkg.sv` — the unit-level reading of that suite — **parses on both profiles since
+  `1.0.247`** (`SV-CORPUS-GRAD.37`, ledger `SV-0132`, 2026-10-01). From the 2026-09-04 release that
+  made `local` a reserved word until then it rejected at `src/base/uvm_transaction.svh:443`,
+  `const local uvm_event_pool events = new("events");`: IEEE 1800-2017 A.1.9 gives a `const`-first
+  class property only `const { class_item_qualifier } data_type const_identifier [ = constant_expression ] ;`,
+  and `new(…)` is not a `constant_expression` (the `local const …` order is derivable through
+  `data_declaration`, which admits a `class_new` initializer). Every commercial simulator accepts the
+  UVM spelling, and §8.19's prose describes it as a constant with an initial value. **Recorded
+  deviation (tool extension, on by default):** `class_property`'s const arm admits a `class_new`
+  initializer — `( assign ( class_new | constant_expression ) )?` — under the director's standing
+  ruling that a change must not make the parser reject what the ecosystem writes; the typed shape is
+  the one the arm always declared. The policy record: `docs/tasks/SVPP-EXPANSION.md` (`.5`(d), closed).
 
 ## Boundaries
 

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-398085d1.js";
+            window.path_to_searchindex_js = "searchindex-45c22d87.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -321,7 +321,7 @@ refuses a commit whose published block or whose history’s last row disagrees w
 ESTIMATE over the last five recorded releases; a structural leg (a corpus conformance gate, the generator proof) is one item that costs more than a bar row;
 the 38 % of corpus rows with no verdict are an answer-key gap outside <code>items</code>; and an item can be opened by a release as well as closed — the history shows both.</p>
 <!-- BEGIN DERIVED: scripts/report_sv_release_distance.sh --markdown -->
-<p><strong>SV release distance: 10 items</strong> (<code>legs_unmet + bar_rows + open_leaves</code>).</p>
+<p><strong>SV release distance: 11 items</strong> (<code>legs_unmet + bar_rows + open_leaves</code>).</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -330,13 +330,13 @@ the 38 % of corpus rows with no verdict are an answer-key gap outside <code>item
 <tbody>
 <tr><td>Done-bar legs unmet</td><td style="text-align: right">3 of 3</td><td>the derived block above (<code>report_family_status.sh</code>)</td></tr>
 <tr><td>Corpus bar rows (unexplained divergences)</td><td style="text-align: right">0 (sv_2017 0, sv_2023 0, verilog_2005 0)</td><td><code>stimuli/sv/characterization/adjudication_manifest*.tsv</code></td></tr>
-<tr><td>Open leaves owning SV work</td><td style="text-align: right">7 (SV-CORPUS-GRAD 2, engine leaves SV opened 5)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
+<tr><td>Open leaves owning SV work</td><td style="text-align: right">8 (SV-CORPUS-GRAD 2, engine leaves SV opened 6)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
 <tr><td>Corpus passing (sv_2017, <code>match</code> rows)</td><td style="text-align: right">6069 of 16336 (37.2 %)</td><td>the sv_2017 manifest</td></tr>
 <tr><td>Known defects (unexplained, sv_2017)</td><td style="text-align: right">0</td><td>the sv_2017 manifest</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>Trailing closure rate:</strong> n/a items per release over the last 5 recorded release(s); <strong>ETA ≈ n/a (one release in the window) releases ≈ n/a days</strong> — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.</p>
+<p><strong>Trailing closure rate:</strong> 1.00 items per release over the last 5 recorded release(s); <strong>ETA ≈ 11.0 releases ≈ 18.4 days</strong> — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.</p>
 <p>History: <a href="../../tasks/artifacts/sv_corpus_grad/release_distance/history.tsv"><code>release_distance/history.tsv</code></a> (one row per release, appended by <code>--record</code> — and one more, under the shipped release’s label, when a commit outside a release moves the distance; the rate above divides by distinct releases; the last row must equal this tree, checked by <code>--check</code>).</p>
 <!-- END DERIVED: scripts/report_sv_release_distance.sh -->
 <div style="break-before: page; page-break-before: always;"></div>
@@ -1181,17 +1181,18 @@ inside block comments: the preprocessor of 2026-08-24 had honoured <code>`define
 <code>/* … */</code> (<code>uvm_tlm_imps.svh</code> keeps older macro versions in one) and expanded macro uses inside
 others. The expansion is now 3 020 226 bytes, every changed hunk audited inside a comment, and
 scr1 / friscv / VeeR accept on both profiles.</li>
-<li>UVM’s <code>uvm_pkg.sv</code> — the unit-level reading of that suite — currently <strong>rejects</strong> at
-<code>src/base/uvm_transaction.svh:443</code>, <code>const local uvm_event_pool events = new("events");</code>, on both
-profiles. That is not a preprocessing defect: IEEE 1800-2017 A.2.7 gives a <code>const</code>-first class
-property only the alternative
-<code>const { class_item_qualifier } data_type const_identifier [ = constant_expression ] ;</code>, and
-<code>new(…)</code> is not a <code>constant_expression</code> (the <code>local const …</code> order is derivable through
-<code>data_declaration</code>, which admits a <code>class_new</code> initializer). Every commercial simulator accepts
-the UVM spelling; PGEN accepted it too until the release of 2026-09-04 made <code>local</code> a reserved
-word (it had lexed as an identifier and the line mis-parsed into an accept). The policy question
-— a documented tool-extension arm for a construct the de-facto standard library relies on, versus
-the letter of Annex A — is open in <code>docs/tasks/SVPP-EXPANSION.md</code> (<code>.5</code>).</li>
+<li>UVM’s <code>uvm_pkg.sv</code> — the unit-level reading of that suite — <strong>parses on both profiles since
+<code>1.0.247</code></strong> (<code>SV-CORPUS-GRAD.37</code>, ledger <code>SV-0132</code>, 2026-10-01). From the 2026-09-04 release that
+made <code>local</code> a reserved word until then it rejected at <code>src/base/uvm_transaction.svh:443</code>,
+<code>const local uvm_event_pool events = new("events");</code>: IEEE 1800-2017 A.1.9 gives a <code>const</code>-first
+class property only <code>const { class_item_qualifier } data_type const_identifier [ = constant_expression ] ;</code>,
+and <code>new(…)</code> is not a <code>constant_expression</code> (the <code>local const …</code> order is derivable through
+<code>data_declaration</code>, which admits a <code>class_new</code> initializer). Every commercial simulator accepts the
+UVM spelling, and §8.19’s prose describes it as a constant with an initial value. <strong>Recorded
+deviation (tool extension, on by default):</strong> <code>class_property</code>’s const arm admits a <code>class_new</code>
+initializer — <code>( assign ( class_new | constant_expression ) )?</code> — under the director’s standing
+ruling that a change must not make the parser reject what the ecosystem writes; the typed shape is
+the one the arm always declared. The policy record: <code>docs/tasks/SVPP-EXPANSION.md</code> (<code>.5</code>(d), closed).</li>
 </ul>
 <h2 id="boundaries"><a class="header" href="#boundaries">Boundaries</a></h2>
 <ul>
@@ -2979,7 +2980,7 @@ as generation targets and would have read 20 / 20 on both profiles) — the SV d
 reads <em>gates green and invoked</em> over exactly these, and <code>.24</code> found three of them RED for months
 because no release chain ran them.
 A RED here is one of two things and the record says which: a condition already owned by name
-(today: the SV formal umbrella’s external-corpus surface on UVM’s <code>const local … = new(…)</code>, the director’s <code>SVPP-EXPANSION.5</code>(d) ruling; the envelope divergence <code>GRAMMAR-WELLFORMED.H.20.3</code> named on 2026-09-24 closed the same day),
+(today, both on the SV formal umbrella’s family-status stage and both routed by <code>1.0.247</code>’s own run: <code>ENGINE-UNIVERSAL-SERVICES.119</code> — the preprocessor family’s generated samples, five of which its parser rejects since <code>.98</code> (C) — and the SV row of the family register, whose computed status ROSE to <code>Provisional (corpus pending)</code> over a tracker still reading <code>Mostly Done</code>, <code>DONE-BAR.5e</code>; the umbrella’s external-corpus surface on UVM’s <code>const local … = new(…)</code> was the owned condition from 2026-09-04 until <code>1.0.247</code> admitted the arm under the director’s ruling, <code>SV-CORPUS-GRAD.37</code>; the envelope divergence <code>GRAMMAR-WELLFORMED.H.20.3</code> named on 2026-09-24 closed the same day),
 or a NEW defect, routed the same day with its measured line. A RED that is neither blocks the
 release.</li>
 <li><strong>Before the commit</strong>: <code>bash scripts/check_doctrines.sh</code> (every registered doctrine, incl.
@@ -3071,6 +3072,10 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10247--contract-10247--sv-corpus-grad37-pgen-sv-corpus-grad-0423-2026-10-01-ledger-sv-0132-released-schema-34-unchanged"><a class="header" href="#10247--contract-10247--sv-corpus-grad37-pgen-sv-corpus-grad-0423-2026-10-01-ledger-sv-0132-released-schema-34-unchanged">1.0.247 / Contract 1.0.247 — SV-CORPUS-GRAD.37 (<code>PGEN-SV-CORPUS-GRAD-0423</code>, 2026-10-01), ledger <code>SV-0132</code> (<code>Released</code>), <strong>schema 34 unchanged</strong>:</a></h3>
+<p>⭐ <strong>UVM’s <code>const local T x = new(…)</code> is admitted as a documented tool extension.</strong> <code>grammars/systemverilog.ebnf</code>: <code>class_property</code>’s <code>const</code>-first arm reads <code>( assign ( class_new | constant_expression ) )?</code>, <code>class_new</code> first. Annex A A.1.9 gives that arm only a <code>constant_expression</code>, and <code>new(…)</code> is none — yet the reference library writes it (<code>uvm_transaction.svh:443</code>), every simulator accepts it, and §8.19’s prose calls it a constant with an initial value; PGEN accepted it through <code>1.0.218</code> only because <code>local</code> lexed as an identifier, and rejected it from the Annex B reserved-word fix (<code>1.0.219</code>, 2026-09-04) until now — <code>uvm_pkg.sv</code>, and everything built on UVM, with it. The director’s 2026-08-10 bounding ruling (the operative test first: a change must not make the parser reject what the ecosystem writes) decides the open <code>SVPP-EXPANSION.5</code>(d) in favour of the arm. Typed shape unchanged: <code>{kind: "const", qualifiers, data_type, name, init}</code> with <code>init</code> the <code>class_new</code> object; the <code>local const …</code> order already parsed through <code>data_declaration</code>.</p>
+<p><strong>Measured on the final bytes.</strong> <code>ADJUDICATION-REPROS: checked=1814 armed=225 listed=888 multi_profile_rows=691 preprocess_rows=13 failures=0</code> (three pins filed: the UVM spelling ACCEPT, the <code>local const</code> order ACCEPT as before, an empty initializer REJECT); the three raw lanes <code>pass_to_fail=0 fail_to_pass=0</code>, and every file accepted before and after yields a byte-identical typed AST (<code>identical=10022</code> / <code>10048</code> / <code>2283</code>, <code>ast_moved=0 verdict_moved=0</code>); under the preprocess-then-parse pipeline five UVM units move <code>fail</code> → <code>pass</code> (<code>uvm.sv</code>, <code>uvm_pkg.sv</code> and three files that include them) and nothing else moves; the external-corpus proof surface reads <code>parse_pass_total: 14</code> / <code>parse_fail_total: 0</code>; both certificates and the syntax closure green; all 11 generated artifacts re-derive byte-identically; the library suite <code>1301 passed; 0 failed</code>.</p>
+<p><strong>Consumers.</strong> Nothing to change: an input that parsed before parses identically (the controls’ typed ASTs are byte-identical across the change); the newly accepted form yields the shape the <code>const</code> arm always declared.</p>
 <h3 id="10246--contract-10246--engine-universal-services111--sv-corpus-grad33-pgen-engine-universal-services-0163-2026-09-28-ledger-sv-0131-released-schema-34-unchanged"><a class="header" href="#10246--contract-10246--engine-universal-services111--sv-corpus-grad33-pgen-engine-universal-services-0163-2026-09-28-ledger-sv-0131-released-schema-34-unchanged">1.0.246 / Contract 1.0.246 — ENGINE-UNIVERSAL-SERVICES.111 + SV-CORPUS-GRAD.33 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0163</code>, 2026-09-28), ledger <code>SV-0131</code> (<code>Released</code>), <strong>schema 34 unchanged</strong>:</a></h3>
 <p>⭐ <strong>The store write epoch names CONTENT, not time — and the wildcard escapes reach module scope.</strong> <code>rust/src/ast_pipeline/semantic_runtime.rs</code>: every store mutation takes a fresh epoch from a monotone allocator; a discarding rollback RESTORES the checkpoint’s epoch, because facts, arena and chain are the checkpoint’s again — so a store-tainted memoized success stamped before a speculative branch is answered again after the branch rolls back (through <code>1.0.245</code> the rollback bumped the counter and evicted it; <code>.28</code>’s first candidate re-parsed an instantiation head’s parameter list on the second route, entries +5.18 %). Measured alone on the pinned 192-file sample: entries −0.05 %, memo_hits −0.07 %, committed flat; the generated parser byte-identical; the semantic suite 387 / 387 with every <code>sem_memo_*</code> anchor intact (a mutation still evicts). The grammar then admits the <code>.28</code> escape at every <code>class_type</code> (the <code>in_scope_kind(class_body)</code> gate is gone) and the <code>.31</code> escape at the type-position prefixes of the data-type, DPI-result, nettype and ps_type sites (the block site keeps <code>class_scope_plain</code>: its own <code>.30</code> arm already renders the shape, and the shared prefix moved a block-local tree in the first candidate): <code>import q::*; module m; uvm_tlm_fifo#(int) fifo; C#(int)::width_t x; endmodule</code> parses on both SV profiles — the two pinned residuals flip to <code>fixed</code>. <code>SV-CORPUS-GRAD.33</code> rides along: <code>method_call_receiver_qualifier</code> and its arm in both <code>method_call_receiver</code> twins are deleted (dominated by the split receiver route at every measured site: 0 commits in 10 022 accepted files and 20 shapes; <code>qualifier: null</code> keeps the shape). Rules <code>1734 → 1734</code> (one prefix twin added, the qualifier rule deleted). Corpus: ZERO rows moved on any lane (sv_2017 10 022 / sv_2023 10 048 / verilog_2005 2 283 pass, unchanged) — the module-scope shapes the release makes legal occur in no corpus file that reaches them; the fix is proven by the two pins; sweeps the corpus AST identity sweeps read ast_moved=0 on every lane — 10 022 / 10 022 / 2 283 accepted trees byte-identical against the 1.0.245 probe, verdict_moved=0; cost on these bytes entries −0.57 % / memo_hits −0.67 % / committed unchanged (7,090,581), both falls promoted by rebaseline — the deleted qualifier probe alone −1.24 M entries; pins the two defect pins flipped to <code>fixed</code> (885 rows, <code>failures=0</code>).</p>
 <h3 id="10245--contract-10245--sv-corpus-grad32-pgen-sv-corpus-grad-0414-2026-09-23-ledger-sv-0130-released-schema-34-unchanged"><a class="header" href="#10245--contract-10245--sv-corpus-grad32-pgen-sv-corpus-grad-0414-2026-09-23-ledger-sv-0130-released-schema-34-unchanged">1.0.245 / Contract 1.0.245 — SV-CORPUS-GRAD.32 (<code>PGEN-SV-CORPUS-GRAD-0414</code>, 2026-09-23), ledger <code>SV-0130</code> (<code>Released</code>), <strong>schema 34 unchanged</strong>:</a></h3>

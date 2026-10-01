@@ -4,9 +4,9 @@
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
     "confirmed_by": "auto re-stamped by a GREEN systemverilog syntax closure gate run: defined_rule_count=1702 reachable_rules=1723 unreachable_rules=11 unreachable_branches=30 unreachable_branches_inside_lookahead=28 unreachable_rules_inside_lookahead=10 unresolved_rule_reference_count=0 entry_rule=sv_multi_entry_root stimuli_seed=24001",
-    "verified_at_commit": "50a97d00cfa200008581de71ba7583ffd030e470",
+    "verified_at_commit": "a5df3ef24b6d589ebb150ab7eef2ee13a6edd211",
     "inputs": {
-      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "3fe3b12fe98f1947b9b0d0eb5dda18f25d000be50278bcd8d742b1ffa6576a75" },
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "08b6d48fd676200f7b0107dc8fa41ace54c85ed85b9a031b5140d8b1fc556e06" },
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "ebfafdd38fda2371dbcd7211b98bb5b13bfa7f9666678cd5e7d82ca7c1bc48b6",
       "rust/src/ast_pipeline/stimuli_generator.rs": "4c5dceb31bf36010cb5833b687e7a836f709d772f9fbae76b92a9f5890860ccc"
     }

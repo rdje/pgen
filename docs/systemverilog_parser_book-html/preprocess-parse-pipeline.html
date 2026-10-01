@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-398085d1.js";
+            window.path_to_searchindex_js = "searchindex-45c22d87.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -727,17 +727,18 @@ inside block comments: the preprocessor of 2026-08-24 had honoured <code>`define
 <code>/* … */</code> (<code>uvm_tlm_imps.svh</code> keeps older macro versions in one) and expanded macro uses inside
 others. The expansion is now 3 020 226 bytes, every changed hunk audited inside a comment, and
 scr1 / friscv / VeeR accept on both profiles.</li>
-<li>UVM’s <code>uvm_pkg.sv</code> — the unit-level reading of that suite — currently <strong>rejects</strong> at
-<code>src/base/uvm_transaction.svh:443</code>, <code>const local uvm_event_pool events = new("events");</code>, on both
-profiles. That is not a preprocessing defect: IEEE 1800-2017 A.2.7 gives a <code>const</code>-first class
-property only the alternative
-<code>const { class_item_qualifier } data_type const_identifier [ = constant_expression ] ;</code>, and
-<code>new(…)</code> is not a <code>constant_expression</code> (the <code>local const …</code> order is derivable through
-<code>data_declaration</code>, which admits a <code>class_new</code> initializer). Every commercial simulator accepts
-the UVM spelling; PGEN accepted it too until the release of 2026-09-04 made <code>local</code> a reserved
-word (it had lexed as an identifier and the line mis-parsed into an accept). The policy question
-— a documented tool-extension arm for a construct the de-facto standard library relies on, versus
-the letter of Annex A — is open in <code>docs/tasks/SVPP-EXPANSION.md</code> (<code>.5</code>).</li>
+<li>UVM’s <code>uvm_pkg.sv</code> — the unit-level reading of that suite — <strong>parses on both profiles since
+<code>1.0.247</code></strong> (<code>SV-CORPUS-GRAD.37</code>, ledger <code>SV-0132</code>, 2026-10-01). From the 2026-09-04 release that
+made <code>local</code> a reserved word until then it rejected at <code>src/base/uvm_transaction.svh:443</code>,
+<code>const local uvm_event_pool events = new("events");</code>: IEEE 1800-2017 A.1.9 gives a <code>const</code>-first
+class property only <code>const { class_item_qualifier } data_type const_identifier [ = constant_expression ] ;</code>,
+and <code>new(…)</code> is not a <code>constant_expression</code> (the <code>local const …</code> order is derivable through
+<code>data_declaration</code>, which admits a <code>class_new</code> initializer). Every commercial simulator accepts the
+UVM spelling, and §8.19’s prose describes it as a constant with an initial value. <strong>Recorded
+deviation (tool extension, on by default):</strong> <code>class_property</code>’s const arm admits a <code>class_new</code>
+initializer — <code>( assign ( class_new | constant_expression ) )?</code> — under the director’s standing
+ruling that a change must not make the parser reject what the ecosystem writes; the typed shape is
+the one the arm always declared. The policy record: <code>docs/tasks/SVPP-EXPANSION.md</code> (<code>.5</code>(d), closed).</li>
 </ul>
 <h2 id="boundaries"><a class="header" href="#boundaries">Boundaries</a></h2>
 <ul>
