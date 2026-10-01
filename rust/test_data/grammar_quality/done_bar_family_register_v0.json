@@ -11,7 +11,7 @@
   },
   "families": {
     "systemverilog": {
-      "claimed_status": "Mostly Done",
+      "claimed_status": "Provisional (corpus pending)",
       "gate_prefixes": [
         "systemverilog_",
         "sv_"

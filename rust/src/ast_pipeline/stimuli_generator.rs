@@ -2117,6 +2117,9 @@ pub struct StimuliGenerator<'a> {
     // `ENGINE-UNIVERSAL-SERVICES.98` (B): the comment-introducer fusion guard, derived once on demand
     // from codegen's own comment-arm predicate (see `comment_introducer_guard`).
     comment_introducer_guard: std::sync::OnceLock<CommentIntroducerGuard>,
+    // `ENGINE-UNIVERSAL-SERVICES.119`: whether the grammar declares `@whitespace_sensitive` (any
+    // facet), derived once on demand (see `grammar_declares_layout_sensitivity`).
+    layout_sensitive: std::sync::OnceLock<bool>,
     // LEXICAL-ANNOTATIONS.6: >0 while generating the body of an ATOMIC lexical-token rule (return is
     // `$text`/`$0` = `MatchedText`, or the rule carries a `@transform` directive). Such a rule is ONE
     // flat token by construction, so every internal word-boundary join is suppressed while it is on the
@@ -2441,6 +2444,7 @@ impl<'a> StimuliGenerator<'a> {
             regex_content_forbidden: HashSet::new(),
             last_terminal_word_shaped: false,
             comment_introducer_guard: std::sync::OnceLock::new(),
+            layout_sensitive: std::sync::OnceLock::new(),
             atomic_token_depth: 0,
             last_terminal_from_atomic_rule: false,
             gen_semantic_state,
@@ -15484,7 +15488,20 @@ impl<'a> StimuliGenerator<'a> {
         // known-open tails trigger a guard, so self-delimiting terminals (fixed literals, closing
         // delimiters) are untouched.
         let mut deferred_open_tail = false;
-        let result = match Self::regex_terminal_trailing_separator(pattern, &candidate) {
+        // `ENGINE-UNIVERSAL-SERVICES.119`: the compound-tail answer (`.98` (C)) is offered only
+        // where the grammar SKIPS layout. In a `@whitespace_sensitive` grammar whitespace is a
+        // token — the SystemVerilog preprocessor's newline ENDS the directive — so a separator the
+        // grammar did not derive is input the parser was never told to accept: (C) baked `"\n"`
+        // after `macro_default_text` / `macro_body_text` / `condition_text` and stranded the rest
+        // of the `` `define `` on the next line (five rejected samples; the certificate's
+        // `sample_parse_failures` 0 / 0 / 0 before `.98`, 1 / 0 / 1 after). The class arm and the
+        // `\b` arm are untouched: they predate (C) and every sensitive family is measured green
+        // on them.
+        let separator = Self::regex_terminal_trailing_separator(pattern, &candidate).filter(|_| {
+            !(self.grammar_declares_layout_sensitivity()
+                && Self::regex_tail_is_compound_greedy_repetition(pattern))
+        });
+        let result = match separator {
             // LEXICAL-ANNOTATIONS.5 — successor-aware deferral. When the terminal's tail needs a
             // SPACE and the candidate ends with a lexical word char, do NOT bake it here: the join
             // rule `append_generated_segment` (the single concat choke point for both sequences and
@@ -15621,6 +15638,21 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
         None
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.119` — is the regex tail a greedy unbounded repetition over a
+    /// COMPOUND sub-pattern, i.e. the shape the `.98` (C) arm of `regex_tail_greedy_blocker`
+    /// answers (anything but a plain `Class` under the repetition)? An unparsable pattern is not.
+    fn regex_tail_is_compound_greedy_repetition(pattern: &str) -> bool {
+        let Ok(hir) = regex_syntax::parse(pattern.trim()) else {
+            return false;
+        };
+        match Self::regex_hir_tail(&hir).map(Hir::kind) {
+            Some(HirKind::Repetition(rep)) => {
+                rep.max.is_none() && !matches!(rep.sub.kind(), HirKind::Class(_))
+            }
+            _ => false,
+        }
     }
 
     /// `.98` correction (`-0190`) — does every match of `hir` consist of whitespace only (the
@@ -16223,6 +16255,24 @@ impl<'a> StimuliGenerator<'a> {
         (first == '/' && guard.line_comment) || (first == '*' && guard.block_comment)
     }
 
+    /// Does this grammar declare `@whitespace_sensitive` (any facet)? Then its parser does not
+    /// skip layout at the declared points and whitespace is a TOKEN its rules must derive — the
+    /// one fact both the comment-introducer guard (`.98` (B)) and the compound-tail separator
+    /// (`.98` (C), gated by `ENGINE-UNIVERSAL-SERVICES.119`) need. Computed once.
+    fn grammar_declares_layout_sensitivity(&self) -> bool {
+        *self.layout_sensitive.get_or_init(|| {
+            let layout = self
+                .annotations
+                .and_then(|annotations| {
+                    super::semantic_runtime::compile_layout_sensitivity(annotations)
+                        .ok()
+                        .flatten()
+                })
+                .unwrap_or_default();
+            layout != super::semantic_runtime::LayoutSensitivity::default()
+        })
+    }
+
     /// The two comment introducers whose fusion this grammar's parser would read as layout —
     /// DERIVED from the same two facts codegen derives its layout-skipper arms from, so the
     /// generator agrees with the parser it feeds by construction rather than by a second opinion:
@@ -16233,15 +16283,7 @@ impl<'a> StimuliGenerator<'a> {
     /// first `/`-adjacency the join rule sees (the predicate clones the annotations).
     fn comment_introducer_guard(&self) -> CommentIntroducerGuard {
         *self.comment_introducer_guard.get_or_init(|| {
-            let layout = self
-                .annotations
-                .and_then(|annotations| {
-                    super::semantic_runtime::compile_layout_sensitivity(annotations)
-                        .ok()
-                        .flatten()
-                })
-                .unwrap_or_default();
-            if layout != super::semantic_runtime::LayoutSensitivity::default() {
+            if self.grammar_declares_layout_sensitivity() {
                 return CommentIntroducerGuard::default();
             }
             let suppression = super::ast_based_generator::comment_arm_suppression_for_grammar(
@@ -26507,6 +26549,75 @@ mod tests {
         // Unchanged class behaviour beside it.
         assert_eq!(StimuliGenerator::regex_terminal_trailing_separator("[a-z]+", "abc"), Some(" "));
         assert_eq!(StimuliGenerator::regex_terminal_trailing_separator("[^\\n]*", "abc def"), Some("\n"));
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.119` — (C) is offered only where the grammar SKIPS layout. In a
+    /// `@whitespace_sensitive` grammar a newline is a TOKEN, not layout: the SystemVerilog
+    /// preprocessor's three comment-aware text tokens (`macro_default_text`, `macro_body_text`,
+    /// `condition_text`) end in a greedy repetition over an alternation whose first set holds a
+    /// space and no newline, (C) answered `"\n"`, and the baked newline ended the `` `define `` the
+    /// token sat in — five generated samples the family's own parser rejected, the certificate's
+    /// `sample_parse_failures` 0 / 0 / 0 on the pre-`.98` generator and 1 / 0 / 1 after it.
+    /// RED on `-0188`..`-0195`: the sensitive arm renders the newline.
+    #[test]
+    fn eus119_compound_greedy_tail_gets_no_separator_in_a_layout_sensitive_grammar() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "s".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "t"), token("rule_reference", "q")],
+            },
+        );
+        // The preprocessor's text token in miniature, and the stringize token that follows it.
+        grammar_tree.insert(
+            "t".to_string(),
+            token("regex", "x(?:/\\*[a-z]*\\*/|[^`(),\\r\\n])+"),
+        );
+        grammar_tree.insert("q".to_string(), token("regex", "`\""));
+        let rule_order = vec!["s".to_string(), "t".to_string(), "q".to_string()];
+        let config = || StimuliConfig {
+            seed: Some(7),
+            max_depth: 8,
+            enforce_word_boundary_spacing: true,
+            ..StimuliConfig::default()
+        };
+
+        // A layout-skipping grammar (no directive): (C) stands — the newline is layout there, and
+        // it is the only separator this tail cannot absorb.
+        let mut skipping =
+            StimuliGenerator::new("test".to_string(), &grammar_tree, &rule_order, None, config());
+        let value = skipping.generate_many(1, None).expect("the skipping grammar generates");
+        assert!(
+            value[0].ends_with("\n`\""),
+            "a layout-skipping grammar keeps (C)'s newline before the next token: {:?}",
+            value[0]
+        );
+
+        // The same grammar declaring `@whitespace_sensitive`: no separator is baked.
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "s".to_string(),
+            vec![crate::ast_pipeline::SemanticAnnotation::Named {
+                name: "whitespace_sensitive".to_string(),
+                ast: crate::ast_pipeline::UnifiedSemanticAST::Structured {
+                    canonical: String::new(),
+                    value: crate::ast_pipeline::UnifiedSemanticValue::Boolean(true),
+                },
+            }],
+        );
+        let mut sensitive = StimuliGenerator::new(
+            "test".to_string(),
+            &grammar_tree,
+            &rule_order,
+            Some(&annotations),
+            config(),
+        );
+        let value = sensitive.generate_many(1, None).expect("the sensitive grammar generates");
+        assert!(
+            value[0].ends_with("`\"") && !value[0].contains('\n'),
+            "a layout-sensitive grammar must not be handed a newline it would read as a token: {:?}",
+            value[0]
+        );
     }
 
     #[test]

@@ -68,7 +68,7 @@ are not restated here, so there is no second copy to drift.
 
 | Family | Claimed status | Language owner | Leg-3 corpus surface |
 |---|---|---|---|
-| `systemverilog` | Mostly Done | external-standard | *(none declared)* |
+| `systemverilog` | Provisional (corpus pending) | external-standard | *(none declared)* |
 | `systemverilog_preprocessor` | Provisional (corpus pending) | external-standard | *(none declared)* |
 | `vhdl` | Provisional (corpus pending) | external-standard | *(none declared)* |
 | `regex` | Provisional (corpus pending) | external-standard | *(none declared)* |
@@ -130,7 +130,7 @@ the tree it is derived from.
 | [`rtl_const_expr`](../../rtl_const_expr_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
 | [`rtl_frontend`](../../rtl_frontend_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 0 |
 | [`semantic_annotation`](../../semantic_annotation_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
-| [`systemverilog`](../../systemverilog_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 4 |
+| [`systemverilog`](../../systemverilog_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⛔ | ⛔ | 4 |
 | [`systemverilog_preprocessor`](../../systemverilog_preprocessor_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
 | [`vhdl`](../../vhdl_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⛔ | ⛔ | 0 |
 

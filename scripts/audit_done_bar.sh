@@ -385,9 +385,12 @@ def control(label, got, want):
 
 # C1 — a family that is NOT `Done` must resolve as such. Proves the claim reader is reading the
 #      register field rather than defaulting to something comfortable. (Reads `claimed_status`
-#      since LIVE-MEANS-LIVE.1a; the value itself is unchanged from the tracker row it replaced.)
+#      since LIVE-MEANS-LIVE.1a.) The ground truth MOVED on 2026-10-01 (DONE-BAR.5e, the SV row):
+#      `Mostly Done` -> `Provisional (corpus pending)`, the status `sv_parser_family_status_gate`
+#      computes once nine of the family's ten criteria hold and the tenth is leg 3 itself. Still a
+#      family that is not `Done`, which is what this control needs.
 control("C1 systemverilog claimed status",
-        families.get("systemverilog", {}).get("status"), "Mostly Done")
+        families.get("systemverilog", {}).get("status"), "Provisional (corpus pending)")
 
 # C2 — a grammar carrying an explicit non-family DISPOSITION must NOT be admitted as a family.
 #      The disposition arm is what keeps the new refusal satisfiable rather than punitive, so it is

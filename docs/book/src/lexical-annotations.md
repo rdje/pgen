@@ -273,6 +273,30 @@ Two holes in the boundary tracking were measured on three-rule grammars and clos
   parser re-lexes as `/` + `//x` exactly as rendered). The generator and the parser it feeds agree by
   construction, not by a second opinion.
 
+### A greedy tail over an alternation is open too — where the grammar skips layout
+
+A regex token whose tail is a greedy unbounded repetition over a **compound** sub-pattern — an
+alternation, a concatenation, a group, anything but a plain character class — is as open as one over a
+class: the repetition can absorb whatever is rendered next. The generator asks of it the question it
+asks of a class — *which separator can this repetition NOT begin one more iteration with?* — and reads
+the answer off the sub-pattern's **first set** (the characters a match of the sub-pattern can begin
+with): a space if no branch can begin with a space, otherwise a newline if no branch can begin with a
+newline, otherwise nothing. SystemVerilog's opaque directive line,
+`` `(?:[^\\\r\n]|\\\r?\n|\\[^\r\n])* ``, is the founding case: its first branch absorbs any text and its
+second a backslash-newline continuation, so every token rendered after it was swallowed until a bare
+newline was baked (`ENGINE-UNIVERSAL-SERVICES.98`, 2026-09-30).
+
+**The rule is offered only where the grammar skips layout** (`ENGINE-UNIVERSAL-SERVICES.119`,
+2026-10-01). A grammar that declares `@whitespace_sensitive` reads whitespace as a *token* its rules
+must derive, and there a newline can be structure. The SystemVerilog preprocessor's three
+comment-aware text tokens end in exactly such a tail (a block comment, or a run of characters that
+excludes the newline); the generator baked a newline after them, and that newline ended the
+`` `define `` the token sat in — five generated samples the family's own parser rejected, and the
+family's computed status down a tier until it was found. In a layout-sensitive grammar the
+compound-tail rule is therefore not applied at all; the character-class rule and the `\b` rule above
+are unchanged in every grammar. To know which side your grammar is on, look for
+`@whitespace_sensitive` in it.
+
 Enforcement is part of the **lexical-faithfulness mode**, which is **on by default**. Negative-test
 generation — which deliberately produces malformed lexical surface — opts out, and then follow
 restrictions (and all other faithfulness guards) are not applied. The certificate-coverage gate

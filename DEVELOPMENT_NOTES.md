@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-02 — ENGINE-UNIVERSAL-SERVICES.119 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0196`): a separator is free only where the grammar skips layout, and a control that shares the mechanism cannot see it
+
+- **The generator serves every family; its acceptance is every family's samples.** `.98` (C) was accepted on the SystemVerilog certificate it was written for. The cheap instrument that would have caught the preprocessor the same day is stream identity — `--generate-stimuli` on every shipped grammar, old binary against new — followed by a certificate for each grammar that moved. It takes ninety seconds and is now a tracked probe.
+- **Equal readings on two arms prove the arms agree, not that the reading is healthy.** The `-0190` probe's control read 1 / 0 / 1 on both binaries because both carried the defect; the reference for "healthy" was a binary from before the mechanism, on disk the whole time, reading 0 / 0 / 0.
+- **A baked separator states an assumption about layout.** Where the parser skips whitespace a space or newline costs nothing; where the grammar declares `@whitespace_sensitive` it is a token the rules never derived. A separator rule reads that directive before it answers — the comment-introducer guard already did; the compound-tail rule now does.
+- promotion: the knowledge card `a-generator-change-is-accepted-on-every-familys-samples` (new; `docs/knowledge/`), with the probe as its reverify command.
+
 ## 2026-10-01 — SV-CORPUS-GRAD.37 / SVPP-EXPANSION.5(d) (`PGEN-SV-CORPUS-GRAD-0423`): a standing ruling is an answer, and asking for it a third time is being stuck
 
 - **The bounding ruling already decided this class.** The 2026-08-10 ruling puts one test first — does the change make the parser reject input the ecosystem actually writes? — and names the Annex-A-letter argument as the thing it overrides. The 2026-09-09 "director call" was my own hedge between two spellings of the same answer; three weeks and one more escalation later the director's "looks like you are stuck" said so. When a standing ruling's operative test answers the question, apply it, record that it was applied, and move; escalate the ruling itself only when no standing ruling reaches it.
