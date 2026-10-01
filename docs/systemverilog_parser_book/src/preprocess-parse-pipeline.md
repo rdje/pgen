@@ -504,6 +504,16 @@ names** (`file_uses_define_in_file_with_no_eol.sv` after `file_with_no_eol.sv`) 
 vendored slang tree makes it, so the deriver reports nothing for it; hand-given, the pair accepts on both
 profiles, and the row's basis now says exactly that.
 
+**A suite's build-wide symbol (`.6d.4`).** One kind of define no driver carries per file: the symbol a
+whole flow compiles with. OpenTitan's dvsim passes `+define+UVM` to every DV build
+(`hw/dv/tools/dvsim/common_sim_cfg.hjson:65`), and three DV files guard their `include "uvm_macros.svh"` on
+it — without the symbol `dv_utils_pkg.sv` left every `` `uvm_* `` and `` `DV_* `` macro below the guard
+unexpanded and rejected at `:215:24` on a raw `` `uvm_fatal ``, with 36 packages importing it rejecting
+behind it. The deriver reserves a hand-curated row kind for exactly this (`HAND_DEFINES`, one row
+`opentitan define UVM hand <source>` in `stimuli/sv/pipeline_context.tsv`, the source cited), applied as
+`--symbol UVM` to every OpenTitan row. Re-run on the whole lane: ten OpenTitan packages `fail → pass`, zero
+the other way, and the library pass publishes 264 packages (was 256).
+
 **The library pass (`.6d.1`).** A design is not a bag of files. A file of OpenTitan, black-parrot,
 VeeR, scr1, friscv or UVM imports typedefs, classes and parameters that a *package* in another file
 declares, and the parser only admits such a name where its grammar is fact-gated (a typedef name as a port
@@ -524,9 +534,12 @@ Since `1.0.247` the UVM library is in it (`SVPP-EXPANSION.6d.3`): `uvm_pkg.sv` e
 `uvm_polling_pkg`, `uvm_compat_pkg.sv` exports beside it, and 142 of the 168 class files `uvm_pkg.sv`
 `include`s are accepted in their unit (none were before). The OpenTitan DV packages that import `uvm_pkg`
 had mostly been accepted earlier, by the fact-gate escapes that admit a `uvm_*` name without its facts;
-the 48 that still reject stop at their own first barrier — an unexpanded `` `uvm_fatal `` behind an
-`` `ifdef UVM `` the derived context does not satisfy (OpenTitan's flow defines `UVM` build-wide;
-`SVPP-EXPANSION.6d.4`).
+48 still rejected at their own first barrier — an unexpanded `` `uvm_fatal `` behind an `` `ifdef UVM ``
+the derived context did not satisfy. With the `UVM` symbol in OpenTitan's context (`SVPP-EXPANSION.6d.4`,
+below) ten of them pass and 121 more members are accepted in their unit; the 38 that remain reject at 38
+distinct origins past the macro barrier, each a grammar or fact-gate construct (a class-scope call, an
+unpacked-array parameter with an assignment pattern, a `pure virtual` task header, an event trigger) — the
+SV lane's work, named in the lane report's "rejects in its own file" table.
 
 Measured on the whole lane (the same debug probe, 689 s wall): **425 rows `fail → pass` and none the other
 way** — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in

@@ -98,8 +98,14 @@ DEFINES_TSV = ROOT / "stimuli" / "sv" / "pipeline_context_defines.tsv"
 # declarations order differently are REPORTED, not applied. Applied by the lane as `--sv-unit-file`, in order.
 UNITS_TSV = ROOT / "stimuli" / "sv" / "pipeline_context_units.tsv"
 # Rows the derivation cannot produce: predefined macros a suite is compiled with. Hand-curated,
-# each with its source; empty until a suite needs one.
-HAND_DEFINES: dict[str, list[tuple[str, str]]] = {}
+# each with its source. SVPP-EXPANSION.6d.4: OpenTitan's dvsim flow compiles every DV build with
+# `+define+UVM` (hw/dv/tools/dvsim/common_sim_cfg.hjson:65, under "Standard UVM defines"); three DV
+# files guard their `include "uvm_macros.svh"` on it (dv_utils_pkg.sv, dv_macros.svh, sw_logger_if.sv),
+# and without the symbol every `uvm_*` / `DV_*` macro below the guard stays unexpanded — dv_utils_pkg.sv
+# rejected at :215:24 on a raw `uvm_fatal, and 36 packages importing it rejected behind it.
+HAND_DEFINES: dict[str, list[tuple[str, str]]] = {
+    "opentitan": [("UVM", "stimuli/sv/subs/opentitan/hw/dv/tools/dvsim/common_sim_cfg.hjson:65 (+define+UVM, dvsim build_opts)")],
+}
 # Library trees every suite may include from, beyond its own tree. Measured (SVPP-EXPANSION.4):
 # 231 OpenTitan files `include "uvm_macros.svh"`, which lives in the UVM suite — a cross-suite
 # dependency the derivation resolves like any other shared header, and reports as such.

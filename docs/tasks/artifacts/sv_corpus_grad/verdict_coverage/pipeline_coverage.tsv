@@ -1,19 +1,19 @@
 bucket	class	rows	pct
 ADJUDICATED	match	5698	34.88
 ROUTED	deferred:v2005_profile_lane	2606	15.95
-ADJUDICATED	pipeline:chained:accepted_under_expansion	1020	6.24
+ADJUDICATED	pipeline:chained:accepted_under_expansion	1141	6.98
 ADJUDICATED	pipeline:corroborated	1331	8.15
-ADJUDICATED	pipeline:chained:accepted_in_unit	1020	6.24
-NO VERDICT	pipeline:chained:unreached_in_unit	960	5.88
+ADJUDICATED	pipeline:chained:accepted_in_unit	1141	6.98
+NO VERDICT	pipeline:chained:unreached_in_unit	846	5.18
 NO VERDICT	deferred:no_sv_key	596	3.65
-NO VERDICT	pipeline:chained:rejects_own_file	526	3.22
+NO VERDICT	pipeline:chained:rejects_own_file	514	3.15
 ADJUDICATED	pipeline:must_reject:match_under_expansion	451	2.76
 NO VERDICT	deferred:not_source_text	350	2.14
 NO VERDICT	pipeline:chained:refused_context	210	1.29
 NO VERDICT	pipeline:svpp_owned:accepted_under_expansion	109	0.67
 NO VERDICT	deferred:impl_varying	90	0.55
 ADJUDICATED	divergence:explained_store_gate	54	0.33
-NO VERDICT	pipeline:chained:hollow	44	0.27
+NO VERDICT	pipeline:chained:hollow	39	0.24
 NO VERDICT	pipeline:svpp_owned:rejects_own_file	30	0.18
 NO VERDICT	pipeline:svpp_owned:refused_engine	30	0.18
 NO VERDICT	deferred:verilog_ams_lane	25	0.15
@@ -28,4 +28,4 @@ NO VERDICT	pipeline:refuted:cross_file_define	1	0.01
 NO VERDICT	pipeline:refuted:preprocessor_item	1	0.01
 NO VERDICT	pipeline:svpp_owned:hollow	1	0.01
 NO VERDICT	pipeline:refuted	1	0.01
-TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	10439/2606/3291/2005/0	
+TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	10570/2606/3160/1874/0	

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-318dab4c.js";
+            window.path_to_searchindex_js = "searchindex-04459627.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -645,6 +645,15 @@ fourth <code>cross_file_define</code> row stays: 🔎 <strong>its <code>.6b.4</c
 names</strong> (<code>file_uses_define_in_file_with_no_eol.sv</code> after <code>file_with_no_eol.sv</code>) — no declaration in the
 vendored slang tree makes it, so the deriver reports nothing for it; hand-given, the pair accepts on both
 profiles, and the row’s basis now says exactly that.</p>
+<p><strong>A suite’s build-wide symbol (<code>.6d.4</code>).</strong> One kind of define no driver carries per file: the symbol a
+whole flow compiles with. OpenTitan’s dvsim passes <code>+define+UVM</code> to every DV build
+(<code>hw/dv/tools/dvsim/common_sim_cfg.hjson:65</code>), and three DV files guard their <code>include "uvm_macros.svh"</code> on
+it — without the symbol <code>dv_utils_pkg.sv</code> left every <code>`uvm_*</code> and <code>`DV_*</code> macro below the guard
+unexpanded and rejected at <code>:215:24</code> on a raw <code>`uvm_fatal</code>, with 36 packages importing it rejecting
+behind it. The deriver reserves a hand-curated row kind for exactly this (<code>HAND_DEFINES</code>, one row
+<code>opentitan define UVM hand &lt;source&gt;</code> in <code>stimuli/sv/pipeline_context.tsv</code>, the source cited), applied as
+<code>--symbol UVM</code> to every OpenTitan row. Re-run on the whole lane: ten OpenTitan packages <code>fail → pass</code>, zero
+the other way, and the library pass publishes 264 packages (was 256).</p>
 <p><strong>The library pass (<code>.6d.1</code>).</strong> A design is not a bag of files. A file of OpenTitan, black-parrot,
 VeeR, scr1, friscv or UVM imports typedefs, classes and parameters that a <em>package</em> in another file
 declares, and the parser only admits such a name where its grammar is fact-gated (a typedef name as a port
@@ -664,9 +673,12 @@ library the lane built”</em> table says how many. Then every row runs with <co
 <code>uvm_polling_pkg</code>, <code>uvm_compat_pkg.sv</code> exports beside it, and 142 of the 168 class files <code>uvm_pkg.sv</code>
 <code>include</code>s are accepted in their unit (none were before). The OpenTitan DV packages that import <code>uvm_pkg</code>
 had mostly been accepted earlier, by the fact-gate escapes that admit a <code>uvm_*</code> name without its facts;
-the 48 that still reject stop at their own first barrier — an unexpanded <code>`uvm_fatal</code> behind an
-<code>`ifdef UVM</code> the derived context does not satisfy (OpenTitan’s flow defines <code>UVM</code> build-wide;
-<code>SVPP-EXPANSION.6d.4</code>).</p>
+48 still rejected at their own first barrier — an unexpanded <code>`uvm_fatal</code> behind an <code>`ifdef UVM</code>
+the derived context did not satisfy. With the <code>UVM</code> symbol in OpenTitan’s context (<code>SVPP-EXPANSION.6d.4</code>,
+below) ten of them pass and 121 more members are accepted in their unit; the 38 that remain reject at 38
+distinct origins past the macro barrier, each a grammar or fact-gate construct (a class-scope call, an
+unpacked-array parameter with an assignment pattern, a <code>pure virtual</code> task header, an event trigger) — the
+SV lane’s work, named in the lane report’s “rejects in its own file” table.</p>
 <p>Measured on the whole lane (the same debug probe, 689 s wall): <strong>425 rows <code>fail → pass</code> and none the other
 way</strong> — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
 <code>el2_param.vh:182</code>, a typedef of <code>el2_pkg</code>). The library: 407 package files, 230 accepted, 170 rejected,

@@ -64,6 +64,7 @@ opentitan	include_dir	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/uvm/ic
 opentitan	include_dir	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/uvm/icache/dv/ibex_icache_core_agent/seq_lib	1	ibex_icache_core_seq_list.sv
 opentitan	include_dir	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/uvm/icache/dv/ibex_icache_mem_agent/seq_lib	1	ibex_icache_mem_seq_list.sv
 opentitan	include_dir	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src	1	isa/riscv_instr_cov.svh
+opentitan	define	UVM	hand	stimuli/sv/subs/opentitan/hw/dv/tools/dvsim/common_sim_cfg.hjson:65 (+define+UVM, dvsim build_opts)
 scr1	include_dir	stimuli/sv/subs/scr1/src/includes	105	scr1_ahb.svh,scr1_arch_description.svh,scr1_arch_types.svh,scr1_csr.svh,scr1_dm.svh,scr1_hdu.svh,scr1_ipic.svh,scr1_memif.svh,scr1_riscv_isa_decoding.svh,scr1_scu.svh,scr1_search_ms1.svh,scr1_tapc.svh,scr1_tdu.svh
 slang	include_dir	stimuli/sv/subs/slang/tests/unittests/data	6	file_defn.svh,nested/macro.svh,verilog.v
 slang	include_dir	stimuli/sv/subs/slang/tests/unittests/data/libtest	5	mod1.sv
