@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-02 — SVPP-EXPANSION.6d.3 (`PGEN-SVPP-EXPANSION-0029`): a price measured behind a gate is a snapshot of the gate, not of the work
+
+- **Re-measure when the gate opens.** The 2026-09-09 price (164 packages, 1 923 members, 273 dark rows) was true the day it was written; three releases moved most of it while the ruling waited, and the release that opened the gate moved five files and 143 member rows. Had the closure quoted the old price as "converted", it would have claimed 1 800 rows the ruling never touched. The tracked report at two commits is the instrument: read both, subtract, attribute.
+- **The next barrier is named by the probe, not by the previous barrier's name.** "Imports `uvm_pkg`" described the 48 rejecting packages but did not explain them; one probe run with the lane's own context put the failure inside an unexpanded macro behind an `` `ifdef `` the context cannot satisfy — a context defect, not a grammar one.
+- promotion: declined (both are the standing disciplines `feedback_stand_by_published_claims_without_re_audit` / never commit a number the command did not print, and TOOLBOX-FIRST; the leaf and the `.6d.4` row carry the measured lines).
+
 ## 2026-10-02 — ENGINE-UNIVERSAL-SERVICES.119 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0196`): a separator is free only where the grammar skips layout, and a control that shares the mechanism cannot see it
 
 - **The generator serves every family; its acceptance is every family's samples.** `.98` (C) was accepted on the SystemVerilog certificate it was written for. The cheap instrument that would have caught the preprocessor the same day is stream identity — `--generate-stimuli` on every shipped grammar, old binary against new — followed by a certificate for each grammar that moved. It takes ninety seconds and is now a tracked probe.

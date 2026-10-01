@@ -520,6 +520,14 @@ by guessing which variant the build meant. A rejecting file exports nothing: the
 for a rejected parse, so every package importing it stays dark on its names, and the report's *"The
 library the lane built"* table says how many. Then every row runs with `--lib-in` of the result.
 
+Since `1.0.247` the UVM library is in it (`SVPP-EXPANSION.6d.3`): `uvm_pkg.sv` exports `uvm_pkg` and
+`uvm_polling_pkg`, `uvm_compat_pkg.sv` exports beside it, and 142 of the 168 class files `uvm_pkg.sv`
+`include`s are accepted in their unit (none were before). The OpenTitan DV packages that import `uvm_pkg`
+had mostly been accepted earlier, by the fact-gate escapes that admit a `uvm_*` name without its facts;
+the 48 that still reject stop at their own first barrier — an unexpanded `` `uvm_fatal `` behind an
+`` `ifdef UVM `` the derived context does not satisfy (OpenTitan's flow defines `UVM` build-wide;
+`SVPP-EXPANSION.6d.4`).
+
 Measured on the whole lane (the same debug probe, 689 s wall): **425 rows `fail → pass` and none the other
 way** — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
 `el2_param.vh:182`, a typedef of `el2_pkg`). The library: 407 package files, 230 accepted, 170 rejected,

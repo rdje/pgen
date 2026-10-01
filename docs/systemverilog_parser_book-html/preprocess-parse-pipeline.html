@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d56f8727.js";
+            window.path_to_searchindex_js = "searchindex-318dab4c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -660,6 +660,13 @@ only when every declaring file passed and their fact sets agree; a disagreement 
 by guessing which variant the build meant. A rejecting file exports nothing: the engine writes no facts
 for a rejected parse, so every package importing it stays dark on its names, and the report’s <em>“The
 library the lane built”</em> table says how many. Then every row runs with <code>--lib-in</code> of the result.</p>
+<p>Since <code>1.0.247</code> the UVM library is in it (<code>SVPP-EXPANSION.6d.3</code>): <code>uvm_pkg.sv</code> exports <code>uvm_pkg</code> and
+<code>uvm_polling_pkg</code>, <code>uvm_compat_pkg.sv</code> exports beside it, and 142 of the 168 class files <code>uvm_pkg.sv</code>
+<code>include</code>s are accepted in their unit (none were before). The OpenTitan DV packages that import <code>uvm_pkg</code>
+had mostly been accepted earlier, by the fact-gate escapes that admit a <code>uvm_*</code> name without its facts;
+the 48 that still reject stop at their own first barrier — an unexpanded <code>`uvm_fatal</code> behind an
+<code>`ifdef UVM</code> the derived context does not satisfy (OpenTitan’s flow defines <code>UVM</code> build-wide;
+<code>SVPP-EXPANSION.6d.4</code>).</p>
 <p>Measured on the whole lane (the same debug probe, 689 s wall): <strong>425 rows <code>fail → pass</code> and none the other
 way</strong> — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
 <code>el2_param.vh:182</code>, a typedef of <code>el2_pkg</code>). The library: 407 package files, 230 accepted, 170 rejected,
