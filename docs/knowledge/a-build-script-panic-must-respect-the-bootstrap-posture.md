@@ -42,7 +42,7 @@ because the parsers are missing: the remedy the message names is the command tha
 - **A warm tree cannot see this class.** Every working tree carried its `generated/` for
   months, so fifty-one commits passed over the panic. The only instrument that exercises the
   bootstrap is a tracked-files-only worktree: the CI mirror's export (`ci_workflow_local_gate`,
-  run at the 300-commit push cadence) or the reverify command above. A refactor of what the
+  run at the 400-commit push cadence) or the reverify command above. A refactor of what the
   build REQUIRES is verified there, not on the tree the refactor was written in.
 - **Two rosters hid it for two days.** The mirror's preflight derived its required artifacts
   from `lib.rs`'s literal includes — empty after the same slice — so it reported the export

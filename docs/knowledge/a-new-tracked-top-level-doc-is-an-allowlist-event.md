@@ -15,7 +15,7 @@ evidence: "OPS-MEMSAFE.5 correction (PGEN-OPS-MEMSAFE-0010): docs/ARTIFACT_CLEAN
 reverify: "python3 - <<'PY'\nimport re,subprocess\ns=open('rust/scripts/ci_workflow_local_gate.sh').read();i=s.index('expected_top_level_docs=(');j=s.index('\\n  )\\n',i)\nexp=re.findall(r'\"(docs/[^\"]+)\"',s[i:j]);act=[a for a in subprocess.run(\"git ls-files -z | perl -0ne 'for (split /\\\\0/) { print \\\"$_\\\\n\\\" if /\\\\Adocs\\\\/[^\\\\/]+\\\\.md\\\\z/ }' | sort\",shell=True,capture_output=True,text=True).stdout.split('\\n') if a]\nprint('OK' if exp==act else 'DRIFT', len(exp), len(act))\nPY"
 ---
 
-`rust/scripts/ci_workflow_local_gate.sh` — the full CI mirror the 300-commit push lane runs before
+`rust/scripts/ci_workflow_local_gate.sh` — the full CI mirror the 400-commit push lane runs before
 every push — audits the tracked `docs/*.md` set VERBATIM against a hand-kept roster
 (`audit_top_level_docs_surface`, `expected_top_level_docs`), and two sibling audits do the same for
 the root markdown set and `docs/contracts/`. A tracked top-level doc the roster does not name is a
@@ -29,9 +29,9 @@ or update the tracked policy deliberately`.
   comments carry three such admissions (`CI-PARITY-GATE-ROT.1`, `.46`, `OPS-MEMSAFE.5`'s
   correction); each time the audit was right that no deliberate update had happened.
 - **Nothing between pushes runs these audits.** The ordinary-commit tier is the doctrine
-  enforcer only; the surface audits live in the mirror, which fires at the 300-commit cadence
+  enforcer only; the surface audits live in the mirror, which fires at the 400-commit cadence
   or on an operator's `make -C rust SHELL=/bin/bash ci_workflow_local_gate`. So a drift is
-  invisible for up to 300 commits and surfaces exactly when the push is due — read the
+  invisible for up to 400 commits and surfaces exactly when the push is due — read the
   mirror's log for the first refusing audit (it stops at the first), not just its exit code.
 - **The same holds for every hand-kept needle roster in the mirror.** `audit_embedding_api_surface` pins ~140 spellings across the API, its contract doc and the user guide with `assert_file_contains` / `assert_file_matches`; `ENGINE-UNIVERSAL-SERVICES.112` moved fifteen of them (`CI-PARITY-GATE-ROT.67`) and the mirror refused at the first. Size the population first — replay every needle with the helpers' own `grep -F` / `grep -E` — then re-point each invariant to where the tree carries it; never delete the invariant.
 - **Replay the audit's comparison before re-running the mirror** — the reverify command above

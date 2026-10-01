@@ -28,7 +28,7 @@ at the push cadence, two commits later.
 - **A pinned counter-example lives where the pin was written, not next to the new arm.** The
   whitespace-only exemption's test sat 6 000 lines above the new code; grep the module for the
   predicate you are bypassing (`regex_class_is_whitespace_only`) before adding a sibling arm.
-- **The mirror is not the first line.** It runs at the push cadence (300 commits); a red there
+- **The mirror is not the first line.** It runs at the push cadence (400 commits); a red there
   is a defect that shipped commits ago. `.117`'s cold-clone class had the same shape.
 
 Related: [[a-build-script-panic-must-respect-the-bootstrap-posture]],

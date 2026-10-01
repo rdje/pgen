@@ -196,7 +196,7 @@ declined: it needs the test binary built (a `--features generated_parsers` build
 binaries measured 1 m 44 s) plus the module's 320 s, on the 20 of the last 300 commits that touch
 the embedding surface — against a hook that otherwise finishes in about a minute — and there is no
 cheap structural proxy for a test that pins a constant the engine no longer has. The release
-cadence, days, is now the bound on how long such a red can live; the push cadence, 300 commits,
+cadence, days, is now the bound on how long such a red can live; the push cadence, 400 commits,
 no longer is.
 
 plus per-family switches (`PGEN_SOTA_POLICY_RUN_SV_STIMULI_QUALITY=1`,
