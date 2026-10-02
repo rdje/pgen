@@ -2827,6 +2827,13 @@ fn expand_macros_in_text(
                     Some(m) => (s..e).map(|k| m.get(k).copied().unwrap_or(false)).collect(),
                 })
                 .collect();
+            // `SVPP-EXPANSION.5`(l): a one-line comment written inside an actual is not part of
+            // the substituted text (the mask stays aligned byte for byte)
+            let (args, arg_masks): (Vec<String>, Vec<Vec<bool>>) = args
+                .into_iter()
+                .zip(arg_masks)
+                .map(|(arg, mask)| strip_line_comments_from_actual(&arg, &mask))
+                .unzip();
             let mut fresh: Vec<String> = Vec::new();
             let stack: &mut Vec<String> = if user_written {
                 &mut fresh
@@ -3276,6 +3283,93 @@ fn has_unclosed_function_macro_invocation(
     }
 
     false
+}
+
+/// `SVPP-EXPANSION.5`(l): an actual with its one-line comments removed, its provenance mask kept
+/// aligned byte for byte. IEEE 1800-2017 §22.5.1 says of the macro text that a `//` comment "shall
+/// not become part of the substituted text"; an actual argument is text that gets substituted, and
+/// `parse_macro_invocation_arg_ranges` already treats the comment as one — a comma or a `)` inside
+/// it does not delimit — while leaving its bytes in the range. Substituted onto the expansion's
+/// single line, the comment then swallowed the rest of the call: OpenTitan's
+/// `` `DV_CHECK_RANDOMIZE_WITH_FATAL(req, … // TODO(#15721), dummy CSB … ) `` expanded to
+/// `if (!(… // TODO…)) …` and the parser met an unbalanced line (`spi_agent_pkg`,
+/// `alert_esc_agent_pkg`, `core_ibex_test_pkg`). The state machine is the scanner's own, so the two
+/// agree on what a comment is: a `//` outside a string literal and outside a block comment runs to
+/// the line feed, which stays (it separates what the caller wrote after it). Block comments stay —
+/// they are white space to the parser — and a `//` inside a string literal is the string's.
+fn strip_line_comments_from_actual(actual: &str, mask: &[bool]) -> (String, Vec<bool>) {
+    if !actual.contains("//") {
+        return (actual.to_string(), mask.to_vec());
+    }
+    let bytes = actual.as_bytes();
+    let mut out: Vec<u8> = Vec::with_capacity(bytes.len());
+    let mut out_mask: Vec<bool> = Vec::with_capacity(bytes.len());
+    let keep = |out: &mut Vec<u8>, out_mask: &mut Vec<bool>, k: usize| {
+        out.push(bytes[k]);
+        out_mask.push(mask.get(k).copied().unwrap_or(true));
+    };
+    let mut in_double_quote = false;
+    let mut in_block_comment = false;
+    let mut escaped = false;
+    let mut i = 0usize;
+    while i < bytes.len() {
+        if in_block_comment {
+            if i + 1 < bytes.len() && bytes[i] == b'*' && bytes[i + 1] == b'/' {
+                keep(&mut out, &mut out_mask, i);
+                keep(&mut out, &mut out_mask, i + 1);
+                in_block_comment = false;
+                i += 2;
+            } else {
+                keep(&mut out, &mut out_mask, i);
+                i += 1;
+            }
+            continue;
+        }
+        if escaped {
+            escaped = false;
+            keep(&mut out, &mut out_mask, i);
+            i += 1;
+            continue;
+        }
+        if bytes[i] == b'\\' && in_double_quote {
+            escaped = true;
+            keep(&mut out, &mut out_mask, i);
+            i += 1;
+            continue;
+        }
+        if bytes[i] == b'"' {
+            in_double_quote = !in_double_quote;
+            keep(&mut out, &mut out_mask, i);
+            i += 1;
+            continue;
+        }
+        if in_double_quote {
+            keep(&mut out, &mut out_mask, i);
+            i += 1;
+            continue;
+        }
+        if i + 1 < bytes.len() && bytes[i] == b'/' && bytes[i + 1] == b'/' {
+            // the comment runs to the line feed; the line feed itself is the caller's white space
+            while i < bytes.len() && bytes[i] != b'\n' {
+                i += 1;
+            }
+            continue;
+        }
+        if i + 1 < bytes.len() && bytes[i] == b'/' && bytes[i + 1] == b'*' {
+            keep(&mut out, &mut out_mask, i);
+            keep(&mut out, &mut out_mask, i + 1);
+            in_block_comment = true;
+            i += 2;
+            continue;
+        }
+        keep(&mut out, &mut out_mask, i);
+        i += 1;
+    }
+    (
+        String::from_utf8(out)
+            .expect("removing a whole `//…` run up to a line feed keeps UTF-8 valid"),
+        out_mask,
+    )
 }
 
 fn parse_macro_invocation_args(input: &str, open_paren_idx: usize) -> Option<(Vec<String>, usize)> {
@@ -6008,6 +6102,48 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
                     && e.detail == "10 \"real_source.v\""),
             "{:?}",
             out.events
+        );
+    }
+
+    #[test]
+    fn a_one_line_comment_in_a_macro_actual_is_not_substituted() {
+        // SVPP-EXPANSION.5(l) — OpenTitan `spi_host_dummy_seq.sv:14-24`:
+        // `` `DV_CHECK_RANDOMIZE_WITH_FATAL(req, … // TODO(#15721), dummy CSB … ) ``. The argument
+        // scanner already ignores a comma or a `)` inside a `//` comment, but the comment's TEXT
+        // stayed in the actual and was substituted onto the expansion's single line, where it
+        // commented out the rest of the call. §22.5.1: a one-line comment "shall not become part
+        // of the substituted text" — an actual is substituted text. A block comment stays, and a
+        // `//` inside a string literal is the string's.
+        let dir = create_repo_scratch_dir("svpp_actual_line_comment");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define M(T_, MSG_=\"\") if (!(T_)) $display(MSG_);\n`M(a == b // a comment, with a comma\n)\n`M(a == b, // why\n   \"msg\")\n`M(a /* kept */ == c)\n`M(\"a//b\" == s)\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand");
+        assert!(
+            out.text.contains("if (!(a == b)) $display(\"\");"),
+            "a line comment inside an actual must not reach the expansion: {}",
+            out.text
+        );
+        assert!(
+            out.text.contains("if (!(a == b)) $display(\"msg\");"),
+            "an actual that begins with a line comment keeps what follows it: {}",
+            out.text
+        );
+        assert!(!out.text.contains("a comment"), "{}", out.text);
+        assert!(!out.text.contains("why"), "{}", out.text);
+        assert!(
+            out.text.contains("if (!(a /* kept */ == c)) $display(\"\");"),
+            "a block comment is white space to the parser and stays: {}",
+            out.text
+        );
+        assert!(
+            out.text.contains("if (!(\"a//b\" == s)) $display(\"\");"),
+            "a `//` inside a string literal is the string's: {}",
+            out.text
         );
     }
 

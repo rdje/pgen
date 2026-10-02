@@ -70,7 +70,9 @@ moved under it, while the grammar itself did not.
 
 1. **Not correctness.** Certification asks whether the generator can reach every rule of *our*
    grammar. A certified grammar can still accept invalid input or reject valid input — that is the
-   corpus axis (SystemVerilog: 46.3 % adjudicated, 275 known defects).
+   corpus axis (SystemVerilog: the verdict-coverage tuple anchored in
+   `docs/book/src/grammar-wellformedness.md`, re-derived by `scripts/check_sv_corpus_denominator.sh` —
+   not restated here; the pair this line carried until 2026-10-02 had drifted).
 2. **Not "a string for every rule".** A rule may be credited by a **proof** that no input reaches it.
    SystemVerilog credits 7 rules that way.
 3. **Not durable.** A proof describes one specific generated parser. When codegen moves, the parser

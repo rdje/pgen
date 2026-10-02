@@ -2057,7 +2057,9 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   (`E_SVPP_RECURSIVE_MACRO`, §22.5.1 — by PROVENANCE: a usage the caller wrote starts its own expansion, a
   usage a macro body produced is checked against the stack, so OpenTitan's nested `` `DV_SPINWAIT `` expands
   and `` `define A(x) `B(`A(x)) `` is refused), `//` comments stripped from macro text (§22.5.1; block comments
-  kept), a well-formed `` `line `` consumed (§22.12; a malformed one passes through), `` `pragma protect
+  kept) and, since `SVPP-EXPANSION.5`(l) (2026-10-02), from an ACTUAL argument when it is bound (its text had been
+  substituted onto the expansion's single line, commenting out the call's tail; block comments and a `//` inside a
+  string literal stay), a well-formed `` `line `` consumed (§22.12; a malformed one passes through), `` `pragma protect
   begin_protected `` … `` end_protected `` consumed as an envelope (§34; unterminated →
   `E_SVPP_UNTERMINATED_PROTECTED_ENVELOPE`), block comments spanning lines and following an `` `include ``, the
   fifteen `` `SV_COV_* `` coverage-control macros predefined (§40.3.1), conditional groups with the

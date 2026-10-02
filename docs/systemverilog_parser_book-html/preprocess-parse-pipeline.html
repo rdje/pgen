@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-51a5cfe6.js";
+            window.path_to_searchindex_js = "searchindex-39ea19dc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -434,6 +434,14 @@ each one a sentence of the standard that a corpus row had been failing on:</p>
 of the substituted text”</em>). <code>`define N 21 */* foo */2//foo</code> expands to <code>21 */* foo */2</code> — the block
 comment stays, it is white space to the parser; a string keeps its slashes; a continued line keeps its
 continuation even when the comment sat on it.</li>
+<li><strong>Nor is a one-line comment written inside an ACTUAL</strong> (<code>SVPP-EXPANSION.5</code>(l), 2026-10-02 — the same
+sentence, read of the text that gets substituted). <code>`M(a == b // why, exactly&lt;newline&gt;)</code> used to expand to
+<code>if (!(a == b // why, exactly)) …</code>: the comma inside the comment correctly did not split the argument, but
+the comment’s text was carried onto the expansion’s single line and commented out the rest of the call —
+silently (<code>diagnostics=0</code>). Now the comment is dropped up to its line feed when the actual is bound; a
+block comment stays, and a <code>//</code> inside a string literal is the string’s. OpenTitan writes this in its
+<code>`DV_CHECK_RANDOMIZE_WITH_FATAL(req, … // TODO … )</code> calls and in RTL assertion macros: four corpus
+rows moved <code>fail → pass</code> under the pipeline and none the other way.</li>
 <li><strong>The paste token joins its sides in an object macro too</strong> (§22.5.1: *“A <code>delimits lexical tokens without introducing white space"*):</code> `define YUCK /<code>* garbage *</code>/ `` expands to a comment, as a
 function macro’s substitution always did. In a source line the token stays for the parser to judge.</li>
 <li><strong>A well-formed <code>`line</code> directive is consumed</strong> (§22.12: *“the <code>line directive shall set the line number and file name of the following line"*). The expansion stage is the tool that maintains the current file and line, so `` </code><strong>FILE</strong> <code>and</code> <code>__LINE__ `` after it read the assigned location, the event log records the directive (</code>line_directive<code>), and the parser never sees it. A malformed one — a level other than 0, 1 or 2, a missing parameter, a comment on its line — is not this stage's to consume: it passes through, and the parser's own §22.12 production refuses it, so the answer key's must-reject rows on malformed `` </code>line `` lines keep their verdict under the pipeline.</li>
@@ -701,7 +709,10 @@ pipeline), 8 at a per-IP build define whose value differs between the IP’s sim
 construct past every macro — <code>randomize() with { … local::x … }</code> (admitted by <code>1.0.248</code>, <code>SV-CORPUS-GRAD.39</code>: a
 <code>local::</code>-qualified method receiver), a lifetime in a method prototype (<code>extern function automatic</code>,
 <code>pure virtual task automatic</code>), a hierarchical name as a <code>cross</code> item, a macro argument carrying a line
-comment into its stringized text — the SV lane’s work.</p>
+comment into its stringized text — the SV lane’s work. Since then <code>1.0.248</code> and <code>SVPP-EXPANSION.5</code>(l) took
+three packages out of that last group (<code>i2c_agent_pkg</code>, <code>spi_agent_pkg</code>, <code>alert_esc_agent_pkg</code>); 22 remain: the 8
+for the 2023 reading, 9 behind per-IP defines (<code>core_ibex_test_pkg</code> joined them: past its comment it stops at
+<code>32'h`BOOT_ADDR</code>), and 5 grammar constructs.</p>
 <p>Measured on the whole lane (the same debug probe, 689 s wall): <strong>425 rows <code>fail → pass</code> and none the other
 way</strong> — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
 <code>el2_param.vh:182</code>, a typedef of <code>el2_pkg</code>). The library: 407 package files, 230 accepted, 170 rejected,

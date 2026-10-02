@@ -255,13 +255,13 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 ## Under the PIPELINE — the same rows re-read through preprocess→parse (SVPP-EXPANSION.6c.1)
 
-> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`4788be2b55a360dcc0036a5fb970ab4aa515657c4842dca567b871c9df7f5ca4`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
+> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`ae03afd9b9d8e137240d5963260c2959673b6669138b82123664410a73dbd34d`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
 
-**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11069/2606/2661/1375/0`** (raw: `7485/2606/6245/3864/0`).
+**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11115/2606/2615/1329/0`** (raw: `7485/2606/6245/3864/0`).
 
-- **ADJUDICATED: 11,069 rows (67.8 %)** (raw 7,485, +3,584)
+- **ADJUDICATED: 11,115 rows (68.0 %)** (raw 7,485, +3,630)
 - **ROUTED: 2,606 rows (16.0 %)** (raw 2,606, +0)
-- **NO VERDICT: 2,661 rows (16.3 %)** (raw 6,245, -3,584)
+- **NO VERDICT: 2,615 rows (16.0 %)** (raw 6,245, -3,630)
 
 | bucket | class under the pipeline | rows | % | why |
 |---|---|---:|---:|---|
@@ -271,15 +271,15 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | ADJUDICATED | `divergence:explained_store_gate` | 54 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
 | ROUTED | `deferred:v2005_profile_lane` | 2,606 | 16.0 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
 | NO VERDICT | `deferred:no_sv_key` | 596 | 3.6 % | no upstream answer key exists - expectation underivable |
-| NO VERDICT | `pipeline:chained:unreached_in_unit` | 552 | 3.4 % | DARK UNDER THE PIPELINE: a member whose every including unit rejects elsewhere (.6d.2) — the unit's own origin row carries the verdict |
+| NO VERDICT | `pipeline:chained:unreached_in_unit` | 512 | 3.1 % | DARK UNDER THE PIPELINE: a member whose every including unit rejects elsewhere (.6d.2) — the unit's own origin row carries the verdict |
 | NO VERDICT | `deferred:not_source_text` | 350 | 2.1 % | the file is not SystemVerilog source text at all (a $readmemh memory image, a bare string literal, a tool command line) - it testifies to nothing about the parser; a CORPUS-COMPOSITION fact, stated per row (SV-CORPUS-GRAD.13c.1) |
-| NO VERDICT | `pipeline:chained:rejects_own_file` | 320 | 2.0 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |
+| NO VERDICT | `pipeline:chained:rejects_own_file` | 316 | 1.9 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |
 | NO VERDICT | `pipeline:chained:refused_context` | 210 | 1.3 % | an include the derived context cannot supply |
 | NO VERDICT | `pipeline:svpp_owned:accepted_under_expansion` | 109 | 0.7 % | conformance owned by the preprocessor lane; accepted |
 | NO VERDICT | `deferred:impl_varying` | 90 | 0.6 % | LRM leaves the behaviour implementation-defined |
 | NO VERDICT | `pipeline:svpp_owned:rejects_own_file` | 30 | 0.2 % | conformance owned by the preprocessor lane; rejected |
 | NO VERDICT | `pipeline:svpp_owned:refused_engine` | 30 | 0.2 % | conformance owned by the preprocessor lane |
-| NO VERDICT | `pipeline:chained:hollow` | 28 | 0.2 % | the rejection lands in an included file |
+| NO VERDICT | `pipeline:chained:hollow` | 26 | 0.2 % | the rejection lands in an included file |
 | NO VERDICT | `deferred:verilog_ams_lane` | 25 | 0.2 % | Verilog-AMS, a different language family |
 | NO VERDICT | `pipeline:chained:refused_engine` | 15 | 0.1 % | refused by the preprocessor |
 | NO VERDICT | `pipeline:refuted:vendor_identity_branch` | 9 | 0.1 % | the file's portable branch is the vendor's own `` `error `` stub behind its identity macro — a fact about the row's context |
@@ -292,8 +292,8 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | NO VERDICT | `pipeline:refuted:preprocessor_item` | 1 | 0.0 % | an expansion-stage rule not yet implemented (named per row) |
 | NO VERDICT | `pipeline:svpp_owned:hollow` | 1 | 0.0 % | conformance owned by the preprocessor lane |
 | NO VERDICT | `pipeline:refuted` | 1 | 0.0 % | refuted and not yet dispositioned |
-| ADJUDICATED | `pipeline:chained:accepted_under_expansion` (design corpora) | 2,091 | 12.8 % | a design-corpus file ACCEPTED under its derived context — must-accept by the suite convention (a shipping design's file is valid as part of its unit); outside DESIGN_SUITES the row keeps NO VERDICT (no per-file expectation) |
+| ADJUDICATED | `pipeline:chained:accepted_under_expansion` (design corpora) | 2,095 | 12.8 % | a design-corpus file ACCEPTED under its derived context — must-accept by the suite convention (a shipping design's file is valid as part of its unit); outside DESIGN_SUITES the row keeps NO VERDICT (no per-file expectation) |
 | NO VERDICT | `pipeline:chained:accepted_under_expansion` (other suites) | 266 | 1.6 % | accepted under its context, but the suite gives no per-file expectation |
-| ADJUDICATED | `pipeline:chained:accepted_in_unit` (design corpora) | 1,444 | 8.8 % | a design-corpus file ACCEPTED as a MEMBER of its package unit under the library (.6d.2) — must-accept by the suite convention; outside DESIGN_SUITES the row keeps NO VERDICT |
+| ADJUDICATED | `pipeline:chained:accepted_in_unit` (design corpora) | 1,486 | 9.1 % | a design-corpus file ACCEPTED as a MEMBER of its package unit under the library (.6d.2) — must-accept by the suite convention; outside DESIGN_SUITES the row keeps NO VERDICT |
 | | **TOTAL** | **16,336** | **100.0 %** | |
 

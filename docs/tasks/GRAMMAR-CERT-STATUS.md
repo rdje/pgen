@@ -664,3 +664,13 @@ resolves.
   construction and `generated/` is untouched.
 - [x] **LOCKSTEP** — this leaf + the enforcer + the republished book page + the register NEUTRAL row
   for the comment-only grammar edit + `CHANGES.md` + `MEMORY.md`.
+
+### `.6` — an IDENTICAL re-derivation leaves nothing to stage, so past the budget the remedy is reachable only when the page's bytes change (`todo`, opened 2026-10-02 by `PGEN-SVPP-EXPANSION-0032`; instrument tier, parked behind the SV lane — it blocks nothing today)
+
+**How it was found.** `-0032`'s commit was refused: `grammar-cert-currency: ✗ (1) grammars/systemverilog.ebnf leads the published table by 14 commits (budget 10)` (and the same line for the cert-union contract). Releases `1.0.247` and `1.0.248` both moved the grammar; their ceremonies did NOT run item 9's `report_grammar_certification.sh --markdown` re-splice (not done by the session that ran them — the ceremony names the step). Run now under the guard (`elapsed=75s`), the derived block is IDENTICAL to the published one, byte for byte: neither release moved a rule count.
+
+**The gap.** `.5` made the budget arm staged-aware: a STAGED page satisfies it by construction. An identical re-derivation produces no diff, so there is nothing to stage, and the arm keeps refusing a table that is provably current. The lead is a whole-history commit distance from the page's last commit to the input's — it measures how long ago the page was touched, not whether the table is stale.
+
+**What unblocked `-0032`, and why that is not the fix.** The same page carried a LIVE sentence that had drifted — *"SystemVerilog's corpus axis currently reads 46.3 % adjudicated with 274 known defects"* (the instrument prints `45.8 %` and a bar of `0`; `SV-CORPUS-GRAD.13e.4` had already caught this sentence stale once, `-0288`). It is corrected in `-0032` to point at the derived anchor instead of restating it — and the KM card `which-pgen-grammars-are-certified-and-which-are-not`, which restated the same pair, with it — which staged the page. A page with no such defect would have had no honest byte to change.
+
+**Fix shape, named, not built.** Key the arm on input DIGESTS rather than commit distance — the page (or a sidecar) records the sha256 of each declared input at the last derivation, `BASELINE-IDENTITY`'s shape and `SV-CONTRACT-CURRENCY` tier A's (`-0242`): an input whose digest moved demands a re-derivation, and a re-derivation that reads identical updates the recorded digests — a real diff to stage. Controls owed: an input moved and the block identical (must pass after the digest refresh), an input moved and the digests not refreshed (must refuse), the `.5` arms unchanged.

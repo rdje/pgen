@@ -252,6 +252,14 @@ each one a sentence of the standard that a corpus row had been failing on:
   of the substituted text"*). `` `define N 21 */* foo */2//foo `` expands to `21 */* foo */2` — the block
   comment stays, it is white space to the parser; a string keeps its slashes; a continued line keeps its
   continuation even when the comment sat on it.
+- **Nor is a one-line comment written inside an ACTUAL** (`SVPP-EXPANSION.5`(l), 2026-10-02 — the same
+  sentence, read of the text that gets substituted). `` `M(a == b // why, exactly<newline>) `` used to expand to
+  `if (!(a == b // why, exactly)) …`: the comma inside the comment correctly did not split the argument, but
+  the comment's text was carried onto the expansion's single line and commented out the rest of the call —
+  silently (`diagnostics=0`). Now the comment is dropped up to its line feed when the actual is bound; a
+  block comment stays, and a `//` inside a string literal is the string's. OpenTitan writes this in its
+  `` `DV_CHECK_RANDOMIZE_WITH_FATAL(req, … // TODO … ) `` calls and in RTL assertion macros: four corpus
+  rows moved `fail → pass` under the pipeline and none the other way.
 - **The paste token joins its sides in an object macro too** (§22.5.1: *"A `` delimits lexical tokens
   without introducing white space"*): `` `define YUCK /``* garbage *``/ `` expands to a comment, as a
   function macro's substitution always did. In a source line the token stays for the parser to judge.
@@ -563,7 +571,10 @@ pipeline), 8 at a per-IP build define whose value differs between the IP's simul
 construct past every macro — `randomize() with { … local::x … }` (admitted by `1.0.248`, `SV-CORPUS-GRAD.39`: a
 `local::`-qualified method receiver), a lifetime in a method prototype (`extern function automatic`,
 `pure virtual task automatic`), a hierarchical name as a `cross` item, a macro argument carrying a line
-comment into its stringized text — the SV lane's work.
+comment into its stringized text — the SV lane's work. Since then `1.0.248` and `SVPP-EXPANSION.5`(l) took
+three packages out of that last group (`i2c_agent_pkg`, `spi_agent_pkg`, `alert_esc_agent_pkg`); 22 remain: the 8
+for the 2023 reading, 9 behind per-IP defines (`core_ibex_test_pkg` joined them: past its comment it stops at
+`` 32'h`BOOT_ADDR ``), and 5 grammar constructs.
 
 Measured on the whole lane (the same debug probe, 689 s wall): **425 rows `fail → pass` and none the other
 way** — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in

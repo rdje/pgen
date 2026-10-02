@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-02 — SVPP-EXPANSION.5(l) (`PGEN-SVPP-EXPANSION-0032`): a scanner that knows a span is a comment has two jobs, and doing one is how the other gets forgotten
+
+- **Skipping a span for delimiters is not removing it from the value.** The argument scanner tracked `in_line_comment` so a comma inside the comment would not split the actual — and returned the actual as a byte range, comment included. The fix reuses the scanner's own state machine on the bound text, so the two cannot disagree about what a comment is.
+- **Silence is the defect's second half.** The expansion was well-formed to the preprocessor (`diagnostics=0`) and broken to the parser; nothing in the lane said "macro" — only the raw backtick at `furthest_position` did. When a refusal names a macro call, expand it by hand before reading the grammar.
+- **A fix aimed at three packages moved four rows.** Two RTL files had the same shape in an assertion macro. The lane's movers, by suite and direction, are the acceptance — not the list the fix was written for.
+- promotion: declined (the two disciplines are the cards `a-raw-backtick-at-the-furthest-position-is-a-context-defect` and `a-generator-change-is-accepted-on-every-familys-samples`, written today; this entry is their third instance, not a new rule).
+
 ## 2026-10-02 — SV-CORPUS-GRAD.39 (`PGEN-SV-CORPUS-GRAD-0425`): put the arm where the attribution says the parse goes, and a new rule between a directive and its rule steals the directive
 
 - **The attribution was already on file.** `.13c.2j` had measured, for `class_scope`, that a prefixed callable receiver reaches `split_hierarchical_callable_receiver` and nothing else; the same measurement decided `local ::` today — the arm added to the receiver copies moved nothing, the arm added to the split rule's scope fixed every repro. Read the pinned attribution before choosing a site.
