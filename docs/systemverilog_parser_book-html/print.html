@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dabaf3a0.js";
+            window.path_to_searchindex_js = "searchindex-055e8aa8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -770,8 +770,8 @@ before it, applied as <code>--unit-file</code> in order: verilator’s source-fi
 files, sv2v’s explicit multi-file runs; a <code>-f</code> list, a glob, a <code>--siloed</code> run and an ordering conflict
 are reported, not applied — and, since <code>.6d.6</code>, the predecessors a suite’s whole FLOW compiles before every
 file, hand-curated with their source: OpenTitan’s dvsim builds one compilation unit that starts with UVM and
-compiles <code>dv_utils_pkg.sv</code> and the RTL before any DV package, so <code>uvm_macros.svh</code>, <code>dv_macros.svh</code> and
-<code>prim_assert.sv</code> precede every OpenTitan row). The first
+compiles <code>dv_utils_pkg.sv</code> and the RTL before any DV package, so <code>uvm_macros.svh</code>, <code>dv_macros.svh</code>,
+<code>prim_assert.sv</code> and, since <code>.6d.7</code>, <code>cip_macros.svh</code> precede every OpenTitan row). The first
 measurement, on the two suites the raw lane cannot judge at all (every one of their rows is
 <code>deferred:chained_only</code> in the raw answer key), release probe, <code>sv_2017</code>, 45 s wall:</p>
 <div class="table-wrapper">
@@ -1180,9 +1180,17 @@ preprocessor and the library); 3 more package files pass — the three <code>rst
 2017 reading leaves unreached are reached behind them. <strong>The primary reading stays <code>sv_2017</code></strong>: the
 verdict-coverage tuple is defined over it and did not move. Of the 8 packages that stop at a 2023 construct
 under 2017, only those 3 pass; the other 5 clear the construct and meet a second barrier — <code>foreach (prv_read[i][j])</code> (three files), <code>solve … before</code> inside a <code>foreach</code> constraint, and one more per-IP define.
-Under the 2023 reading 19 OpenTitan packages still reject. Read one by one (<code>SV-CORPUS-GRAD.41</code>): 10 behind
+Under the 2023 reading 19 OpenTitan packages still rejected. Read one by one (<code>SV-CORPUS-GRAD.41</code>): 10 behind
 per-IP defines, 1 behind a per-target include (riscv-dv’s <code>riscv_core_setting.sv</code>), 1 behind a macro header the
-build makes unit-wide (<code>cip_macros.svh</code>, <code>SVPP-EXPANSION.6d.7</code>), and 7 at a <strong>tool tolerance</strong>.</p>
+build makes unit-wide (<code>cip_macros.svh</code>), and 7 at a <strong>tool tolerance</strong>.</p>
+<p><strong>The fourth unit predecessor (<code>SVPP-EXPANSION.6d.7</code>, 2026-10-02).</strong> <code>cip_macros.svh</code> is a guarded, macro-only
+header that <code>cip_base_pkg.sv</code> includes INSIDE the package every CIP env imports; OpenTitan’s build compiles that
+package first, so <code>`DV_MUBI8_DIST</code> and the header’s other macros are unit-wide there and were a raw backtick in a
+per-file parse. With the header as a sourced suite-wide predecessor, 38 OpenTitan DV rows moved <code>fail → pass</code>
+under BOTH readings (37 of them testbench tops, <code>tb.sv</code>) and none the other way; <code>csrng_env_pkg</code> passes and publishes.
+OpenTitan package files still failing: 21 under <code>sv_2017</code>, 18 under <code>sv_2023</code>. Five testbench tops advanced
+without passing — each now stops at a per-IP define (<code>`EN_MASKING</code>, <code>`SRAM_TYPE</code>, <code>`INSTR_EXEC</code>,
+<code>`SEC_VOLATILE_RAW_UNLOCK_EN</code>).</p>
 <p><strong>Tool tolerances: four spellings the big simulators accept and this parser rejects, under both editions.</strong> Each
 was asked of the standard’s TEXT, not only of Annex A, and each has a reproducer pin that must keep rejecting
 (<code>stimuli/sv/adjudication_repros/</code>), so a widening can only happen as a decision:</p>

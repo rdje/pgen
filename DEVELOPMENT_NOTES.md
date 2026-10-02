@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-02 — SVPP-EXPANSION.6d.7 (`PGEN-SVPP-EXPANSION-0033`): a context row is measured under every reading, and a stop line is read in its file
+
+- **Two readings, the same 38 rows.** A context change that both editions read alike should move the same rows under each and leave the differential untouched; it did (40 / 0 / 3 / 51 before and after). That equality is itself a control: a context row that moved one reading and not the other would be a profile-dependent expansion, which the preprocessor does not have.
+- **`.42` was opened on one printed line.** The census showed `parameter int Q[$]` as the stop and I concluded the filed disposition was wrong; two lines above it the file says `` `ifndef VERILATOR `` / `// Generally not supported by others`. A census prints a line; a ruling about a row needs the lines around it. Same lesson as `.41`'s heading, an hour apart.
+- **A count read from a `Counter` beats a count remembered.** I wrote "36 testbench tops" from the first few movers; the table reads 37.
+- **A director decision is written down before it is designed.** The order arrived mid-chain; the record and the owning leaf were in the tree before the first grammar byte was tried in scratch, and the design choices the order did not fix are listed in the record as revisable.
+- promotion: declined (instances of `feedback-say-what-i-did` and of the card `a-raw-backtick-at-the-furthest-position-is-a-context-defect`; the two-readings control is recorded in `SV-CORPUS-GRAD.38`'s card addition already).
+
 ## 2026-10-02 — SV-CORPUS-GRAD.41 (`PGEN-SV-CORPUS-GRAD-0427`): read the stop before naming the construct, and ask the key before asking the standard
 
 - **"Six grammar constructs" was written before two of them were read.** The leaf's own bullets said so ("not yet read", "not yet isolated") while its heading and the book's sentence counted them as grammar. Both were a raw backtick at the furthest position — the card written this morning. A count in a heading must not outrun the bullets under it.

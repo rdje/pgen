@@ -145,8 +145,8 @@ before it, applied as `--unit-file` in order: verilator's source-file arguments,
 files, sv2v's explicit multi-file runs; a `-f` list, a glob, a `--siloed` run and an ordering conflict
 are reported, not applied — and, since `.6d.6`, the predecessors a suite's whole FLOW compiles before every
 file, hand-curated with their source: OpenTitan's dvsim builds one compilation unit that starts with UVM and
-compiles `dv_utils_pkg.sv` and the RTL before any DV package, so `uvm_macros.svh`, `dv_macros.svh` and
-`prim_assert.sv` precede every OpenTitan row). The first
+compiles `dv_utils_pkg.sv` and the RTL before any DV package, so `uvm_macros.svh`, `dv_macros.svh`,
+`prim_assert.sv` and, since `.6d.7`, `cip_macros.svh` precede every OpenTitan row). The first
 measurement, on the two suites the raw lane cannot judge at all (every one of their rows is
 `deferred:chained_only` in the raw answer key), release probe, `sv_2017`, 45 s wall:
 
@@ -590,9 +590,18 @@ preprocessor and the library); 3 more package files pass — the three `rstmgr_e
 verdict-coverage tuple is defined over it and did not move. Of the 8 packages that stop at a 2023 construct
 under 2017, only those 3 pass; the other 5 clear the construct and meet a second barrier — `foreach
 (prv_read[i][j])` (three files), `solve … before` inside a `foreach` constraint, and one more per-IP define.
-Under the 2023 reading 19 OpenTitan packages still reject. Read one by one (`SV-CORPUS-GRAD.41`): 10 behind
+Under the 2023 reading 19 OpenTitan packages still rejected. Read one by one (`SV-CORPUS-GRAD.41`): 10 behind
 per-IP defines, 1 behind a per-target include (riscv-dv's `riscv_core_setting.sv`), 1 behind a macro header the
-build makes unit-wide (`cip_macros.svh`, `SVPP-EXPANSION.6d.7`), and 7 at a **tool tolerance**.
+build makes unit-wide (`cip_macros.svh`), and 7 at a **tool tolerance**.
+
+**The fourth unit predecessor (`SVPP-EXPANSION.6d.7`, 2026-10-02).** `cip_macros.svh` is a guarded, macro-only
+header that `cip_base_pkg.sv` includes INSIDE the package every CIP env imports; OpenTitan's build compiles that
+package first, so `` `DV_MUBI8_DIST `` and the header's other macros are unit-wide there and were a raw backtick in a
+per-file parse. With the header as a sourced suite-wide predecessor, 38 OpenTitan DV rows moved `fail → pass`
+under BOTH readings (37 of them testbench tops, `tb.sv`) and none the other way; `csrng_env_pkg` passes and publishes.
+OpenTitan package files still failing: 21 under `sv_2017`, 18 under `sv_2023`. Five testbench tops advanced
+without passing — each now stops at a per-IP define (`` `EN_MASKING ``, `` `SRAM_TYPE ``, `` `INSTR_EXEC ``,
+`` `SEC_VOLATILE_RAW_UNLOCK_EN ``).
 
 **Tool tolerances: four spellings the big simulators accept and this parser rejects, under both editions.** Each
 was asked of the standard's TEXT, not only of Annex A, and each has a reproducer pin that must keep rejecting

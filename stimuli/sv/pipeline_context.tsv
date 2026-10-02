@@ -68,6 +68,7 @@ opentitan	define	UVM	hand	stimuli/sv/subs/opentitan/hw/dv/tools/dvsim/common_sim
 opentitan	unit_file	stimuli/sv/uvm/uvm-core-2020.3.1/src/uvm_macros.svh	hand	stimuli/sv/subs/opentitan/hw/dv/tools/dvsim/dsim.hjson:14-15 ({UVM_HOME}/src/uvm_pkg.sv compiled first; uvm_pkg.sv includes uvm_macros.svh)
 opentitan	unit_file	stimuli/sv/subs/opentitan/hw/dv/sv/dv_utils/dv_macros.svh	hand	stimuli/sv/subs/opentitan/hw/dv/sv/dv_utils/dv_utils_pkg.sv:11 (`include "dv_macros.svh" in the package every DV env imports, compiled before it)
 opentitan	unit_file	stimuli/sv/subs/opentitan/hw/ip/prim/rtl/prim_assert.sv	hand	stimuli/sv/subs/opentitan/hw/ip/prim/rtl/prim_assert.sv:9 (`ifndef PRIM_ASSERT_SV; included by the RTL the DV build compiles first; `ASSERT_I used by DV env packages)
+opentitan	unit_file	stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_macros.svh	hand	stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_pkg.sv:24 (`include "cip_macros.svh" inside the package every CIP env imports, compiled before it; cip_lib.core:23 lists it as an include file)
 scr1	include_dir	stimuli/sv/subs/scr1/src/includes	105	scr1_ahb.svh,scr1_arch_description.svh,scr1_arch_types.svh,scr1_csr.svh,scr1_dm.svh,scr1_hdu.svh,scr1_ipic.svh,scr1_memif.svh,scr1_riscv_isa_decoding.svh,scr1_scu.svh,scr1_search_ms1.svh,scr1_tapc.svh,scr1_tdu.svh
 slang	include_dir	stimuli/sv/subs/slang/tests/unittests/data	6	file_defn.svh,nested/macro.svh,verilog.v
 slang	include_dir	stimuli/sv/subs/slang/tests/unittests/data/libtest	5	mod1.sv

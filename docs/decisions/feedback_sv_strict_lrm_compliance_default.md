@@ -6,6 +6,8 @@ metadata:
   type: feedback
 ---
 
+> ➕ **2026-10-02 — the opt-in layer this policy foresaw (*"Dialect tolerance may be ADDED later as an opt-in layer if a real need appears"*) is ORDERED by the director:** see [[project_sv_opt_in_tolerance_profile]]. The DEFAULT stays strict; nothing below is relaxed.
+
 ## ⛔⛔ BOUNDING RULING (director 2026-08-10, session #232) — READ THIS BEFORE APPLYING ANYTHING BELOW
 
 **This section exists because the wording below was applied literally and produced a WRONG change.**

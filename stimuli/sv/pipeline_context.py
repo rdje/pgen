@@ -124,6 +124,10 @@ HAND_UNITS: dict[str, list[tuple[str, str]]] = {
          "stimuli/sv/subs/opentitan/hw/dv/sv/dv_utils/dv_utils_pkg.sv:11 (`include \"dv_macros.svh\" in the package every DV env imports, compiled before it)"),
         ("stimuli/sv/subs/opentitan/hw/ip/prim/rtl/prim_assert.sv",
          "stimuli/sv/subs/opentitan/hw/ip/prim/rtl/prim_assert.sv:9 (`ifndef PRIM_ASSERT_SV; included by the RTL the DV build compiles first; `ASSERT_I used by DV env packages)"),
+        # SVPP-EXPANSION.6d.7: the CIP macro header — guarded, macro-only (13 defines), included INSIDE cip_base_pkg,
+        # the package every CIP env imports and the build compiles before it; `DV_MUBI8_DIST in csrng_env_cfg.sv met a raw backtick.
+        ("stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_macros.svh",
+         "stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_pkg.sv:24 (`include \"cip_macros.svh\" inside the package every CIP env imports, compiled before it; cip_lib.core:23 lists it as an include file)"),
     ],
 }
 # Library trees every suite may include from, beyond its own tree. Measured (SVPP-EXPANSION.4):
