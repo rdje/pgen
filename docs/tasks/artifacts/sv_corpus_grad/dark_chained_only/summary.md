@@ -8,7 +8,7 @@
 |---|---|---|
 | manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e0034b25fb9e7de646f1f4933d348839a052249e8588632541195d4a04efea08` |
 | positions | `stimuli/sv/characterization/positions.tsv` | `2570f719f50b930057e0bfa79e39ba64d104ff8571939837e675a43cb801d0ad` |
-| grammar | `grammars/systemverilog.ebnf` | `75cef4b3163c63f321c917a113170fc48011122ed3bf2d833a31521e05505d63` |
+| grammar | `grammars/systemverilog.ebnf` | `c4be992dcbe13e276ed9ad82260897df47aa8b489ee25d0896796e4b823eed77` |
 
 ## The TEXT channel — can expansion move the byte the parse choked on?
 

@@ -560,9 +560,10 @@ remain are three populations, each named per row: 8 stop at a construct 1800-202
 not (unsized parameter arrays, an indexed event trigger — `SV-CORPUS-GRAD.38`, a 2023 reading of the
 pipeline), 8 at a per-IP build define whose value differs between the IP's simulation configurations
 (`SVPP-EXPANSION.6d.5`, parked: a variant disagreement is reported, not guessed), and 9 at a grammar
-construct past every macro — `randomize() with { … local::x … }`, a lifetime in a method prototype
-(`extern function automatic`, `pure virtual task automatic`), a hierarchical name as a `cross` item, a
-macro argument carrying a line comment into its stringized text — the SV lane's work.
+construct past every macro — `randomize() with { … local::x … }` (admitted by `1.0.248`, `SV-CORPUS-GRAD.39`: a
+`local::`-qualified method receiver), a lifetime in a method prototype (`extern function automatic`,
+`pure virtual task automatic`), a hierarchical name as a `cross` item, a macro argument carrying a line
+comment into its stringized text — the SV lane's work.
 
 Measured on the whole lane (the same debug probe, 689 s wall): **425 rows `fail → pass` and none the other
 way** — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in

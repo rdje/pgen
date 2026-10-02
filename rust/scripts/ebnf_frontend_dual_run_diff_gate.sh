@@ -166,7 +166,27 @@ envelope_divergence_ceiling() {
         # method_call_receiver_sv_2017's `probe_sample -> return_object` row; new — that site's
         # `probe_sample -> semantic_annotation` row (the same blind spot, one row where two were).
         # 166 + 42 = 208. Nothing else moved; the other thirteen grammars' rows are unchanged.
-        systemverilog) echo 208 ;;
+        # 208 -> 196 (2026-10-02, PGEN-SV-CORPUS-GRAD-0425, release 1.0.248 — a FALL locked in, not a
+        # raise): SV-CORPUS-GRAD.39 removed the fifteen declarative separator `@sample`s that
+        # ENGINE-UNIVERSAL-SERVICES.98 made redundant (the fourteen `` `name `` directive keywords, the
+        # `" / "` on timeunit_separator_slash, the `` `FOO\n `` on opaque_directive_line), and the
+        # envelope differential (`ebnf_dual_run_diff --envelope-differential` under
+        # PGEN_ENVELOPE_DUMP_ALL=1, the 1.0.247 grammar vs this one, one binary) read 14 rows GONE and
+        # 2 NEW: gone — the .10.14 annotation-placement pairs the samples produced, one per token
+        # (`semantic_annotation(sample) -> rule_reference trivia` at token 1 of opaque_directive_line and
+        # of each kw_dir_* that carried one, and the `<absent> -> semantic_annotation(sample)` half at
+        # the previous token's end: kw_dir_resetall, kw_dir_undef, kw_dir_timescale,
+        # kw_dir_default_nettype, kw_dir_unconnected_drive, kw_dir_nounconnected_drive,
+        # kw_dir_celldefine, kw_dir_endcelldefine, kw_dir_pragma, kw_dir_line, kw_dir_begin_keywords,
+        # kw_dir_end_keywords, kw_dir_undefineall, opaque_directive_line); new — the SAME blind spot
+        # re-homed onto the one annotation left at that site, the `@profiles: ["sv_2017", "sv_2023"]`
+        # of the SV-only `undefineall` token: kw_dir_end_keywords `<absent> -> semantic_annotation
+        # (profiles)` at token 3 and kw_dir_undefineall `semantic_annotation(profiles) -> rule_reference
+        # trivia` at token 1 (on 1.0.247 the sample rows stood there). The timeunit_separator_slash
+        # sample had no row. .10.14 class 166 -> 154, inline blind-spot class 42 unchanged: 154 + 42 =
+        # 196. The grammar's own arm (the `local ::` prefix on split_callable_receiver_scope) moved no
+        # row; the other thirteen grammars' rows are unchanged.
+        systemverilog) echo 196 ;;
         systemverilog_lrm_profiled_generated) echo 317 ;;
         # .10.14 plus the two documented arm-2 blind spots: `[> …]` lexical annotations (which
         # arm 2 misparses as character classes) and arm 1's inline/rule-level annotation

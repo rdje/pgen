@@ -300,9 +300,15 @@ source_text_item := description                       -> {kind: "description", b
 #     lane. The negative lookahead is what stops a typed name from falling back into it — `timescale
 #     frump fails the typed arm and is REFUSED by the residue. Under `verilog_2005` `undefineall is not
 #     a directive (absent from clause 19) and IS residue: a text-macro use.
-#   * GENERATION: every `kw_dir_*` token carries `@sample: "`name "` WITH A TRAILING SPACE because the stimuli
-#     generator's lexical-boundary tracking does not separate a BACKTICK-LED token from the word that follows
-#     it — measured by the certificate's own probes (`in_scope_compiler_directive` sample
+#   * GENERATION: through 1.0.247 every `kw_dir_*` token carried `@sample: "`name "` WITH A TRAILING SPACE
+#     because the stimuli generator's lexical-boundary tracking did not separate a BACKTICK-LED token from the
+#     word that follows it. ENGINE-UNIVERSAL-SERVICES.98 (2026-09-30) fixed that at the engine (a
+#     punctuation-led `\b` token is separated from a following word by the regex's own assertion), measured
+#     the union certificate on a scratch copy of this grammar with all fifteen declarative separator samples
+#     removed (`sample_parse_failures=0`, union `UNKNOWN=0`, seeds 0 / 7 / 42), and owed their removal to the
+#     SV lane's next grammar revision: SV-CORPUS-GRAD.39, release 1.0.248, removed the fourteen here, the
+#     `" / "` on `timeunit_separator_slash` and the `"`FOO\n"` on `opaque_directive_line`. The measurement
+#     that motivated them, kept for the record — the certificate's own probes (`in_scope_compiler_directive` sample
 #     `module m(input wire a);`celldefineendmodule` parsed=false; `pragma_expression` sample `` `pragmawj dm ``
 #     parsed=true witnessed_target=false, the fused name falling into the opaque residue). The 1.0.216 blanket
 #     token absorbed that fusion, which is why it never showed; the engine class is routed to
@@ -343,9 +349,9 @@ lrm_directive_name_sv_only := trivia /`undefineall\b/
 # The sample ends in a NEWLINE, not a space: an opaque line runs to end of line, so a space would make
 # `` `FOO import … `` ONE opaque token that swallows the next item — the certificate's third
 # sample-parse-failure shape (`` `FOOimport ``, `` `FOO`timescale `` — the generator's backtick-led-token
-# fusion, ENGINE-UNIVERSAL-SERVICES.98) is closed by the line's own terminator, as `line_comment`'s
-# `@sample: "//x\n"` closes it for a comment.
-@sample: "`FOO\n"
+# fusion, ENGINE-UNIVERSAL-SERVICES.98) was closed by a `@sample: "`FOO\n"` carrying the line's own terminator
+# through 1.0.247; `.98` (C) taught the generator the same newline from the regex's open tail, and
+# SV-CORPUS-GRAD.39 (release 1.0.248) removed the sample.
 # SV-CORPUS-GRAD.3.56 (release 1.0.227, ledger SV-0100): IEEE 1800-2017 22.5.1 — "the newline character shall
 # be preceded by a backslash ( \ ). The first newline character not preceded by a backslash shall end the macro
 # text" (docs/systemverilog/2017/md/section-22-compiler-directives.md:171-174). Through 1.0.226 the opaque
@@ -474,32 +480,19 @@ keywords_version_specifier_sv_2023 := trivia /"(?:1800-2023|1800-2017|1800-2012|
 keywords_version_specifier_v2005 := trivia /"(?:1364-2005|1364-2001-noconfig|1364-2001|1364-1995)"/
                                  -> {kind: "double_quoted", body: $2}
 
-@sample: "`resetall "
 kw_dir_resetall := trivia /`resetall\b/
-@sample: "`undef "
 kw_dir_undef := trivia /`undef\b/
-@sample: "`timescale "
 kw_dir_timescale := trivia /`timescale\b/
-@sample: "`default_nettype "
 kw_dir_default_nettype := trivia /`default_nettype\b/
-@sample: "`unconnected_drive "
 kw_dir_unconnected_drive := trivia /`unconnected_drive\b/
-@sample: "`nounconnected_drive "
 kw_dir_nounconnected_drive := trivia /`nounconnected_drive\b/
-@sample: "`celldefine "
 kw_dir_celldefine := trivia /`celldefine\b/
-@sample: "`endcelldefine "
 kw_dir_endcelldefine := trivia /`endcelldefine\b/
-@sample: "`pragma "
 kw_dir_pragma := trivia /`pragma\b/
-@sample: "`line "
 kw_dir_line := trivia /`line\b/
-@sample: "`begin_keywords "
 kw_dir_begin_keywords := trivia /`begin_keywords\b/
-@sample: "`end_keywords "
 kw_dir_end_keywords := trivia /`end_keywords\b/
 
-@sample: "`undefineall "
 @profiles: ["sv_2017", "sv_2023"]
 kw_dir_undefineall := trivia /`undefineall\b/
 
@@ -4996,8 +4989,22 @@ split_hierarchical_callable_receiver := split_callable_receiver_scope? ( non_key
 # real halves are rendered where the LRM puts them (`primary_hier_scope_prefix`: `local ::`, `class_scope`,
 # `implicit_class_handle .`). `y = class_qualifier m;` REJECTS from 1.0.244 on every profile.
 @profiles: ["sv_2017", "sv_2023"]
+# SV-CORPUS-GRAD.39 (release 1.0.248) — the `[ local :: ]` half of A.8.4's class_qualifier, HERE and only
+# here: `method_call ::= method_call_root . method_call_body`, `method_call_root ::= primary |
+# implicit_class_handle`, `primary ::= … [ class_qualifier | package_scope ] hierarchical_identifier select`,
+# `class_qualifier ::= [ local :: ] [ implicit_class_handle . | class_scope ]`
+# (docs/systemverilog/2017/md/section-41-data-read-api.md:3140; 1800-2023 the same). A prefixed callable
+# receiver wins through THIS rule (`.13c.2j`'s per-site attribution: `longest_match` routes it here), so
+# `local::q.size()` — IEEE 1800-2017 §18.7.1's own `local::` inside `randomize() with { … }`, followed by a
+# method call — had no derivation while `local::x`, `local::q[i]`, `local::q.size` (no call) and
+# `local::g()` all parsed through `primary_hier_scope_prefix` / `tf_call`'s local arms: five sites in
+# OpenTitan's spi / i2c agent sequences (`spi_host_seq.sv:25`, `spi_host_tpm_seq.sv:47,52`,
+# `spi_host_flash_seq.sv:59`, `i2c_base_seq.sv:181`), three DV packages behind them. The two receiver copies
+# stay shorter, as `.13c.2j` pinned.
 split_callable_receiver_scope := non_typedef_package_scope
                                | class_scope
+                               | kw_local_939bb46a scope_resolution ( instance_or_class_scope )?
+                                                                 -> {kind: "local_qualifier", scope: $3}
 
 split_direct_callable_method_call := split_hierarchical_callable_receiver dot callable_method_call_body
                                             -> {kind: "split_hierarchical", receiver: $1, body: $3}
@@ -8210,9 +8217,9 @@ timeunits_declaration := kw_timeunit_57f78b2f time_literal ( timeunit_separator_
 # lexical-boundary tracking does not separate the literal `/` from a following `//` line comment
 # (the trivia sample `//x`): it rendered `100 fs   ///x`, which every SystemVerilog lexer reads as a
 # line comment, and the certificate's sample-parse failures at seeds 0 and 42 were exactly that
-# shape once `timescale_directive` doubled this rule's draws. Stimuli only (the language does not move;
-# the emitted rule gains the annotated-rule scaffolding, see the directive block above).
-@sample: " / "
+# shape once `timescale_directive` doubled this rule's draws. The `@sample: " / "` that closed it through
+# 1.0.247 was removed by SV-CORPUS-GRAD.39 (release 1.0.248): ENGINE-UNIVERSAL-SERVICES.98 (B) separates a
+# `/` from a following `/` or `*` at the engine, measured on this grammar with the sample removed.
 timeunit_separator_slash := timeunit_separator_trivia "/"
                          -> {kind: "slash"}
 

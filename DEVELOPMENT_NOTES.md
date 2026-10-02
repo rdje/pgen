@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-02 — SV-CORPUS-GRAD.39 (`PGEN-SV-CORPUS-GRAD-0425`): put the arm where the attribution says the parse goes, and a new rule between a directive and its rule steals the directive
+
+- **The attribution was already on file.** `.13c.2j` had measured, for `class_scope`, that a prefixed callable receiver reaches `split_hierarchical_callable_receiver` and nothing else; the same measurement decided `local ::` today — the arm added to the receiver copies moved nothing, the arm added to the split rule's scope fixed every repro. Read the pinned attribution before choosing a site.
+- **A grammar directive binds to the next rule, whatever that rule is.** A helper rule inserted between `@profiles: ["sv_2017"]` and the receiver it governed took the directive with it; the receiver went unprofiled and every `randomize() with` block failed at its `{`. Lint named the orphan only after the controls had named the breakage — run the controls before the lint.
+- **A pinned control that cannot run is not a pin.** The `.13c.2j` sweep had read `CONTROL FAILED` since its inline groups became named rules; nothing ran it, so nothing noticed. A control is wired to a gate or it is prose.
+- promotion: declined (the first two are the standing TOOLBOX disciplines — measure per site, controls first; the third is `.40`'s own ask, and the principle is already enforced as the `SV-STORE-GATE-BANK` doctrine's founding rule — a check nothing invokes is indistinguishable from no check, `SV-CORPUS-GRAD.15`).
+
 ## 2026-10-02 — SVPP-EXPANSION.6d.6 (`PGEN-SVPP-EXPANSION-0031`): a raw backtick at the furthest position is a context defect, and a suite's flow is part of its context
 
 - **Read the expanded text, not the origin line.** The lane's origin points at the last mapped byte before the failure; for a macro that is the END of the previous line, which reads like a grammar problem with `pure virtual task` or `class … extends`. The preprocessed text at `furthest_position` read `` `uvm_object_utils(…) `` — a macro nobody expanded. One re-preprocessing of all 38 files sorted 15 "grammar" rejections into one context cause.

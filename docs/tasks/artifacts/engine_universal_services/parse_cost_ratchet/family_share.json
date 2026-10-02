@@ -1,6 +1,6 @@
 {
   "classifier_pattern": "_lr_(?P<shape>base|suffix|seed|guard|alt)(?![a-z])",
-  "corpus_family_share_pct": "2.641",
+  "corpus_family_share_pct": "2.634",
   "derivation": "python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share --out docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json",
   "files_in_manifest": 16336,
   "files_measured": 16336,
@@ -17,17 +17,17 @@
     "generated parser": {
       "kind": "bytes",
       "path": "generated/systemverilog_parser.rs",
-      "sha256": "c8f0900c324aadd8aabbc3e748bb913e541f614cdd52ffa8c59be364d9c524ad"
+      "sha256": "9cc363beab63c228937c2fbd44187ce4c626dd0e4214c5b41d7ac1ddec61b072"
     },
     "grammar": {
       "kind": "ebnf_raw_ast",
       "path": "grammars/systemverilog.ebnf",
-      "sha256": "08b6d48fd676200f7b0107dc8fa41ace54c85ed85b9a031b5140d8b1fc556e06"
+      "sha256": "bd40669851a6984a2cf7e9a6806a6e2b4327f41b57f0169b3a5c8fd4a93f8064"
     }
   },
   "lr_entries": 25748896,
   "nodump": [],
   "note": "The share of all PROTOCOL-graph rule entries taken by the left-recursion elimination family over the whole SV corpus \u2014 `PARSE-COST-RATCHET`'s one co-published live number, quoted verbatim on every designated live surface. \u26d4 v1 of this schema also carried `blind_spot_factor` and `wall_clock_regression_pct`; ENGINE-UNIVERSAL-SERVICES.26 RETIRED both. The factor was wall_clock / this share, and both terms were wrong: the +24.3 % numerator is refuted (.20 slice 5, not reproducible from its own raw data), and the share was the wrong denominator independently of that \u2014 sensitivity is how much the counter MOVED (+10.59 %, guard_ab_entries.txt), not how large the family is. No ratio replaces it: no admissible wall-clock figure for the change exists. \u26d4 Derived, never hand-edited; `--verify-family-share` re-hashes every identity row above and re-checks lr_entries/total_entries against the declared share on every run.",
   "schema": "pgen.parse_cost.family_share/v2",
-  "total_entries": 974987998
+  "total_entries": 977689006
 }

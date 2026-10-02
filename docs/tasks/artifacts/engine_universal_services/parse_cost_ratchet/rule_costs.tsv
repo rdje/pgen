@@ -560,7 +560,7 @@ kw_join_any_24358a7a	1	0	0
 kw_join_c455b38e	1	0	0
 kw_join_none_4454a7a6	1	0	0
 kw_let_0262f9bb	88227	0	0
-kw_local_939bb46a	1703656	0	0
+kw_local_939bb46a	2306474	0	0
 kw_localparam_7829ee69	269922	1644	0
 kw_logic_2c684987	698127	8626	0
 kw_longint_30bcfc87	720381	0	0
@@ -1114,7 +1114,7 @@ timescale_directive	65	3	0
 timeunit_separator_slash	5	5	0
 timeunit_separator_trivia	5	5	0
 timeunits_declaration	80694	5	1352
-trivia	85666596	1225160	83368165
+trivia	86269414	1225160	83970983
 type_assignment	35	16	0
 type_assignment_sv_2017	35	16	0
 type_assignment_with_default	5	4	0

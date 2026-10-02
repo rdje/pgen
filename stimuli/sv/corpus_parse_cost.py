@@ -183,7 +183,10 @@ INSTRUMENT_FILE = "stimuli/sv/corpus_parse_cost.py"
 # ENGINE-UNIVERSAL-SERVICES.111 (release 1.0.246): adopted 2.688 -> 2.641 from family_share.json - the write epoch restored on a
 # discarding rollback answers memoized store-tainted successes the old counter evicted, and the qualifier arm is gone: the
 # whole-corpus entry total fell (the LR family unchanged), so the share moved with the denominator.
-CORPUS_FAMILY_SHARE_PCT = "2.641"
+# SV-CORPUS-GRAD.39 (release 1.0.248): adopted 2.641 -> 2.634 from family_share.json - the `local ::` arm on
+# split_callable_receiver_scope adds one memoized keyword ask per callable-receiver prefix attempt (more total
+# entries: 974,987,998 -> 977,689,006), the LR family's own entries unchanged (25,748,896).
+CORPUS_FAMILY_SHARE_PCT = "2.634"
 FAMILY_SHARE_ARTIFACT = (
     "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json"
 )

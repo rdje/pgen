@@ -401,7 +401,7 @@ each under the memory guard, sequentially.
     reads *gates green and invoked* over exactly these, and `.24` found three of them RED for months
     because no release chain ran them.
     A RED here is one of two things and the record says which: a condition already owned by name
-    (today, both on the SV formal umbrella's family-status stage and both routed by `1.0.247`'s own run: `ENGINE-UNIVERSAL-SERVICES.119` — the preprocessor family's generated samples, five of which its parser rejects since `.98` (C) — and the SV row of the family register, whose computed status ROSE to `Provisional (corpus pending)` over a tracker still reading `Mostly Done`, `DONE-BAR.5e`; the umbrella's external-corpus surface on UVM's `const local … = new(…)` was the owned condition from 2026-09-04 until `1.0.247` admitted the arm under the director's ruling, `SV-CORPUS-GRAD.37`; the envelope divergence `GRAMMAR-WELLFORMED.H.20.3` named on 2026-09-24 closed the same day),
+    (today: none — `ENGINE-UNIVERSAL-SERVICES.119` and the SV register row (`DONE-BAR.5e`) were the two routed by `1.0.247`'s run and both closed on 2026-10-02 with the SV formal umbrella reading `✅ … passed` on `ad6e02a45`; the umbrella's external-corpus surface on UVM's `const local … = new(…)` was the owned condition from 2026-09-04 until `1.0.247`; the envelope divergence `GRAMMAR-WELLFORMED.H.20.3` named on 2026-09-24 closed the same day),
     or a NEW defect, routed the same day with its measured line. A RED that is neither blocks the
     release.
 12. **Before the commit**: `bash scripts/check_doctrines.sh` (every registered doctrine, incl.
