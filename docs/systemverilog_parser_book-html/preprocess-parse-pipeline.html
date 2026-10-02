@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-39ea19dc.js";
+            window.path_to_searchindex_js = "searchindex-21a6b8e0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -713,6 +713,21 @@ comment into its stringized text — the SV lane’s work. Since then <code>1.0.
 three packages out of that last group (<code>i2c_agent_pkg</code>, <code>spi_agent_pkg</code>, <code>alert_esc_agent_pkg</code>); 22 remain: the 8
 for the 2023 reading, 9 behind per-IP defines (<code>core_ibex_test_pkg</code> joined them: past its comment it stops at
 <code>32'h`BOOT_ADDR</code>), and 5 grammar constructs.</p>
+<p><strong>The lane has a second reading, under <code>sv_2023</code></strong> (<code>SV-CORPUS-GRAD.38</code>, 2026-10-02). A <em>reading</em> is one run of
+the whole lane — the library pass and every row — under one edition profile.
+<code>PGEN_PIPELINE_PROFILE=sv_2023 stimuli/run_pipeline_lane.sh all</code> produces the second one into <code>_sv2023</code>-suffixed
+dumps, so the two never share a path, and every run now leaves a <em>provenance sidecar</em> beside its dump (the
+profile, the binary’s digest, the dumps’ digests) — the record of which run wrote it. The two-edition census
+(<code>docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.md</code>) joins the readings per file and refuses
+unless both came from one binary. Measured: 40 rows pass under 2023 only (<code>2023_only_pass</code>) and none under 2017
+only (<code>2017_only_pass = 0</code>: the newer edition loses nothing the older accepts, now measured through the
+preprocessor and the library); 3 more package files pass — the three <code>rstmgr_env_pkg.sv</code>, whose
+<code>parameter string LIST_OF_LEAFS[] = {</code> is 1800-2023’s unsized parameter dimension — and 51 member files the
+2017 reading leaves unreached are reached behind them. <strong>The primary reading stays <code>sv_2017</code></strong>: the
+verdict-coverage tuple is defined over it and did not move. Of the 8 packages that stop at a 2023 construct
+under 2017, only those 3 pass; the other 5 clear the construct and meet a second barrier — <code>foreach (prv_read[i][j])</code> (three files), <code>solve … before</code> inside a <code>foreach</code> constraint, and one more per-IP define.
+Under the 2023 reading 19 OpenTitan packages still reject: 10 behind per-IP defines, 9 at six grammar constructs
+that neither edition’s profile accepts (<code>SV-CORPUS-GRAD.41</code>).</p>
 <p>Measured on the whole lane (the same debug probe, 689 s wall): <strong>425 rows <code>fail → pass</code> and none the other
 way</strong> — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
 <code>el2_param.vh:182</code>, a typedef of <code>el2_pkg</code>). The library: 407 package files, 230 accepted, 170 rejected,

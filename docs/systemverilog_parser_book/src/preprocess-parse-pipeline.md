@@ -576,6 +576,23 @@ three packages out of that last group (`i2c_agent_pkg`, `spi_agent_pkg`, `alert_
 for the 2023 reading, 9 behind per-IP defines (`core_ibex_test_pkg` joined them: past its comment it stops at
 `` 32'h`BOOT_ADDR ``), and 5 grammar constructs.
 
+**The lane has a second reading, under `sv_2023`** (`SV-CORPUS-GRAD.38`, 2026-10-02). A *reading* is one run of
+the whole lane — the library pass and every row — under one edition profile.
+`PGEN_PIPELINE_PROFILE=sv_2023 stimuli/run_pipeline_lane.sh all` produces the second one into `_sv2023`-suffixed
+dumps, so the two never share a path, and every run now leaves a *provenance sidecar* beside its dump (the
+profile, the binary's digest, the dumps' digests) — the record of which run wrote it. The two-edition census
+(`docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.md`) joins the readings per file and refuses
+unless both came from one binary. Measured: 40 rows pass under 2023 only (`2023_only_pass`) and none under 2017
+only (`2017_only_pass = 0`: the newer edition loses nothing the older accepts, now measured through the
+preprocessor and the library); 3 more package files pass — the three `rstmgr_env_pkg.sv`, whose
+`parameter string LIST_OF_LEAFS[] = {` is 1800-2023's unsized parameter dimension — and 51 member files the
+2017 reading leaves unreached are reached behind them. **The primary reading stays `sv_2017`**: the
+verdict-coverage tuple is defined over it and did not move. Of the 8 packages that stop at a 2023 construct
+under 2017, only those 3 pass; the other 5 clear the construct and meet a second barrier — `foreach
+(prv_read[i][j])` (three files), `solve … before` inside a `foreach` constraint, and one more per-IP define.
+Under the 2023 reading 19 OpenTitan packages still reject: 10 behind per-IP defines, 9 at six grammar constructs
+that neither edition's profile accepts (`SV-CORPUS-GRAD.41`).
+
 Measured on the whole lane (the same debug probe, 689 s wall): **425 rows `fail → pass` and none the other
 way** — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
 `el2_param.vh:182`, a typedef of `el2_pkg`). The library: 407 package files, 230 accepted, 170 rejected,

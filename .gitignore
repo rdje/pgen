@@ -433,6 +433,16 @@ stimuli/*/characterization/pipeline_library.tsv
 stimuli/*/characterization/pipeline_library_members.tsv
 stimuli/*/characterization/pipeline_library*.tsv.tmp.*
 stimuli/*/characterization/pipeline_library/
+# … and the SECOND reading of the lane, under `sv_2023` (SV-CORPUS-GRAD.38): the same three dumps and the library,
+# suffixed; the tracked claim is docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.{md,tsv}.
+stimuli/*/characterization/pipeline_results_sv2023.tsv
+stimuli/*/characterization/pipeline_results_sv2023.tsv.tmp.*
+# … and each reading's provenance sidecar (which run wrote the dump): derived, like the dump.
+stimuli/*/characterization/pipeline_results*.tsv.provenance
+stimuli/*/characterization/pipeline_results*.tsv.provenance.tmp.*
+stimuli/*/characterization/pipeline_library_sv2023.tsv
+stimuli/*/characterization/pipeline_library_members_sv2023.tsv
+stimuli/*/characterization/pipeline_library_sv2023/
 stimuli/*/characterization/durations.tsv
 stimuli/*/characterization/durations_v2005.tsv
 stimuli/*/characterization/durations_sv2023.tsv

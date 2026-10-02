@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-39ea19dc.js";
+            window.path_to_searchindex_js = "searchindex-21a6b8e0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -529,7 +529,12 @@ controls do not); typed AST byte-identity on the controls where the change is sh
 manifests for all three lanes (<code>adjudication_manifest{,_v2005,_sv2023}.tsv</code>), their summaries and the
 store-gate memo (its key: file sha, binary sha, instrument digest);
 the sv_2017 × sv_2023 verdict census (<code>docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.py</code>,
-an identity carrier — <code>2017_only_pass</code> must stay 0: nothing legal under 2017 may be lost under 2023).</li>
+an identity carrier — <code>2017_only_pass</code> must stay 0: nothing legal under 2017 may be lost under 2023).
+And the PIPELINE lane, both readings, whenever the parser or the preprocessor moved:
+<code>stimuli/run_pipeline_lane.sh all</code> (the primary <code>sv_2017</code> reading, its report and re-adjudication),
+then the same command under <code>PGEN_PIPELINE_PROFILE=sv_2023</code> and the two-edition pipeline census
+(<code>docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.py</code>, an identity carrier too — it
+refuses unless both readings came from one binary, and its <code>2017_only_pass</code> must stay 0 as well).</li>
 <li><strong>Certificates</strong>: <code>sv_cert_recognized_union_gate</code> and <code>verilog_2005_conformance_gate</code> on the
 adjudicated contracts (counts by name in <code>rebaseline_note</code> / <code>baseline_note</code>; each re-stamps its
 identity when GREEN).</li>

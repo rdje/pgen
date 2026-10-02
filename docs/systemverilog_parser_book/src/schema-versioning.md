@@ -354,6 +354,11 @@ each under the memory guard, sequentially.
    store-gate memo (its key: file sha, binary sha, instrument digest);
    the sv_2017 × sv_2023 verdict census (`docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.py`,
    an identity carrier — `2017_only_pass` must stay 0: nothing legal under 2017 may be lost under 2023).
+   And the PIPELINE lane, both readings, whenever the parser or the preprocessor moved:
+   `stimuli/run_pipeline_lane.sh all` (the primary `sv_2017` reading, its report and re-adjudication),
+   then the same command under `PGEN_PIPELINE_PROFILE=sv_2023` and the two-edition pipeline census
+   (`docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.py`, an identity carrier too — it
+   refuses unless both readings came from one binary, and its `2017_only_pass` must stay 0 as well).
 5. **Certificates**: `sv_cert_recognized_union_gate` and `verilog_2005_conformance_gate` on the
    adjudicated contracts (counts by name in `rebaseline_note` / `baseline_note`; each re-stamps its
    identity when GREEN).

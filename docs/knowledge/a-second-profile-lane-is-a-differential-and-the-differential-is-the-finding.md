@@ -10,6 +10,9 @@ answers:
   - "the first run of a new corpus lane refused on parameter drift or fell to the debug probe — how does provenance inheritance work"
   - "my census joined the raw dumps against the manifest and every row read (not in manifest)"
   - "how do I carry a must_reject ruling from the sv_2017 lane to the sv_2023 lane (production parity between IEEE 1800-2017 and 1800-2023 Annex A)"
+  - "how do I read the preprocess-parse pipeline lane under sv_2023 (the second reading of the pipeline, PGEN_PIPELINE_PROFILE)"
+  - "which run and which binary wrote this pipeline dump (the provenance sidecar beside the dump)"
+  - "a package predicted to pass under sv_2023 still fails — the second barrier behind the first stop"
 tags: [sv-corpus, sv_2023, edition-contrast, profiles, census, provenance, systemverilog, lanes]
 date: 2026-09-04
 status: current
@@ -57,9 +60,25 @@ adjudication class on the lane that has a key.**
   is a REFUSAL, never a cell; identity (same binary, same semantic grammar digest, dumps re-hashing
   to the reports' OUTPUT rows) is verified before a single row is counted.
 
+- **The same differential holds one level up, through the preprocessor and the library**
+  (`SV-CORPUS-GRAD.38`). `PGEN_PIPELINE_PROFILE=sv_2023 stimuli/run_pipeline_lane.sh all` is the second
+  READING of the pipeline lane (suffixed dumps, its own library); the census
+  `docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.py` joins rows, package files and unit
+  members. A reading with no tracked report needs its own identity: the runner writes a provenance sidecar
+  beside the dump (profile, binary digest, dump digests) and the census refuses without it.
+- **A stop names the FIRST barrier, not the only one.** Eight OpenTitan packages stopped at a 2023 construct
+  under 2017 and were predicted to pass under 2023; three did. The other five cleared the construct and
+  stopped further on (`foreach (a[i][j])`, `solve … before` inside a `foreach` constraint, a per-IP define).
+  Predict from the stop, then run the reading — the count is the run's, never the prediction's.
+
 ## The measurement
 
 `SV2023-LANE-CENSUS: rows=16336 both_pass=9831 both_nonpass=6477 2023_only_pass=28 2017_only_pass=0
 population_breaches=0`; lane `16336 parsed — pass=9859 fail=6477 timeout=0 crash=0` under
 `--profile sv_2023`. See `docs/tasks/SV-CORPUS-GRAD.md` `.14a`, `.14b`, `.3.34` and
 `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.md`.
+
+The pipeline, 2026-10-02: `PIPELINE-SV2023-CENSUS: rows=16336 both_pass=12701 both_nonpass=3595
+2023_only_pass=40 2017_only_pass=0 population_breaches=0 | library: files=407 2023_only_pass=3
+2017_only_pass=0 published_2017=276 published_2023=277 | members: unreached_2017=512 reached_2023=51
+lost_2023=0`. See `.38` and `docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.md`.

@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-02 — SV-CORPUS-GRAD.38 (`PGEN-SV-CORPUS-GRAD-0426`): a stop is the first barrier, a duration is the whole run, and a count is the table's
+
+- **Eight predicted, three delivered.** I opened this leaf on minimal repros of the construct at each package's stop and wrote "8 packages … the `sv_2023` profile already accepts". The repros were right and the sentence was wrong: a stop says where a parse ended, not that nothing lies behind it. The reading had to run before the number could be written.
+- **`wall_s` is not the run.** The runner's `wall_s` times the per-file phase only; the library pass before it is another half hour. I told the director "about 25 minutes" from `wall_s` and the run took 51. A duration quoted to someone waiting is the start-to-finish clock (the chain log's own timestamps), never a phase counter.
+- **Three counts written from the eye, corrected from the table.** The first draft of this section said 31 / 20 / 11 and 28 where the census table reads 35 / 23 / 12 and 34, and cited a `furthest_position` that appears in no dump. Each was caught by re-deriving before the commit; the rule that caught them is the old one — a number in a record is pasted from the command that printed it.
+- **Do not edit a runner while it runs.** `TOOLBOX.md` already carries it; I stopped a two-minute-old run to add the sidecar rather than edit under it.
+- promotion: declined (the first lesson is added to the card `a-second-profile-lane-is-a-differential-and-the-differential-is-the-finding` in this commit; the others are instances of `feedback-say-what-i-did` and of the toolbox's own warning, not new rules).
+
 ## 2026-10-02 — SVPP-EXPANSION.5(l) (`PGEN-SVPP-EXPANSION-0032`): a scanner that knows a span is a comment has two jobs, and doing one is how the other gets forgotten
 
 - **Skipping a span for delimiters is not removing it from the value.** The argument scanner tracked `in_line_comment` so a comma inside the comment would not split the actual — and returned the actual as a byte range, comment included. The fix reuses the scanner's own state machine on the bound text, so the two cannot disagree about what a comment is.

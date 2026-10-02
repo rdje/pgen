@@ -149,6 +149,9 @@ def main() -> int:
     ap.add_argument("--out", default="stimuli/sv/characterization/pipeline_library.tsv")
     ap.add_argument("--out-members", default="stimuli/sv/characterization/pipeline_library_members.tsv")
     ap.add_argument("--timeout-s", type=int, default=60)
+    ap.add_argument("--profile", default="sv_2017", choices=("sv_2017", "sv_2023"),
+                    help="the edition every package file is read under (SV-CORPUS-GRAD.38); the caller names the "
+                         "output paths, so two readings never share one")
     ap.add_argument("--suites", nargs="*", default=sorted(DESIGN_SUITES))
     ap.add_argument("--max-files", type=int, default=0, help="smoke tests: parse only the first N of the order")
     args = ap.parse_args()
@@ -197,7 +200,7 @@ def main() -> int:
         suite, names = files[rel]
         out_dir = work / f"{k:04d}"
         out_dir.mkdir()
-        cmd = [str(probe), "--parse", "systemverilog", rel, "--profile", "sv_2017", "--preprocess", *flags_of[rel],
+        cmd = [str(probe), "--parse", "systemverilog", rel, "--profile", args.profile, "--preprocess", *flags_of[rel],
                "--lib-in", str(lib), "--lib-out", str(out_dir)]
         t0 = time.monotonic()
         try:

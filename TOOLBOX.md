@@ -326,6 +326,12 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   python3 stimuli/sv/pipeline_vs_raw.py --check                        # the doctrine's arm: the report equals a fresh render
   python3 stimuli/sv/pipeline_readjudication.py [--probe P]            # SVPP-EXPANSION.6a: the DEFERRED population re-read —
                                                                        #   pipeline_readjudication.md + .tsv (tracked; --check in the gate)
+  scripts/run_with_memory_guard.sh --budget-mb 12288 --timeout-s 3600 -- \
+      env PGEN_PIPELINE_PROFILE=sv_2023 stimuli/run_pipeline_lane.sh all  # SV-CORPUS-GRAD.38: the SECOND reading, under sv_2023 — the same rows,
+                                                                       #   context and library pass; dumps suffixed `_sv2023`, never the 2017 paths
+  python3 docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.py [--check|--self-test]
+                                                                       #   the two-edition census of the pipeline: the per-file matrix, the library
+                                                                       #   matrix, the members a 2023-passing unit reaches (census.md + .tsv, tracked)
   ```
   ⭐ **THE RE-ADJUDICATION REPORT** (`stimuli/sv/characterization/pipeline_readjudication.md`, per row in the
   `.tsv`): every `divergence:explained_svpp_*`, `deferred:chained_only` and `deferred:svpp_owned` row of the
