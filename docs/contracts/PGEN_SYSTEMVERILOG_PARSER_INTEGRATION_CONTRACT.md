@@ -2059,7 +2059,10 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   and `` `define A(x) `B(`A(x)) `` is refused), `//` comments stripped from macro text (§22.5.1; block comments
   kept) and, since `SVPP-EXPANSION.5`(l) (2026-10-02), from an ACTUAL argument when it is bound (its text had been
   substituted onto the expansion's single line, commenting out the call's tail; block comments and a `//` inside a
-  string literal stay), a well-formed `` `line `` consumed (§22.12; a malformed one passes through), `` `pragma protect
+  string literal stay), an `` `include `` FOLLOWED BY A MACRO expanded first and the result read as Syntax 22-1's
+  `"filename"` / `<filename>` (§22.5.1: *"The `` `include `` directive can be followed by a macro, instead of a string
+  literal"* — `SVPP-EXPANSION.5`(m), 2026-10-02; through `1.0.248` the form was refused as a tool extension, a ruling
+  retracted; a macro whose text is not one of the two forms is still refused, naming both clauses), a well-formed `` `line `` consumed (§22.12; a malformed one passes through), `` `pragma protect
   begin_protected `` … `` end_protected `` consumed as an envelope (§34; unterminated →
   `E_SVPP_UNTERMINATED_PROTECTED_ENVELOPE`), block comments spanning lines and following an `` `include ``, the
   fifteen `` `SV_COV_* `` coverage-control macros predefined (§40.3.1), conditional groups with the

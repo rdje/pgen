@@ -41,6 +41,7 @@ refuted it twice with measurements before this session**:
 |---|---|---|
 | `q[a:$]` (`SV-CORPUS-GRAD.3.25`) | `constant_expression` has no `$` primary | **A.8.4 footnote 42** + §7.10.1 + §7.10.4's own examples |
 | `instance top use #(.W(32));` (`.3.19`) | `use_clause` has no `#` at all | **clause 33.4.3 writes it 7 times**, in both revisions |
+| `` `include `MACRO `` (`SVPP-EXPANSION.5`(c), retracted by `.5`(m), 2026-10-02) | Syntax 22-1 admits `"filename"` and `<filename>` only | **§22.5.1 says it in a sentence** — *"The `` `include `` directive can be followed by a macro, instead of a string literal"* — with an example, in both revisions; refused for three weeks on the syntax box alone |
 
 …and the lesson is already a Knowledge-Map card:
 [[annex-a-footnotes-license-derivations-the-productions-cannot-derive]]. **Making the same inference

@@ -1,5 +1,14 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-02 — SVPP-EXPANSION.5(m) (`PGEN-SVPP-EXPANSION-0034`): a syntax box is not the clause, and a refusal message is a published claim
+
+- **I ruled a construct out from a syntax box and shipped the ruling as an error message.** Syntax 22-1 lists two filename forms; the sentence that admits a macro sits in the next subclause. The bounding ruling already says *"non-LRM" is a citation, never an inference* — written about Annex A, true of every excerpt box in the standard. A refusal that tells the user what the standard says must cite a sentence that was read in the clause, not a production.
+- **The corpus was saying so for 23 days.** A file named after the clause sat in `refused_engine` beside deliberate error tests, and the class was read as "the engine refusing bad input". Group a refusal class by REASON and read one example of each reason: a reason that names a ruling is a ruling under test.
+- **A test of the fix can be wrong while the fix is right.** GREEN failed on my own assertion about a trailing comment; the existing behaviour for the literal form was the reference I had not compared against. Asserting "the new form reads exactly as the old one" is both the stronger test and the one that cannot encode a guess.
+- **Do not hand-escape source through two string layers.** The corrected test went through a Python literal inside a Python literal and reached the compiler without its backslashes. Source text that a script inserts lives in its own file, read verbatim.
+- **A chain that stops at its own gates is cheap to be wrong in.** Both false starts ended before any build or lane; they cost minutes.
+- promotion: declined (the first lesson is the existing decision `feedback_sv_strict_lrm_compliance_default`, whose table now carries this instance; the refusal-class reading is added to this entry and not yet seen twice).
+
 ## 2026-10-02 — SVPP-EXPANSION.6d.7 (`PGEN-SVPP-EXPANSION-0033`): a context row is measured under every reading, and a stop line is read in its file
 
 - **Two readings, the same 38 rows.** A context change that both editions read alike should move the same rows under each and leave the differential untouched; it did (40 / 0 / 3 / 51 before and after). That equality is itself a control: a context row that moved one reading and not the other would be a profile-dependent expansion, which the preprocessor does not have.

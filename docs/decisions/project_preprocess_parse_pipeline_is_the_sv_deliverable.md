@@ -81,4 +81,6 @@ single command, a source map nothing reads, no corpus-scale measurement, and not
 **Cross-links.** Tree [SVPP-EXPANSION](../tasks/SVPP-EXPANSION.md) (the `.1` record holds every command
 and number above). [[project_svpp_expansion_stage_for_nexsim]] (the 2026-06-08 directive, whose deliverable
 this keeps and whose sequencing this supersedes). [[feedback_sv_strict_lrm_compliance_default]] (why
-`` `include `MACRO `` stays refused by default).
+`` `include `MACRO `` stays refused by default — ⛔ CORRECTED 2026-10-02 by `SVPP-EXPANSION.5`(m): that
+refusal was a misreading. IEEE 1800-2017 §22.5.1 licenses the form in a sentence; the strict default never
+required refusing it).

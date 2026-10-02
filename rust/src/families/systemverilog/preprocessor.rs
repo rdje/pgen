@@ -1372,6 +1372,26 @@ fn preprocess_text_internal(
                         rest.to_string(),
                     );
                     if active {
+                        // `SVPP-EXPANSION.5`(m): IEEE 1800-2017 §22.5.1 — "The `include directive can be
+                        // followed by a macro, instead of a string literal" (its example: `` `define
+                        // home(filename) `"/home/mydir/filename`" `` then `` `include `home(myfile) ``). The
+                        // macro is expanded first; what it yields is then read as Syntax 22-1's filename.
+                        let expanded_rest: Option<String> = if rest.trim_start().starts_with('`') {
+                            Some(expand_macros_in_text(
+                                rest,
+                                &state.macros,
+                                0,
+                                &mut state.events,
+                                exp_file.as_path(),
+                                exp_line,
+                                &mut Vec::new(),
+                                None,
+                                state.config.plain_string_substitution,
+                            )?)
+                        } else {
+                            None
+                        };
+                        let rest: &str = expanded_rest.as_deref().unwrap_or(rest);
                         let (include_token, is_angle) = parse_include_directive(rest)
                             .with_context(|| {
                                 format!(
@@ -2469,13 +2489,14 @@ fn parse_include_directive(input: &str) -> Result<(&str, bool)> {
         }
         Ok((path, true))
     } else {
-        // `SVPP-EXPANSION.5`(c) — RULED: IEEE 1800-2017 §22.4 Syntax 22-1 admits `` `include "filename" ``
-        // and `` `include <filename> `` only. A macro-valued path (`` `include `REQUESTS_FILE ``) is a
-        // tool extension PGEN does not admit under its strict default; the refusal names the standard.
+        // IEEE 1800-2017 §22.4 Syntax 22-1 admits `` `include "filename" `` and `` `include <filename> ``;
+        // §22.5.1 adds that the directive "can be followed by a macro, instead of a string literal" — the
+        // caller expands such a macro first (`SVPP-EXPANSION.5`(m)), so text reaching this arm is neither
+        // form: an unquoted name, an undefined macro, or a macro whose text is not a filename.
         bail!(
             "include path must be quoted or angle-bracketed (IEEE 1800-2017 §22.4 Syntax 22-1: \
-             `include \"filename\" | `include <filename>; a macro-valued path is a tool extension \
-             PGEN does not admit); got '{}'",
+             `include \"filename\" | `include <filename>; §22.5.1: a macro after `include must expand \
+             to one of the two); got '{}'",
             trimmed.trim_end_matches(['\r', '\n'])
         );
     }
@@ -5366,19 +5387,65 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
     }
 
     #[test]
-    fn include_of_a_macro_valued_path_is_refused_naming_the_standard() {
-        // .5(c) RULED: IEEE 1800-2017 §22.4 Syntax 22-1 — "filename" or <filename> only
+    fn include_followed_by_a_macro_expands_the_macro_first() {
+        // `SVPP-EXPANSION.5`(m): IEEE 1800-2017 §22.5.1 — "The `include directive can be followed by a
+        // macro, instead of a string literal" (docs/systemverilog/2017/txt/section-22-compiler-directives.txt:341-343;
+        // 1800-2023 :409-411). `.5`(c) had ruled the form a tool extension from Syntax 22-1 alone.
         let dir = create_repo_scratch_dir("svpp_include_macro");
+        fs::write(dir.join("inc.svh"), "wire from_inc;\n").expect("write inc");
         let input = dir.join("top.sv");
-        fs::write(&input, "`define F \"inc.svh\"\n`include `F\n").expect("write");
+        // an object macro holding the quoted filename (black-parrot's `BP_CUSTOM_DEFINES_PATH shape)
+        fs::write(&input, "`define F \"inc.svh\"\n`include `F\nwire after;\n").expect("write");
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("an object macro naming the file is included");
+        assert!(output.text.contains("wire from_inc;"), "{}", output.text);
+        assert!(output.text.contains("wire after;"), "{}", output.text);
+        // the standard's own shape: a function macro whose text stringizes its argument
+        fs::write(
+            &input,
+            "`define home(filename) `\"filename`\"\n`include `home(inc.svh) // the LRM's example\nwire after;\n",
+        )
+        .expect("write");
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("the LRM's own example shape is included");
+        assert!(output.text.contains("wire from_inc;"), "{}", output.text);
+        assert!(output.text.contains("wire after;"), "{}", output.text);
+        // …and it reads EXACTLY as the literal form does: what follows the filename on the directive
+        // line is the next logical line's for both (`.6b.5`(b)), so the two outputs are one text.
+        let via_macro = output.text.clone();
+        fs::write(
+            &input,
+            "`define home(filename) `\"filename`\"\n`include \"inc.svh\" // the LRM's example\nwire after;\n",
+        )
+        .expect("write");
+        let literal = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("the literal form");
+        assert_eq!(
+            via_macro, literal.text,
+            "a macro-named include reads as the literal one"
+        );
+    }
+
+    #[test]
+    fn include_followed_by_a_macro_that_is_not_a_filename_is_refused_naming_the_clause() {
+        // what the macro yields must still be Syntax 22-1's "filename" or <filename>
+        let dir = create_repo_scratch_dir("svpp_include_macro_bad");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define F inc.svh\n`include `F\n").expect("write");
         let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
-            .expect_err("refused");
+            .expect_err("an unquoted expansion is not a filename form");
         let text = format!("{:#}", err);
         assert!(
-            text.contains("22.4") && text.contains("tool extension"),
+            text.contains("22.5.1") && text.contains("top.sv:2") && !text.contains("tool extension"),
             "{}",
             text
         );
+        // an undefined macro expands to nothing usable
+        fs::write(&input, "`include `NOT_DEFINED\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("an undefined macro names no file");
+        let text = format!("{:#}", err);
+        assert!(text.contains("22.5.1") && text.contains("top.sv:1"), "{}", text);
     }
 
     #[test]

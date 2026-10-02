@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-055e8aa8.js";
+            window.path_to_searchindex_js = "searchindex-e5569862.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -339,8 +339,11 @@ the included file, not in the row’s own). The same holds for UVM’s six. Not 
 in the row’s own file.</p>
 <p>The 30 preprocessor refusals are the context, not the engine: 29 are <code>`include</code>s of a name
 that exists under several <code>top_*</code> variants or nowhere in the tree (a per-file context only a
-build system’s <code>.core</code> file supplies), and 1 is <code>`include `REQUESTS_FILE</code> — refused by ruling,
-because IEEE 1800-2017 §22.4 Syntax 22-1 admits <code>"filename"</code> and <code>&lt;filename&gt;</code> only. The engine’s
+build system’s <code>.core</code> file supplies), and 1 is <code>`include `REQUESTS_FILE</code> — refused at that time by a
+ruling that read §22.4’s Syntax 22-1 (<code>"filename"</code> and <code>&lt;filename&gt;</code>) and not §22.5.1, which says in a sentence
+that <em>“the <code>`include</code> directive can be followed by a macro, instead of a string literal”</em>. The ruling was
+wrong and is retracted (<code>SVPP-EXPANSION.5</code>(m), 2026-10-02): the macro is now expanded first and what it yields
+is read as the filename. The engine’s
 own refusals in the first run of this lane — a <code>`define</code> whose formal list spans lines, a
 conditional directive inside a macro body used mid-line, <code>`ifdef X // comment</code> reading the
 comment as part of the symbol — were fixed the same day (<code>SVPP-EXPANSION.5</code>), and the re-run moved

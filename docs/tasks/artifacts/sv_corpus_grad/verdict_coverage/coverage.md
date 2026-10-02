@@ -255,9 +255,9 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 ## Under the PIPELINE — the same rows re-read through preprocess→parse (SVPP-EXPANSION.6c.1)
 
-> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`9a0d6d85c6bdd103e9af9b397f048d2a4adfd02ad24ce6ba4747cf64a724c873`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
+> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`b169b1a2c2552dc32e6891f22f5b839fe4f72f594a97e2f54f5537aef1794e29`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
 
-**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11168/2606/2562/1276/0`** (raw: `7485/2606/6245/3864/0`).
+**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11168/2606/2562/1275/0`** (raw: `7485/2606/6245/3864/0`).
 
 - **ADJUDICATED: 11,168 rows (68.4 %)** (raw 7,485, +3,683)
 - **ROUTED: 2,606 rows (16.0 %)** (raw 2,606, +0)
@@ -273,22 +273,23 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | NO VERDICT | `deferred:no_sv_key` | 596 | 3.6 % | no upstream answer key exists - expectation underivable |
 | NO VERDICT | `pipeline:chained:unreached_in_unit` | 498 | 3.0 % | DARK UNDER THE PIPELINE: a member whose every including unit rejects elsewhere (.6d.2) — the unit's own origin row carries the verdict |
 | NO VERDICT | `deferred:not_source_text` | 350 | 2.1 % | the file is not SystemVerilog source text at all (a $readmemh memory image, a bare string literal, a tool command line) - it testifies to nothing about the parser; a CORPUS-COMPOSITION fact, stated per row (SV-CORPUS-GRAD.13c.1) |
-| NO VERDICT | `pipeline:chained:rejects_own_file` | 278 | 1.7 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |
-| NO VERDICT | `pipeline:chained:refused_context` | 210 | 1.3 % | an include the derived context cannot supply |
-| NO VERDICT | `pipeline:svpp_owned:accepted_under_expansion` | 109 | 0.7 % | conformance owned by the preprocessor lane; accepted |
+| NO VERDICT | `pipeline:chained:rejects_own_file` | 279 | 1.7 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |
+| NO VERDICT | `pipeline:chained:refused_context` | 211 | 1.3 % | an include the derived context cannot supply |
+| NO VERDICT | `pipeline:svpp_owned:accepted_under_expansion` | 110 | 0.7 % | conformance owned by the preprocessor lane; accepted |
 | NO VERDICT | `deferred:impl_varying` | 90 | 0.6 % | LRM leaves the behaviour implementation-defined |
 | NO VERDICT | `pipeline:svpp_owned:rejects_own_file` | 30 | 0.2 % | conformance owned by the preprocessor lane; rejected |
-| NO VERDICT | `pipeline:svpp_owned:refused_engine` | 30 | 0.2 % | conformance owned by the preprocessor lane |
-| NO VERDICT | `pipeline:chained:hollow` | 25 | 0.2 % | the rejection lands in an included file |
+| NO VERDICT | `pipeline:svpp_owned:refused_engine` | 29 | 0.2 % | conformance owned by the preprocessor lane |
+| NO VERDICT | `pipeline:chained:hollow` | 26 | 0.2 % | the rejection lands in an included file |
 | NO VERDICT | `deferred:verilog_ams_lane` | 25 | 0.2 % | Verilog-AMS, a different language family |
-| NO VERDICT | `pipeline:chained:refused_engine` | 15 | 0.1 % | refused by the preprocessor |
+| NO VERDICT | `pipeline:chained:refused_engine` | 12 | 0.1 % | refused by the preprocessor |
 | NO VERDICT | `pipeline:refuted:vendor_identity_branch` | 9 | 0.1 % | the file's portable branch is the vendor's own `` `error `` stub behind its identity macro — a fact about the row's context |
-| NO VERDICT | `pipeline:refused_engine` | 7 | 0.0 % | the preprocessor refused the row (E_SVPP_* / a malformed directive) |
 | NO VERDICT | `pipeline:refuted:driver_define` | 7 | 0.0 % | the suite's driver defines the macro on its command line (.4c) |
+| NO VERDICT | `pipeline:refused_engine` | 6 | 0.0 % | the preprocessor refused the row (E_SVPP_* / a malformed directive) |
 | NO VERDICT | `deferred:ni_unimplemented` | 6 | 0.0 % | upstream marks the construct not-implemented |
 | NO VERDICT | `pipeline:refused_context` | 5 | 0.0 % | the preprocessor could not supply an include the derived context lacks |
 | NO VERDICT | `pipeline:svpp_owned:refused_context` | 2 | 0.0 % | conformance owned by the preprocessor lane |
 | NO VERDICT | `pipeline:refuted:cross_file_define` | 1 | 0.0 % | a predecessor file of the unit defines the macro (the unit design) |
+| NO VERDICT | `pipeline:hollow` | 1 | 0.0 % | the rejection lands in an included file; the header's own row carries it |
 | NO VERDICT | `pipeline:refuted:preprocessor_item` | 1 | 0.0 % | an expansion-stage rule not yet implemented (named per row) |
 | NO VERDICT | `pipeline:svpp_owned:hollow` | 1 | 0.0 % | conformance owned by the preprocessor lane |
 | NO VERDICT | `pipeline:refuted` | 1 | 0.0 % | refuted and not yet dispositioned |

@@ -17,18 +17,18 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `fb60a7ff0dbb448d7d47cbaf9e9b5671f4624998cb4ef96bfd8098bc20182f1e` |
+| parse binary | `rust/target/debug/parseability_probe` | `1e08b5ceedbad201fa750131383ccd99365d53a0c310cc8d582680073be75ba0` |
 | grammar | `grammars/systemverilog.ebnf` | `c4be992dcbe13e276ed9ad82260897df47aa8b489ee25d0896796e4b823eed77` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `bd40669851a6984a2cf7e9a6806a6e2b4327f41b57f0169b3a5c8fd4a93f8064` |
 | generated parser | `generated/systemverilog_parser.rs` | `9cc363beab63c228937c2fbd44187ce4c626dd0e4214c5b41d7ac1ddec61b072` |
 | context | `stimuli/sv/pipeline_context.tsv` | `f9aa12573b514f1175d29f0e857989f3c01d0a59f89a708d10dd6a9f7d618360` |
 | context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `636c8dec8eeab13488b6dd91c0b5547e53c3f6a25c46ccca884d2fb01f459333` |
 | context (per-file unit predecessors) | `stimuli/sv/pipeline_context_units.tsv` | `df065bdc8a87ff15fb441550d42775de494a6cf63eb971b1303e85ab4500bc70` |
-| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `fa9073d0a3f4f5d510b41cec5cc1f3ef7922fb280d30b06857468536fc6edd43` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `90e02b94a5bd6b9af5c8afc1340615c3e7784f779835795bb380cfcdd047960d` |
+| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `c1fdb5b9fdd1392824d7a0e9a21d6a5dd63e83df1a374f1cbe5a6b9fe26de340` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `95cb1dce76dd2ddf0676f23a5b9e4bcc15dd700228a2c3c3c1abf81ec7edf3e4` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
 
-Measured at `HEAD` = `51c7ea454+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `330601ba5+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -36,19 +36,19 @@ Measured at `HEAD` = `51c7ea454+dirty`; the parse binary is a **debug** build (t
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | Cores-VeeR-EL2 | 102 | 19 | 83 | 0 | 82 | 20 | 0 | 0 | 0 | +63 |
 | Surelog | 828 | 718 | 110 | 0 | 753 | 63 | 12 | 0 | 0 | +35 |
-| black-parrot | 205 | 37 | 168 | 0 | 33 | 2 | 170 | 0 | 0 | -4 |
+| black-parrot | 205 | 37 | 168 | 0 | 33 | 4 | 168 | 0 | 0 | -4 |
 | friscv | 441 | 38 | 403 | 0 | 60 | 349 | 32 | 0 | 0 | +22 |
 | ispras-sv-tests | 1266 | 1125 | 141 | 0 | 1256 | 10 | 0 | 0 | 0 | +131 |
-| iverilog | 3799 | 3214 | 585 | 0 | 3625 | 165 | 9 | 0 | 0 | +411 |
+| iverilog | 3799 | 3214 | 585 | 0 | 3627 | 165 | 7 | 0 | 0 | +413 |
 | opentitan | 3983 | 987 | 2996 | 0 | 1878 | 2096 | 9 | 0 | 0 | +891 |
 | scr1 | 50 | 8 | 42 | 0 | 49 | 1 | 0 | 0 | 0 | +41 |
 | slang | 92 | 72 | 20 | 0 | 74 | 15 | 3 | 0 | 0 | +2 |
-| sv-tests | 1028 | 856 | 172 | 0 | 1001 | 22 | 5 | 0 | 0 | +145 |
-| sv2v | 953 | 713 | 240 | 0 | 809 | 124 | 20 | 0 | 0 | +96 |
+| sv-tests | 1028 | 856 | 172 | 0 | 1002 | 22 | 4 | 0 | 0 | +146 |
+| sv2v | 953 | 713 | 240 | 0 | 809 | 125 | 19 | 0 | 0 | +96 |
 | uvm-core | 174 | 33 | 141 | 0 | 31 | 143 | 0 | 0 | 0 | -2 |
 | verible | 152 | 121 | 31 | 0 | 130 | 22 | 0 | 0 | 0 | +9 |
 | verilator | 3263 | 2081 | 1182 | 0 | 2958 | 288 | 17 | 0 | 0 | +877 |
-| **total** | 16336 | 10022 | 6314 | 0 | 12739 | 3320 | 277 | 0 | 0 | +2717 |
+| **total** | 16336 | 10022 | 6314 | 0 | 12742 | 3323 | 271 | 0 | 0 | +2720 |
 
 ## Transitions — raw status → pipeline status
 
@@ -62,10 +62,10 @@ Measured at `HEAD` = `51c7ea454+dirty`; the parse binary is a **debug** build (t
 | Surelog | `fail` → `fail` | 63 |
 | Surelog | `fail` → `pass` | 35 |
 | Surelog | `fail` → `pp_fail` | 12 |
-| black-parrot | `fail` → `pp_fail` | 164 |
+| black-parrot | `fail` → `pp_fail` | 162 |
 | black-parrot | `pass` → `pass` | 31 |
 | black-parrot | `pass` → `pp_fail` | 6 |
-| black-parrot | `fail` → `fail` | 2 |
+| black-parrot | `fail` → `fail` | 4 |
 | black-parrot | `fail` → `pass` | 2 |
 | friscv | `fail` → `fail` | 349 |
 | friscv | `pass` → `pass` | 38 |
@@ -76,9 +76,9 @@ Measured at `HEAD` = `51c7ea454+dirty`; the parse binary is a **debug** build (t
 | ispras-sv-tests | `fail` → `fail` | 9 |
 | ispras-sv-tests | `pass` → `fail` | 1 |
 | iverilog | `pass` → `pass` | 3213 |
-| iverilog | `fail` → `pass` | 412 |
+| iverilog | `fail` → `pass` | 414 |
 | iverilog | `fail` → `fail` | 165 |
-| iverilog | `fail` → `pp_fail` | 8 |
+| iverilog | `fail` → `pp_fail` | 6 |
 | iverilog | `pass` → `pp_fail` | 1 |
 | opentitan | `fail` → `fail` | 2027 |
 | opentitan | `fail` → `pass` | 963 |
@@ -94,16 +94,16 @@ Measured at `HEAD` = `51c7ea454+dirty`; the parse binary is a **debug** build (t
 | slang | `fail` → `pass` | 8 |
 | slang | `pass` → `fail` | 3 |
 | slang | `pass` → `pp_fail` | 3 |
-| sv-tests | `pass` → `pass` | 853 |
+| sv-tests | `pass` → `pass` | 854 |
 | sv-tests | `fail` → `pass` | 148 |
 | sv-tests | `fail` → `fail` | 22 |
-| sv-tests | `pass` → `pp_fail` | 3 |
 | sv-tests | `fail` → `pp_fail` | 2 |
+| sv-tests | `pass` → `pp_fail` | 2 |
 | sv2v | `pass` → `pass` | 696 |
-| sv2v | `fail` → `fail` | 124 |
+| sv2v | `fail` → `fail` | 125 |
 | sv2v | `fail` → `pass` | 113 |
 | sv2v | `pass` → `pp_fail` | 17 |
-| sv2v | `fail` → `pp_fail` | 3 |
+| sv2v | `fail` → `pp_fail` | 2 |
 | uvm-core | `fail` → `fail` | 138 |
 | uvm-core | `pass` → `pass` | 28 |
 | uvm-core | `pass` → `fail` | 5 |
@@ -142,14 +142,14 @@ Measured at `HEAD` = `51c7ea454+dirty`; the parse binary is a **debug** build (t
 | adjudication class | rows | pipeline pass | pipeline fail | pp_fail | timeout | crash |
 |---|---:|---:|---:|---:|---:|---:|
 | `match` | 6069 | 5696 | 372 | 1 | 0 | 0 |
-| `deferred:chained_only` | 4933 | 2399 | 2309 | 225 | 0 | 0 |
-| `deferred:v2005_profile_lane` | 2606 | 2536 | 65 | 5 | 0 | 0 |
+| `deferred:chained_only` | 4933 | 2399 | 2311 | 223 | 0 | 0 |
+| `deferred:v2005_profile_lane` | 2606 | 2538 | 65 | 3 | 0 | 0 |
 | `divergence:explained_svpp_macro_use` | 1026 | 1005 | 17 | 4 | 0 | 0 |
 | `deferred:no_sv_key` | 596 | 568 | 27 | 1 | 0 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 350 | 0 | 0 | 0 |
-| `deferred:svpp_owned` | 245 | 109 | 104 | 32 | 0 | 0 |
+| `deferred:svpp_owned` | 245 | 110 | 104 | 31 | 0 | 0 |
 | `divergence:explained_svpp_conditional` | 195 | 194 | 1 | 0 | 0 | 0 |
-| `divergence:explained_svpp_include` | 133 | 126 | 0 | 7 | 0 | 0 |
+| `divergence:explained_svpp_include` | 133 | 126 | 1 | 6 | 0 | 0 |
 | `deferred:impl_varying` | 90 | 89 | 1 | 0 | 0 | 0 |
 | `divergence:explained_store_gate` | 54 | 0 | 54 | 0 | 0 | 0 |
 | `deferred:verilog_ams_lane` | 25 | 5 | 19 | 1 | 0 | 0 |
@@ -166,7 +166,7 @@ Measured at `HEAD` = `51c7ea454+dirty`; the parse binary is a **debug** build (t
 | construct at the origin line | rows | one example (origin — line) |
 |---|---:|---|
 | class header with a base class (`extends`) | 1996 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4:63` — `class dccm_transaction_sequence_item extends uvm_sequence_item;` |
-| other | 1085 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
+| other | 1088 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
 | a parameter port list `#(` | 101 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
 | a `typedef` | 54 | `stimuli/sv/subs/Surelog/tests/NetType/dut.sv:18:24` — `typedef some_other_type myalias;` |
 | a function / task header | 33 | `stimuli/sv/subs/Surelog/tests/BitSelectHier/dut.sv:37:32` — `extern function uvm_mem_mam_cfg reconfigure(uvm_mem_mam_cfg cfg = null);` |
@@ -186,6 +186,7 @@ Measured at `HEAD` = `51c7ea454+dirty`; the parse binary is a **debug** build (t
 | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh` | 3 |
 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv` | 3 |
 | `stimuli/sv/subs/Cores-VeeR-EL2/tools/riscv-dv/veer_directed_instr_lib.sv` | 2 |
+| `stimuli/sv/subs/black-parrot/bp_common/src/include/bp_common_aviary_cfg_pkgdef.svh` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_tl_seq_item.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/seq_lib/csrng_base_seq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/entropy_src_xht_agent/entropy_src_xht_item.sv` | 2 |
@@ -207,7 +208,6 @@ Measured at `HEAD` = `51c7ea454+dirty`; the parse binary is a **debug** build (t
 | `stimuli/sv/subs/opentitan/hw/ip/adc_ctrl/dv/env/adc_ctrl_env_cfg.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/ip/adc_ctrl/dv/env/seq_lib/adc_ctrl_base_vseq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/ip/aes/dv/env/aes_ral_extension.svh` | 2 |
-| `stimuli/sv/subs/opentitan/hw/ip/aes/dv/env/seq_lib/aes_base_vseq.sv` | 2 |
 
 ## Top 25 ORIGIN LINES
 
@@ -216,6 +216,7 @@ Measured at `HEAD` = `51c7ea454+dirty`; the parse binary is a **debug** build (t
 | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh:182` | 3 |
 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4` | 3 |
 | `stimuli/sv/subs/Cores-VeeR-EL2/tools/riscv-dv/veer_directed_instr_lib.sv:16` | 2 |
+| `stimuli/sv/subs/black-parrot/bp_common/src/include/bp_common_aviary_cfg_pkgdef.svh:408` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_tl_seq_item.sv:6` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/seq_lib/csrng_base_seq.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/entropy_src_xht_agent/seq_lib/entropy_src_xht_base_device_seq.sv:5` | 2 |
@@ -237,7 +238,6 @@ Measured at `HEAD` = `51c7ea454+dirty`; the parse binary is a **debug** build (t
 | `stimuli/sv/subs/opentitan/hw/ip/csrng/dv/env/seq_lib/csrng_base_vseq.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/seq_lib/dma_base_vseq.sv:6` | 2 |
 | `stimuli/sv/subs/opentitan/hw/ip/edn/dv/env/seq_lib/edn_base_vseq.sv:5` | 2 |
-| `stimuli/sv/subs/opentitan/hw/ip/entropy_src/dv/env/seq_lib/entropy_src_base_rng_seq.sv:29` | 2 |
 
 ## Preprocessor refusals (`pp_fail`) by reason
 
@@ -251,7 +251,6 @@ Measured at `HEAD` = `51c7ea454+dirty`; the parse binary is a **debug** build (t
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_me/src/v/network/bp_` | 3 |
 | `E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-N/N.N.N--defi` | 3 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_be/src/include/bp_be` | 2 |
-| ``invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/include/bp_c`` | 2 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_me/src/include/bp_me` | 2 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_top/test/common/bsg_` | 2 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/friscv/dep/hardfloat/test/source/mul` | 2 |
@@ -261,13 +260,14 @@ Measured at `HEAD` = `51c7ea454+dirty`; the parse binary is a **debug** build (t
 | `include cycle detected: /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/svNv/test/error/include_loop_N.sv -> /Volumes` | 2 |
 | `` `elsif without matching `ifdef/`ifndef at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_ `` | 2 |
 | `` `endif without matching `ifdef/`ifndef at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/PreProcMacroF `` | 1 |
-| ``invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/PreprocLine/dut.sv:N: inc`` | 1 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/PreprocLine/dut.sv:N: ` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_asy` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_bus` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_dff` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_fif` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_par` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_rom` | 1 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_ser` | 1 |
 
 ## The library the lane built (the design suites' packages, in dependency order)
 

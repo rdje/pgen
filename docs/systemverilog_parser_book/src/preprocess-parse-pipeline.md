@@ -164,8 +164,11 @@ in the row's own file.
 
 The 30 preprocessor refusals are the context, not the engine: 29 are `` `include ``s of a name
 that exists under several `top_*` variants or nowhere in the tree (a per-file context only a
-build system's `.core` file supplies), and 1 is `` `include `REQUESTS_FILE `` — refused by ruling,
-because IEEE 1800-2017 §22.4 Syntax 22-1 admits `"filename"` and `<filename>` only. The engine's
+build system's `.core` file supplies), and 1 is `` `include `REQUESTS_FILE `` — refused at that time by a
+ruling that read §22.4's Syntax 22-1 (`"filename"` and `<filename>`) and not §22.5.1, which says in a sentence
+that *"the `` `include `` directive can be followed by a macro, instead of a string literal"*. The ruling was
+wrong and is retracted (`SVPP-EXPANSION.5`(m), 2026-10-02): the macro is now expanded first and what it yields
+is read as the filename. The engine's
 own refusals in the first run of this lane — a `` `define `` whose formal list spans lines, a
 conditional directive inside a macro body used mid-line, `` `ifdef X // comment `` reading the
 comment as part of the symbol — were fixed the same day (`SVPP-EXPANSION.5`), and the re-run moved
