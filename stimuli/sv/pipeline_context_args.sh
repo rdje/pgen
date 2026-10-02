@@ -3,7 +3,8 @@
 # Sourced by stimuli/run_pipeline_lane.sh and by stimuli/sv/pipeline_library.py (`bash -c 'source …; context_args S F'`).
 # Every table below is DERIVED from the corpus by stimuli/sv/pipeline_context.py (--write / --check).
 #   context_args SUITE REPO_RELATIVE_PATH   → one "FLAG<TAB>VALUE" line per flag, the file's own rows FIRST:
-#     --unit-file   the unit predecessors the file's own harness compiles before it (.4c.2; in order)
+#     --unit-file   the unit predecessors the file's own harness compiles before it (.4c.2; in order),
+#                   then the suite's hand-curated unit predecessors (.6d.6; in order)
 #     --include-dir the file's nearest-candidate include dirs (.4b), then the suite's include dirs (.4)
 #     --symbol      the defines the file's own driver passes (.4c.1), then the suite's defines
 #     --lib-in         the library the lane built (.6d.1) — only when PGEN_PIPELINE_LIB_DIR names an existing dir
@@ -15,7 +16,7 @@ context_args() {
   [ -f "$CONTEXT_UNITS" ] && awk -F'\t' -v s="$1" -v f="$2" 'NR>1 && $1==s && $2==f { printf "--unit-file\t%s\n", $4 }' "$CONTEXT_UNITS"
   awk -F'\t' -v s="$1" -v f="$2" 'NR>1 && $1==s && $2==f { printf "--include-dir\t%s\n", $3 }' "$CONTEXT_FILES"
   [ -f "$CONTEXT_DEFINES" ] && awk -F'\t' -v s="$1" -v f="$2" 'NR>1 && $1==s && $2==f { printf "--symbol\t%s\n", $3 }' "$CONTEXT_DEFINES"
-  awk -F'\t' -v s="$1" 'NR>1 && $1==s { if ($2=="include_dir") printf "--include-dir\t%s\n", $3; else if ($2=="define") printf "--symbol\t%s\n", $3 }' "$CONTEXT"
+  awk -F'\t' -v s="$1" 'NR>1 && $1==s { if ($2=="include_dir") printf "--include-dir\t%s\n", $3; else if ($2=="define") printf "--symbol\t%s\n", $3; else if ($2=="unit_file") printf "--unit-file\t%s\n", $3 }' "$CONTEXT"
   if [ -n "${PGEN_PIPELINE_LIB_DIR:-}" ] && [ -d "$PGEN_PIPELINE_LIB_DIR" ]; then printf -- '--lib-in\t%s\n' "$PGEN_PIPELINE_LIB_DIR"; fi
   return 0
 }

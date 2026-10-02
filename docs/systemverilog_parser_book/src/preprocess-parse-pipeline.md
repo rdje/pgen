@@ -143,7 +143,10 @@ guessed. These are the test's own configuration, not a tool identity: `.6b.3` me
 the identity predefines — and, since `.4c.2`, the unit predecessors a file's own harness compiles
 before it, applied as `--unit-file` in order: verilator's source-file arguments, slang's `.f` command
 files, sv2v's explicit multi-file runs; a `-f` list, a glob, a `--siloed` run and an ordering conflict
-are reported, not applied). The first
+are reported, not applied — and, since `.6d.6`, the predecessors a suite's whole FLOW compiles before every
+file, hand-curated with their source: OpenTitan's dvsim builds one compilation unit that starts with UVM and
+compiles `dv_utils_pkg.sv` and the RTL before any DV package, so `uvm_macros.svh`, `dv_macros.svh` and
+`prim_assert.sv` precede every OpenTitan row). The first
 measurement, on the two suites the raw lane cannot judge at all (every one of their rows is
 `deferred:chained_only` in the raw answer key), release probe, `sv_2017`, 45 s wall:
 
@@ -514,6 +517,21 @@ behind it. The deriver reserves a hand-curated row kind for exactly this (`HAND_
 `--symbol UVM` to every OpenTitan row. Re-run on the whole lane: ten OpenTitan packages `fail → pass`, zero
 the other way, and the library pass publishes 264 packages (was 256).
 
+**A suite's unit predecessors (`.6d.6`).** IEEE 1800-2017 §22.5.1 makes a macro unit-wide once defined, and
+OpenTitan's dvsim builds one unit: `{UVM_HOME}/src/uvm_pkg.sv` first (it includes `uvm_macros.svh`), then
+`dv_utils_pkg.sv` (which includes `dv_macros.svh`), the RTL (`prim_assert.sv`) and only then the DV env and
+test packages — which therefore use `` `uvm_object_utils ``, `` `DV_CHECK_* ``, `` `gfn ``, `` `ASSERT_I ``
+without including anything. Parsed one file at a time, 15 of the 38 packages still rejecting after `.6d.4`
+stopped at exactly such a raw macro call. The deriver now carries hand-curated suite-wide unit
+predecessors (`HAND_UNITS`, three rows `opentitan unit_file <path> hand <source>` in
+`stimuli/sv/pipeline_context.tsv`), applied as `--unit-file` in order to every OpenTitan row — about
+0.37 s per row. Re-run on the whole lane: 195 OpenTitan rows `fail → pass`, zero the other way, zero outside
+OpenTitan; the library publishes 273 packages (368 of OpenTitan's 396); the members read through their unit
+`accepted_in_unit` 999 → 1 287 and `unreached_in_unit` 846 → 566; the tuple under the pipeline
+`11053/2606/2677/1391/0`. The membership table shrank from 5 130 to 2 392 rows while naming the same 2 058
+files: the rows that went were macro headers a predecessor had already brought into the unit, whose guarded
+`` `include `` in the package now expands to nothing.
+
 **The library pass (`.6d.1`).** A design is not a bag of files. A file of OpenTitan, black-parrot,
 VeeR, scr1, friscv or UVM imports typedefs, classes and parameters that a *package* in another file
 declares, and the parser only admits such a name where its grammar is fact-gated (a typedef name as a port
@@ -536,10 +554,15 @@ Since `1.0.247` the UVM library is in it (`SVPP-EXPANSION.6d.3`): `uvm_pkg.sv` e
 had mostly been accepted earlier, by the fact-gate escapes that admit a `uvm_*` name without its facts;
 48 still rejected at their own first barrier — an unexpanded `` `uvm_fatal `` behind an `` `ifdef UVM ``
 the derived context did not satisfy. With the `UVM` symbol in OpenTitan's context (`SVPP-EXPANSION.6d.4`,
-below) ten of them pass and 121 more members are accepted in their unit; the 38 that remain reject at 38
-distinct origins past the macro barrier, each a grammar or fact-gate construct (a class-scope call, an
-unpacked-array parameter with an assignment pattern, a `pure virtual` task header, an event trigger) — the
-SV lane's work, named in the lane report's "rejects in its own file" table.
+below) ten of them pass and 121 more members are accepted in their unit; with the three macro headers the
+flow compiles first as unit predecessors (`.6d.6`, below) 13 more packages and 195 rows pass. The 25 that
+remain are three populations, each named per row: 8 stop at a construct 1800-2023 admits and 1800-2017 does
+not (unsized parameter arrays, an indexed event trigger — `SV-CORPUS-GRAD.38`, a 2023 reading of the
+pipeline), 8 at a per-IP build define whose value differs between the IP's simulation configurations
+(`SVPP-EXPANSION.6d.5`, parked: a variant disagreement is reported, not guessed), and 9 at a grammar
+construct past every macro — `randomize() with { … local::x … }`, a lifetime in a method prototype
+(`extern function automatic`, `pure virtual task automatic`), a hierarchical name as a `cross` item, a
+macro argument carrying a line comment into its stringized text — the SV lane's work.
 
 Measured on the whole lane (the same debug probe, 689 s wall): **425 rows `fail → pass` and none the other
 way** — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in

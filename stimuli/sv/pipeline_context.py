@@ -106,6 +106,26 @@ UNITS_TSV = ROOT / "stimuli" / "sv" / "pipeline_context_units.tsv"
 HAND_DEFINES: dict[str, list[tuple[str, str]]] = {
     "opentitan": [("UVM", "stimuli/sv/subs/opentitan/hw/dv/tools/dvsim/common_sim_cfg.hjson:65 (+define+UVM, dvsim build_opts)")],
 }
+# Unit PREDECESSORS a suite's flow compiles before every file, hand-curated with their source
+# (SVPP-EXPANSION.6d.6). IEEE 1800-2017 §22.5.1: a macro is unit-wide once defined, and OpenTitan's
+# dvsim builds one compilation unit that starts with UVM (`{UVM_HOME}/src/uvm_pkg.sv`, which includes
+# uvm_macros.svh — hw/dv/tools/dvsim/dsim.hjson:15) and compiles dv_utils_pkg.sv (dv_macros.svh) and the
+# RTL (prim_assert.sv) before any DV env or test package — so those packages use `uvm_object_utils,
+# `DV_CHECK_*, `gfn, `ASSERT_I … without including anything themselves. Measured: 15 of the 38 DV
+# packages still rejecting after .6d.4 stopped at exactly such a raw macro; with the three headers as
+# unit predecessors 4 of 5 probed packages parse (the fifth stops at a later construct). Applied by the
+# lane as `--unit-file`, in this order, to every row of the suite (an RTL row sees three macro headers
+# it already includes behind their own guards — no change there, measured by the lane's movers).
+HAND_UNITS: dict[str, list[tuple[str, str]]] = {
+    "opentitan": [
+        ("stimuli/sv/uvm/uvm-core-2020.3.1/src/uvm_macros.svh",
+         "stimuli/sv/subs/opentitan/hw/dv/tools/dvsim/dsim.hjson:14-15 ({UVM_HOME}/src/uvm_pkg.sv compiled first; uvm_pkg.sv includes uvm_macros.svh)"),
+        ("stimuli/sv/subs/opentitan/hw/dv/sv/dv_utils/dv_macros.svh",
+         "stimuli/sv/subs/opentitan/hw/dv/sv/dv_utils/dv_utils_pkg.sv:11 (`include \"dv_macros.svh\" in the package every DV env imports, compiled before it)"),
+        ("stimuli/sv/subs/opentitan/hw/ip/prim/rtl/prim_assert.sv",
+         "stimuli/sv/subs/opentitan/hw/ip/prim/rtl/prim_assert.sv:9 (`ifndef PRIM_ASSERT_SV; included by the RTL the DV build compiles first; `ASSERT_I used by DV env packages)"),
+    ],
+}
 # Library trees every suite may include from, beyond its own tree. Measured (SVPP-EXPANSION.4):
 # 231 OpenTitan files `include "uvm_macros.svh"`, which lives in the UVM suite — a cross-suite
 # dependency the derivation resolves like any other shared header, and reports as such.
@@ -430,6 +450,8 @@ def rows_for(suite: str, base: pathlib.Path):
     rows = [(suite, "include_dir", d, str(n), ",".join(sorted(names))) for d, (n, names) in ordered]
     for name, source in HAND_DEFINES.get(suite, []):
         rows.append((suite, "define", name, "hand", source))
+    for unit_file, source in HAND_UNITS.get(suite, []):
+        rows.append((suite, "unit_file", unit_file, "hand", source))
     file_rows = sorted({(suite, includer, d, name) for includer, d, name in per_file})
     define_rows, computed, ties = derive_defines(suite, base)
     stats["define_rows"] = len(define_rows)

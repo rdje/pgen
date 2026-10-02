@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-02 — SVPP-EXPANSION.6d.6 (`PGEN-SVPP-EXPANSION-0031`): a raw backtick at the furthest position is a context defect, and a suite's flow is part of its context
+
+- **Read the expanded text, not the origin line.** The lane's origin points at the last mapped byte before the failure; for a macro that is the END of the previous line, which reads like a grammar problem with `pure virtual task` or `class … extends`. The preprocessed text at `furthest_position` read `` `uvm_object_utils(…) `` — a macro nobody expanded. One re-preprocessing of all 38 files sorted 15 "grammar" rejections into one context cause.
+- **A compilation unit is context.** OpenTitan's packages include no macro header because dvsim already compiled the headers into the unit. A per-file parse that ignores the flow's compile order is parsing a file the project never compiles alone; the fix is to say what the flow compiles first, with the source, not to widen the grammar or hand the file an `include` it does not have.
+- **A membership count can fall for a good reason.** `member_rows` 5 130 → 2 392 looked like a regression until the distinct files were counted (2 060 → 2 058) and the three leavers diffed by name: guarded headers already in the unit left the map, and the readings improved everywhere else. Count the population two ways before calling a drop a loss.
+- promotion: the knowledge card `a-raw-backtick-at-the-furthest-position-is-a-context-defect` (new; `docs/knowledge/`), with the probe through the context emitter as its reverify command.
+
 ## 2026-10-02 — SVPP-EXPANSION.6d.3 (`PGEN-SVPP-EXPANSION-0029`): a price measured behind a gate is a snapshot of the gate, not of the work
 
 - **Re-measure when the gate opens.** The 2026-09-09 price (164 packages, 1 923 members, 273 dark rows) was true the day it was written; three releases moved most of it while the ruling waited, and the release that opened the gate moved five files and 143 member rows. Had the closure quoted the old price as "converted", it would have claimed 1 800 rows the ruling never touched. The tracked report at two commits is the instrument: read both, subtract, attribute.
