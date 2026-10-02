@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-02 — SV-CORPUS-GRAD.41 (`PGEN-SV-CORPUS-GRAD-0427`): read the stop before naming the construct, and ask the key before asking the standard
+
+- **"Six grammar constructs" was written before two of them were read.** The leaf's own bullets said so ("not yet read", "not yet isolated") while its heading and the book's sentence counted them as grammar. Both were a raw backtick at the furthest position — the card written this morning. A count in a heading must not outrun the bullets under it.
+- **The answer key had already ruled two of the four.** I set out to search the LRM for `foreach (a[i][j])` and `solve` inside `foreach`; a grep of the manifest's basis column found three and one prior rulings with their citations. Search the key's own basis text for the construct FIRST: it is the project's memory of what the standard says.
+- **A text scan needs the lanes' population and a comment stripper.** The first count of prototype lifetimes included a line verilator had commented out as "appears IEEE illegal", and the first scan counted 37 symlinked twins the lanes skip. Both showed only because the totals were compared with numbers already known (16 336).
+- **A ruling without a reproducer is a sentence.** `.12b.1`'s `solve` ruling lived in one corpus row's basis; a pin now fails the day the grammar widens.
+- promotion: declined (instances of `a-raw-backtick-at-the-furthest-position-is-a-context-defect` and of the bounding ruling's "a citation, never an inference"; the key-first search is added to this entry, not yet seen twice).
+
 ## 2026-10-02 — SV-CORPUS-GRAD.38 (`PGEN-SV-CORPUS-GRAD-0426`): a stop is the first barrier, a duration is the whole run, and a count is the table's
 
 - **Eight predicted, three delivered.** I opened this leaf on minimal repros of the construct at each package's stop and wrote "8 packages … the `sv_2023` profile already accepts". The repros were right and the sentence was wrong: a stop says where a parse ended, not that nothing lies behind it. The reading had to run before the number could be written.

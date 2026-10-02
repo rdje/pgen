@@ -590,8 +590,24 @@ preprocessor and the library); 3 more package files pass — the three `rstmgr_e
 verdict-coverage tuple is defined over it and did not move. Of the 8 packages that stop at a 2023 construct
 under 2017, only those 3 pass; the other 5 clear the construct and meet a second barrier — `foreach
 (prv_read[i][j])` (three files), `solve … before` inside a `foreach` constraint, and one more per-IP define.
-Under the 2023 reading 19 OpenTitan packages still reject: 10 behind per-IP defines, 9 at six grammar constructs
-that neither edition's profile accepts (`SV-CORPUS-GRAD.41`).
+Under the 2023 reading 19 OpenTitan packages still reject. Read one by one (`SV-CORPUS-GRAD.41`): 10 behind
+per-IP defines, 1 behind a per-target include (riscv-dv's `riscv_core_setting.sv`), 1 behind a macro header the
+build makes unit-wide (`cip_macros.svh`, `SVPP-EXPANSION.6d.7`), and 7 at a **tool tolerance**.
+
+**Tool tolerances: four spellings the big simulators accept and this parser rejects, under both editions.** Each
+was asked of the standard's TEXT, not only of Annex A, and each has a reproducer pin that must keep rejecting
+(`stimuli/sv/adjudication_repros/`), so a widening can only happen as a decision:
+
+| spelling | where OpenTitan writes it | what the standard says | corpus files |
+|---|---|---|---:|
+| `foreach (a[i][j])` — a bracket pair before the loop-variable bracket | `flash_otf_read_entry.sv:129` | §12.7.3: the argument is *"an identifier that designates any type of array followed by a comma-separated list of loop variables enclosed in square brackets"*; write `foreach (a[i, j])` | 21 |
+| `solve y before x[i];` inside a `foreach` constraint | `adc_ctrl_env_var_filter_cfg.sv:64` | A.1.10: `solve … before` is a constraint BLOCK item; a `foreach` holds constraint expressions | 5 |
+| `cross cp_a, cfg.vif.sig;` — a dotted name as a cross item | `sysrst_ctrl_in_out_inverted_vseq.sv:49` | §19.6: *"Expressions cannot be used directly in a cross; a coverage point must be explicitly defined first"* | 3 |
+| `pure virtual task automatic t();` / `extern function automatic T f();` — a lifetime in a prototype | `sec_cm_base_if_proxy.sv:21`, `tl_seq_item.sv:190` | A.2.6 / A.2.7 prototypes have no lifetime; §8.24 lists what a prototype declares, and §8.6 makes every class method automatic already | 2 |
+
+The corpus counts are a text scan (`docs/tasks/artifacts/sv_corpus_grad/dialect_constructs/scan.py`). A file that
+uses one of these is rejected at that line under `sv_2017` and `sv_2023` alike; there is no opt-in tolerance
+profile today.
 
 Measured on the whole lane (the same debug probe, 689 s wall): **425 rows `fail → pass` and none the other
 way** — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in

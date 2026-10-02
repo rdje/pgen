@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-21a6b8e0.js";
+            window.path_to_searchindex_js = "searchindex-dabaf3a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -726,8 +726,28 @@ preprocessor and the library); 3 more package files pass — the three <code>rst
 2017 reading leaves unreached are reached behind them. <strong>The primary reading stays <code>sv_2017</code></strong>: the
 verdict-coverage tuple is defined over it and did not move. Of the 8 packages that stop at a 2023 construct
 under 2017, only those 3 pass; the other 5 clear the construct and meet a second barrier — <code>foreach (prv_read[i][j])</code> (three files), <code>solve … before</code> inside a <code>foreach</code> constraint, and one more per-IP define.
-Under the 2023 reading 19 OpenTitan packages still reject: 10 behind per-IP defines, 9 at six grammar constructs
-that neither edition’s profile accepts (<code>SV-CORPUS-GRAD.41</code>).</p>
+Under the 2023 reading 19 OpenTitan packages still reject. Read one by one (<code>SV-CORPUS-GRAD.41</code>): 10 behind
+per-IP defines, 1 behind a per-target include (riscv-dv’s <code>riscv_core_setting.sv</code>), 1 behind a macro header the
+build makes unit-wide (<code>cip_macros.svh</code>, <code>SVPP-EXPANSION.6d.7</code>), and 7 at a <strong>tool tolerance</strong>.</p>
+<p><strong>Tool tolerances: four spellings the big simulators accept and this parser rejects, under both editions.</strong> Each
+was asked of the standard’s TEXT, not only of Annex A, and each has a reproducer pin that must keep rejecting
+(<code>stimuli/sv/adjudication_repros/</code>), so a widening can only happen as a decision:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>spelling</th><th>where OpenTitan writes it</th><th>what the standard says</th><th style="text-align: right">corpus files</th></tr>
+</thead>
+<tbody>
+<tr><td><code>foreach (a[i][j])</code> — a bracket pair before the loop-variable bracket</td><td><code>flash_otf_read_entry.sv:129</code></td><td>§12.7.3: the argument is <em>“an identifier that designates any type of array followed by a comma-separated list of loop variables enclosed in square brackets”</em>; write <code>foreach (a[i, j])</code></td><td style="text-align: right">21</td></tr>
+<tr><td><code>solve y before x[i];</code> inside a <code>foreach</code> constraint</td><td><code>adc_ctrl_env_var_filter_cfg.sv:64</code></td><td>A.1.10: <code>solve … before</code> is a constraint BLOCK item; a <code>foreach</code> holds constraint expressions</td><td style="text-align: right">5</td></tr>
+<tr><td><code>cross cp_a, cfg.vif.sig;</code> — a dotted name as a cross item</td><td><code>sysrst_ctrl_in_out_inverted_vseq.sv:49</code></td><td>§19.6: <em>“Expressions cannot be used directly in a cross; a coverage point must be explicitly defined first”</em></td><td style="text-align: right">3</td></tr>
+<tr><td><code>pure virtual task automatic t();</code> / <code>extern function automatic T f();</code> — a lifetime in a prototype</td><td><code>sec_cm_base_if_proxy.sv:21</code>, <code>tl_seq_item.sv:190</code></td><td>A.2.6 / A.2.7 prototypes have no lifetime; §8.24 lists what a prototype declares, and §8.6 makes every class method automatic already</td><td style="text-align: right">2</td></tr>
+</tbody>
+</table>
+</div>
+<p>The corpus counts are a text scan (<code>docs/tasks/artifacts/sv_corpus_grad/dialect_constructs/scan.py</code>). A file that
+uses one of these is rejected at that line under <code>sv_2017</code> and <code>sv_2023</code> alike; there is no opt-in tolerance
+profile today.</p>
 <p>Measured on the whole lane (the same debug probe, 689 s wall): <strong>425 rows <code>fail → pass</code> and none the other
 way</strong> — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
 <code>el2_param.vh:182</code>, a typedef of <code>el2_pkg</code>). The library: 407 package files, 230 accepted, 170 rejected,
