@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SV-CORPUS-GRAD.41 — how often does the corpus WRITE the four constructs the big simulators tolerate and
+"""SV-CORPUS-GRAD.41 / .44 — how often does the corpus WRITE the constructs the big simulators tolerate and
 neither IEEE 1800-2017 nor 1800-2023 derives?
 
 A TEXT scan (comments stripped, strings kept), not a parse: it answers "who writes this spelling", which is
@@ -9,6 +9,8 @@ what a ruling needs to be priced. It says nothing about whether a file parses.
   cross_dotted         a `cross` item list that names a dotted (hierarchical) name
   foreach_selected     `foreach ( name[…][…] )` — a bracket pair before the loop-variable bracket
   solve_in_foreach     a `solve … before` whose nearest enclosing `{` was opened by `foreach ( … )`
+  binsof_dotted        `binsof ( a.b.c… )` — a name of THREE or more parts (`.44`; a two-part name is
+                       `cover_point_identifier . bin_identifier`, 19.6.1 Syntax 19-4, and is not counted)
 
     python3 docs/tasks/artifacts/sv_corpus_grad/dialect_constructs/scan.py            # one summary line
     python3 docs/tasks/artifacts/sv_corpus_grad/dialect_constructs/scan.py --files    # + every file, per construct
@@ -31,6 +33,7 @@ DOTTED = re.compile(r"[A-Za-z_0-9\]]\s*\.\s*[A-Za-z_]")
 FOREACH_SEL = re.compile(r"\bforeach\s*\(\s*[A-Za-z_][A-Za-z0-9_.:$]*\s*(?:\[[^\],]*\]\s*)+\[")
 SOLVE = re.compile(r"\bsolve\b[^;]*\bbefore\b")
 OPENER = re.compile(r"\b(foreach|if|constraint)\b[^{};]*$")
+BINSOF_DOTTED = re.compile(r"\bbinsof\s*\(\s*[A-Za-z_][A-Za-z0-9_$]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_$]*){2,}")
 
 
 def strip_comments(text: str) -> str:
@@ -91,6 +94,7 @@ def scan_text(text: str) -> dict[str, int]:
         "cross_dotted": sum(1 for items in cross_items(t) if DOTTED.search(items)),
         "foreach_selected": len(FOREACH_SEL.findall(t)),
         "solve_in_foreach": sum(1 for k in solve_openers(t) if k == "foreach"),
+        "binsof_dotted": len(BINSOF_DOTTED.findall(t)),
     }
 
 
@@ -118,7 +122,9 @@ def self_test() -> int:
     check("a solve inside a foreach constraint set is counted", scan_text("constraint k { foreach (x[i]) { solve y before x[i]; } }")["solve_in_foreach"] == 1)
     check("a block-level solve is not, even after a closed foreach", scan_text("constraint k { foreach (x[i]) { x[i] > 0; } solve y before x; }")["solve_in_foreach"] == 0)
     check("a `//` inside a string does not start a comment", strip_comments('s = "a // b"; // c') == 's = "a // b";     ')
-    print(f"DIALECT-CONSTRUCTS-SELFTEST: arms=11 failed={len(fails)}")
+    check("a three-part name inside binsof is counted, spaces or not", scan_text("bins h = binsof(cfg.vif.a) intersect {1};\nbins k = binsof( cs_registers_i . mstatus_q . mpp );")["binsof_dotted"] == 2)
+    check("a coverage point, and a coverage point bin, are not (19.6.1 Syntax 19-4)", scan_text("bins h = binsof(cp_a) intersect {1};\nbins k = binsof(cp_a.one);\nbins j = !binsof(cp_b.two) && binsof(cp_c);")["binsof_dotted"] == 0)
+    print(f"DIALECT-CONSTRUCTS-SELFTEST: arms=13 failed={len(fails)}")
     return 1 if fails else 0
 
 
@@ -140,13 +146,13 @@ def main() -> int:
                     statements[k][suite_of(rel)] += n
                     files[k].append(rel)
     parts = []
-    for k in ("prototype_lifetime", "cross_dotted", "foreach_selected", "solve_in_foreach"):
+    for k in ("prototype_lifetime", "cross_dotted", "foreach_selected", "solve_in_foreach", "binsof_dotted"):
         by_suite = collections.Counter(suite_of(f) for f in files[k])
         parts.append(f"{k}: files={len(files[k])} statements={sum(statements[k].values())} ["
                      + " ".join(f"{s}={by_suite[s]}/{statements[k][s]}" for s in sorted(by_suite)) + "]")
     print(f"DIALECT-CONSTRUCTS: scanned={scanned} | " + " | ".join(parts) + "  (suite=files/statements)")
     if "--files" in sys.argv:
-        for k in ("prototype_lifetime", "cross_dotted", "foreach_selected", "solve_in_foreach"):
+        for k in ("prototype_lifetime", "cross_dotted", "foreach_selected", "solve_in_foreach", "binsof_dotted"):
             for f in files[k]:
                 print(f"  {k}\t{f}")
     return 0

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d27feaa6.js";
+            window.path_to_searchindex_js = "searchindex-f248e19c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -210,7 +210,7 @@
 <h2 id="stress-sample"><a class="header" href="#stress-sample">Stress sample</a></h2>
 <p>A test input designed to exercise edge cases of the grammar — e.g. deeply nested structures, large modules, full LRM Annex-A coverage. Lives in <code>rust/test_data/grammar_quality/systemverilog_*</code> corpora.</p>
 <h2 id="tool-tolerance"><a class="header" href="#tool-tolerance">Tool tolerance</a></h2>
-<p>A spelling the commercial simulators accept that neither IEEE 1800-2017 nor 1800-2023 derives and whose clause text speaks against it (for example <code>foreach (a[i][j])</code>, or a lifetime in a method prototype). The edition profiles <code>sv_2017</code>, <code>sv_2023</code> and <code>verilog_2005</code> reject it, by the strict-LRM default. Since <code>1.0.249</code> the OPT-IN profile <code>sv_2023_tolerant</code> accepts a closed list of four such spellings and nothing else beyond <code>sv_2023</code>; each is pinned from both sides (rejected under the strict profiles, accepted under the tolerant one) and yields its own AST <code>kind</code>, so a consumer can tell a tolerated spelling from a standard one. The list, the standard’s rewrite for each, and the kinds are in <a href="json-carrier.html">The Json Carrier</a> (<em>The Opt-In Tolerance Profile</em>); a spelling joins the list only by a ruling, never because a file failed to parse.</p>
+<p>A spelling the commercial simulators accept that neither IEEE 1800-2017 nor 1800-2023 derives and whose clause text speaks against it (for example <code>foreach (a[i][j])</code>, or a lifetime in a method prototype). The edition profiles <code>sv_2017</code>, <code>sv_2023</code> and <code>verilog_2005</code> reject it, by the strict-LRM default. Since <code>1.0.249</code> the OPT-IN profile <code>sv_2023_tolerant</code> accepts a closed list of four such spellings and nothing else beyond <code>sv_2023</code> (a fifth, a name of three or more parts inside <code>binsof(…)</code>, is ruled a tool tolerance by <code>SV-CORPUS-GRAD.44</code> and is NOT in the list); each is pinned from both sides (rejected under the strict profiles, accepted under the tolerant one) and yields its own AST <code>kind</code>, so a consumer can tell a tolerated spelling from a standard one. The list, the standard’s rewrite for each, and the kinds are in <a href="json-carrier.html">The Json Carrier</a> (<em>The Opt-In Tolerance Profile</em>); a spelling joins the list only by a ruling, never because a file failed to parse.</p>
 <h2 id="typed-shape"><a class="header" href="#typed-shape">Typed shape</a></h2>
 <p>The JSON shape produced by an annotated rule. Always a JSON object with at least a <code>type</code> field and usually a <code>kind</code> discriminator. Consumers walking typed shapes dispatch on <code>obj["type"]</code> / <code>obj["kind"]</code>.</p>
 

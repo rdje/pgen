@@ -1029,7 +1029,9 @@ keeps the leading pairs apart as `selects` and leaves the reading to the consume
 ### What it still rejects, on purpose
 
 The list is closed and exact. Still rejected under `sv_2023_tolerant`: a `solve` under an `if` nested inside the
-`foreach`; a lifetime in a modport or interface-class prototype; an expression (`y + 1`) as a cross item; and
+`foreach`; a lifetime in a modport or interface-class prototype; an expression (`y + 1`) as a cross item; a name of
+three or more parts inside `binsof(…)` (`binsof(cfg.vif.sig)` — the cross-item tolerance one step on, ruled a tool
+tolerance by `SV-CORPUS-GRAD.44` and not admitted; a two-part name is `cover_point.bin` and parses everywhere); and
 everything `sv_2023` rejects for any other reason. Each of these boundaries is a reproducer pin.
 
 ### Bounds worth knowing

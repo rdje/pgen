@@ -112,13 +112,13 @@ ESTIMATE over the last five recorded releases; a structural leg (a corpus confor
 the 38 % of corpus rows with no verdict are an answer-key gap outside `items`; and an item can be opened by a release as well as closed — the history shows both.
 
 <!-- BEGIN DERIVED: scripts/report_sv_release_distance.sh --markdown -->
-**SV release distance: 11 items** (`legs_unmet + bar_rows + open_leaves`).
+**SV release distance: 10 items** (`legs_unmet + bar_rows + open_leaves`).
 
 | Component | Count | Derived from |
 |---|---:|---|
 | Done-bar legs unmet | 3 of 3 | the derived block above (`report_family_status.sh`) |
 | Corpus bar rows (unexplained divergences) | 0 (sv_2017 0, sv_2023 0, verilog_2005 0) | `stimuli/sv/characterization/adjudication_manifest*.tsv` |
-| Open leaves owning SV work | 8 (SV-CORPUS-GRAD 3, engine leaves SV opened 5) | `docs/tasks/SV-CORPUS-GRAD.md`, `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` |
+| Open leaves owning SV work | 7 (SV-CORPUS-GRAD 2, engine leaves SV opened 5) | `docs/tasks/SV-CORPUS-GRAD.md`, `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` |
 | Corpus passing (sv_2017, `match` rows) | 6069 of 16336 (37.2 %) | the sv_2017 manifest |
 | Known defects (unexplained, sv_2017) | 0 | the sv_2017 manifest |
 

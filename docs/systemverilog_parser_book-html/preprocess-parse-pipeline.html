@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d27feaa6.js";
+            window.path_to_searchindex_js = "searchindex-f248e19c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -740,9 +740,10 @@ under BOTH readings (37 of them testbench tops, <code>tb.sv</code>) and none the
 OpenTitan package files still failing: 21 under <code>sv_2017</code>, 18 under <code>sv_2023</code>. Five testbench tops advanced
 without passing — each now stops at a per-IP define (<code>`EN_MASKING</code>, <code>`SRAM_TYPE</code>, <code>`INSTR_EXEC</code>,
 <code>`SEC_VOLATILE_RAW_UNLOCK_EN</code>).</p>
-<p><strong>Tool tolerances: four spellings the big simulators accept and this parser rejects, under both editions.</strong> Each
+<p><strong>Tool tolerances: five spellings the big simulators accept and this parser rejects, under both editions.</strong> Each
 was asked of the standard’s TEXT, not only of Annex A, and each has a reproducer pin that must keep rejecting
-(<code>stimuli/sv/adjudication_repros/</code>), so a widening can only happen as a decision:</p>
+(<code>stimuli/sv/adjudication_repros/</code>), so a widening can only happen as a decision. The first four are accepted by
+the opt-in profile below; the fifth (<code>SV-CORPUS-GRAD.44</code>) is not in its list:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -753,6 +754,7 @@ was asked of the standard’s TEXT, not only of Annex A, and each has a reproduc
 <tr><td><code>solve y before x[i];</code> inside a <code>foreach</code> constraint</td><td><code>adc_ctrl_env_var_filter_cfg.sv:64</code></td><td>A.1.10: <code>solve … before</code> is a constraint BLOCK item; a <code>foreach</code> holds constraint expressions</td><td style="text-align: right">5</td></tr>
 <tr><td><code>cross cp_a, cfg.vif.sig;</code> — a dotted name as a cross item</td><td><code>sysrst_ctrl_in_out_inverted_vseq.sv:49</code></td><td>§19.6: <em>“Expressions cannot be used directly in a cross; a coverage point must be explicitly defined first”</em></td><td style="text-align: right">3</td></tr>
 <tr><td><code>pure virtual task automatic t();</code> / <code>extern function automatic T f();</code> — a lifetime in a prototype</td><td><code>sec_cm_base_if_proxy.sv:21</code>, <code>tl_seq_item.sv:190</code></td><td>A.2.6 / A.2.7 prototypes have no lifetime; §8.24 lists what a prototype declares, and §8.6 makes every class method automatic already</td><td style="text-align: right">2</td></tr>
+<tr><td><code>binsof(cfg.vif.sig)</code> — a name of THREE or more parts inside <code>binsof(…)</code> (a two-part name is <code>cover_point.bin</code> and parses)</td><td><code>sysrst_ctrl_in_out_inverted_vseq.sv:60</code></td><td>§19.6.1: <code>binsof</code> <em>“yields the bins of its expression, which can be either a coverage point … or a coverage point bin”</em>; Syntax 19-4 <code>bins_expression ::= variable_identifier | cover_point_identifier [ . bin_identifier ]</code>; declare a coverpoint for the variable and name it</td><td style="text-align: right">4</td></tr>
 </tbody>
 </table>
 </div>
@@ -768,8 +770,9 @@ pass under the tolerant profile that <code>sv_2023</code> rejects (<code>sec_cm_
 <code>flash_ctrl_env_pkg</code> on three tops), four more packages publish, 315 of the 498 members unreached under the
 primary reading are reached, and nothing <code>sv_2023</code> accepts is lost (<code>2023_only_pass = 0</code>). Under the tolerant
 reading 12 OpenTitan package files still reject: 10 behind per-IP defines, 1 behind a per-target include, and
-<code>sysrst_ctrl_env_pkg</code>, which clears its <code>cross</code> and stops at a dotted name inside <code>binsof(…)</code> — the same
-tolerance one step on, not in the closed list, named for the next ruling (<code>SV-CORPUS-GRAD.44</code>).</p>
+<code>sysrst_ctrl_env_pkg</code>, which clears its <code>cross</code> and stops at a three-part name inside <code>binsof(…)</code> — the same
+tolerance one step on, ruled by <code>SV-CORPUS-GRAD.44</code> (the table’s fifth row: rejected under all three profiles, pinned
+from both sides, written in 4 corpus files); whether it joins the closed list is a decision not yet taken.</p>
 <p>Measured on the whole lane (the same debug probe, 689 s wall): <strong>425 rows <code>fail → pass</code> and none the other
 way</strong> — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
 <code>el2_param.vh:182</code>, a typedef of <code>el2_pkg</code>). The library: 407 package files, 230 accepted, 170 rejected,

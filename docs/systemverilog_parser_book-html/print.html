@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d27feaa6.js";
+            window.path_to_searchindex_js = "searchindex-f248e19c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -321,7 +321,7 @@ refuses a commit whose published block or whose history’s last row disagrees w
 ESTIMATE over the last five recorded releases; a structural leg (a corpus conformance gate, the generator proof) is one item that costs more than a bar row;
 the 38 % of corpus rows with no verdict are an answer-key gap outside <code>items</code>; and an item can be opened by a release as well as closed — the history shows both.</p>
 <!-- BEGIN DERIVED: scripts/report_sv_release_distance.sh --markdown -->
-<p><strong>SV release distance: 11 items</strong> (<code>legs_unmet + bar_rows + open_leaves</code>).</p>
+<p><strong>SV release distance: 10 items</strong> (<code>legs_unmet + bar_rows + open_leaves</code>).</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -330,7 +330,7 @@ the 38 % of corpus rows with no verdict are an answer-key gap outside <code>item
 <tbody>
 <tr><td>Done-bar legs unmet</td><td style="text-align: right">3 of 3</td><td>the derived block above (<code>report_family_status.sh</code>)</td></tr>
 <tr><td>Corpus bar rows (unexplained divergences)</td><td style="text-align: right">0 (sv_2017 0, sv_2023 0, verilog_2005 0)</td><td><code>stimuli/sv/characterization/adjudication_manifest*.tsv</code></td></tr>
-<tr><td>Open leaves owning SV work</td><td style="text-align: right">8 (SV-CORPUS-GRAD 3, engine leaves SV opened 5)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
+<tr><td>Open leaves owning SV work</td><td style="text-align: right">7 (SV-CORPUS-GRAD 2, engine leaves SV opened 5)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
 <tr><td>Corpus passing (sv_2017, <code>match</code> rows)</td><td style="text-align: right">6069 of 16336 (37.2 %)</td><td>the sv_2017 manifest</td></tr>
 <tr><td>Known defects (unexplained, sv_2017)</td><td style="text-align: right">0</td><td>the sv_2017 manifest</td></tr>
 </tbody>
@@ -1194,9 +1194,10 @@ under BOTH readings (37 of them testbench tops, <code>tb.sv</code>) and none the
 OpenTitan package files still failing: 21 under <code>sv_2017</code>, 18 under <code>sv_2023</code>. Five testbench tops advanced
 without passing — each now stops at a per-IP define (<code>`EN_MASKING</code>, <code>`SRAM_TYPE</code>, <code>`INSTR_EXEC</code>,
 <code>`SEC_VOLATILE_RAW_UNLOCK_EN</code>).</p>
-<p><strong>Tool tolerances: four spellings the big simulators accept and this parser rejects, under both editions.</strong> Each
+<p><strong>Tool tolerances: five spellings the big simulators accept and this parser rejects, under both editions.</strong> Each
 was asked of the standard’s TEXT, not only of Annex A, and each has a reproducer pin that must keep rejecting
-(<code>stimuli/sv/adjudication_repros/</code>), so a widening can only happen as a decision:</p>
+(<code>stimuli/sv/adjudication_repros/</code>), so a widening can only happen as a decision. The first four are accepted by
+the opt-in profile below; the fifth (<code>SV-CORPUS-GRAD.44</code>) is not in its list:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1207,6 +1208,7 @@ was asked of the standard’s TEXT, not only of Annex A, and each has a reproduc
 <tr><td><code>solve y before x[i];</code> inside a <code>foreach</code> constraint</td><td><code>adc_ctrl_env_var_filter_cfg.sv:64</code></td><td>A.1.10: <code>solve … before</code> is a constraint BLOCK item; a <code>foreach</code> holds constraint expressions</td><td style="text-align: right">5</td></tr>
 <tr><td><code>cross cp_a, cfg.vif.sig;</code> — a dotted name as a cross item</td><td><code>sysrst_ctrl_in_out_inverted_vseq.sv:49</code></td><td>§19.6: <em>“Expressions cannot be used directly in a cross; a coverage point must be explicitly defined first”</em></td><td style="text-align: right">3</td></tr>
 <tr><td><code>pure virtual task automatic t();</code> / <code>extern function automatic T f();</code> — a lifetime in a prototype</td><td><code>sec_cm_base_if_proxy.sv:21</code>, <code>tl_seq_item.sv:190</code></td><td>A.2.6 / A.2.7 prototypes have no lifetime; §8.24 lists what a prototype declares, and §8.6 makes every class method automatic already</td><td style="text-align: right">2</td></tr>
+<tr><td><code>binsof(cfg.vif.sig)</code> — a name of THREE or more parts inside <code>binsof(…)</code> (a two-part name is <code>cover_point.bin</code> and parses)</td><td><code>sysrst_ctrl_in_out_inverted_vseq.sv:60</code></td><td>§19.6.1: <code>binsof</code> <em>“yields the bins of its expression, which can be either a coverage point … or a coverage point bin”</em>; Syntax 19-4 <code>bins_expression ::= variable_identifier | cover_point_identifier [ . bin_identifier ]</code>; declare a coverpoint for the variable and name it</td><td style="text-align: right">4</td></tr>
 </tbody>
 </table>
 </div>
@@ -1222,8 +1224,9 @@ pass under the tolerant profile that <code>sv_2023</code> rejects (<code>sec_cm_
 <code>flash_ctrl_env_pkg</code> on three tops), four more packages publish, 315 of the 498 members unreached under the
 primary reading are reached, and nothing <code>sv_2023</code> accepts is lost (<code>2023_only_pass = 0</code>). Under the tolerant
 reading 12 OpenTitan package files still reject: 10 behind per-IP defines, 1 behind a per-target include, and
-<code>sysrst_ctrl_env_pkg</code>, which clears its <code>cross</code> and stops at a dotted name inside <code>binsof(…)</code> — the same
-tolerance one step on, not in the closed list, named for the next ruling (<code>SV-CORPUS-GRAD.44</code>).</p>
+<code>sysrst_ctrl_env_pkg</code>, which clears its <code>cross</code> and stops at a three-part name inside <code>binsof(…)</code> — the same
+tolerance one step on, ruled by <code>SV-CORPUS-GRAD.44</code> (the table’s fifth row: rejected under all three profiles, pinned
+from both sides, written in 4 corpus files); whether it joins the closed list is a decision not yet taken.</p>
 <p>Measured on the whole lane (the same debug probe, 689 s wall): <strong>425 rows <code>fail → pass</code> and none the other
 way</strong> — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
 <code>el2_param.vh:182</code>, a typedef of <code>el2_pkg</code>). The library: 407 package files, 230 accepted, 170 rejected,
@@ -2470,7 +2473,9 @@ enclosing variable (OpenTitan’s use) or as a second loop variable (Verilator�
 keeps the leading pairs apart as <code>selects</code> and leaves the reading to the consumer’s elaboration.</p>
 <h3 id="what-it-still-rejects-on-purpose"><a class="header" href="#what-it-still-rejects-on-purpose">What it still rejects, on purpose</a></h3>
 <p>The list is closed and exact. Still rejected under <code>sv_2023_tolerant</code>: a <code>solve</code> under an <code>if</code> nested inside the
-<code>foreach</code>; a lifetime in a modport or interface-class prototype; an expression (<code>y + 1</code>) as a cross item; and
+<code>foreach</code>; a lifetime in a modport or interface-class prototype; an expression (<code>y + 1</code>) as a cross item; a name of
+three or more parts inside <code>binsof(…)</code> (<code>binsof(cfg.vif.sig)</code> — the cross-item tolerance one step on, ruled a tool
+tolerance by <code>SV-CORPUS-GRAD.44</code> and not admitted; a two-part name is <code>cover_point.bin</code> and parses everywhere); and
 everything <code>sv_2023</code> rejects for any other reason. Each of these boundaries is a reproducer pin.</p>
 <h3 id="bounds-worth-knowing-1"><a class="header" href="#bounds-worth-knowing-1">Bounds worth knowing</a></h3>
 <ul>
@@ -3210,7 +3215,7 @@ grammar defect and is fixed in the grammar.</li>
 <h2 id="stress-sample"><a class="header" href="#stress-sample">Stress sample</a></h2>
 <p>A test input designed to exercise edge cases of the grammar — e.g. deeply nested structures, large modules, full LRM Annex-A coverage. Lives in <code>rust/test_data/grammar_quality/systemverilog_*</code> corpora.</p>
 <h2 id="tool-tolerance"><a class="header" href="#tool-tolerance">Tool tolerance</a></h2>
-<p>A spelling the commercial simulators accept that neither IEEE 1800-2017 nor 1800-2023 derives and whose clause text speaks against it (for example <code>foreach (a[i][j])</code>, or a lifetime in a method prototype). The edition profiles <code>sv_2017</code>, <code>sv_2023</code> and <code>verilog_2005</code> reject it, by the strict-LRM default. Since <code>1.0.249</code> the OPT-IN profile <code>sv_2023_tolerant</code> accepts a closed list of four such spellings and nothing else beyond <code>sv_2023</code>; each is pinned from both sides (rejected under the strict profiles, accepted under the tolerant one) and yields its own AST <code>kind</code>, so a consumer can tell a tolerated spelling from a standard one. The list, the standard’s rewrite for each, and the kinds are in <a href="#the-json-carrier">The Json Carrier</a> (<em>The Opt-In Tolerance Profile</em>); a spelling joins the list only by a ruling, never because a file failed to parse.</p>
+<p>A spelling the commercial simulators accept that neither IEEE 1800-2017 nor 1800-2023 derives and whose clause text speaks against it (for example <code>foreach (a[i][j])</code>, or a lifetime in a method prototype). The edition profiles <code>sv_2017</code>, <code>sv_2023</code> and <code>verilog_2005</code> reject it, by the strict-LRM default. Since <code>1.0.249</code> the OPT-IN profile <code>sv_2023_tolerant</code> accepts a closed list of four such spellings and nothing else beyond <code>sv_2023</code> (a fifth, a name of three or more parts inside <code>binsof(…)</code>, is ruled a tool tolerance by <code>SV-CORPUS-GRAD.44</code> and is NOT in the list); each is pinned from both sides (rejected under the strict profiles, accepted under the tolerant one) and yields its own AST <code>kind</code>, so a consumer can tell a tolerated spelling from a standard one. The list, the standard’s rewrite for each, and the kinds are in <a href="#the-json-carrier">The Json Carrier</a> (<em>The Opt-In Tolerance Profile</em>); a spelling joins the list only by a ruling, never because a file failed to parse.</p>
 <h2 id="typed-shape"><a class="header" href="#typed-shape">Typed shape</a></h2>
 <p>The JSON shape produced by an annotated rule. Always a JSON object with at least a <code>type</code> field and usually a <code>kind</code> discriminator. Consumers walking typed shapes dispatch on <code>obj["type"]</code> / <code>obj["kind"]</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div>

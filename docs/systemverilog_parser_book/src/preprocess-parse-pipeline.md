@@ -606,9 +606,10 @@ OpenTitan package files still failing: 21 under `sv_2017`, 18 under `sv_2023`. F
 without passing — each now stops at a per-IP define (`` `EN_MASKING ``, `` `SRAM_TYPE ``, `` `INSTR_EXEC ``,
 `` `SEC_VOLATILE_RAW_UNLOCK_EN ``).
 
-**Tool tolerances: four spellings the big simulators accept and this parser rejects, under both editions.** Each
+**Tool tolerances: five spellings the big simulators accept and this parser rejects, under both editions.** Each
 was asked of the standard's TEXT, not only of Annex A, and each has a reproducer pin that must keep rejecting
-(`stimuli/sv/adjudication_repros/`), so a widening can only happen as a decision:
+(`stimuli/sv/adjudication_repros/`), so a widening can only happen as a decision. The first four are accepted by
+the opt-in profile below; the fifth (`SV-CORPUS-GRAD.44`) is not in its list:
 
 | spelling | where OpenTitan writes it | what the standard says | corpus files |
 |---|---|---|---:|
@@ -616,6 +617,7 @@ was asked of the standard's TEXT, not only of Annex A, and each has a reproducer
 | `solve y before x[i];` inside a `foreach` constraint | `adc_ctrl_env_var_filter_cfg.sv:64` | A.1.10: `solve … before` is a constraint BLOCK item; a `foreach` holds constraint expressions | 5 |
 | `cross cp_a, cfg.vif.sig;` — a dotted name as a cross item | `sysrst_ctrl_in_out_inverted_vseq.sv:49` | §19.6: *"Expressions cannot be used directly in a cross; a coverage point must be explicitly defined first"* | 3 |
 | `pure virtual task automatic t();` / `extern function automatic T f();` — a lifetime in a prototype | `sec_cm_base_if_proxy.sv:21`, `tl_seq_item.sv:190` | A.2.6 / A.2.7 prototypes have no lifetime; §8.24 lists what a prototype declares, and §8.6 makes every class method automatic already | 2 |
+| `binsof(cfg.vif.sig)` — a name of THREE or more parts inside `binsof(…)` (a two-part name is `cover_point.bin` and parses) | `sysrst_ctrl_in_out_inverted_vseq.sv:60` | §19.6.1: `binsof` *"yields the bins of its expression, which can be either a coverage point … or a coverage point bin"*; Syntax 19-4 `bins_expression ::= variable_identifier \| cover_point_identifier [ . bin_identifier ]`; declare a coverpoint for the variable and name it | 4 |
 
 The corpus counts are a text scan (`docs/tasks/artifacts/sv_corpus_grad/dialect_constructs/scan.py`). A file that
 uses one of these is rejected at that line under `sv_2017` and `sv_2023` alike.
@@ -630,8 +632,9 @@ pass under the tolerant profile that `sv_2023` rejects (`sec_cm_pkg`, `tl_agent_
 `flash_ctrl_env_pkg` on three tops), four more packages publish, 315 of the 498 members unreached under the
 primary reading are reached, and nothing `sv_2023` accepts is lost (`2023_only_pass = 0`). Under the tolerant
 reading 12 OpenTitan package files still reject: 10 behind per-IP defines, 1 behind a per-target include, and
-`sysrst_ctrl_env_pkg`, which clears its `cross` and stops at a dotted name inside `binsof(…)` — the same
-tolerance one step on, not in the closed list, named for the next ruling (`SV-CORPUS-GRAD.44`).
+`sysrst_ctrl_env_pkg`, which clears its `cross` and stops at a three-part name inside `binsof(…)` — the same
+tolerance one step on, ruled by `SV-CORPUS-GRAD.44` (the table's fifth row: rejected under all three profiles, pinned
+from both sides, written in 4 corpus files); whether it joins the closed list is a decision not yet taken.
 
 Measured on the whole lane (the same debug probe, 689 s wall): **425 rows `fail → pass` and none the other
 way** — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
