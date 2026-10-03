@@ -186,7 +186,18 @@ envelope_divergence_ceiling() {
         # sample had no row. .10.14 class 166 -> 154, inline blind-spot class 42 unchanged: 154 + 42 =
         # 196. The grammar's own arm (the `local ::` prefix on split_callable_receiver_scope) moved no
         # row; the other thirteen grammars' rows are unchanged.
-        systemverilog) echo 196 ;;
+        # ⛔ RAISED 196 -> 200 by SV-CORPUS-GRAD.43 (release 1.0.249, the opt-in tolerance profile), ATTRIBUTED
+        # the same way (the 1.0.248 grammar vs this one, one binary, PGEN_ENVELOPE_DUMP_ALL=1, the annotation
+        # payloads normalised because every `@profiles` list naming sv_2023 now also names sv_2023_tolerant and
+        # re-spells 173 existing rows without adding one): exactly FOUR rows NEW, zero gone — the inline
+        # blind-spot pair `semantic_annotation_inline(sample) -> semantic_annotation(sample …)` at token 0 of
+        # tolerated_method_prototype_with_lifetime, tolerated_constraint_set_with_solve,
+        # tolerated_cross_item_hierarchical and tolerated_foreach_selected_array, the four rules that carry a
+        # rule-head `@sample:` so the certificate's generator can witness past their lookaheads. Inline
+        # blind-spot class 42 -> 46, .10.14 class 154 unchanged: 154 + 46 = 200. A rule-level `@sample` line
+        # would have cost two .10.14 rows per rule instead. The profile's ten gated rules and seven host
+        # alternatives moved no other row.
+        systemverilog) echo 200 ;;
         systemverilog_lrm_profiled_generated) echo 317 ;;
         # .10.14 plus the two documented arm-2 blind spots: `[> …]` lexical annotations (which
         # arm 2 misparses as character classes) and arm 1's inline/rule-level annotation

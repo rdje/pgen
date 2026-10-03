@@ -17,12 +17,12 @@
     "generated parser": {
       "kind": "bytes",
       "path": "generated/systemverilog_parser.rs",
-      "sha256": "9cc363beab63c228937c2fbd44187ce4c626dd0e4214c5b41d7ac1ddec61b072"
+      "sha256": "faeb6be3ad122b083f99c333f0d19b22be0b07bb1944e22e52695aa5e7200009"
     },
     "grammar": {
       "kind": "ebnf_raw_ast",
       "path": "grammars/systemverilog.ebnf",
-      "sha256": "bd40669851a6984a2cf7e9a6806a6e2b4327f41b57f0169b3a5c8fd4a93f8064"
+      "sha256": "63a1480b5da9e3bdbe68c56de672ba2892bc8ad3af317c4b1e18edda27ff4fd9"
     }
   },
   "lr_entries": 25748896,

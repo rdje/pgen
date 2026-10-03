@@ -443,6 +443,13 @@ stimuli/*/characterization/pipeline_results*.tsv.provenance.tmp.*
 stimuli/*/characterization/pipeline_library_sv2023.tsv
 stimuli/*/characterization/pipeline_library_members_sv2023.tsv
 stimuli/*/characterization/pipeline_library_sv2023/
+# … and the reading under the opt-in tolerance profile (SV-CORPUS-GRAD.43); the tracked claim is
+# docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_tolerant_lane/census.{md,tsv}.
+stimuli/*/characterization/pipeline_results_sv2023_tolerant.tsv
+stimuli/*/characterization/pipeline_results_sv2023_tolerant.tsv.tmp.*
+stimuli/*/characterization/pipeline_library_sv2023_tolerant.tsv
+stimuli/*/characterization/pipeline_library_members_sv2023_tolerant.tsv
+stimuli/*/characterization/pipeline_library_sv2023_tolerant/
 stimuli/*/characterization/durations.tsv
 stimuli/*/characterization/durations_v2005.tsv
 stimuli/*/characterization/durations_sv2023.tsv

@@ -316,13 +316,28 @@ def render_block(tables, aliases, specifiers):
     return "\n".join(lines)
 
 
-PROFILE_VARIANT = {"sv_2017": "Sv2017", "sv_2023": "Sv2023", "verilog_2005": "Verilog2005"}
+# SV-CORPUS-GRAD.43: `sv_2023_tolerant` is `sv_2023` plus a closed list of tolerated spellings — it reserves
+# sv_2023's words. A profile the grammar DECLARES and this map does not name is REFUSED below (it used to be
+# skipped unless it had an alias, so a new profile silently read as the unprofiled default in the preprocessor).
+PROFILE_VARIANT = {"sv_2017": "Sv2017", "sv_2023": "Sv2023", "verilog_2005": "Verilog2005",
+                   "sv_2023_tolerant": "Sv2023"}
+
+
+def declared_profiles(text: str) -> set:
+    """Every profile name a rule-level `@profiles:` directive of the grammar carries."""
+    names = set()
+    for m in re.finditer(r'^@profiles:\s*\[([^\]\n]*)\]', text, re.M):
+        names.update(re.findall(r'"([^"]+)"', m.group(1)))
+    return names
 
 
 def grammar_profiles():
     """The declared `--profile` spellings, canonical first, from the grammar itself."""
     text = GRAMMAR.read_text(encoding="utf-8")
-    pairs = {canonical: [canonical] for canonical in PROFILE_VARIANT}
+    unmapped = sorted(declared_profiles(text) - set(PROFILE_VARIANT))
+    if unmapped:
+        raise ValueError(f"grammar declares profile(s) {unmapped} with no keyword version in PROFILE_VARIANT")
+    pairs = {canonical: [canonical] for canonical in PROFILE_VARIANT if canonical in declared_profiles(text)}
     for line in text.split("\n"):
         if not line.startswith("@profile_alias:"):
             continue
@@ -340,15 +355,20 @@ def grammar_profiles():
 def grammar_specifiers():
     """profile -> the version specifiers `keywords_version_specifier_<profile>` admits."""
     text = GRAMMAR.read_text(encoding="utf-8")
+    lines = text.split("\n")
     out = {}
-    for suffix, canonical in (("sv_2017", "sv_2017"), ("sv_2023", "sv_2023"), ("v2005", "verilog_2005")):
-        line = next(
-            (l for l in text.split("\n") if l.startswith(f"keywords_version_specifier_{suffix} :=")),
-            None,
-        )
-        if line is None:
+    for suffix in ("sv_2017", "sv_2023", "v2005"):
+        at = next((i for i, l in enumerate(lines) if l.startswith(f"keywords_version_specifier_{suffix} :=")), None)
+        if at is None:
             raise ValueError(f"grammars/systemverilog.ebnf has no keywords_version_specifier_{suffix}")
-        out[canonical] = set(re.findall(r"\d{4}-\d{4}(?:-noconfig)?", line))
+        # the profiles the rule is LIVE under are its own `@profiles` directive (the line above it), so a profile
+        # added to that list — `sv_2023_tolerant` beside `sv_2023` — gets its row without this script naming it
+        gate = re.match(r'^@profiles:\s*\[([^\]\n]*)\]', lines[at - 1]) if at > 0 else None
+        if gate is None:
+            raise ValueError(f"keywords_version_specifier_{suffix} carries no `@profiles` directive on the line above it")
+        admitted = set(re.findall(r"\d{4}-\d{4}(?:-noconfig)?", lines[at]))
+        for canonical in re.findall(r'"([^"]+)"', gate.group(1)):
+            out[canonical] = admitted
     return out
 
 
@@ -414,7 +434,8 @@ VERSION_CHAIN = [
     ("1800-2017", TABLE_NAMES),
     ("1800-2023", TABLE_NAMES),
 ]
-PROFILE_VERSION = {"sv_2017": "1800-2017", "sv_2023": "1800-2023", "verilog_2005": "1364-2005"}
+PROFILE_VERSION = {"sv_2017": "1800-2017", "sv_2023": "1800-2023", "verilog_2005": "1364-2005",
+                   "sv_2023_tolerant": "1800-2023"}  # SV-CORPUS-GRAD.43: the tolerant profile reserves sv_2023's set
 
 
 def reserved_words_of(tables, specifier):

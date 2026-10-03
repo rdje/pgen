@@ -112,6 +112,10 @@ FIX_HINT = {
                                     "to `invalid` in stimuli/sv/adjudication_repros/MANIFEST.tsv, "
                                     "citing the fixing work-unit. The row then guards the FIX "
                                     "forever, which is the whole point of the round trip."),
+    ("tolerated", "REJECT"): ("⛔ A TOLERATED SPELLING STOPPED PARSING under the tolerant profile. The "
+                              "profile's closed list lost a member the director ordered "
+                              "(docs/decisions/project_sv_opt_in_tolerance_profile.md)."),
+    ("tolerated", "ACCEPT"): "⛔ The manifest expects this tolerated spelling to REJECT under the tolerant profile.",
     ("accepts_invalid", "ACCEPT"): ("⛔ The manifest expects this KNOWN over-acceptance to still be "
                                     "accepted; a REJECT here would mean it was fixed."),
 }
@@ -136,6 +140,7 @@ EXPECTED_BY_CLASS = {
     "invalid": "REJECT",          # illegal SV that PGEN correctly rejects, forever
     "accepts_invalid": "ACCEPT",  # illegal SV that PGEN wrongly accepts today
     "control": "ACCEPT",          # the neighbouring construct that DOES parse
+    "tolerated": "ACCEPT",        # no edition derives it; ACCEPTED under the tolerant profile ONLY (the closed list)
 }
 
 
@@ -145,7 +150,12 @@ ARM_HINT = ("⛔ THE VERDICT IS RIGHT AND THE ARM IS WRONG. The text parsed, but
 
 
 DEFAULT_PROFILE = "sv_2017"
-KNOWN_PROFILES = ("sv_2017", "sv_2023", "verilog_2005")
+KNOWN_PROFILES = ("sv_2017", "sv_2023", "verilog_2005", "sv_2023_tolerant")
+# SV-CORPUS-GRAD.43 — the opt-in tolerance profile and the strict profile it is built on. The runner
+# holds the SUPERSET itself: every row that names STRICT_BASE keeps its verdict under TOLERANT_PROFILE,
+# the strict twins of `tolerated` rows excepted (that flip is the profile's whole content).
+TOLERANT_PROFILE = "sv_2023_tolerant"
+STRICT_BASE = "sv_2023"
 
 
 def row_profiles(row: dict) -> list[str]:
@@ -323,8 +333,36 @@ def main() -> int:
                             f"{row['expect']} — a rejected input produces no AST, so the claim "
                             "can never be checked. Drop the arm or fix the expectation.")
 
+    # SV-CORPUS-GRAD.43 — the `tolerated` class is the tolerant profile's CLOSED LIST, and each member is pinned
+    # from both sides: it names the tolerant profile alone, and an `invalid` row with the SAME non-comment text
+    # keeps the strict base rejecting it. A tolerated row without that twin would let the strict profiles start
+    # accepting the spelling unseen.
+    def body_of(row_id: str) -> str:
+        path = REPROS / row_id
+        if not path.exists():
+            return ""
+        return "".join(l for l in path.read_text(encoding="utf-8").splitlines(keepends=True) if not l.startswith("//"))
+
+    invalid_strict_bodies = {body_of(r["id"]): r["id"] for r in rows
+                             if (r.get("class") or "").strip() == "invalid" and STRICT_BASE in row_profiles(r)
+                             and TOLERANT_PROFILE not in row_profiles(r)}
+    tolerated_rows = [r for r in rows if (r.get("class") or "").strip() == "tolerated"]
+    strict_twins = set()
+    for row in tolerated_rows:
+        if row_profiles(row) != [TOLERANT_PROFILE]:
+            failures.append(f"{row['id']}: class `tolerated` names the tolerant profile ALONE "
+                            f"(`{TOLERANT_PROFILE}`); it lists {row_profiles(row)}. A tolerated spelling accepted "
+                            "under a strict profile is an over-acceptance, not a tolerance.")
+        twin = invalid_strict_bodies.get(body_of(row["id"]))
+        if twin is None:
+            failures.append(f"{row['id']}: no `invalid` row with the same text pins `{STRICT_BASE}` to REJECT it. "
+                            "The closed list is two-sided: add the strict twin.")
+        else:
+            strict_twins.add(twin)
+
     checked = 0
     armed = 0
+    superset = 0
     multi = 0
     piped = 0
     for row in sorted(rows, key=lambda r: r["id"]):
@@ -360,9 +398,23 @@ def main() -> int:
             for bad in bad_arms:
                 failures.append(f"{row['id']} [{profile}]: {bad}\n      {ARM_HINT}\n"
                                 f"      construct: {row['construct']}  (LRM {row['lrm']})")
+        # SV-CORPUS-GRAD.43 — THE SUPERSET SWEEP: the tolerant profile is its strict base plus the closed list and
+        # nothing else, so a row that binds on the base and does not name the tolerant profile itself must read
+        # the SAME verdict there — unless it is the strict twin of a tolerated row.
+        if STRICT_BASE in profiles and TOLERANT_PROFILE not in profiles and row["id"] not in strict_twins:
+            got = "ACCEPT" if parses(path, TOLERANT_PROFILE, entry, stage) else "REJECT"
+            superset += 1
+            if got != row["expect"]:
+                failures.append(f"{row['id']} [{TOLERANT_PROFILE}]: the SUPERSET broke — `{STRICT_BASE}` expects "
+                                f"{row['expect']} and the tolerant profile reads {got}. The tolerant profile is "
+                                f"`{STRICT_BASE}` plus its closed list (the `tolerated` rows) and nothing else: "
+                                "either a strict construct lost its tolerant listing in a `@profiles` directive, or "
+                                "a tolerated arm reaches text outside the list.\n"
+                                f"      construct: {row['construct']}  (LRM {row['lrm']})")
 
     print(f"\nADJUDICATION-REPROS: checked={checked} armed={armed} listed={len(rows)} "
-          f"multi_profile_rows={multi} preprocess_rows={piped} failures={len(failures)}")
+          f"multi_profile_rows={multi} preprocess_rows={piped} tolerated_rows={len(tolerated_rows)} "
+          f"superset_rows={superset} failures={len(failures)}")
     if failures:
         print("\n".join(f"  ⛔ {f}" for f in failures))
         return 1

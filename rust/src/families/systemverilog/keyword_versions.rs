@@ -124,6 +124,7 @@ const PROFILE_KEYWORD_VERSION: &[(&str, KeywordVersion)] = &[
     ("ieee1800-2023", KeywordVersion::Sv2023),
     ("ieee_1800_2023", KeywordVersion::Sv2023),
     ("sv_2023", KeywordVersion::Sv2023),
+    ("sv_2023_tolerant", KeywordVersion::Sv2023),
     ("1364-2005", KeywordVersion::Verilog2005),
     ("ieee1364-2005", KeywordVersion::Verilog2005),
     ("ieee_1364_2005", KeywordVersion::Verilog2005),
@@ -136,6 +137,7 @@ const PROFILE_KEYWORD_VERSION: &[(&str, KeywordVersion)] = &[
 const ADMITTED_SPECIFIERS: &[(&str, &[&str])] = &[
     ("sv_2017", &["1800-2017", "1800-2012", "1800-2009", "1800-2005", "1364-2005", "1364-2001-noconfig", "1364-2001", "1364-1995"]),
     ("sv_2023", &["1800-2023", "1800-2017", "1800-2012", "1800-2009", "1800-2005", "1364-2005", "1364-2001-noconfig", "1364-2001", "1364-1995"]),
+    ("sv_2023_tolerant", &["1800-2023", "1800-2017", "1800-2012", "1800-2009", "1800-2005", "1364-2005", "1364-2001-noconfig", "1364-2001", "1364-1995"]),
     ("verilog_2005", &["1364-2005", "1364-2001-noconfig", "1364-2001", "1364-1995"]),
 ];
 // </derived-tables>

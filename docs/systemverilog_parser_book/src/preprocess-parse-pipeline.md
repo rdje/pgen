@@ -618,8 +618,20 @@ was asked of the standard's TEXT, not only of Annex A, and each has a reproducer
 | `pure virtual task automatic t();` / `extern function automatic T f();` — a lifetime in a prototype | `sec_cm_base_if_proxy.sv:21`, `tl_seq_item.sv:190` | A.2.6 / A.2.7 prototypes have no lifetime; §8.24 lists what a prototype declares, and §8.6 makes every class method automatic already | 2 |
 
 The corpus counts are a text scan (`docs/tasks/artifacts/sv_corpus_grad/dialect_constructs/scan.py`). A file that
-uses one of these is rejected at that line under `sv_2017` and `sv_2023` alike; there is no opt-in tolerance
-profile today.
+uses one of these is rejected at that line under `sv_2017` and `sv_2023` alike.
+
+**Since `1.0.249` there is an opt-in profile that accepts exactly these four: `sv_2023_tolerant`**
+(`SV-CORPUS-GRAD.43`, by director decision). It is `sv_2023` plus the four spellings and nothing else; the edition
+profiles are unchanged and remain the default. Ask for it by name — `--profile sv_2023_tolerant` on the probe,
+`PGEN_PIPELINE_PROFILE=sv_2023_tolerant` for a reading of the lane — and each tolerated spelling comes back under
+its own AST `kind` ([The Json Carrier](json-carrier.md), *The Opt-In Tolerance Profile*). Measured on release `1.0.249`'s own reading (`PGEN_PIPELINE_PROFILE=sv_2023_tolerant`, the census at
+`docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_tolerant_lane/census.md`): 15 rows and 6 OpenTitan package files
+pass under the tolerant profile that `sv_2023` rejects (`sec_cm_pkg`, `tl_agent_pkg`, `adc_ctrl_env_pkg`,
+`flash_ctrl_env_pkg` on three tops), four more packages publish, 315 of the 498 members unreached under the
+primary reading are reached, and nothing `sv_2023` accepts is lost (`2023_only_pass = 0`). Under the tolerant
+reading 12 OpenTitan package files still reject: 10 behind per-IP defines, 1 behind a per-target include, and
+`sysrst_ctrl_env_pkg`, which clears its `cross` and stops at a dotted name inside `binsof(…)` — the same
+tolerance one step on, not in the closed list, named for the next ruling (`SV-CORPUS-GRAD.44`).
 
 Measured on the whole lane (the same debug probe, 689 s wall): **425 rows `fail → pass` and none the other
 way** — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in

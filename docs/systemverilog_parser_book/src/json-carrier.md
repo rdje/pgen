@@ -989,3 +989,59 @@ artifact `docs/tasks/artifacts/sv_corpus_grad/partial_typing_residue/census.md`;
 `RAW_ENVELOPE=0` on the released grammar (31 partial rules remain, all of them passthrough alternatives typed one level
 down by design).
 
+## The Opt-In Tolerance Profile (`sv_2023_tolerant`, since `1.0.249`)
+
+`sv_2017`, `sv_2023` and `verilog_2005` are strict: text the standard does not derive is rejected. Real
+verification code also contains a few spellings the commercial simulators accept and the standard does not. By
+director decision (2026-10-02) the parser carries ONE opt-in profile for them: `sv_2023_tolerant` is `sv_2023`
+plus a closed list of four spellings, and nothing else. Nothing selects it unless the caller names it; there is no
+alias and no convenience entry point — use the generic named entry (`parse_grammar_profile_named("systemverilog",
+"sv_2023_tolerant", …)`) or `--profile sv_2023_tolerant`.
+
+### What it accepts that `sv_2023` does not
+
+| spelling | example | the standard's own form | what the standard says |
+|---|---|---|---|
+| `foreach` with bracket pairs before the loop-variable bracket | `foreach (a[i][j])` | `foreach (a[i, j])` | §12.7.3: the argument is *"an identifier that designates any type of array followed by a comma-separated list of loop variables enclosed in square brackets"* |
+| `solve … before …;` directly inside the braces of a `foreach` constraint | `foreach (x[i]) { solve y before x[i]; }` | the `solve` at constraint-block level | A.1.10: `solve` is a constraint BLOCK item; a `foreach` holds constraint expressions |
+| a dotted name as a `cross` item | `cross cp_a, cfg.vif.sig;` | declare a coverpoint for it, cross the coverpoint | §19.6: *"Expressions cannot be used directly in a cross; a coverage point must be explicitly defined first"* |
+| a lifetime in a CLASS method prototype | `pure virtual task automatic t();`, `extern function automatic T f();` | the prototype without the lifetime | A.2.6 / A.2.7 prototypes have no lifetime; §8.6 makes every class method automatic already |
+
+### What a consumer sees
+
+Every tolerated spelling arrives under a `kind` no standard spelling produces, so a consumer can accept, flag or
+refuse it explicitly. The standard spellings keep their existing kinds and shapes under this profile.
+
+| rule | new `kind` (tolerant profile only) | shape |
+|---|---|---|
+| `loop_statement_sv_only` | `"foreach_tolerated_select"` | `{head, body}` — `head` is `{array, selects, loop_vars}`: `selects` lists the expressions of the leading bracket pairs, in order; `loop_vars` is the LAST bracket pair, the standard `loop_variables` list |
+| `constraint_expression` | `"foreach_tolerated_select"` | `{head, body}` — as above, `body` a standard `constraint_set` |
+| `constraint_expression` | `"foreach_tolerated_solve"` | `{array, loop_vars, body}` — the standard `foreach` fields; `body` is `{items}`, each item a standard `constraint_block_item` (`"solve_before"` or `"expression"`) |
+| `constraint_expression` | `"foreach_tolerated_select_solve"` | `{head, body}` — both tolerances at once |
+| `cross_item` | `"tolerated_hierarchical"` | `{body}` — `body` is `{path}`, a standard `hierarchical_identifier` |
+| `class_method` | `"pure_virtual_tolerated_lifetime"` | `{qualifiers, prototype}` — `prototype` is `{kind, dynamic_override, lifetime, name, ports}` with `kind` `"task"` or `"function"` (plus `return_type` for a function) |
+| `class_method` | `"extern_tolerated_lifetime"` | `{qualifiers, prototype}` — the same prototype object |
+
+⚠️ **The parser does not decide what `foreach (a[i][j])` MEANS.** A simulator may read `i` as a select by an
+enclosing variable (OpenTitan's use) or as a second loop variable (Verilator's and Surelog's tests). The AST
+keeps the leading pairs apart as `selects` and leaves the reading to the consumer's elaboration.
+
+### What it still rejects, on purpose
+
+The list is closed and exact. Still rejected under `sv_2023_tolerant`: a `solve` under an `if` nested inside the
+`foreach`; a lifetime in a modport or interface-class prototype; an expression (`y + 1`) as a cross item; and
+everything `sv_2023` rejects for any other reason. Each of these boundaries is a reproducer pin.
+
+### Bounds worth knowing
+
+- The corpus lanes' primary reading stays `sv_2017`; the tolerant profile has its own reading of the pipeline lane
+  and its own census against `sv_2023`. It moves no published pass rate of the edition profiles.
+- The profile is held to its definition by a doctrine (`SV-TOLERANT-PROFILE-SUPERSET`: every rule live under
+  `sv_2023` is live under the tolerant profile; a tolerant-only rule is named `tolerated_…`) and by the pin
+  runner's superset sweep (every `sv_2023` pin reads the same verdict under the tolerant profile).
+- A spelling joins the list only with a ruling: its LRM text read, its corpus count, a reproducer pair.
+- The recognized certificate (its universe: the rules live under `sv_2017`) does not count the tolerant rules. Under
+  the tolerant profile's own base, certificate coverage reads `total=1563 proof=23 witness=1532 UNKNOWN=8` at seeds
+  0 / 7 / 42: seven of the ten `tolerated_*` rules are witnessed by generation; the three `solve`-tolerance rules
+  are not (a generated `solve … before` names variables the store gate has not seen) and are exercised by the pins
+  on the generated parser instead.

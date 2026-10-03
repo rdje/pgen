@@ -4,10 +4,10 @@
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
     "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1245/397/834/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=369/0_mismatches aliases=2",
-    "verified_at_commit": "fe59a6f270e6a9fb4ab5345feb026669790be2fb",
+    "verified_at_commit": "512e170a058f40e72375efe18ef9e2ef43e7de5a",
     "inputs": {
-      "generated/systemverilog_parser.rs": "9cc363beab63c228937c2fbd44187ce4c626dd0e4214c5b41d7ac1ddec61b072",
-      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "bd40669851a6984a2cf7e9a6806a6e2b4327f41b57f0169b3a5c8fd4a93f8064" },
+      "generated/systemverilog_parser.rs": "faeb6be3ad122b083f99c333f0d19b22be0b07bb1944e22e52695aa5e7200009",
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "63a1480b5da9e3bdbe68c56de672ba2892bc8ad3af317c4b1e18edda27ff4fd9" },
       "rust/src/ast_pipeline/grammar_wellformedness.rs": "1b14e5f8517737d9b75fc3340d771c8053741cc1f78aa6f7f442a8432182bc65",
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "ebfafdd38fda2371dbcd7211b98bb5b13bfa7f9666678cd5e7d82ca7c1bc48b6",
       "rust/src/ast_pipeline/stimuli_generator.rs": "1ac33ccdf0ef48eb5f9eea113b2c7ec3511797c4077ec11326bb21cd24d843a2"

@@ -10,12 +10,12 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `1e08b5ceedbad201fa750131383ccd99365d53a0c310cc8d582680073be75ba0` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `bd40669851a6984a2cf7e9a6806a6e2b4327f41b57f0169b3a5c8fd4a93f8064` |
-| sv_2017 pipeline results | `stimuli/sv/characterization/pipeline_results.tsv` | `95cb1dce76dd2ddf0676f23a5b9e4bcc15dd700228a2c3c3c1abf81ec7edf3e4` |
-| sv_2017 library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `c1fdb5b9fdd1392824d7a0e9a21d6a5dd63e83df1a374f1cbe5a6b9fe26de340` |
-| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `7bb0ae411ecac950b741df6b3222e7d34eaf899fa5fd6016e7b0f3ee0b1b6245` |
-| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `f212e8352e739643e3c4f88fb74f63627e6c0b0f1f2c0887b5bd6acff77727b6` |
+| parse binary | `rust/target/debug/parseability_probe` | `99509821a012512889bf5489a39cd953c4d6abf3c8ca35601431c5cbf795f0f5` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `63a1480b5da9e3bdbe68c56de672ba2892bc8ad3af317c4b1e18edda27ff4fd9` |
+| sv_2017 pipeline results | `stimuli/sv/characterization/pipeline_results.tsv` | `93ab69534f44f6b7d571aefb679b2fbdad462aa55295f1b3aadc1bdfc7777613` |
+| sv_2017 library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `ac6f9c2d4950ea1088fecf941ef3dd6b7f86839f7a13abe38247e5168c9a8870` |
+| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `c0024cb2a309fe35258aff5e022892b8c2235f4a9535a22fe6f424cea76d2431` |
+| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `91254b4076fe8725c98362db03c6f0e2cddc68f29acb7bc3ba9f26abf44b98c2` |
 | unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023.tsv` | `97f4cb5f4523c0640414462acd3d27f32e2554d396fe78eeed669cba0bb4a821` |
 | sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `b169b1a2c2552dc32e6891f22f5b839fe4f72f594a97e2f54f5537aef1794e29` |
 | sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `c196f707a1fdc43a664113eb663e99de004a82c4ac72754fb8929f2c1a7b91fe` |

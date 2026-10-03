@@ -149,7 +149,7 @@ def main() -> int:
     ap.add_argument("--out", default="stimuli/sv/characterization/pipeline_library.tsv")
     ap.add_argument("--out-members", default="stimuli/sv/characterization/pipeline_library_members.tsv")
     ap.add_argument("--timeout-s", type=int, default=60)
-    ap.add_argument("--profile", default="sv_2017", choices=("sv_2017", "sv_2023"),
+    ap.add_argument("--profile", default="sv_2017", choices=("sv_2017", "sv_2023", "sv_2023_tolerant"),
                     help="the edition every package file is read under (SV-CORPUS-GRAD.38); the caller names the "
                          "output paths, so two readings never share one")
     ap.add_argument("--suites", nargs="*", default=sorted(DESIGN_SUITES))

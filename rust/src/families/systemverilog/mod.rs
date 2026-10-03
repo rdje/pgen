@@ -149,10 +149,12 @@ pub static PREPROCESSING: PreprocessingStage = PreprocessingStage {
 };
 
 /// The per-profile bundle directory — a fact of THIS family: `sv_2023` has its own bundle, every
-/// other (or unrequested) profile rides the `sv_2017` bundle, the corpus baseline.
+/// other (or unrequested) profile rides the `sv_2017` bundle, the corpus baseline. The opt-in
+/// tolerance profile (`SV-CORPUS-GRAD.43`) is `sv_2023` plus a closed list of spellings, so it rides
+/// `sv_2023`'s bundle.
 fn stdlib_bundle_dir(normalized_profile: Option<&str>) -> &'static str {
     match normalized_profile {
-        Some("sv_2023") => "sv_2023_std",
+        Some("sv_2023") | Some("sv_2023_tolerant") => "sv_2023_std",
         _ => "sv_2017_std",
     }
 }
@@ -238,13 +240,26 @@ mod stdlib_tests {
     /// stdlib than the tree it was built from.
     #[test]
     fn embedded_bundle_equals_the_tracked_source_for_every_profile() {
-        for profile in [None, Some("sv_2017"), Some("sv_2023"), Some("verilog_2005")] {
+        for profile in [None, Some("sv_2017"), Some("sv_2023"), Some("verilog_2005"), Some("sv_2023_tolerant")] {
             let embedded = resolve_stdlib_records(profile, None).expect("the embedded bundle parses");
             let from_tree = read_artifact(&tracked_root().join(stdlib_bundle_dir(profile)), "package", "std")
                 .expect("the tracked bundle reads");
             assert_eq!(embedded, from_tree, "profile {profile:?}: embedded bundle != tracked source");
             assert!(!embedded.is_empty(), "profile {profile:?}: the stdlib bundle carries no facts");
         }
+    }
+
+    /// `SV-CORPUS-GRAD.43` — the opt-in tolerance profile is `sv_2023` plus a closed list of spellings, so it
+    /// preloads `sv_2023`'s standard library, record for record. Falling through to the default arm would hand
+    /// it the 2017 bundle: a profile that accepts 1800-2023 text with 1800-2017's `std` facts.
+    #[test]
+    fn the_tolerant_profile_rides_the_sv_2023_bundle() {
+        assert_eq!(stdlib_bundle_dir(Some("sv_2023_tolerant")), stdlib_bundle_dir(Some("sv_2023")));
+        assert_eq!(
+            resolve_stdlib_records(Some("sv_2023_tolerant"), None).expect("the tolerant profile's bundle parses"),
+            resolve_stdlib_records(Some("sv_2023"), None).expect("the sv_2023 bundle parses"),
+        );
+        assert_ne!(stdlib_bundle_dir(Some("sv_2023_tolerant")), stdlib_bundle_dir(Some("sv_2017")));
     }
 
     /// `.73` — a named override is honoured, and a bundle missing there is refused BY NAME rather

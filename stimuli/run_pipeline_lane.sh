@@ -39,9 +39,11 @@
 #   PGEN_PIPELINE_MAX_FILES  cap for a smoke run (0 = all)
 #   PGEN_PIPELINE_PROFILE    the edition every row and every package file is read under
 #                            (SV-CORPUS-GRAD.38): `sv_2017` (default — the PRIMARY reading, the one the
-#                            verdict-coverage tuple is defined over) or `sv_2023` (the second reading:
+#                            verdict-coverage tuple is defined over), `sv_2023` (the second reading:
 #                            its dump, library and membership table carry the `_sv2023` suffix, so the
-#                            two readings never share a path and neither run can overwrite the other)
+#                            readings never share a path and no run can overwrite another) or
+#                            `sv_2023_tolerant` (SV-CORPUS-GRAD.43: the opt-in tolerance profile's
+#                            reading, suffix `_sv2023_tolerant`)
 set -uo pipefail
 export LC_ALL=C
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -57,7 +59,8 @@ PROFILE="${PGEN_PIPELINE_PROFILE:-sv_2017}"
 case "$PROFILE" in
   sv_2017) PROFILE_SUFFIX="" ;;
   sv_2023) PROFILE_SUFFIX="_sv2023" ;;
-  *) echo "pipeline-lane: unknown profile '$PROFILE' (sv_2017 | sv_2023)" >&2; exit 2 ;;
+  sv_2023_tolerant) PROFILE_SUFFIX="_sv2023_tolerant" ;;
+  *) echo "pipeline-lane: unknown profile '$PROFILE' (sv_2017 | sv_2023 | sv_2023_tolerant)" >&2; exit 2 ;;
 esac
 OUT="${PGEN_PIPELINE_OUT:-stimuli/sv/characterization/pipeline_results${PROFILE_SUFFIX}.tsv}"
 MAX_FILES="${PGEN_PIPELINE_MAX_FILES:-0}"

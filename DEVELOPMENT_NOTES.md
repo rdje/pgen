@@ -1,5 +1,14 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-03 — SV-CORPUS-GRAD.43 (`PGEN-SV-CORPUS-GRAD-0428`, release 1.0.249): a profile-gated rule costs nothing to call, a certificate has a universe, and a check that cannot see a new profile passes
+
+- **Put the gate before the keyword.** An alternative that begins with a terminal asks that terminal at every position before anything can refuse it; an alternative that IS a gated rule asks nothing where the gate is off — the per-rule table carried no row for any `tolerated_*` rule even in the first cut. For a feature that must be free on the profiles that do not use it, the host alternative is the gated rule and the keyword lives inside it; `$1.field` keeps the shape. Found by the ratchet, not by reasoning: +0.02 % looked negligible until the rule said it is rejected, not traded.
+- **A certificate counts what its base profile can reach.** I predicted +4 rules on the recognized union and the gate read the same 1 530; rules that exist only under another profile are outside that universe. Before predicting a contract's numbers, read what population the contract measures.
+- **A check with a hard-coded roster passes on what it does not know.** `check_sv_keyword_versions.py` mapped three profiles and derived a row only for a profile with an alias; the fourth profile was simply absent from its view, and `OK` printed. The fix is the usual one: derive the roster from the artifact (the grammar's own `@profiles` universe) and REFUSE what the map does not cover.
+- **The superset sweep paid for itself on its first run.** A strict pin of a tolerated spelling with a different body had no twin; the sweep named it. A two-sided list is only two-sided if every strict instance has its tolerant twin, not just the one you wrote today.
+- **Re-measure the advisory before reading it.** `+49.7 %` wall clock on a change that moved no counter was the host's other sessions (load average 16), as the next two runs of the same bytes showed (`+5.5 %`, `+8.9 %`).
+- promotion: declined for now — the first lesson is a candidate card (`a-profile-gated-rule-costs-nothing-where-the-gate-is-off`), filed in this entry until it is seen a second time; the others are instances of existing cards.
+
 ## 2026-10-02 — SVPP-EXPANSION.5(m) (`PGEN-SVPP-EXPANSION-0034`): a syntax box is not the clause, and a refusal message is a published claim
 
 - **I ruled a construct out from a syntax box and shipped the ruling as an error message.** Syntax 22-1 lists two filename forms; the sentence that admits a macro sits in the next subclause. The bounding ruling already says *"non-LRM" is a citation, never an inference* — written about Annex A, true of every excerpt box in the standard. A refusal that tells the user what the standard says must cite a sentence that was read in the clause, not a production.
