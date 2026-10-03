@@ -1,0 +1,39 @@
+SCOPE-PREFIX-RENDERING-DRIFT: grammar=grammars/systemverilog.ebnf
+  canonical rendering: primary_hier_scope_prefix = {class_scope, local, package_scope}  (arms outside the compared vocabulary, bound 2: ['implicit_class_handle_prefix_sv_only'])
+  excluded: implicit_handle_or_class_scope (alternative `implicit_class_handle dot` is outside the vocabulary — not a rendering of A.8.4's prefix)
+  mechanism control: inline group WITH the alternative accepts `p::b::m`, WITHOUT it rejects — a missing inline alternative is accept-set-visible
+  renderings found: 4 (2 named + 0 inline + 2 empty)
+  OK    split_callable_receiver_scope:5081 (used by split_hierarchical_callable_receiver) [named] {class_scope, local, package_scope} followed by `( non_keyword_identifier hierarchical_bit_select`
+  PIN   method_call_receiver_sv_2017:5125 [empty] {} followed by `hierarchical_identifier`  missing=['class_scope', 'local', 'package_scope'] extra=[]
+        pin [class_scope]: inert: longest_match hands the class-scoped receiver to the split rule, so widening here buys nothing and the 3-site variant cost entries +0.47 % / memo_hits +1.05 % (.13c.2f: no widening without demonstrated gain)
+        pin [local]: inert: the copy renders no prefix and a prefixed receiver never wins through it (the .3.42 liveness census: committed = 0 on every corpus file)
+  PIN   method_call_receiver_sv_2023:5144 [empty] {} followed by `hierarchical_identifier`  missing=['class_scope', 'local', 'package_scope'] extra=[]
+        pin [class_scope]: inert: the sv_2023 twin of the row above, same measurement
+        pin [local]: inert: the sv_2023 twin of the row above, same measurement
+  attribution control [class_scope]: with `class_scope` at NO site, all 2 reproducer(s) REJECT on every profile
+        [class_scope] primary_hier_scope_prefix alone -> defect_class_scope_method_receiver.sv [sv_2017] reject  (as specified)
+        [class_scope] primary_hier_scope_prefix alone -> defect_class_scope_method_receiver.sv [sv_2023] reject  (as specified)
+        [class_scope] primary_hier_scope_prefix alone -> defect_class_scope_indexed_member_call.sv [sv_2017] reject  (as specified)
+        [class_scope] primary_hier_scope_prefix alone -> defect_class_scope_indexed_member_call.sv [sv_2023] reject  (as specified)
+        [class_scope] split_callable_receiver_scope alone -> defect_class_scope_method_receiver.sv [sv_2017] accept  (as specified)
+        [class_scope] split_callable_receiver_scope alone -> defect_class_scope_method_receiver.sv [sv_2023] accept  (as specified)
+        [class_scope] split_callable_receiver_scope alone -> defect_class_scope_indexed_member_call.sv [sv_2017] accept  (as specified)
+        [class_scope] split_callable_receiver_scope alone -> defect_class_scope_indexed_member_call.sv [sv_2023] accept  (as specified)
+        [class_scope] method_call_receiver_sv_2017 alone -> defect_class_scope_method_receiver.sv [sv_2017] reject  (as specified)
+        [class_scope] method_call_receiver_sv_2017 alone -> defect_class_scope_method_receiver.sv [sv_2023] reject  (as specified)
+        [class_scope] method_call_receiver_sv_2017 alone -> defect_class_scope_indexed_member_call.sv [sv_2017] reject  (as specified)
+        [class_scope] method_call_receiver_sv_2017 alone -> defect_class_scope_indexed_member_call.sv [sv_2023] reject  (as specified)
+        [class_scope] method_call_receiver_sv_2023 alone -> defect_class_scope_method_receiver.sv [sv_2017] reject  (as specified)
+        [class_scope] method_call_receiver_sv_2023 alone -> defect_class_scope_method_receiver.sv [sv_2023] reject  (as specified)
+        [class_scope] method_call_receiver_sv_2023 alone -> defect_class_scope_indexed_member_call.sv [sv_2017] reject  (as specified)
+        [class_scope] method_call_receiver_sv_2023 alone -> defect_class_scope_indexed_member_call.sv [sv_2023] reject  (as specified)
+  attribution control [local]: with `local` at NO site, all 1 reproducer(s) REJECT on every profile
+        [local] primary_hier_scope_prefix alone -> defect_local_qualified_method_call.sv [sv_2017] reject  (as specified)
+        [local] primary_hier_scope_prefix alone -> defect_local_qualified_method_call.sv [sv_2023] reject  (as specified)
+        [local] split_callable_receiver_scope alone -> defect_local_qualified_method_call.sv [sv_2017] accept  (as specified)
+        [local] split_callable_receiver_scope alone -> defect_local_qualified_method_call.sv [sv_2023] accept  (as specified)
+        [local] method_call_receiver_sv_2017 alone -> defect_local_qualified_method_call.sv [sv_2017] reject  (as specified)
+        [local] method_call_receiver_sv_2017 alone -> defect_local_qualified_method_call.sv [sv_2023] reject  (as specified)
+        [local] method_call_receiver_sv_2023 alone -> defect_local_qualified_method_call.sv [sv_2017] reject  (as specified)
+        [local] method_call_receiver_sv_2023 alone -> defect_local_qualified_method_call.sv [sv_2023] reject  (as specified)
+SCOPE-PREFIX-RENDERING-DRIFT: sites=4 drift=0 pinned=2 members=2 attribution_broken=0 attribution_rederived=yes

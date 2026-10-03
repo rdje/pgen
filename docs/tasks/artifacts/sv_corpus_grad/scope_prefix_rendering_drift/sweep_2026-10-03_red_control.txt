@@ -1,0 +1,1 @@
+SCOPE-PREFIX-RENDERING-DRIFT-RED-CONTROL: stripped=class_scope@split_callable_receiver_scope rc=1 drift_reported=yes

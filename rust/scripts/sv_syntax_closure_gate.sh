@@ -71,6 +71,7 @@ run_logged_rust() {
 mkdir -p "$LOG_DIR" "$WORK_DIR"
 
 require_tool jq
+require_tool python3
 require_file "$CONTRACT_FILE"
 
 # --- BASELINE IDENTITY: is this contract still describing THIS tree? -------------------
@@ -240,6 +241,20 @@ if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary missing at '$AST_PIPELINE_BIN'" >&2
     exit 1
 fi
+
+# SV-CORPUS-GRAD.40 (2026-10-03) — the `.13c.2j` SCOPE-PREFIX RENDERING-DRIFT sweep runs HERE, on the
+# debug ast_pipeline just built (it re-derives its attribution through the interpreter, TOOLBOX 1.5b).
+# It compares every rendering of IEEE 1800 A.8.4's `[ class_qualifier | package_scope ]` prefix in the SV
+# grammar against the canonical one and re-measures, per member, which rendering carries the accept-set
+# flip (`split_callable_receiver_scope`) and which copies are pinned inert. Nothing had invoked it since
+# 2026-09-06, and in that time `.3.42` lifted the inline groups it extracted into named rules: it read
+# `CONTROL FAILED` on every grammar for four weeks and nobody saw. The RED control runs first — a scratch
+# copy with `class_scope` stripped from the callable receiver's rendering MUST read DRIFT — so a sweep
+# that cannot fail is refused before its green is believed.
+run_logged "scope_prefix_rendering_drift_red_control" \
+    python3 "$ROOT_DIR/docs/tasks/artifacts/sv_corpus_grad/scope_prefix_rendering_drift/sweep_scope_prefix_renderings.py" --red-control
+run_logged "scope_prefix_rendering_drift" \
+    python3 "$ROOT_DIR/docs/tasks/artifacts/sv_corpus_grad/scope_prefix_rendering_drift/sweep_scope_prefix_renderings.py"
 
 run_logged "frontend_rust_raw_ast_export" \
     "$AST_PIPELINE_BIN" "$grammar_file" --emit-raw-ast-json "$grammar_json"
