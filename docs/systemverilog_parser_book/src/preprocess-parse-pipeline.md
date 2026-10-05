@@ -289,6 +289,19 @@ each one a sentence of the standard that a corpus row had been failing on:
   all three are tool test suites probing the edge: verilator `t_preproc.v:277` (its own comment reads
   *"comments MIGHT not be legal"*), iverilog `macro_with_args.v:17` and sv2v `macro_arg_comment.sv:1`. No
   design file in the corpus writes it, so no opt-in tolerance is offered for it.
+- **Three readings follow the EDITION of the profile the text will be parsed under** (`SVPP-EXPANSION.5`(p);
+  `--profile sv_2023` and `sv_2023_tolerant` select IEEE 1800-2023, every other profile and the unprofiled reading
+  select 1800-2017). They are the three places where 1800-2023's clause 22 says more than 1800-2017's:
+
+  | text | under the 2017 reading | under the 2023 reading | the sentence |
+  |---|---|---|---|
+  | a block comment in macro text — `` `define Y(a) a /* c */ + 1 `` | the comment is part of the substituted text | the comment is NOT substituted (one space stands where it was) | 1800-2023 §22.5.1: *"If a one-line comment or block comment (see 5.4) is included in the text, then the comment shall not become part of the substituted text"*; 1800-2017 says it of one-line comments only |
+  | a block comment that the macro text opens and the NEXT line closes — `` `define X 1 /* multi `` / `line */ + 2` | REFUSED, naming the clause: the newline ended the macro text inside a comment (*"shall not be split across … Comments"*) | the comment carries the `` `define `` across its newlines; `X` is `1 + 2` | 1800-2023 §22.5.1: *"A newline character that is not contained in a triple-quoted string literal or in a block comment and is not preceded by a backslash shall end the macro text"* |
+  | a macro USAGE as the argument of `` `ifdef `` / `` `ifndef `` / `` `elsif `` / `` `undef `` — `` `ifndef `ID(HAVE) `` | the argument is read as written (Syntax 22-6 takes a `text_macro_identifier`) | the usage is expanded first and the directive reads what it yields | 1800-2023 §22.2: *"Macro expansion shall occur within a compiler directive"* |
+
+  The 2017 column is the strict reading of that edition, not a guess at tool behaviour: where the older text has no
+  sentence the newer one adds, the older reading stays as it was. Each of the first two rows that changes a verdict is
+  pinned as an edition twin — one file accepted under `sv_2023`, its byte twin rejected under `sv_2017`.
 - **A function-like macro may open its parentheses on the next line** (§22.5.1 requires the parentheses;
   §5.3 lets white space, newlines included, separate the tokens): `` `FOO `` at the end of a line followed by
   `(1, 2)` on the next is one invocation.

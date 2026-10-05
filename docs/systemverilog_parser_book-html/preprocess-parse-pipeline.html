@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-42a0d85d.js";
+            window.path_to_searchindex_js = "searchindex-d7b41460.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -433,23 +433,32 @@ expansion still holds) while <code>`define A(x) `B(`A(x))</code> is still refuse
 <p><strong>What the expansion stage rewrites, and what it leaves.</strong> Four rules landed with <code>SVPP-EXPANSION.6b.2</code>,
 each one a sentence of the standard that a corpus row had been failing on:</p>
 <ul>
-<li><strong>A one-line comment in macro text is not substituted</strong> (§22.5.1: <em>“the comment shall not become part
+<li>
+<p><strong>A one-line comment in macro text is not substituted</strong> (§22.5.1: <em>“the comment shall not become part
 of the substituted text”</em>). <code>`define N 21 */* foo */2//foo</code> expands to <code>21 */* foo */2</code> — the block
 comment stays, it is white space to the parser; a string keeps its slashes; a continued line keeps its
-continuation even when the comment sat on it.</li>
-<li><strong>Nor is a one-line comment written inside an ACTUAL</strong> (<code>SVPP-EXPANSION.5</code>(l), 2026-10-02 — the same
+continuation even when the comment sat on it.</p>
+</li>
+<li>
+<p><strong>Nor is a one-line comment written inside an ACTUAL</strong> (<code>SVPP-EXPANSION.5</code>(l), 2026-10-02 — the same
 sentence, read of the text that gets substituted). <code>`M(a == b // why, exactly&lt;newline&gt;)</code> used to expand to
 <code>if (!(a == b // why, exactly)) …</code>: the comma inside the comment correctly did not split the argument, but
 the comment’s text was carried onto the expansion’s single line and commented out the rest of the call —
 silently (<code>diagnostics=0</code>). Now the comment is dropped up to its line feed when the actual is bound; a
 block comment stays, and a <code>//</code> inside a string literal is the string’s. OpenTitan writes this in its
 <code>`DV_CHECK_RANDOMIZE_WITH_FATAL(req, … // TODO … )</code> calls and in RTL assertion macros: four corpus
-rows moved <code>fail → pass</code> under the pipeline and none the other way.</li>
-<li><strong>The paste token joins its sides in an object macro too</strong> (§22.5.1: *“A <code>delimits lexical tokens without introducing white space"*):</code> `define YUCK /<code>* garbage *</code>/ `` expands to a comment, as a
-function macro’s substitution always did. In a source line the token stays for the parser to judge.</li>
-<li><strong>A well-formed <code>`line</code> directive is consumed</strong> (§22.12: *“the <code>line directive shall set the line number and file name of the following line"*). The expansion stage is the tool that maintains the current file and line, so `` </code><strong>FILE</strong> <code>and</code> <code>__LINE__ `` after it read the assigned location, the event log records the directive (</code>line_directive<code>), and the parser never sees it. A malformed one — a level other than 0, 1 or 2, a missing parameter, a comment on its line — is not this stage's to consume: it passes through, and the parser's own §22.12 production refuses it, so the answer key's must-reject rows on malformed `` </code>line <code>lines keep their verdict under the pipeline. Its parameters may be MACRO USAGES —</code> <code>line </code>new_line_num <code>foo(line) 1 `` — and are expanded first (IEEE 1800-2023 §22.2: *"Macro expansion shall occur within a compiler directive"*; 1800-2017 §22.5.1: a defined text macro *"can be used anywhere in the compilation unit where it is defined"*); the directive is consumed when what they yield is well-formed, and reads exactly as the literal form does (</code>SVPP-EXPANSION.5<code>(n); before, the macros were expanded on a pass-through line and a raw `` </code>line ``
-reached the parser, which has no production for it inside a procedural block).</li>
-<li><strong>A comment between the formals of a <code>`define</code> is refused, and the refusal names the clause.</strong>
+rows moved <code>fail → pass</code> under the pipeline and none the other way.</p>
+</li>
+<li>
+<p><strong>The paste token joins its sides in an object macro too</strong> (§22.5.1: *“A <code>delimits lexical tokens without introducing white space"*):</code> `define YUCK /<code>* garbage *</code>/ `` expands to a comment, as a
+function macro’s substitution always did. In a source line the token stays for the parser to judge.</p>
+</li>
+<li>
+<p><strong>A well-formed <code>`line</code> directive is consumed</strong> (§22.12: *“the <code>line directive shall set the line number and file name of the following line"*). The expansion stage is the tool that maintains the current file and line, so `` </code><strong>FILE</strong> <code>and</code> <code>__LINE__ `` after it read the assigned location, the event log records the directive (</code>line_directive<code>), and the parser never sees it. A malformed one — a level other than 0, 1 or 2, a missing parameter, a comment on its line — is not this stage's to consume: it passes through, and the parser's own §22.12 production refuses it, so the answer key's must-reject rows on malformed `` </code>line <code>lines keep their verdict under the pipeline. Its parameters may be MACRO USAGES —</code> <code>line </code>new_line_num <code>foo(line) 1 `` — and are expanded first (IEEE 1800-2023 §22.2: *"Macro expansion shall occur within a compiler directive"*; 1800-2017 §22.5.1: a defined text macro *"can be used anywhere in the compilation unit where it is defined"*); the directive is consumed when what they yield is well-formed, and reads exactly as the literal form does (</code>SVPP-EXPANSION.5<code>(n); before, the macros were expanded on a pass-through line and a raw `` </code>line ``
+reached the parser, which has no production for it inside a procedural block).</p>
+</li>
+<li>
+<p><strong>A comment between the formals of a <code>`define</code> is refused, and the refusal names the clause.</strong>
 §22.5.1 (both editions): <em>“The formal argument names shall be simple_identifiers, separated by commas and
 optionally white space”</em>; §5.3’s white space is spaces, tabs, newlines and formfeeds, and the standard
 writes <em>“white space or a comment”</em> where it admits one (§22.4, on the <code>`include</code> line). No sentence of
@@ -458,10 +467,33 @@ refused (<code>SVPP-EXPANSION.5</code>(o)); a NEWLINE between formals is white s
 files write the comment form — counted by the lane itself, the rows whose refusal carries this reason — and
 all three are tool test suites probing the edge: verilator <code>t_preproc.v:277</code> (its own comment reads
 <em>“comments MIGHT not be legal”</em>), iverilog <code>macro_with_args.v:17</code> and sv2v <code>macro_arg_comment.sv:1</code>. No
-design file in the corpus writes it, so no opt-in tolerance is offered for it.</li>
-<li><strong>A function-like macro may open its parentheses on the next line</strong> (§22.5.1 requires the parentheses;
+design file in the corpus writes it, so no opt-in tolerance is offered for it.</p>
+</li>
+<li>
+<p><strong>Three readings follow the EDITION of the profile the text will be parsed under</strong> (<code>SVPP-EXPANSION.5</code>(p);
+<code>--profile sv_2023</code> and <code>sv_2023_tolerant</code> select IEEE 1800-2023, every other profile and the unprofiled reading
+select 1800-2017). They are the three places where 1800-2023’s clause 22 says more than 1800-2017’s:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>text</th><th>under the 2017 reading</th><th>under the 2023 reading</th><th>the sentence</th></tr>
+</thead>
+<tbody>
+<tr><td>a block comment in macro text — <code>`define Y(a) a /* c */ + 1</code></td><td>the comment is part of the substituted text</td><td>the comment is NOT substituted (one space stands where it was)</td><td>1800-2023 §22.5.1: <em>“If a one-line comment or block comment (see 5.4) is included in the text, then the comment shall not become part of the substituted text”</em>; 1800-2017 says it of one-line comments only</td></tr>
+<tr><td>a block comment that the macro text opens and the NEXT line closes — <code>`define X 1 /* multi</code> / <code>line */ + 2</code></td><td>REFUSED, naming the clause: the newline ended the macro text inside a comment (<em>“shall not be split across … Comments”</em>)</td><td>the comment carries the <code>`define</code> across its newlines; <code>X</code> is <code>1 + 2</code></td><td>1800-2023 §22.5.1: <em>“A newline character that is not contained in a triple-quoted string literal or in a block comment and is not preceded by a backslash shall end the macro text”</em></td></tr>
+<tr><td>a macro USAGE as the argument of <code>`ifdef</code> / <code>`ifndef</code> / <code>`elsif</code> / <code>`undef</code> — <code>`ifndef `ID(HAVE)</code></td><td>the argument is read as written (Syntax 22-6 takes a <code>text_macro_identifier</code>)</td><td>the usage is expanded first and the directive reads what it yields</td><td>1800-2023 §22.2: <em>“Macro expansion shall occur within a compiler directive”</em></td></tr>
+</tbody>
+</table>
+</div>
+<p>The 2017 column is the strict reading of that edition, not a guess at tool behaviour: where the older text has no
+sentence the newer one adds, the older reading stays as it was. Each of the first two rows that changes a verdict is
+pinned as an edition twin — one file accepted under <code>sv_2023</code>, its byte twin rejected under <code>sv_2017</code>.</p>
+</li>
+<li>
+<p><strong>A function-like macro may open its parentheses on the next line</strong> (§22.5.1 requires the parentheses;
 §5.3 lets white space, newlines included, separate the tokens): <code>`FOO</code> at the end of a line followed by
-<code>(1, 2)</code> on the next is one invocation.</li>
+<code>(1, 2)</code> on the next is one invocation.</p>
+</li>
 </ul>
 <p>Four more landed with <code>SVPP-EXPANSION.6b.5</code>, each named by a row of the disposition table:</p>
 <ul>

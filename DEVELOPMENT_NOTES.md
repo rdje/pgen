@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-05 — SVPP-EXPANSION.5(p) (`PGEN-SVPP-EXPANSION-0036`): the edition reaches the preprocessor, and the older reading is the older TEXT
+
+- **A profile's edition is not only a keyword table.** The preprocessor already took `--profile` for §22.14. Three sentences exist in 1800-2023's clause 22 and not in 1800-2017's; each selects a different expansion of the same bytes. The switch is one predicate on the profile (`reads_1800_2023`), not three knobs — a knob per sentence would let a caller build an edition no standard describes.
+- **The strict 2017 reading is what the 2017 text says, not what tools do under 2017.** For a block comment a `` `define `` leaves open, the tools continue the comment; the 2017 clause says the newline ends the macro text and the text shall not be split across a comment. So 2017 refuses, naming the clause AND the profile whose edition licenses the form. Before, the comment's tail leaked into the source with its opener consumed — silent garbage, the worst of the three options.
+- **Count a construct with the scanner that will judge it.** My first census of "a block comment left open by a define" used a regex and said four sites; rewritten with the implementation's own lexing rules (strings, `//` to end of line, continuation joins) it says one, and names the file. The same day a one-line grep had priced another refusal at two files where the lane counts three. Both are instances of [[a-spelling-test-standing-in-for-a-property-test]]: the price of a refusal is only as good as the lexer that counted it.
+- **Write the prediction down with a clock.** `rust/target/svpp_5p/prereg.md` was written before the chain started: unit counts, pin counts, zero lane movers per reading, the reason for each. A prediction made after the first number is a description.
+- promotion: declined — the third lesson is an instance of the card it names; the first two are recorded where a reader will meet them (the SV book's edition table, the decision trail in the task leaf); filed here until seen again.
+
 ## 2026-10-05 — GRAMMAR-CERT-STATUS.6 (`PGEN-GRAMMAR-CERT-STATUS-0008`): a commit count is not staleness, and "parked" has an end condition
 
 - **Measure the thing, not its proxy.** The arm asked "how many commits since the page was touched" when the question was "has anything the table depends on changed since it was last re-derived". The proxy fails in the PASSING table's direction: re-deriving and finding nothing to change left no trace, so diligence was indistinguishable from neglect. Recording the input digests at the derivation makes the diligent act leave a byte.

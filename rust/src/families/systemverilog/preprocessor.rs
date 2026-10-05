@@ -39,7 +39,10 @@ pub struct SvPreprocessorConfig {
     /// this stage knows which identifiers the parser reserves and can render a
     /// `` `begin_keywords `` region's non-keywords as escaped identifiers (IEEE 1800-2017 §22.14).
     /// `None` is the parser's unprofiled reading, which reserves IEEE 1800-2017 Table B.1; see
-    /// [`super::keyword_versions::version_for_profile`]. Nothing else in this stage reads it.
+    /// [`super::keyword_versions::version_for_profile`]. Since `SVPP-EXPANSION.5`(p) the EDITION behind
+    /// the profile also selects the three readings where IEEE 1800-2023 says more than 1800-2017 — see
+    /// [`reads_1800_2023`]: a block comment in macro text, a block comment that continues past the
+    /// newline of a `` `define ``, and a macro usage as the argument of a conditional directive.
     pub parse_profile: Option<String>,
 }
 
@@ -1119,6 +1122,7 @@ fn preprocess_text_internal(
             .map(|c| c.current_active)
             .unwrap_or(true);
         let from_pending = pending_tail.is_some();
+        let lrm_2023 = reads_1800_2023(&state.config);
         let mut raw_line = match pending_tail.take() {
             Some(tail) => tail,
             None => lines[line_index].clone(),
@@ -1245,9 +1249,39 @@ fn preprocess_text_internal(
                         continuation_index += 1;
                         continue;
                     }
+                    // `SVPP-EXPANSION.5`(p)(i): IEEE 1800-2023 §22.5.1 — "A newline character that is not
+                    // contained in a triple-quoted string literal or in a block comment and is not
+                    // preceded by a backslash shall end the macro text": under the 2023 reading a block
+                    // comment the text opened carries the `` `define `` across its newlines.
+                    if lrm_2023
+                        && define_leaves_block_comment_open(&raw_line)
+                        && continuation_index + 1 < lines.len()
+                    {
+                        raw_line = format!(
+                            "{}{}",
+                            raw_line.trim_end_matches(['\r', '\n']).to_string() + "\n",
+                            lines[continuation_index + 1]
+                        );
+                        continuation_index += 1;
+                        continue;
+                    }
                     break;
                 }
                 line_index = continuation_index;
+                // …and under the 2017 reading the same text is refused: the newline ended the macro
+                // text INSIDE a comment, which §22.5.1 forbids ("shall not be split across … Comments").
+                // Before this the comment's tail was emitted as source text with its opener consumed.
+                if active && !lrm_2023 && define_leaves_block_comment_open(&raw_line) {
+                    bail!(
+                        "invalid `define directive at {}:{}: a block comment opened in the macro text is \
+                         not closed before the text ends (IEEE 1800-2017 §22.5.1: the first newline not \
+                         preceded by a backslash ends the macro text, and the text \"shall not be split \
+                         across\" a comment; IEEE 1800-2023 §22.5.1 lets a block comment carry the text \
+                         across its newlines — that reading is selected by --profile sv_2023)",
+                        file_path.display(),
+                        line_no
+                    );
+                }
             }
         }
 
@@ -1345,7 +1379,7 @@ fn preprocess_text_internal(
                     );
                     if active {
                         let (name, definition) =
-                            parse_define_directive(rest).with_context(|| {
+                            parse_define_directive(rest, lrm_2023).with_context(|| {
                                 format!(
                                     "invalid `define directive at {}:{}",
                                     file_path.display(),
@@ -1383,6 +1417,18 @@ fn preprocess_text_internal(
                         rest.to_string(),
                     );
                     if active {
+                        // `SVPP-EXPANSION.5`(p)(iii): 1800-2023 §22.2 — a macro usage as the argument
+                        let argument = if lrm_2023 && rest.trim_start().starts_with('`') {
+                            Some(expand_directive_argument(
+                                rest,
+                                state,
+                                exp_file.as_path(),
+                                exp_line,
+                            )?)
+                        } else {
+                            None
+                        };
+                        let rest: &str = argument.as_deref().unwrap_or(rest);
                         if let Some((name, _)) = parse_identifier_token(rest.trim_start()) {
                             state.macros.remove(name);
                         }
@@ -1458,6 +1504,21 @@ fn preprocess_text_internal(
                     }
                 }
                 "ifdef" => {
+                    // `SVPP-EXPANSION.5`(p)(iii): IEEE 1800-2023 §22.2 — "Macro expansion shall occur
+                    // within a compiler directive": an argument written as a macro USAGE is expanded
+                    // first (verilator t_preproc.v:423, :426). 1800-2017 has no such sentence and its
+                    // Syntax 22-6 takes a text_macro_identifier: there the argument is read as written.
+                    let argument = if lrm_2023 && active && rest.trim_start().starts_with('`') {
+                        Some(expand_directive_argument(
+                            rest,
+                            state,
+                            exp_file.as_path(),
+                            exp_line,
+                        )?)
+                    } else {
+                        None
+                    };
+                    let rest: &str = argument.as_deref().unwrap_or(rest);
                     let (name, remainder) = split_conditional_argument(rest);
                     pending_tail = remainder_as_pending(remainder);
                     if !is_valid_macro_symbol(name) {
@@ -1486,6 +1547,21 @@ fn preprocess_text_internal(
                     );
                 }
                 "ifndef" => {
+                    // `SVPP-EXPANSION.5`(p)(iii): IEEE 1800-2023 §22.2 — "Macro expansion shall occur
+                    // within a compiler directive": an argument written as a macro USAGE is expanded
+                    // first (verilator t_preproc.v:423, :426). 1800-2017 has no such sentence and its
+                    // Syntax 22-6 takes a text_macro_identifier: there the argument is read as written.
+                    let argument = if lrm_2023 && active && rest.trim_start().starts_with('`') {
+                        Some(expand_directive_argument(
+                            rest,
+                            state,
+                            exp_file.as_path(),
+                            exp_line,
+                        )?)
+                    } else {
+                        None
+                    };
+                    let rest: &str = argument.as_deref().unwrap_or(rest);
                     let (name, remainder) = split_conditional_argument(rest);
                     pending_tail = remainder_as_pending(remainder);
                     if !is_valid_macro_symbol(name) {
@@ -1516,6 +1592,23 @@ fn preprocess_text_internal(
                     );
                 }
                 "elsif" => {
+                    // `SVPP-EXPANSION.5`(p)(iii), the `elsif arm: expanded only where the directive is
+                    // actually evaluated (the enclosing region live and no earlier branch taken).
+                    let evaluated = conditionals
+                        .last()
+                        .map(|frame| frame.parent_active && !frame.branch_taken)
+                        .unwrap_or(false);
+                    let argument = if lrm_2023 && evaluated && rest.trim_start().starts_with('`') {
+                        Some(expand_directive_argument(
+                            rest,
+                            state,
+                            exp_file.as_path(),
+                            exp_line,
+                        )?)
+                    } else {
+                        None
+                    };
+                    let rest: &str = argument.as_deref().unwrap_or(rest);
                     let (expr, remainder) = split_conditional_expression(rest);
                     pending_tail = remainder_as_pending(remainder);
                     let frame = conditionals.last_mut().with_context(|| {
@@ -2202,16 +2295,180 @@ fn parse_identifier_token(input: &str) -> Option<(&str, &str)> {
     Some((&input[..end], &input[end..]))
 }
 
-fn parse_define_directive(input: &str) -> Result<(String, MacroDefinition)> {
+/// `SVPP-EXPANSION.5`(p): does the parse profile name the IEEE 1800-2023 edition (`sv_2023`, and the
+/// opt-in profile built on it)? Three sentences of 1800-2023 have no counterpart in 1800-2017:
+/// §22.2 "Macro expansion shall occur within a compiler directive"; §22.5.1 "If a one-line comment or
+/// block comment (see 5.4) is included in the text, then the comment shall not become part of the
+/// substituted text"; and §22.5.1 "A newline character that is not contained in … a block comment and
+/// is not preceded by a backslash shall end the macro text". The unprofiled reading is 1800-2017's,
+/// as it is for keywords.
+fn reads_1800_2023(config: &SvPreprocessorConfig) -> bool {
+    version_for_profile(config.parse_profile.as_deref()) == KeywordVersion::Sv2023
+}
+
+/// `SVPP-EXPANSION.5`(p)(i): does this LOGICAL `` `define `` line — physical lines already joined by
+/// `\n` — end inside a block comment? Unlike [`leaves_block_comment_open`], a `//` comment hides only
+/// the rest of ITS physical line.
+fn define_leaves_block_comment_open(text: &str) -> bool {
+    let bytes = text.as_bytes();
+    let mut i = 0usize;
+    let (mut in_string, mut escaped, mut open) = (false, false, false);
+    while i < bytes.len() {
+        let b = bytes[i];
+        if open {
+            if b == b'*' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+                open = false;
+                i += 2;
+            } else {
+                i += 1;
+            }
+            continue;
+        }
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if b == b'\\' {
+                escaped = true;
+            } else if b == b'"' {
+                in_string = false;
+            }
+            i += 1;
+            continue;
+        }
+        if b == b'"' {
+            in_string = true;
+        } else if b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+            while i < bytes.len() && bytes[i] != b'\n' {
+                i += 1;
+            }
+            continue;
+        } else if b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'*' {
+            open = true;
+            i += 2;
+            continue;
+        }
+        i += 1;
+    }
+    open
+}
+
+/// `SVPP-EXPANSION.5`(p)(ii): IEEE 1800-2023 §22.5.1 — a block comment in macro text "shall not become
+/// part of the substituted text". Each `/* … */` outside a string literal, a `` `"…`" `` macro string
+/// and a `//` comment is replaced by ONE space, so the tokens on its two sides stay two tokens (the
+/// paste operator is `` `` ``, never a comment). A `//` comment is copied through for
+/// [`strip_line_comments_from_macro_text`] to cut; a comment built by pasting (`` /``* … *``/ ``) is
+/// not a comment until the macro is used and is left alone.
+fn drop_block_comments_from_macro_text(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let mut out: Vec<u8> = Vec::with_capacity(bytes.len());
+    let mut i = 0usize;
+    let (mut in_string, mut escaped, mut in_macro_string) = (false, false, false);
+    while i < bytes.len() {
+        let b = bytes[i];
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if b == b'\\' {
+                escaped = true;
+            } else if b == b'"' {
+                in_string = false;
+            }
+            out.push(b);
+            i += 1;
+            continue;
+        }
+        if text[i..].starts_with("`\\`\"") {
+            out.extend_from_slice(&bytes[i..i + 4]);
+            i += 4;
+            continue;
+        }
+        if text[i..].starts_with("`\"") {
+            in_macro_string = !in_macro_string;
+            out.extend_from_slice(&bytes[i..i + 2]);
+            i += 2;
+            continue;
+        }
+        if in_macro_string {
+            out.push(b);
+            i += 1;
+            continue;
+        }
+        if b == b'"' {
+            in_string = true;
+            out.push(b);
+            i += 1;
+            continue;
+        }
+        if text[i..].starts_with("//") {
+            while i < bytes.len() && bytes[i] != b'\n' {
+                out.push(bytes[i]);
+                i += 1;
+            }
+            continue;
+        }
+        if text[i..].starts_with("/*") {
+            match text[i + 2..].find("*/") {
+                Some(close) => {
+                    out.push(b' ');
+                    i += 2 + close + 2;
+                }
+                None => {
+                    // not closed inside the text: the caller's business (the logical line was joined
+                    // through the comment, so this is reached only at end of file)
+                    out.extend_from_slice(&bytes[i..]);
+                    i = bytes.len();
+                }
+            }
+            continue;
+        }
+        out.push(b);
+        i += 1;
+    }
+    // every removed region begins and ends on an ASCII delimiter, so what is left is valid UTF-8
+    String::from_utf8(out).unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned())
+}
+
+/// `SVPP-EXPANSION.5`(p)(iii): IEEE 1800-2023 §22.2 — "Macro expansion shall occur within a compiler
+/// directive." The argument of a conditional directive (or of `` `undef ``) that is written as a macro
+/// USAGE is expanded, and what it yields is the text the directive reads.
+fn expand_directive_argument(
+    rest: &str,
+    state: &mut PreprocessorState,
+    exp_file: &Path,
+    exp_line: usize,
+) -> Result<String> {
+    expand_macros_in_text(
+        rest,
+        &state.macros,
+        0,
+        &mut state.events,
+        exp_file,
+        exp_line,
+        &mut Vec::new(),
+        None,
+        state.config.plain_string_substitution,
+    )
+}
+
+/// The macro text as the edition reads it BEFORE the one-line-comment cut: 1800-2023 drops block
+/// comments (`SVPP-EXPANSION.5`(p)(ii)); 1800-2017 keeps them.
+fn macro_text_for_edition(text: &str, lrm_2023: bool) -> String {
+    if lrm_2023 {
+        drop_block_comments_from_macro_text(text)
+    } else {
+        text.to_string()
+    }
+}
+
+fn parse_define_directive(input: &str, lrm_2023: bool) -> Result<(String, MacroDefinition)> {
     let trimmed = input.trim_end_matches(['\r', '\n']);
     let (name, rest_after_name) = parse_identifier_token(trimmed.trim_start())
         .with_context(|| "missing macro name in `define")?;
     if rest_after_name.starts_with('(') {
         let (params, after) = parse_macro_parameter_list(rest_after_name)
             .with_context(|| "invalid macro parameter list")?;
-        let body = normalize_macro_body_for_directives(&strip_line_comments_from_macro_text(
-            after.trim_start(),
-        ));
+        let text = macro_text_for_edition(after.trim_start(), lrm_2023);
+        let body = normalize_macro_body_for_directives(&strip_line_comments_from_macro_text(&text));
         Ok((
             name.to_string(),
             MacroDefinition {
@@ -2225,7 +2482,7 @@ fn parse_define_directive(input: &str) -> Result<(String, MacroDefinition)> {
             MacroDefinition {
                 params: None,
                 body: normalize_macro_body_for_directives(&strip_line_comments_from_macro_text(
-                    rest_after_name.trim_start(),
+                    &macro_text_for_edition(rest_after_name.trim_start(), lrm_2023),
                 )),
             },
         ))
@@ -6179,6 +6436,161 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             text.contains("do if ((crc) !== (64'h1)) $write(\"got=%0x exp=%0x\\n\", (crc), (64'h1), \"gotv\", \"expv\"); while (0);"),
             "{text}"
         );
+    }
+
+    #[test]
+    fn edition_2023_block_comment_in_macro_text_is_not_substituted() {
+        // `SVPP-EXPANSION.5`(p)(ii): IEEE 1800-2023 §22.5.1 — "If a one-line comment or block comment (see 5.4)
+        // is included in the text, then the comment shall not become part of the substituted text"
+        // (docs/systemverilog/2023/txt/section-22-compiler-directives.txt:175-176). IEEE 1800-2017 says it of
+        // one-line comments only (docs/systemverilog/2017/txt/section-22-compiler-directives.txt:151-152), so
+        // the block comment stays in the 2017 reading (`.6b.2`(iii)).
+        let dir = create_repo_scratch_dir("svpp_edition_block_comment");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define Y(a) a /* gone? */ + 1\nwire [`Y(3):0] w;\n").expect("write");
+        let lrm_2017 = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("the 2017 reading");
+        assert!(
+            lrm_2017.text.contains("/* gone? */"),
+            "the 2017 reading keeps a block comment in the substituted text:\n{}",
+            lrm_2017.text
+        );
+        let config_2023 = SvPreprocessorConfig {
+            parse_profile: Some("sv_2023".to_string()),
+            ..SvPreprocessorConfig::default()
+        };
+        let lrm_2023 =
+            preprocess_systemverilog_file(&input, &config_2023).expect("the 2023 reading");
+        assert!(
+            !lrm_2023.text.contains("gone?"),
+            "the 2023 reading does not substitute a block comment:\n{}",
+            lrm_2023.text
+        );
+        assert!(
+            lrm_2023.text.contains("wire [3") && lrm_2023.text.contains("+ 1:0] w;"),
+            "{}",
+            lrm_2023.text
+        );
+    }
+
+    #[test]
+    fn edition_2023_multi_line_block_comment_continues_the_macro_text() {
+        // `SVPP-EXPANSION.5`(p)(i): IEEE 1800-2023 §22.5.1 — "A newline character that is not contained in a
+        // triple-quoted string literal or in a block comment and is not preceded by a backslash shall end the
+        // macro text" (:150-151); "If the macro text contains a multi-line block comment, the newline characters
+        // in the block comment are not required to be preceded by a backslash" (:177-179).
+        let dir = create_repo_scratch_dir("svpp_edition_multiline_comment");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define X 1 /* multi\nline */ + 2\nwire [`X:0] w;\n").expect("write");
+        let config_2023 = SvPreprocessorConfig {
+            parse_profile: Some("sv_2023".to_string()),
+            ..SvPreprocessorConfig::default()
+        };
+        let out = preprocess_systemverilog_file(&input, &config_2023)
+            .expect("the 2023 reading takes the define through its comment");
+        assert!(
+            !out.text.contains("line */"),
+            "the comment's tail is not source text:\n{}",
+            out.text
+        );
+        assert!(
+            out.text.contains("wire [1") && out.text.contains("+ 2:0] w;"),
+            "{}",
+            out.text
+        );
+    }
+
+    #[test]
+    fn edition_2017_block_comment_left_open_by_a_define_is_refused_naming_the_clause() {
+        // `SVPP-EXPANSION.5`(p)(i), the other edition: IEEE 1800-2017 §22.5.1 — "The first newline character not
+        // preceded by a backslash shall end the macro text" (:135-136), and "The text specified for macro text
+        // shall not be split across the following lexical tokens: — Comments …" (:230-232). Before this the tail
+        // of the comment was emitted as source text with its opener consumed into the macro.
+        let dir = create_repo_scratch_dir("svpp_edition_comment_left_open");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define X 1 /* multi\nline */ + 2\nwire [`X:0] w;\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("a comment split across the end of the macro text is refused under 2017");
+        let text = format!("{:#}", err);
+        assert!(
+            text.contains("22.5.1") && text.contains("split") && text.contains("sv_2023"),
+            "{}",
+            text
+        );
+    }
+
+    #[test]
+    fn edition_2023_ifdef_argument_macro_usage_is_expanded() {
+        // `SVPP-EXPANSION.5`(p)(iii): IEEE 1800-2023 §22.2 — "Macro expansion shall occur within a compiler
+        // directive" (:68). verilator t_preproc.v:423, :426 (its own comment: "It's unclear if the spec allows
+        // this" — 1800-2023 settles it). 1800-2017 has no such sentence and Syntax 22-6 takes a
+        // text_macro_identifier (:379-380): the argument is read as written.
+        let dir = create_repo_scratch_dir("svpp_edition_ifdef_usage");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define NODS_INDIRECT(x) x\n`define NODS_DEFINED\n`ifndef `NODS_INDIRECT(NODS_DEFINED)\nwire indirect_failed;\n`endif\n`ifdef `NODS_INDIRECT(NODS_UNDEFINED)\nwire indirect2_failed;\n`endif\nwire ok;\n",
+        )
+        .expect("write");
+        let config_2023 = SvPreprocessorConfig {
+            parse_profile: Some("sv_2023".to_string()),
+            ..SvPreprocessorConfig::default()
+        };
+        let out =
+            preprocess_systemverilog_file(&input, &config_2023).expect("the 2023 reading");
+        assert!(
+            !out.text.contains("indirect_failed") && !out.text.contains("indirect2_failed"),
+            "{}",
+            out.text
+        );
+        assert!(out.text.contains("wire ok;"), "{}", out.text);
+        let lrm_2017 = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("the 2017 reading");
+        assert!(
+            lrm_2017.text.contains("wire indirect_failed;"),
+            "the 2017 reading takes the argument as written:\n{}",
+            lrm_2017.text
+        );
+    }
+
+    #[test]
+    fn edition_2023_elsif_argument_macro_usage_is_expanded() {
+        // `SVPP-EXPANSION.5`(p)(iii), the `elsif arm of the same sentence (1800-2023 §22.2, :68).
+        let dir = create_repo_scratch_dir("svpp_edition_elsif_usage");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define ID(x) x\n`define B\n`ifdef A\nwire a;\n`elsif `ID(B)\nwire b;\n`endif\nwire ok;\n",
+        )
+        .expect("write");
+        let config_2023 = SvPreprocessorConfig {
+            parse_profile: Some("sv_2023".to_string()),
+            ..SvPreprocessorConfig::default()
+        };
+        let out =
+            preprocess_systemverilog_file(&input, &config_2023).expect("the 2023 reading");
+        assert!(out.text.contains("wire b;"), "{}", out.text);
+        assert!(!out.text.contains("wire a;"), "{}", out.text);
+    }
+
+    #[test]
+    fn edition_2023_undef_argument_macro_usage_is_expanded() {
+        // `SVPP-EXPANSION.5`(p)(iii), the `undef arm of the same sentence (1800-2023 §22.2, :68).
+        let dir = create_repo_scratch_dir("svpp_edition_undef_usage");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define NAME FOO\n`define FOO 1\n`undef `NAME\n`ifdef FOO\nwire still;\n`endif\nwire ok;\n",
+        )
+        .expect("write");
+        let config_2023 = SvPreprocessorConfig {
+            parse_profile: Some("sv_2023".to_string()),
+            ..SvPreprocessorConfig::default()
+        };
+        let out =
+            preprocess_systemverilog_file(&input, &config_2023).expect("the 2023 reading");
+        assert!(!out.text.contains("wire still;"), "{}", out.text);
+        assert!(out.text.contains("wire ok;"), "{}", out.text);
     }
 
     #[test]

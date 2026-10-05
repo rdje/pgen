@@ -209,6 +209,10 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - ⭐ **`--profile` reaches the PREPROCESSOR too** (`SVPP-EXPANSION.8`): it decides which identifiers a
   `` `begin_keywords "…" `` region has to hand the parser as ESCAPED identifiers (IEEE 1800-2017 §22.14
   / §5.6.2). `ast_pipeline --preprocess systemverilog` takes the same `--profile` (`.113`; `--sv-keyword-profile` accepted through `1.0.247`).
+  ⭐ Since `SVPP-EXPANSION.5`(p) the profile's EDITION also selects three macro readings (a block comment in macro
+  text, a block comment that continues past a `` `define ``'s newline, a macro usage as a conditional directive's
+  argument): diagnose an expansion under the SAME `--profile` the file will be parsed with — the 2017 and 2023
+  readings of one file can differ.
   Omitted, the parser's UNPROFILED reading is used, which reserves Table B.1. The tables are §5.16's.
 - ⭐ **`--preprocess` (`SVPP-EXPANSION.3`) is how a REAL file is judged.** A corpus row that the raw
   `--parse` rejects on a `` `uvm_… `` macro or an unresolved `` `include `` is not a parser verdict at
