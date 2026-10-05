@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-05 — SVPP-EXPANSION.5(n)/(o) (`PGEN-SVPP-EXPANSION-0035`): the newer edition may say it outright, and a refusal owes its clause
+
+- **Read the hits you were not looking for.** The sentence that decides `.5`(n) — 1800-2023 §22.2, *"Macro expansion shall occur within a compiler directive"* — came up in a grep for `comment` run for the OTHER item. 1800-2017 leaves the same question to a general sentence (*"can be used anywhere in the compilation unit"*); the newer edition states it. Search every in-repo edition over the whole clause before ruling, and read each hit for what it settles elsewhere — that grep also found two edition differences nobody had asked about (`.5`(p)).
+- **A ruling that changes no verdict can still owe a message.** `.5`(o) keeps refusing a comment between macro formals; what changed is the sentence the user reads. *"invalid macro parameter token '/*more'"* was true and useless. A refusal is a published claim: it now cites the clause the user can open, and a unit test holds the citation.
+- **Do not let a guard double a side effect.** The `` `line `` arm needs the expansion's RESULT to decide whether it consumes the directive, and the fall-through arm expands the same text again. The probe's events go to a scratch vector and are kept only on the consuming path; a test counts `MacroExpand` events on the malformed path so the doubling cannot come back.
+- **A delegated decision is still a decision record.** The director handed over the `binsof(a.b.c)` call with a bar (*"sota, signoff and production-grade"*). The reasoning, the measurements and the bar's six checks went into the decision record and the leaf BEFORE any grammar byte moved, pre-screened in scratch.
+- promotion: declined — the first lesson is the standing rule of [[feedback_sv_strict_lrm_compliance_default]] (a citation, never an inference) met from the other side; the second and third are local to the preprocessor; filed here until seen again.
+
 ## 2026-10-03 — SV-CORPUS-GRAD.40 (`PGEN-SV-CORPUS-GRAD-0430`): an extractor is a copy of the grammar's spelling, and it drifts like one
 
 - **An instrument that reads the grammar's SPELLING is a copy of that spelling.** The `.13c.2j` sweep admitted `( a | b )?` inline groups; `.3.42` lifted them into named rules and the sweep stopped finding anything — `CONTROL FAILED` for four weeks. The copy drifted exactly the way the production copies it was built to watch had drifted. A text-level instrument needs to read every form the grammar can take for the same construct (named, inline, absent), or it needs a control that refuses when its population shrinks — this one had the control and it fired; what was missing was anyone running it.

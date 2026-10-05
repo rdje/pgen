@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dd781e6e.js";
+            window.path_to_searchindex_js = "searchindex-37989d6c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -321,7 +321,7 @@ refuses a commit whose published block or whose history’s last row disagrees w
 ESTIMATE over the last five recorded releases; a structural leg (a corpus conformance gate, the generator proof) is one item that costs more than a bar row;
 the 38 % of corpus rows with no verdict are an answer-key gap outside <code>items</code>; and an item can be opened by a release as well as closed — the history shows both.</p>
 <!-- BEGIN DERIVED: scripts/report_sv_release_distance.sh --markdown -->
-<p><strong>SV release distance: 9 items</strong> (<code>legs_unmet + bar_rows + open_leaves</code>).</p>
+<p><strong>SV release distance: 10 items</strong> (<code>legs_unmet + bar_rows + open_leaves</code>).</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -330,13 +330,13 @@ the 38 % of corpus rows with no verdict are an answer-key gap outside <code>item
 <tbody>
 <tr><td>Done-bar legs unmet</td><td style="text-align: right">3 of 3</td><td>the derived block above (<code>report_family_status.sh</code>)</td></tr>
 <tr><td>Corpus bar rows (unexplained divergences)</td><td style="text-align: right">0 (sv_2017 0, sv_2023 0, verilog_2005 0)</td><td><code>stimuli/sv/characterization/adjudication_manifest*.tsv</code></td></tr>
-<tr><td>Open leaves owning SV work</td><td style="text-align: right">6 (SV-CORPUS-GRAD 1, engine leaves SV opened 5)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
+<tr><td>Open leaves owning SV work</td><td style="text-align: right">7 (SV-CORPUS-GRAD 2, engine leaves SV opened 5)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
 <tr><td>Corpus passing (sv_2017, <code>match</code> rows)</td><td style="text-align: right">6069 of 16336 (37.2 %)</td><td>the sv_2017 manifest</td></tr>
 <tr><td>Known defects (unexplained, sv_2017)</td><td style="text-align: right">0</td><td>the sv_2017 manifest</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>Trailing closure rate:</strong> 0.50 items per release over the last 5 recorded release(s); <strong>ETA ≈ 18.0 releases ≈ 11.2 days</strong> — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.</p>
+<p><strong>Trailing closure rate:</strong> 1.00 items per release over the last 5 recorded release(s); <strong>ETA ≈ 10.0 releases ≈ 30.9 days</strong> — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.</p>
 <p>History: <a href="../../tasks/artifacts/sv_corpus_grad/release_distance/history.tsv"><code>release_distance/history.tsv</code></a> (one row per release, appended by <code>--record</code> — and one more, under the shipped release’s label, when a commit outside a release moves the distance; the rate above divides by distinct releases; the last row must equal this tree, checked by <code>--check</code>).</p>
 <!-- END DERIVED: scripts/report_sv_release_distance.sh -->
 <div style="break-before: page; page-break-before: always;"></div>
@@ -901,7 +901,18 @@ block comment stays, and a <code>//</code> inside a string literal is the string
 rows moved <code>fail → pass</code> under the pipeline and none the other way.</li>
 <li><strong>The paste token joins its sides in an object macro too</strong> (§22.5.1: *“A <code>delimits lexical tokens without introducing white space"*):</code> `define YUCK /<code>* garbage *</code>/ `` expands to a comment, as a
 function macro’s substitution always did. In a source line the token stays for the parser to judge.</li>
-<li><strong>A well-formed <code>`line</code> directive is consumed</strong> (§22.12: *“the <code>line directive shall set the line number and file name of the following line"*). The expansion stage is the tool that maintains the current file and line, so `` </code><strong>FILE</strong> <code>and</code> <code>__LINE__ `` after it read the assigned location, the event log records the directive (</code>line_directive<code>), and the parser never sees it. A malformed one — a level other than 0, 1 or 2, a missing parameter, a comment on its line — is not this stage's to consume: it passes through, and the parser's own §22.12 production refuses it, so the answer key's must-reject rows on malformed `` </code>line `` lines keep their verdict under the pipeline.</li>
+<li><strong>A well-formed <code>`line</code> directive is consumed</strong> (§22.12: *“the <code>line directive shall set the line number and file name of the following line"*). The expansion stage is the tool that maintains the current file and line, so `` </code><strong>FILE</strong> <code>and</code> <code>__LINE__ `` after it read the assigned location, the event log records the directive (</code>line_directive<code>), and the parser never sees it. A malformed one — a level other than 0, 1 or 2, a missing parameter, a comment on its line — is not this stage's to consume: it passes through, and the parser's own §22.12 production refuses it, so the answer key's must-reject rows on malformed `` </code>line <code>lines keep their verdict under the pipeline. Its parameters may be MACRO USAGES —</code> <code>line </code>new_line_num <code>foo(line) 1 `` — and are expanded first (IEEE 1800-2023 §22.2: *"Macro expansion shall occur within a compiler directive"*; 1800-2017 §22.5.1: a defined text macro *"can be used anywhere in the compilation unit where it is defined"*); the directive is consumed when what they yield is well-formed, and reads exactly as the literal form does (</code>SVPP-EXPANSION.5<code>(n); before, the macros were expanded on a pass-through line and a raw `` </code>line ``
+reached the parser, which has no production for it inside a procedural block).</li>
+<li><strong>A comment between the formals of a <code>`define</code> is refused, and the refusal names the clause.</strong>
+§22.5.1 (both editions): <em>“The formal argument names shall be simple_identifiers, separated by commas and
+optionally white space”</em>; §5.3’s white space is spaces, tabs, newlines and formfeeds, and the standard
+writes <em>“white space or a comment”</em> where it admits one (§22.4, on the <code>`include</code> line). No sentence of
+either edition admits a comment there, so <code>`define ARGPAR(a, /* c */ b)</code> and a <code>//</code> after a formal are
+refused (<code>SVPP-EXPANSION.5</code>(o)); a NEWLINE between formals is white space and is accepted. Three corpus
+files write the comment form — counted by the lane itself, the rows whose refusal carries this reason — and
+all three are tool test suites probing the edge: verilator <code>t_preproc.v:277</code> (its own comment reads
+<em>“comments MIGHT not be legal”</em>), iverilog <code>macro_with_args.v:17</code> and sv2v <code>macro_arg_comment.sv:1</code>. No
+design file in the corpus writes it, so no opt-in tolerance is offered for it.</li>
 <li><strong>A function-like macro may open its parentheses on the next line</strong> (§22.5.1 requires the parentheses;
 §5.3 lets white space, newlines included, separate the tokens): <code>`FOO</code> at the end of a line followed by
 <code>(1, 2)</code> on the next is one invocation.</li>

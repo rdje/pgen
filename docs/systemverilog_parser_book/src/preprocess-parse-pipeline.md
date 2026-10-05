@@ -273,6 +273,22 @@ each one a sentence of the standard that a corpus row had been failing on:
   than 0, 1 or 2, a missing parameter, a comment on its line — is not this stage's to consume: it passes
   through, and the parser's own §22.12 production refuses it, so the answer key's must-reject rows on
   malformed `` `line `` lines keep their verdict under the pipeline.
+  Its parameters may be MACRO USAGES — `` `line `new_line_num `foo(line) 1 `` — and are expanded first
+  (IEEE 1800-2023 §22.2: *"Macro expansion shall occur within a compiler directive"*; 1800-2017 §22.5.1: a
+  defined text macro *"can be used anywhere in the compilation unit where it is defined"*); the directive is
+  consumed when what they yield is well-formed, and reads exactly as the literal form does
+  (`SVPP-EXPANSION.5`(n); before, the macros were expanded on a pass-through line and a raw `` `line ``
+  reached the parser, which has no production for it inside a procedural block).
+- **A comment between the formals of a `` `define `` is refused, and the refusal names the clause.**
+  §22.5.1 (both editions): *"The formal argument names shall be simple_identifiers, separated by commas and
+  optionally white space"*; §5.3's white space is spaces, tabs, newlines and formfeeds, and the standard
+  writes *"white space or a comment"* where it admits one (§22.4, on the `` `include `` line). No sentence of
+  either edition admits a comment there, so `` `define ARGPAR(a, /* c */ b) `` and a `//` after a formal are
+  refused (`SVPP-EXPANSION.5`(o)); a NEWLINE between formals is white space and is accepted. Three corpus
+  files write the comment form — counted by the lane itself, the rows whose refusal carries this reason — and
+  all three are tool test suites probing the edge: verilator `t_preproc.v:277` (its own comment reads
+  *"comments MIGHT not be legal"*), iverilog `macro_with_args.v:17` and sv2v `macro_arg_comment.sv:1`. No
+  design file in the corpus writes it, so no opt-in tolerance is offered for it.
 - **A function-like macro may open its parentheses on the next line** (§22.5.1 requires the parentheses;
   §5.3 lets white space, newlines included, separate the tokens): `` `FOO `` at the end of a line followed by
   `(1, 2)` on the next is one invocation.

@@ -1309,6 +1309,31 @@ fn preprocess_text_internal(
         });
 
         if let Some((directive, rest)) = directive_parse {
+            // `SVPP-EXPANSION.5`(n): a `` `line `` directive whose PARAMETERS are macro usages (sv2v
+            // `test/lex/line.sv:9` `` `line `new_line_num `foo(line) 1 ``). IEEE 1800-2023 §22.2: "Macro
+            // expansion shall occur within a compiler directive"; 1800-2017 §22.5.1: a defined text macro
+            // "can be used anywhere in the compilation unit where it is defined". The parameters are
+            // expanded FIRST and what they yield is read as §22.12's `number "filename" level`. The
+            // expansion's events are kept only when the directive is then consumed: a result that is not a
+            // well-formed directive passes through below, where the line is expanded (and recorded) once.
+            let mut line_probe_events = Vec::new();
+            let line_rest_expanded: Option<String> =
+                if directive == "line" && active && rest.contains('`') {
+                    Some(expand_macros_in_text(
+                        rest,
+                        &state.macros,
+                        0,
+                        &mut line_probe_events,
+                        exp_file.as_path(),
+                        exp_line,
+                        &mut Vec::new(),
+                        None,
+                        state.config.plain_string_substitution,
+                    )?)
+                } else {
+                    None
+                };
+            let line_rest: &str = line_rest_expanded.as_deref().unwrap_or(rest);
             match directive {
                 "define" => {
                     state.push_event(
@@ -1620,8 +1645,10 @@ fn preprocess_text_internal(
                         "begin_protected".to_string(),
                     );
                 }
-                "line" if parse_line_directive(rest).is_some() => {
-                    let (number, named_file) = parse_line_directive(rest).expect("guarded above");
+                "line" if parse_line_directive(line_rest).is_some() => {
+                    let (number, named_file) =
+                        parse_line_directive(line_rest).expect("guarded above");
+                    state.events.append(&mut line_probe_events);
                     if active {
                         line_override = Some((PathBuf::from(&named_file), number, line_index + 1));
                     }
@@ -2385,6 +2412,15 @@ fn parse_macro_parameter_list(input: &str) -> Result<(Vec<MacroParameter>, &str)
         if t.is_empty() {
             continue;
         }
+        // `SVPP-EXPANSION.5`(o): a COMMENT between formals (verilator `t_preproc.v:277`, iverilog
+        // `macro_with_args.v:17`) is refused BY THE CLAUSE, and the refusal says so: IEEE 1800-2017 /
+        // 1800-2023 §22.5.1 — "The formal argument names shall be simple_identifiers, separated by commas
+        // and optionally white space" — and §5.3's white space is spaces, tabs, newlines and formfeeds; the
+        // standard writes "white space or a comment" where it admits one (§22.4). The verdict is unchanged
+        // (these two shapes were refused before, as an "invalid token" / "invalid trailing text").
+        if t.starts_with("//") || t.starts_with("/*") {
+            bail!(formal_list_comment_refusal(t));
+        }
         let (name, trailing) = parse_identifier_token(t)
             .with_context(|| format!("invalid macro parameter token '{}'", t))?;
         let trailing = trailing.trim();
@@ -2392,6 +2428,8 @@ fn parse_macro_parameter_list(input: &str) -> Result<(Vec<MacroParameter>, &str)
             None
         } else if let Some(rest) = trailing.strip_prefix('=') {
             Some(rest.trim().to_string())
+        } else if trailing.starts_with("//") || trailing.starts_with("/*") {
+            bail!(formal_list_comment_refusal(trailing));
         } else {
             bail!("invalid trailing text in macro parameter '{}'", t);
         };
@@ -2401,6 +2439,17 @@ fn parse_macro_parameter_list(input: &str) -> Result<(Vec<MacroParameter>, &str)
         });
     }
     Ok((params, &input[close_idx + 1..]))
+}
+
+/// `SVPP-EXPANSION.5`(o): the refusal of a comment inside a macro formal argument list, naming the clause.
+fn formal_list_comment_refusal(at: &str) -> String {
+    format!(
+        "a comment inside a macro formal argument list is not admitted (IEEE 1800-2017 / 1800-2023 \
+         §22.5.1: the formal argument names are \"separated by commas and optionally white space\"; §5.3: \
+         white space is spaces, tabs, newlines and formfeeds, and the standard writes \"white space or a \
+         comment\" where it admits one, §22.4); got '{}'",
+        at.lines().next().unwrap_or(at).trim_end()
+    )
 }
 
 fn split_macro_parameter_tokens(input: &str) -> Vec<&str> {
@@ -6130,6 +6179,129 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             text.contains("do if ((crc) !== (64'h1)) $write(\"got=%0x exp=%0x\\n\", (crc), (64'h1), \"gotv\", \"expv\"); while (0);"),
             "{text}"
         );
+    }
+
+    #[test]
+    fn a_line_directive_whose_parameters_are_macros_is_expanded_then_consumed() {
+        // `SVPP-EXPANSION.5`(n): sv2v `test/lex/line.sv:9` `` `line `new_line_num `foo(line) 1 ``. IEEE
+        // 1800-2023 §22.2: "Macro expansion shall occur within a compiler directive"
+        // (docs/systemverilog/2023/txt/section-22-compiler-directives.txt:68); 1800-2017 §22.5.1: a defined
+        // text macro "can be used anywhere in the compilation unit where it is defined"
+        // (docs/systemverilog/2017/txt/section-22-compiler-directives.txt:227). The parameters are expanded
+        // first; what they yield is §22.12's `number "filename" level`, and the directive is CONSUMED.
+        let dir = create_repo_scratch_dir("svpp_line_macro_parameters");
+        let input = dir.join("top.sv");
+        let body = |directive: &str| {
+            format!(
+                "`define new_line_num 200\n`define foo(filename) `\"filename.vh`\"\nmodule t;\ninitial begin\n  $display(`__LINE__);\n{directive}\n  $display(`__FILE__, `__LINE__);\n  $display(`__LINE__);\nend\nendmodule\n"
+            )
+        };
+        fs::write(&input, body("`line `new_line_num `foo(line) 1")).expect("write");
+        let via_macro = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand");
+        assert!(
+            !via_macro.text.contains("`line"),
+            "the directive is consumed:\n{}",
+            via_macro.text
+        );
+        assert!(
+            via_macro.text.contains("$display(\"line.vh\", 200);"),
+            "{}",
+            via_macro.text
+        );
+        assert!(via_macro.text.contains("$display(201);"), "{}", via_macro.text);
+        assert!(
+            via_macro
+                .events
+                .iter()
+                .any(|e| e.kind == super::PreprocessorEventKind::LineDirective
+                    && e.detail == "200 \"line.vh\""),
+            "{:?}",
+            via_macro.events
+        );
+        // …and it reads EXACTLY as the literal form does.
+        fs::write(&input, body("`line 200 \"line.vh\" 1")).expect("write");
+        let literal = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("the literal form");
+        assert_eq!(
+            via_macro.text, literal.text,
+            "a macro-spelled `line reads as the literal one"
+        );
+    }
+
+    #[test]
+    fn a_line_directive_whose_macros_do_not_form_it_still_passes_through() {
+        // `SVPP-EXPANSION.5`(n), the other side: the expansion is not a well-formed §22.12 directive
+        // (level 3), so it is not this stage's to consume — it passes through, expanded ONCE, and the
+        // parser's own production refuses it. Green before and after the fix: a regression guard.
+        let dir = create_repo_scratch_dir("svpp_line_macro_malformed");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define LVL 3\nmodule t;\n`line 1 \"f\" `LVL\nendmodule\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand");
+        assert!(
+            out.text.contains("`line 1 \"f\" 3"),
+            "the malformed one passes through:\n{}",
+            out.text
+        );
+        assert!(
+            !out.events
+                .iter()
+                .any(|e| e.kind == super::PreprocessorEventKind::LineDirective),
+            "{:?}",
+            out.events
+        );
+        assert_eq!(
+            out.events
+                .iter()
+                .filter(|e| e.kind == super::PreprocessorEventKind::MacroExpand)
+                .count(),
+            1,
+            "the parameter is expanded (and recorded) once:\n{:?}",
+            out.events
+        );
+    }
+
+    #[test]
+    fn a_comment_inside_a_macro_formal_list_is_refused_naming_the_clause() {
+        // `SVPP-EXPANSION.5`(o): verilator `t_preproc.v:277` (its own words: "comments MIGHT not be
+        // legal"), iverilog `ivltests/macro_with_args.v:17`. IEEE 1800-2017 §22.5.1: "The formal argument
+        // names shall be simple_identifiers, separated by commas and optionally white space"
+        // (docs/systemverilog/2017/txt/section-22-compiler-directives.txt:143-144; 1800-2023 :168-169);
+        // §5.3: white space is spaces, tabs, newlines and formfeeds — and the clause writes "white space
+        // or a comment" where it admits one (§22.4, :82). No sentence of either edition admits a comment
+        // between formals, so the refusal stands and now names the clause.
+        let dir = create_repo_scratch_dir("svpp_formal_list_comment");
+        let input = dir.join("top.sv");
+        for source in [
+            "`define ARGPAR(a, /*more,,)cmts*/ b) (a+b)\nwire x = `ARGPAR(p,q);\n",
+            "`define ARGPAR(a,  // Hello\n  b) (a+b)\nwire x = `ARGPAR(p,q);\n",
+            "`define sum( a /* comment */ , b /* comment */ ) (a + b)\nwire x = `sum(p,q);\n",
+        ] {
+            fs::write(&input, source).expect("write");
+            let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+                .expect_err("a comment in the formal list is refused");
+            let text = format!("{:#}", err);
+            assert!(
+                text.contains("22.5.1") && text.contains("white space") && text.contains("comment"),
+                "{}\n— for —\n{}",
+                text,
+                source
+            );
+        }
+        // the control: a NEWLINE is white space (§5.3) — the same list without the comments
+        fs::write(
+            &input,
+            "`define ARGPAR(a,\n  b) (a+b)\nwire x = `ARGPAR(p,q);\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("newlines separate formals");
+        assert!(out.text.contains("wire x = (p+q);"), "{}", out.text);
     }
 
     #[test]

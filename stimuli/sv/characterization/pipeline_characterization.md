@@ -17,18 +17,18 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `99509821a012512889bf5489a39cd953c4d6abf3c8ca35601431c5cbf795f0f5` |
+| parse binary | `rust/target/debug/parseability_probe` | `5e75b758c5ae7fffa891b21299bb018dbf33d8fc8a9ec6849c468eed5628796b` |
 | grammar | `grammars/systemverilog.ebnf` | `f9067fa2d820d6d89126a137ce3f3121bb392ccfe86ff842554849f10bc64561` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `63a1480b5da9e3bdbe68c56de672ba2892bc8ad3af317c4b1e18edda27ff4fd9` |
 | generated parser | `generated/systemverilog_parser.rs` | `faeb6be3ad122b083f99c333f0d19b22be0b07bb1944e22e52695aa5e7200009` |
 | context | `stimuli/sv/pipeline_context.tsv` | `f9aa12573b514f1175d29f0e857989f3c01d0a59f89a708d10dd6a9f7d618360` |
 | context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `636c8dec8eeab13488b6dd91c0b5547e53c3f6a25c46ccca884d2fb01f459333` |
 | context (per-file unit predecessors) | `stimuli/sv/pipeline_context_units.tsv` | `df065bdc8a87ff15fb441550d42775de494a6cf63eb971b1303e85ab4500bc70` |
-| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `ac6f9c2d4950ea1088fecf941ef3dd6b7f86839f7a13abe38247e5168c9a8870` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `93ab69534f44f6b7d571aefb679b2fbdad462aa55295f1b3aadc1bdfc7777613` |
+| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `c899923f26a5b8a129c0bf7657288c105649cf738f1b2824aaee0915bb584f28` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `a00252c0aa495899848303e0e6219b4b613c80710b59121b3b4fb62cda43c279` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
 
-Measured at `HEAD` = `512e170a0+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `1e7e6ed9f+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -44,11 +44,11 @@ Measured at `HEAD` = `512e170a0+dirty`; the parse binary is a **debug** build (t
 | scr1 | 50 | 8 | 42 | 0 | 49 | 1 | 0 | 0 | 0 | +41 |
 | slang | 92 | 72 | 20 | 0 | 74 | 15 | 3 | 0 | 0 | +2 |
 | sv-tests | 1028 | 856 | 172 | 0 | 1002 | 22 | 4 | 0 | 0 | +146 |
-| sv2v | 953 | 713 | 240 | 0 | 809 | 125 | 19 | 0 | 0 | +96 |
+| sv2v | 953 | 713 | 240 | 0 | 810 | 124 | 19 | 0 | 0 | +97 |
 | uvm-core | 174 | 33 | 141 | 0 | 31 | 143 | 0 | 0 | 0 | -2 |
 | verible | 152 | 121 | 31 | 0 | 130 | 22 | 0 | 0 | 0 | +9 |
 | verilator | 3263 | 2081 | 1182 | 0 | 2958 | 288 | 17 | 0 | 0 | +877 |
-| **total** | 16336 | 10022 | 6314 | 0 | 12742 | 3323 | 271 | 0 | 0 | +2720 |
+| **total** | 16336 | 10022 | 6314 | 0 | 12743 | 3322 | 271 | 0 | 0 | +2721 |
 
 ## Transitions — raw status → pipeline status
 
@@ -100,8 +100,8 @@ Measured at `HEAD` = `512e170a0+dirty`; the parse binary is a **debug** build (t
 | sv-tests | `fail` → `pp_fail` | 2 |
 | sv-tests | `pass` → `pp_fail` | 2 |
 | sv2v | `pass` → `pass` | 696 |
-| sv2v | `fail` → `fail` | 125 |
-| sv2v | `fail` → `pass` | 113 |
+| sv2v | `fail` → `fail` | 124 |
+| sv2v | `fail` → `pass` | 114 |
 | sv2v | `pass` → `pp_fail` | 17 |
 | sv2v | `fail` → `pp_fail` | 2 |
 | uvm-core | `fail` → `fail` | 138 |
@@ -149,7 +149,7 @@ Measured at `HEAD` = `512e170a0+dirty`; the parse binary is a **debug** build (t
 | `deferred:not_source_text` | 350 | 0 | 350 | 0 | 0 | 0 |
 | `deferred:svpp_owned` | 245 | 110 | 104 | 31 | 0 | 0 |
 | `divergence:explained_svpp_conditional` | 195 | 194 | 1 | 0 | 0 | 0 |
-| `divergence:explained_svpp_include` | 133 | 126 | 1 | 6 | 0 | 0 |
+| `divergence:explained_svpp_include` | 133 | 127 | 0 | 6 | 0 | 0 |
 | `deferred:impl_varying` | 90 | 89 | 1 | 0 | 0 | 0 |
 | `divergence:explained_store_gate` | 54 | 0 | 54 | 0 | 0 | 0 |
 | `deferred:verilog_ams_lane` | 25 | 5 | 19 | 1 | 0 | 0 |
@@ -166,7 +166,7 @@ Measured at `HEAD` = `512e170a0+dirty`; the parse binary is a **debug** build (t
 | construct at the origin line | rows | one example (origin — line) |
 |---|---:|---|
 | class header with a base class (`extends`) | 1996 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4:63` — `class dccm_transaction_sequence_item extends uvm_sequence_item;` |
-| other | 1088 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
+| other | 1087 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
 | a parameter port list `#(` | 101 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
 | a `typedef` | 54 | `stimuli/sv/subs/Surelog/tests/NetType/dut.sv:18:24` — `typedef some_other_type myalias;` |
 | a function / task header | 33 | `stimuli/sv/subs/Surelog/tests/BitSelectHier/dut.sv:37:32` — `extern function uvm_mem_mam_cfg reconfigure(uvm_mem_mam_cfg cfg = null);` |

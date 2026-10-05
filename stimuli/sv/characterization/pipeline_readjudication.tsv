@@ -5438,9 +5438,9 @@ sv2v	test/error/var_var.sv	match	match	fail	own file		other	must_reject:match_un
 sv2v	test/lex/begin_keywords.sv	divergence:explained_svpp_keywords_region	not-in-audit	pass	-		-	corroborated	
 sv2v	test/lex/cond.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/file_line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pp_fail	engine		-	refused_engine	include cycle detected: /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/file_line.sv -> /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/file_line.sv
-sv2v	test/lex/line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	fail	included file		other	hollow	stimuli/sv/subs/sv2v/test/lex/line.vh:1:106
+sv2v	test/lex/line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/macro.sv	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/lex/macro.sv:142:14
-sv2v	test/lex/macro_arg_comment.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pp_fail	engine		-	refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/macro_arg_comment.sv:1: invalid macro parameter list: invalid macro parameter token '// comment
+sv2v	test/lex/macro_arg_comment.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pp_fail	engine		-	refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/macro_arg_comment.sv:1: invalid macro parameter list: a comment inside a macro formal argument list is not
 sv2v	test/lex/macro_arg_escape.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/macro_boundary.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/macro_ifdef.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
@@ -6460,7 +6460,7 @@ verilator	test_regress/t/t_pp_pragmas.v	deferred:svpp_owned	-	pass	-		-	svpp_own
 verilator	test_regress/t/t_pp_recursedef_bad.v	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	E_SVPP_RECURSIVE_MACRO at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_pp_recursedef_bad.v:10: macro 'RECURSE' expands to a usage of itself (`RECURSE -> `RECURSE) — 
 verilator	test_regress/t/t_pp_resetall_bad.v	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_pp_resetall_bad.v:8:10
 verilator	test_regress/t/t_pp_underline_bad.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-verilator	test_regress/t/t_preproc.v	divergence:explained_svpp_protected_envelope	STUCK-ON-SVPP-TOKEN	pp_fail	engine		-	refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc.v:277: invalid macro parameter list: invalid macro parameter token '// Hello'
+verilator	test_regress/t/t_preproc.v	divergence:explained_svpp_protected_envelope	STUCK-ON-SVPP-TOKEN	pp_fail	engine		-	refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc.v:277: invalid macro parameter list: a comment inside a macro formal argument list is
 verilator	test_regress/t/t_preproc_cmtend_bad.v	deferred:svpp_owned	-	fail	own file		-	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_cmtend_bad.v:6:1
 verilator	test_regress/t/t_preproc_debugi.v	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_debugi.v:11:3
 verilator	test_regress/t/t_preproc_def09.v	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_def09.v:12:1

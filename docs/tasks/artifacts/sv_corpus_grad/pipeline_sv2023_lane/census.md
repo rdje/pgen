@@ -10,14 +10,14 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `99509821a012512889bf5489a39cd953c4d6abf3c8ca35601431c5cbf795f0f5` |
+| parse binary | `rust/target/debug/parseability_probe` | `5e75b758c5ae7fffa891b21299bb018dbf33d8fc8a9ec6849c468eed5628796b` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `63a1480b5da9e3bdbe68c56de672ba2892bc8ad3af317c4b1e18edda27ff4fd9` |
-| sv_2017 pipeline results | `stimuli/sv/characterization/pipeline_results.tsv` | `93ab69534f44f6b7d571aefb679b2fbdad462aa55295f1b3aadc1bdfc7777613` |
-| sv_2017 library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `ac6f9c2d4950ea1088fecf941ef3dd6b7f86839f7a13abe38247e5168c9a8870` |
-| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `c0024cb2a309fe35258aff5e022892b8c2235f4a9535a22fe6f424cea76d2431` |
-| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `91254b4076fe8725c98362db03c6f0e2cddc68f29acb7bc3ba9f26abf44b98c2` |
+| sv_2017 pipeline results | `stimuli/sv/characterization/pipeline_results.tsv` | `a00252c0aa495899848303e0e6219b4b613c80710b59121b3b4fb62cda43c279` |
+| sv_2017 library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `c899923f26a5b8a129c0bf7657288c105649cf738f1b2824aaee0915bb584f28` |
+| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `9b30626d30a390e06ddeb07b7883642ab59cd9fafae15489975970f873c86edb` |
+| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `356be5e2cb8d3acd7b212ca59c55b4ce3d16e18f56a7c5963ee165ec8b407af5` |
 | unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023.tsv` | `97f4cb5f4523c0640414462acd3d27f32e2554d396fe78eeed669cba0bb4a821` |
-| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `b169b1a2c2552dc32e6891f22f5b839fe4f72f594a97e2f54f5537aef1794e29` |
+| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `ba6b5cc5c7249e1d48ac65ea0c3acfca06fcb0505f7131f2d7a25c2f71d1fae5` |
 | sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `c196f707a1fdc43a664113eb663e99de004a82c4ac72754fb8929f2c1a7b91fe` |
 
 The 2023 run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6` `files=16336`.
@@ -26,15 +26,15 @@ The 2023 run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6`
 
 | reading | `pass` | `fail` | `pp_fail` | `timeout` | `crash` |
 |---|---:|---:|---:|---:|---:|
-| `sv_2017` | 12742 | 3323 | 271 | 0 | 0 |
-| `sv_2023` | 12782 | 3283 | 271 | 0 | 0 |
+| `sv_2017` | 12743 | 3322 | 271 | 0 | 0 |
+| `sv_2023` | 12783 | 3282 | 271 | 0 | 0 |
 
 Rows joined: **16336**; only in the sv_2017 reading: **0**; only in the sv_2023 reading: **0** (a non-zero here is a population breach, not a verdict).
 
 | cell | rows | meaning |
 |---|---:|---|
-| `both_pass` | 12742 | parses under both editions |
-| `both_nonpass` | 3554 | parses under neither |
+| `both_pass` | 12743 | parses under both editions |
+| `both_nonpass` | 3553 | parses under neither |
 | `2023_only_pass` | 40 | text the 2017 profile rejects and the 2023 profile accepts — adjudicated where the standard admits it |
 | `2017_only_pass` | 0 | a 2023-profile REGRESSION candidate — a parser question until adjudicated |
 
@@ -42,8 +42,8 @@ Rows joined: **16336**; only in the sv_2017 reading: **0**; only in the sv_2023 
 
 | sv_2017 | sv_2023 | rows |
 |---|---|---:|
-| `pass` | `pass` | 12742 |
-| `fail` | `fail` | 3283 |
+| `pass` | `pass` | 12743 |
+| `fail` | `fail` | 3282 |
 | `pp_fail` | `pp_fail` | 271 |
 | `fail` | `pass` | 40 |
 

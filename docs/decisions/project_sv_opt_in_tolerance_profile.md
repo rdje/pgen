@@ -66,3 +66,56 @@ The default profiles are unchanged: `sv_2017` and `sv_2023` stay strict and keep
   not redefined by this decision. The tolerant profile gets its own reading and its own census.
 - Users see it in the SV parser book: the profile list, the four spellings with the rewrite the standard
   offers, and the statement that the default is strict.
+
+## Addendum 2026-10-05 — a fifth member, by a delegated call: a hierarchical name inside `binsof(…)`
+
+**⛔ DIRECTOR DELEGATION (2026-10-05), verbatim:**
+
+> This call "The binsof(a.b.c) admission from the earlier slice is still your call and still not blocking."
+> is yours to make but better be sota, signoff and production-grade.
+
+**The call, made in execution (`SV-CORPUS-GRAD.45`): ADMIT.** A hierarchical name of three or more parts as
+the operand of `binsof(…)` joins the closed list as its fifth member, under its own release and the full
+ceremony. The ruling the list requires is on file (`SV-CORPUS-GRAD.44`: §19.6.1's text in both editions, the
+corpus count, the reproducer pair).
+
+**Why admit, measured.**
+
+- **It is the REFERENCE form of the third member.** Every OpenTitan statement that writes it — all 8 — names
+  a dotted cross item of its OWN cross (`sysrst_ctrl_in_out_inverted_vseq.sv:58-69`,
+  `core_ibex_fcov_if.sv:686-689`, `core_ibex_pmp_fcov_if.sv:704-725`). A select expression has no other way
+  to name an implicitly covered cross item: `binsof` takes the item's name. A profile that admits the
+  declaration and rejects its only reference is not closed under its own construct.
+- **The boundary it leaves today is an accident of token shape.** A TWO-part name inside `binsof` is
+  syntactically `cover_point . bin` and parses on every profile; a THREE-part name does not. OpenTitan writes
+  both on adjacent lines of ONE select expression (`core_ibex_pmp_fcov_if.sv:711-712`:
+  `binsof(cs_registers_i.mstatus_q.mpp)` rejected, `binsof(cs_registers_i.priv_mode_id_o)` accepted). A
+  boundary nobody chose is not one a release should publish.
+
+**What "sota, signoff and production-grade" binds the admission to** — each a check, not a sentence:
+
+1. **The boundary is the NAME and nothing else**: a `hierarchical_identifier` of three or more parts, the
+   node the tolerated cross item already carries. An expression, a trailing select, a call inside `binsof`
+   stay rejected under the tolerant profile, each a reproducer pin.
+2. **The strict profiles move on no instrument**: zero movers on the three raw lanes, `ast_moved=0` on the
+   AST identity sweeps, parse cost flat (the alternative is ONE gated rule, asked for nothing where the gate
+   is off — `.43`'s lesson).
+3. **Its own AST kind** (`tolerated_hierarchical`, the cross item's shape), and a two-part name keeps the
+   standard `cover_point` reading under the tolerant profile, pinned by arm.
+4. **Two-sided pins**: `.44`'s invalid pin keeps `sv_2017` / `sv_2023`; its byte twin is `tolerated` on the
+   tolerant profile; the superset sweep and doctrine `SV-TOLERANT-PROFILE-SUPERSET` hold the rest.
+5. **The full release ceremony and the tolerant reading re-run**, the prediction stated BEFORE the
+   measurement — `sysrst_ctrl_env_pkg` and the two ibex coverage interfaces are expected to clear this
+   construct; a further barrier behind it is reported, not hidden (`.43` predicted seven packages and
+   measured six).
+6. **The books, the contract and this record's list change in the same commit** ("four" becomes "five").
+
+**Pre-screened in scratch before any tracked grammar byte moved** (2026-10-05, the interpreter on a scratch
+grammar, `rust/target/sv45/`): `--lint-grammar` rc 0 at 1745 rules with the tracked grammar's notes line for
+line; the OpenTitan shape, the isolated three-part name, a four-part name, a path with an inner select, and
+OpenTitan's own 54-line covergroup read `sv_2017:false sv_2023:false sv_2023_tolerant:true`; an expression, a
+trailing select and a call inside `binsof` read `false` under all three; the standard forms read `true` under
+all three.
+
+**What this does not do.** It does not open the list to "what a file needs": the next candidate still needs
+its own ruling of the `.41` kind, and the list stays closed by name.
