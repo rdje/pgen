@@ -1,6 +1,6 @@
 ---
 name: project-sv-opt-in-tolerance-profile
-description: "DIRECTOR DECISION (2026-10-02) — the SystemVerilog release carries an OPT-IN tolerance profile for the four simulator-tolerated spellings (foreach over a selected array, solve-before inside a foreach constraint, a dotted name as a cross item, a lifetime in a method prototype). The default profiles sv_2017 / sv_2023 stay strict-LRM and keep rejecting them."
+description: "DIRECTOR DECISION (2026-10-02) — the SystemVerilog release carries an OPT-IN tolerance profile for the four simulator-tolerated spellings (foreach over a selected array, solve-before inside a foreach constraint, a dotted name as a cross item, a lifetime in a method prototype). The default profiles sv_2017 / sv_2023 stay strict-LRM and keep rejecting them. ADDENDUM 2026-10-05: a FIFTH member, a hierarchical name of three or more parts inside binsof(...), admitted by a call the director delegated (release 1.0.250, SV-CORPUS-GRAD.45)."
 id: project-sv-opt-in-tolerance-profile
 title: "The SV release carries an opt-in tolerance profile; the default profiles stay strict"
 date: 2026-10-02
@@ -12,6 +12,7 @@ answers:
   - "why does the SV parser reject code that VCS, Xcelium and Questa accept"
   - "who decided that dialect tolerance is opt-in and which spellings does it cover"
   - "how does a spelling join the tolerance profile"
+  - "does the tolerant profile accept binsof of a hierarchical name, and who decided it"
 tags: [systemverilog, profiles, tolerance, strict-lrm, director-decision, opentitan]
 status: current
 metadata:
@@ -119,3 +120,18 @@ all three.
 
 **What this does not do.** It does not open the list to "what a file needs": the next candidate still needs
 its own ruling of the `.41` kind, and the list stays closed by name.
+
+**Shipped: release `1.0.250` (2026-10-05, `SV-CORPUS-GRAD.45`), measured against the six checks.** (1) Boundary: three
+pins reject an expression, a trailing select and a call inside `binsof` under all three profiles. (2) Strict
+profiles: `pass_to_fail=0 fail_to_pass=0` on the three raw lanes, `ast_moved=0 verdict_moved=0` over 10 022 / 10 048 /
+2 283 accepted files, the parse-cost ratchet `OK` after its rebaseline with no binding metric risen, both strict
+pipeline readings `moved=0`. (3) AST: kind `tolerated_hierarchical` under `bins_expression`, the cross item's shape; the
+standard-form control's AST byte-identical before and after on every profile, arm-pinned. (4) Pins:
+`listed=919 tolerated_rows=8 failures=0`, the `.44` invalid pin narrowed to the strict profiles with its byte twin
+accepted under the tolerant one. (5) Ceremony and prediction: the three files named in advance —
+`sysrst_ctrl_env_pkg.sv`, `core_ibex_fcov_if.sv`, `core_ibex_pmp_fcov_if.sv` — are the three rows that move under the
+tolerant reading (`tolerant_only_pass` 15 → 18, package files 6 → 7, members reached 315 → 337, `lost_tolerant=0`),
+with no further barrier behind the construct. (6) Books, contract and this record in the release commit. One thing the
+release does NOT have: the tolerant profile's own certificate does not witness the new rule by generation (a planner
+gap shared with the three `solve` rules, routed as `ENGINE-UNIVERSAL-SERVICES.120`); the rule is exercised on the
+generated parser by the pins and by those three corpus files.

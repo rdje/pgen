@@ -41,8 +41,8 @@ tier still reported `fresh`.
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| grammar raw ast | `grammars/systemverilog.ebnf` | `63a1480b5da9e3bdbe68c56de672ba2892bc8ad3af317c4b1e18edda27ff4fd9` |
-| generated parser | `generated/systemverilog_parser.rs` | `faeb6be3ad122b083f99c333f0d19b22be0b07bb1944e22e52695aa5e7200009` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `3e45efe9f0d5424cdf8007c5131d802d5ad89d2cde94c90e585ad00c1cb38191` |
+| generated parser | `generated/systemverilog_parser.rs` | `a5b5b9dc5c8ee247cd9f1cd8595f106c0fc2eb8cd60d1da5a0ccfee7d44ebaa5` |
 | instrument | `stimuli/sv/corpus_parse_cost.py` | `1cd892931e0e88ccb03b435688035bc8c4d5dabc426dcec8144bd2dc73b8b502` |
 | sample inputs | `stimuli/sv/parse_cost_sample.tsv` | `c3e01f2d29714af9bb15e977e3ca52c48045616d1cf157a8c13e5bd645016205` |
 

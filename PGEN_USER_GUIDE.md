@@ -3799,7 +3799,7 @@ Current stable surfaces:
 Current parser profiles (embedding API `2.0.0`: every value below is DERIVED from the grammars'
 own `@profiles` / `@profile_alias` / `@default_profile` through the parser registry — the API types
 none of them; `GrammarFamily::registered()` and `family.profiles()` list them at run time):
-- `systemverilog`: `sv_2017`, `sv_2023`, `verilog_2005` (aliases such as `2017`, `ieee1800-2023`, `1364-2005` are grammar-declared), and the opt-in `sv_2023_tolerant` (`sv_2023` plus four simulator-tolerated spellings; no alias; never a default)
+- `systemverilog`: `sv_2017`, `sv_2023`, `verilog_2005` (aliases such as `2017`, `ieee1800-2023`, `1364-2005` are grammar-declared), and the opt-in `sv_2023_tolerant` (`sv_2023` plus five simulator-tolerated spellings — four since `1.0.249`, a hierarchical name inside `binsof(…)` since `1.0.250`; no alias; never a default)
 - `vhdl`: `vhdl_1076_2019` (the grammar's declared dialect and default)
 - `regex`: `pcre2` (default), `relaxed`; `regex_default` and `regex` are grammar-declared aliases of `pcre2`
 - every other registered generated parser (`json`, `rtl_const_expr`, `rtl_frontend`, `systemverilog_preprocessor`, `scratch` when built) is a family too, with its single unprofiled dialect

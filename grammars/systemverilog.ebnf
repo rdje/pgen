@@ -1418,6 +1418,20 @@ bind_target_scope := module_identifier    -> {kind: "module",    name: $1}
 
 bins_expression := variable_identifier                       -> {kind: "variable",     name: $1}
                  | cover_point_identifier ( dot bin_identifier )? -> {kind: "cover_point", name: $1, bin: $2}
+                 | tolerated_bins_expression_hierarchical     -> {kind: "tolerated_hierarchical", body: $1}
+
+# SV-CORPUS-GRAD.45 (release 1.0.250) — the FIFTH member of the tolerant profile's closed list, admitted by a
+# delegated call (docs/decisions/project_sv_opt_in_tolerance_profile.md, addendum 2026-10-05): a hierarchical
+# NAME of THREE or more parts as the operand of `binsof`. IEEE 1800-2017 19.6.1 Syntax 19-4 / 1800-2023 A.2.11
+# derive `variable_identifier | cover_point_identifier [ . bin_identifier ]` and nothing longer (.44's ruling);
+# the simulators accept the name of an implicitly covered cross item, and every OpenTitan statement that writes
+# it names a dotted item of its OWN cross — the reference form of `tolerated_cross_item_hierarchical`, whose
+# shape `{path}` this rule returns. The two-dot lookahead leaves a TWO-part name to the standard alternative
+# above (by syntax it IS `cover_point . bin`); an expression, a trailing select and a call inside `binsof` stay
+# rejected (pins). ONE gated rule: asked for nothing where the gate is off (.43's parse-cost lesson).
+@profiles: ["sv_2023_tolerant"]
+tolerated_bins_expression_hierarchical := @sample: "a.b.c" &( ( hierarchical_root_prefix_sv_only )? non_keyword_identifier hierarchical_bit_select dot non_keyword_identifier hierarchical_bit_select dot ) hierarchical_identifier
+                                       -> {path: $2}
 
 bins_keyword := kw_bins_7de92be6           -> {kind: "bins"}
               | kw_illegal_bins_909dfbf3   -> {kind: "illegal_bins"}

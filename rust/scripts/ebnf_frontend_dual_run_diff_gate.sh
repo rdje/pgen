@@ -197,7 +197,13 @@ envelope_divergence_ceiling() {
         # blind-spot class 42 -> 46, .10.14 class 154 unchanged: 154 + 46 = 200. A rule-level `@sample` line
         # would have cost two .10.14 rows per rule instead. The profile's ten gated rules and seven host
         # alternatives moved no other row.
-        systemverilog) echo 200 ;;
+        # 200 -> 201 by SV-CORPUS-GRAD.45 (release 1.0.250, the tolerant profile's fifth member), ATTRIBUTED the
+        # same way (`ebnf_dual_run_diff --envelope-differential` under PGEN_ENVELOPE_DUMP_ALL=1, the 1.0.249
+        # grammar against the release's, one tool build): 200 rows -> 201, exactly ONE row new and zero gone —
+        # the inline blind-spot pair (`semantic_annotation_inline` vs `semantic_annotation`, payload `sample`)
+        # at the rule-head `@sample: "a.b.c"` of tolerated_bins_expression_hierarchical, the same class as its
+        # sibling tolerated_cross_item_hierarchical; that class 17 -> 18, every other class count unchanged.
+        systemverilog) echo 201 ;;
         systemverilog_lrm_profiled_generated) echo 317 ;;
         # .10.14 plus the two documented arm-2 blind spots: `[> …]` lexical annotations (which
         # arm 2 misparses as character classes) and arm 1's inline/rule-level annotation

@@ -1609,6 +1609,7 @@ timing_check_condition	covered	20	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
 timing_check_event	covered	48	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
 timing_check_event_control	covered	46	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
 timing_check_limit	covered	47	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
+tolerated_bins_expression_hierarchical	na_profile	0	sv_2023_tolerant
 tolerated_constraint_set_with_solve	na_profile	0	sv_2023_tolerant
 tolerated_cross_item_hierarchical	na_profile	0	sv_2023_tolerant
 tolerated_extern_method_prototype	na_profile	0	sv_2023_tolerant

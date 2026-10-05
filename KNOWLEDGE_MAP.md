@@ -3,7 +3,7 @@
 > **AUTO-GENERATED — DO NOT EDIT.** Regenerate with `knowledge-map/scripts/gen_knowledge_map.sh`.
 > Source of truth = YAML front-matter in: `docs/knowledge docs/decisions`. Edit the fact files, never this map.
 > A fact is any `.md` whose front-matter has a non-empty `answers:` list.
-> **310** facts · **2212** question keys.
+> **310** facts · **2213** question keys.
 
 ## Questions → fact
 
@@ -359,6 +359,7 @@
 - "does the generator's depth escalation ever actually produce coverage" -> [depth-slack-retry-needs-a-runaway-backstop](docs/knowledge/depth-slack-retry-needs-a-runaway-backstop.md) · 2026-08-08 · reverify: `cargo test --features 'generated_parsers ebnf_dual_run' --lib depth_slack; grep 'Depth-slack retry census:' rust/target/sv_stimuli_quality_gate/logs/profile_2017_closed_loop_replay.log`
 - "does the semantic store affect parse-time complexity" -> [stateful-packrat-not-linear](docs/knowledge/stateful-packrat-not-linear.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-TERMINATION.md; grep -n "memoiz" rust/src/ast_pipeline/*.rs`
 - "does the stimuli generator have all the necessary features" -> [stimuli-generator-capability-gaps](docs/knowledge/stimuli-generator-capability-gaps.md) · 2026-06-03 · reverify: `see docs/tasks/STIMULI-SIGNOFF.md leaves .2-.7`
+- "does the tolerant profile accept binsof of a hierarchical name, and who decided it" -> [project-sv-opt-in-tolerance-profile](docs/decisions/project_sv_opt_in_tolerance_profile.md) · 2026-10-02 · reverify: `python3 docs/tasks/artifacts/sv_corpus_grad/dialect_constructs/scan.py   # the four spellings' corpus counts; and: python3 stimuli/sv/run_adjudication_repros.py   # the pins: REJECT under sv_2017 / sv_2023`
 - "does this apply to a finding I write for a human, or only to a task leaf" -> [an-x-is-checked-by-nothing-claim-is-a-census-claim](docs/knowledge/an-x-is-checked-by-nothing-claim-is-a-census-claim.md) · 2026-08-25 · reverify: `grep -rn 'fn .*profile.*proof\\|fn .*proof.*profile' rust/src/ --include=*.rs   # one line names gather_verified_profile_proof_covered_rules, the function whose existence refuted the claim. Then the set test that settles it: intersect the cert pass PROOF-COVERED list with the model unreachable set -> 323 of 323.`
 - "does trap EXIT fire on SIGTERM in bash?" -> [feedback-an-ops-change-is-proven-by-an-arm-matrix-not-by-its-diff](docs/decisions/feedback_an_ops_change_is_proven_by_an_arm_matrix_not_by_its_diff.md) · 2026-08-11 · reverify: `PGEN_CORPUS_OUTDIR=/tmp/x bash stimuli/run_external_corpus.sh sv; echo $?   # expect 6 + a self-explaining refusal`
 - "eight of my ten rows agree and two are slightly off — can I ignore the two" -> [the-row-that-does-not-fit-the-pattern-is-the-next-investigation](docs/knowledge/the-row-that-does-not-fit-the-pattern-is-the-next-investigation.md) · 2026-08-16 · reverify: `bash docs/tasks/artifacts/engine_universal_services/es19_residual_attribution/reproducibility_probe.sh   # ~3 s, exit 0. It was observed RED before ENGINE-UNIVERSAL-SERVICES.29 (a) repaired the pair — see reproducibility_probe_BEFORE_repair.txt beside it`
@@ -4625,7 +4626,7 @@ _The live traps — every one of which fails silently or in the passing directio
 ### project-sv-opt-in-tolerance-profile
 _The SV release carries an opt-in tolerance profile; the default profiles stay strict_
 
-- **answers:** does PGEN accept foreach (a[i][j]) or a lifetime in a method prototype | is there a tolerant or relaxed SystemVerilog profile, and is it the default | why does the SV parser reject code that VCS, Xcelium and Questa accept | who decided that dialect tolerance is opt-in and which spellings does it cover | how does a spelling join the tolerance profile
+- **answers:** does PGEN accept foreach (a[i][j]) or a lifetime in a method prototype | is there a tolerant or relaxed SystemVerilog profile, and is it the default | why does the SV parser reject code that VCS, Xcelium and Questa accept | who decided that dialect tolerance is opt-in and which spellings does it cover | how does a spelling join the tolerance profile | does the tolerant profile accept binsof of a hierarchical name, and who decided it
 - **date:** 2026-10-02 · **status:** current
 - **evidence:** `docs/tasks/SV-CORPUS-GRAD.md leaf .41 (PGEN-SV-CORPUS-GRAD-0427): DIALECT-CONSTRUCTS: scanned=16336 | prototype_lifetime: files=2 statements=3 | cross_dotted: files=3 statements=19 | foreach_selected: files=21 statements=71 | solve_in_foreach: files=5 statements=14; seven OpenTitan package files reject at one of the four under both readings of the pipeline lane; ADJUDICATION-REPROS listed=898 failures=0 with the four spellings pinned REJECT on sv_2017 and sv_2023`
 - **reverify:** `python3 docs/tasks/artifacts/sv_corpus_grad/dialect_constructs/scan.py   # the four spellings' corpus counts; and: python3 stimuli/sv/run_adjudication_repros.py   # the pins: REJECT under sv_2017 / sv_2023`

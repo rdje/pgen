@@ -10,8 +10,8 @@ Both lanes parse the SAME population — every `.sv` / `.svh` / `.v` file under 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `3747db8936c858bf1a7d1b81f871e8577688380155c22c50f4d0876292aae59a` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `63a1480b5da9e3bdbe68c56de672ba2892bc8ad3af317c4b1e18edda27ff4fd9` |
+| parse binary | `rust/target/release/parseability_probe` | `843524ba174f43c5f8e34f15d1459e626c1ca1cb4f397d4f60ea7d4c68722e2e` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `3e45efe9f0d5424cdf8007c5131d802d5ad89d2cde94c90e585ad00c1cb38191` |
 | sv_2017 results (output) | `stimuli/sv/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
 | sv_2023 results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `9755a7d270570a2e138f0892bbc9326b752b3d14c1354493cab0d1bc35fd857d` |
 | sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e0034b25fb9e7de646f1f4933d348839a052249e8588632541195d4a04efea08` |

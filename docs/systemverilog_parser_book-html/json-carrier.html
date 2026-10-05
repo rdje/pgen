@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-37989d6c.js";
+            window.path_to_searchindex_js = "searchindex-42a0d85d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -1108,7 +1108,7 @@ down by design).</p>
 <p><code>sv_2017</code>, <code>sv_2023</code> and <code>verilog_2005</code> are strict: text the standard does not derive is rejected. Real
 verification code also contains a few spellings the commercial simulators accept and the standard does not. By
 director decision (2026-10-02) the parser carries ONE opt-in profile for them: <code>sv_2023_tolerant</code> is <code>sv_2023</code>
-plus a closed list of four spellings, and nothing else. Nothing selects it unless the caller names it; there is no
+plus a closed list of five spellings (four since <code>1.0.249</code>, the fifth since <code>1.0.250</code>), and nothing else. Nothing selects it unless the caller names it; there is no
 alias and no convenience entry point — use the generic named entry (<code>parse_grammar_profile_named("systemverilog", "sv_2023_tolerant", …)</code>) or <code>--profile sv_2023_tolerant</code>.</p>
 <h3 id="what-it-accepts-that-sv_2023-does-not"><a class="header" href="#what-it-accepts-that-sv_2023-does-not">What it accepts that <code>sv_2023</code> does not</a></h3>
 <div class="table-wrapper">
@@ -1121,6 +1121,7 @@ alias and no convenience entry point — use the generic named entry (<code>pars
 <tr><td><code>solve … before …;</code> directly inside the braces of a <code>foreach</code> constraint</td><td><code>foreach (x[i]) { solve y before x[i]; }</code></td><td>the <code>solve</code> at constraint-block level</td><td>A.1.10: <code>solve</code> is a constraint BLOCK item; a <code>foreach</code> holds constraint expressions</td></tr>
 <tr><td>a dotted name as a <code>cross</code> item</td><td><code>cross cp_a, cfg.vif.sig;</code></td><td>declare a coverpoint for it, cross the coverpoint</td><td>§19.6: <em>“Expressions cannot be used directly in a cross; a coverage point must be explicitly defined first”</em></td></tr>
 <tr><td>a lifetime in a CLASS method prototype</td><td><code>pure virtual task automatic t();</code>, <code>extern function automatic T f();</code></td><td>the prototype without the lifetime</td><td>A.2.6 / A.2.7 prototypes have no lifetime; §8.6 makes every class method automatic already</td></tr>
+<tr><td>a hierarchical NAME of three or more parts inside <code>binsof(…)</code> (since <code>1.0.250</code>)</td><td><code>binsof(cfg.vif.sig) intersect {1}</code></td><td>declare a coverpoint for the variable, name the coverpoint in the <code>binsof</code></td><td>§19.6.1: <code>binsof</code> <em>“yields the bins of its expression, which can be either a coverage point … or a coverage point bin”</em>; Syntax 19-4 derives a variable name, or a coverpoint name with an optional bin name, and nothing longer</td></tr>
 </tbody>
 </table>
 </div>
@@ -1138,19 +1139,24 @@ refuse it explicitly. The standard spellings keep their existing kinds and shape
 <tr><td><code>constraint_expression</code></td><td><code>"foreach_tolerated_solve"</code></td><td><code>{array, loop_vars, body}</code> — the standard <code>foreach</code> fields; <code>body</code> is <code>{items}</code>, each item a standard <code>constraint_block_item</code> (<code>"solve_before"</code> or <code>"expression"</code>)</td></tr>
 <tr><td><code>constraint_expression</code></td><td><code>"foreach_tolerated_select_solve"</code></td><td><code>{head, body}</code> — both tolerances at once</td></tr>
 <tr><td><code>cross_item</code></td><td><code>"tolerated_hierarchical"</code></td><td><code>{body}</code> — <code>body</code> is <code>{path}</code>, a standard <code>hierarchical_identifier</code></td></tr>
+<tr><td><code>bins_expression</code> (since <code>1.0.250</code>)</td><td><code>"tolerated_hierarchical"</code></td><td><code>{body}</code> — <code>body</code> is <code>{path}</code>, a standard <code>hierarchical_identifier</code>: the SAME shape the tolerated cross item carries, so the name a cross declares and the name its <code>binsof</code> selects are one node kind</td></tr>
 <tr><td><code>class_method</code></td><td><code>"pure_virtual_tolerated_lifetime"</code></td><td><code>{qualifiers, prototype}</code> — <code>prototype</code> is <code>{kind, dynamic_override, lifetime, name, ports}</code> with <code>kind</code> <code>"task"</code> or <code>"function"</code> (plus <code>return_type</code> for a function)</td></tr>
 <tr><td><code>class_method</code></td><td><code>"extern_tolerated_lifetime"</code></td><td><code>{qualifiers, prototype}</code> — the same prototype object</td></tr>
 </tbody>
 </table>
 </div>
+<p>⚠️ <strong>A TWO-part name inside <code>binsof</code> keeps its standard reading under every profile.</strong> <code>binsof(a.b)</code> is, by syntax,
+<code>cover_point_identifier . bin_identifier</code> — <code>{kind: "cover_point", name, bin}</code> — whether <code>a.b</code> is a coverpoint’s bin or a
+variable reached through a handle; the parser cannot tell them apart and does not try. The tolerated kind begins at the
+THIRD name part (<code>binsof(a.b.c)</code>), which no standard production derives.</p>
 <p>⚠️ <strong>The parser does not decide what <code>foreach (a[i][j])</code> MEANS.</strong> A simulator may read <code>i</code> as a select by an
 enclosing variable (OpenTitan’s use) or as a second loop variable (Verilator’s and Surelog’s tests). The AST
 keeps the leading pairs apart as <code>selects</code> and leaves the reading to the consumer’s elaboration.</p>
 <h3 id="what-it-still-rejects-on-purpose"><a class="header" href="#what-it-still-rejects-on-purpose">What it still rejects, on purpose</a></h3>
 <p>The list is closed and exact. Still rejected under <code>sv_2023_tolerant</code>: a <code>solve</code> under an <code>if</code> nested inside the
-<code>foreach</code>; a lifetime in a modport or interface-class prototype; an expression (<code>y + 1</code>) as a cross item; a name of
-three or more parts inside <code>binsof(…)</code> (<code>binsof(cfg.vif.sig)</code> — the cross-item tolerance one step on, ruled a tool
-tolerance by <code>SV-CORPUS-GRAD.44</code> and not admitted; a two-part name is <code>cover_point.bin</code> and parses everywhere); and
+<code>foreach</code>; a lifetime in a modport or interface-class prototype; an expression (<code>y + 1</code>) as a cross item; an
+EXPRESSION, a TRAILING SELECT or a CALL inside <code>binsof(…)</code> (<code>binsof(cfg.vif.a + 1)</code>, <code>binsof(cfg.vif.w[0])</code>,
+<code>binsof(cfg.vif.f())</code> — the tolerance is the hierarchical NAME and nothing else); and
 everything <code>sv_2023</code> rejects for any other reason. Each of these boundaries is a reproducer pin.</p>
 <h3 id="bounds-worth-knowing-1"><a class="header" href="#bounds-worth-knowing-1">Bounds worth knowing</a></h3>
 <ul>
@@ -1161,10 +1167,16 @@ and its own census against <code>sv_2023</code>. It moves no published pass rate
 runner’s superset sweep (every <code>sv_2023</code> pin reads the same verdict under the tolerant profile).</li>
 <li>A spelling joins the list only with a ruling: its LRM text read, its corpus count, a reproducer pair.</li>
 <li>The recognized certificate (its universe: the rules live under <code>sv_2017</code>) does not count the tolerant rules. Under
-the tolerant profile’s own base, certificate coverage reads <code>total=1563 proof=23 witness=1532 UNKNOWN=8</code> at seeds
-0 / 7 / 42: seven of the ten <code>tolerated_*</code> rules are witnessed by generation; the three <code>solve</code>-tolerance rules
-are not (a generated <code>solve … before</code> names variables the store gate has not seen) and are exercised by the pins
-on the generated parser instead.</li>
+the tolerant profile’s own base, certificate coverage reads <code>total=1564 proof=23 witness=1532 UNKNOWN=9</code> at seeds
+0 / 7 / 42 (release <code>1.0.250</code>): seven of the eleven <code>tolerated_*</code> rules are witnessed by generation. Four are not —
+the three <code>solve</code>-tolerance rules and <code>tolerated_bins_expression_hierarchical</code> — and for one measured reason: each
+begins with a lookahead, the witness planner renders the body’s MINIMAL expansion (one constraint expression and
+no <code>solve</code>; a one-part name), the lookahead does not hold on it, and the text parses through the standard
+alternative (<code>parsed=true witnessed_target=false</code> on the certificate’s debug probe). They are exercised on the
+generated parser by the reproducer pins and by the corpus instead; the planner gap is routed as
+<code>ENGINE-UNIVERSAL-SERVICES.120</code>. ⛔ Through <code>1.0.249</code> this paragraph gave another reason for the three <code>solve</code>
+rules (a generated <code>solve … before</code> naming variables a store gate had not seen); the probe shows no <code>solve</code> in
+any forced sample, and the sentence is corrected here.</li>
 </ul>
 
                     </main>

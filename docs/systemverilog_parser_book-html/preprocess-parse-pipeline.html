@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-37989d6c.js";
+            window.path_to_searchindex_js = "searchindex-42a0d85d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -753,8 +753,8 @@ without passing — each now stops at a per-IP define (<code>`EN_MASKING</code>,
 <code>`SEC_VOLATILE_RAW_UNLOCK_EN</code>).</p>
 <p><strong>Tool tolerances: five spellings the big simulators accept and this parser rejects, under both editions.</strong> Each
 was asked of the standard’s TEXT, not only of Annex A, and each has a reproducer pin that must keep rejecting
-(<code>stimuli/sv/adjudication_repros/</code>), so a widening can only happen as a decision. The first four are accepted by
-the opt-in profile below; the fifth (<code>SV-CORPUS-GRAD.44</code>) is not in its list:</p>
+(<code>stimuli/sv/adjudication_repros/</code>), so a widening can only happen as a decision. All five are accepted by the
+opt-in profile below — the first four since <code>1.0.249</code>, the fifth since <code>1.0.250</code> (<code>SV-CORPUS-GRAD.45</code>):</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -771,19 +771,22 @@ the opt-in profile below; the fifth (<code>SV-CORPUS-GRAD.44</code>) is not in i
 </div>
 <p>The corpus counts are a text scan (<code>docs/tasks/artifacts/sv_corpus_grad/dialect_constructs/scan.py</code>). A file that
 uses one of these is rejected at that line under <code>sv_2017</code> and <code>sv_2023</code> alike.</p>
-<p><strong>Since <code>1.0.249</code> there is an opt-in profile that accepts exactly these four: <code>sv_2023_tolerant</code></strong>
-(<code>SV-CORPUS-GRAD.43</code>, by director decision). It is <code>sv_2023</code> plus the four spellings and nothing else; the edition
+<p><strong>Since <code>1.0.249</code> there is an opt-in profile that accepts exactly these spellings: <code>sv_2023_tolerant</code></strong>
+(<code>SV-CORPUS-GRAD.43</code>, by director decision; the fifth row joined in <code>1.0.250</code> by a call the director delegated,
+<code>SV-CORPUS-GRAD.45</code> — it is the reference form of the third row, the only way a select expression can name a dotted
+cross item). It is <code>sv_2023</code> plus the five spellings and nothing else; the edition
 profiles are unchanged and remain the default. Ask for it by name — <code>--profile sv_2023_tolerant</code> on the probe,
 <code>PGEN_PIPELINE_PROFILE=sv_2023_tolerant</code> for a reading of the lane — and each tolerated spelling comes back under
-its own AST <code>kind</code> (<a href="json-carrier.html">The Json Carrier</a>, <em>The Opt-In Tolerance Profile</em>). Measured on release <code>1.0.249</code>’s own reading (<code>PGEN_PIPELINE_PROFILE=sv_2023_tolerant</code>, the census at
-<code>docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_tolerant_lane/census.md</code>): 15 rows and 6 OpenTitan package files
+its own AST <code>kind</code> (<a href="json-carrier.html">The Json Carrier</a>, <em>The Opt-In Tolerance Profile</em>). Measured on release <code>1.0.250</code>’s own reading (<code>PGEN_PIPELINE_PROFILE=sv_2023_tolerant</code>, the census at
+<code>docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_tolerant_lane/census.md</code>): 18 rows and 7 OpenTitan package files
 pass under the tolerant profile that <code>sv_2023</code> rejects (<code>sec_cm_pkg</code>, <code>tl_agent_pkg</code>, <code>adc_ctrl_env_pkg</code>,
-<code>flash_ctrl_env_pkg</code> on three tops), four more packages publish, 315 of the 498 members unreached under the
-primary reading are reached, and nothing <code>sv_2023</code> accepts is lost (<code>2023_only_pass = 0</code>). Under the tolerant
-reading 12 OpenTitan package files still reject: 10 behind per-IP defines, 1 behind a per-target include, and
-<code>sysrst_ctrl_env_pkg</code>, which clears its <code>cross</code> and stops at a three-part name inside <code>binsof(…)</code> — the same
-tolerance one step on, ruled by <code>SV-CORPUS-GRAD.44</code> (the table’s fifth row: rejected under all three profiles, pinned
-from both sides, written in 4 corpus files); whether it joins the closed list is a decision not yet taken.</p>
+<code>sysrst_ctrl_env_pkg</code>, <code>flash_ctrl_env_pkg</code> on three tops), five more packages publish (283 against 278), 337 of the
+498 members unreached under the primary reading are reached, and nothing <code>sv_2023</code> accepts is lost
+(<code>2023_only_pass = 0</code>). The fifth spelling moved exactly three rows when it joined in <code>1.0.250</code> —
+<code>sysrst_ctrl_env_pkg.sv</code> and the two ibex coverage interfaces <code>core_ibex_fcov_if.sv</code> / <code>core_ibex_pmp_fcov_if.sv</code> —
+the three files named before the measurement, and nothing else under any reading. Under the tolerant reading 11
+OpenTitan package files still reject: 10 behind per-IP defines and 1 behind a per-target include — context the
+corpus does not supply, not syntax.</p>
 <p>Measured on the whole lane (the same debug probe, 689 s wall): <strong>425 rows <code>fail → pass</code> and none the other
 way</strong> — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
 <code>el2_param.vh:182</code>, a typedef of <code>el2_pkg</code>). The library: 407 package files, 230 accepted, 170 rejected,
