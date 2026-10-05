@@ -55,7 +55,22 @@
 # Usage:
 #   bash scripts/check_grammar_certification.sh              # tier 1 (the doctrine)
 #   bash scripts/check_grammar_certification.sh --oracle     # tier 2: re-derive and diff (65 s)
+#   bash scripts/check_grammar_certification.sh --restamp    # tier 2, then record what the table was re-derived
+#                                                            # against (the attestation tier 1 reads) — stage the sidecar
 #   bash scripts/check_grammar_certification.sh --self-test  # prove the refusal arms fire
+#
+# ⭐ THE ATTESTATION (GRAMMAR-CERT-STATUS.6, 2026-10-05). Tier 1's fourth arm used to measure a COMMIT
+# DISTANCE: how many commits lie between the page's last commit and an input's. That counts how long ago
+# the page was TOUCHED, not whether the table is stale — and a re-derivation that reads IDENTICAL leaves
+# no byte to stage, so past the budget the prescribed remedy could not reach a commit unless the page
+# happened to need another edit (measured twice: -0032 at a lead of 14, and the commit after release
+# 1.0.250 at 11, with the table re-derived identical in that release's own ceremony). The arm is now
+# keyed on DIGESTS: `--restamp` runs tier 2 and, when the published block equals a fresh derivation,
+# writes the sha256 of every declared input (and of the block) to a tracked sidecar. Tier 1 then asks of
+# each input "has it moved since the table was last re-derived?" — unmoved inputs need nothing, however
+# many commits have passed; a moved one is counted against the same budget, and its remedy (`--restamp`)
+# always produces a diff to stage. No sidecar, or one made for another block: the commit-distance arm
+# judges alone, exactly as before.
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT" || exit 2
 
@@ -64,6 +79,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT" || exit 2
 PAGE="${PGEN_GCC_PAGE:-docs/book/src/grammar-certification-status.md}"
 PRODUCER="${PGEN_GCC_PRODUCER:-scripts/report_grammar_certification.sh}"
 SV_CONTRACT="rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json"
+ATTEST="${PGEN_GCC_ATTEST:-docs/tasks/artifacts/grammar_cert_status/derived_inputs.tsv}"
 # ⭐ The lead is BUDGETED, not zero-tolerance. `BASELINE-IDENTITY` (SV-CORPUS-GRAD.13c.2x.4) learned
 # this the hard way: its first cut made a moved input a hard failure inside a pre-commit enforcer,
 # and ONE COMMENT LINE in the SV grammar blocked every commit in the repository. Staleness inside
@@ -75,11 +91,44 @@ MODE=tier1
 case "${1:-}" in
   "")           MODE=tier1 ;;
   --oracle)     MODE=oracle ;;
+  --restamp)    MODE=restamp ;;
   --self-test)  MODE=selftest ;;
   *) echo "grammar-cert-currency: REFUSED (2) — unknown argument '$1'" >&2; exit 2 ;;
 esac
 
 say()  { printf 'grammar-cert-currency: %s\n' "$*" >&2; }
+
+# ---------------------------------------------------------------------------- the attestation
+# The content the NEXT COMMIT will hold: the index when the path is in it, the file otherwise (a test
+# subject under rust/target is not in the index). This enforcer runs from .githooks/pre-commit and must
+# judge the tree the commit WILL create (.5's rule) — a restamped sidecar that was not staged is not
+# evidence for that tree. So: the INDEX version when the path is in the index; the working file only for
+# a path git IGNORES (a self-test subject); an untracked, un-ignored file yields nothing — "restamped but
+# not staged" reads as "no attestation", which is what the commit would contain.
+cat_idx()  { git show ":$1" 2>/dev/null && return 0; git check-ignore -q "$1" 2>/dev/null && cat "$1" 2>/dev/null; }
+sha_of()   { shasum -a 256 | cut -d' ' -f1; }
+block_of() { sed -n '/<!-- BEGIN DERIVED/,/<!-- END DERIVED -->/p'; }
+declared_inputs() { # everything the table is a function of
+  local inputs="$PRODUCER" f
+  [ -f "$SV_CONTRACT" ] && inputs="$inputs $SV_CONTRACT"
+  for f in $(block_of < "$PAGE" | sed -n 's/^| `\([a-z0-9_]*\)` |.*/\1/p'); do
+    [ -f "grammars/$f.ebnf" ] && inputs="$inputs grammars/$f.ebnf"
+  done
+  printf '%s\n' $inputs
+}
+write_attest() { # $1 = sidecar path — called by --restamp AFTER tier 2 passed, and by the self-test's own arms
+  local out="$1" f
+  mkdir -p "$(dirname "$out")" || return 2
+  {
+    printf '# what the published per-grammar certification table was last RE-DERIVED against (GRAMMAR-CERT-STATUS.6).\n'
+    printf '# Written ONLY by: bash scripts/check_grammar_certification.sh --restamp   (tier 2 re-derives the table; this\n'
+    printf '# file is written when the published block equals the fresh derivation). Tier 1 reads it on every commit: an\n'
+    printf '# input whose sha256 still equals its row has not moved since that derivation; one that differs is counted\n'
+    printf '# against the staleness budget. The `block` row ties the attestation to the block it was made for.\n'
+    printf 'block\t%s\t%s\n' "$PAGE" "$(block_of < "$PAGE" | sha_of)"
+    for f in $(declared_inputs); do printf 'input\t%s\t%s\n' "$f" "$(sha_of < "$f")"; done
+  } > "$out"
+}
 
 # ---------------------------------------------------------------------------- tier 1, arm by arm
 tier1() {
@@ -166,32 +215,57 @@ tier1() {
   # Precedent, twice, both the same bug: BASELINE-IDENTITY (SV-CORPUS-GRAD.13c.2x.4 — "ONE COMMENT
   # LINE in the SV grammar BLOCKED EVERY COMMIT") and SV-CONTRACT-CURRENCY tier A (-0242), whose
   # positive form — "add its row in the SAME commit" — this mirrors.
-  local page_c inputs f in_c lead
-  if git diff --cached --name-only 2>/dev/null | grep -Fxq "$PAGE"; then
+  # ⭐ GRAMMAR-CERT-STATUS.6 — DIGESTS BEFORE DISTANCE. When the tracked attestation was made for the block
+  # this page publishes, an input whose sha256 equals its recorded row has NOT moved since the table was
+  # last re-derived, and nothing is counted for it. Only a MOVED input (or a tree with no attestation, or
+  # one made for another block) is measured by commit distance, from the later of the page's and the
+  # attestation's last commits.
+  local page_c f in_c lead base_c att att_block cur_block att_c rec cur attested=0 unmoved=0
+  if git diff --cached --name-only 2>/dev/null | grep -Fxq "$PAGE" && [ "${PGEN_GCC_MEASURE_STAGED_PAGE:-0}" != "1" ]; then
     say "NOTE — $PAGE is STAGED in this commit, so the block is being republished here and the"
     say "       staleness budget is satisfied by construction. (An UNSTAGED page is still measured:"
     say "       rot past the budget stays impossible for anyone who does not republish.)"
-    page_c=""
-    inputs=""
   else
-  page_c=$(git log -1 --format=%H -- "$PAGE" 2>/dev/null)
-  if [ -z "$page_c" ]; then
-    say "⚠️ NOT EVALUATED — $PAGE has no commit yet, so nothing can lead it."
-  else
-    inputs="$PRODUCER"
-    [ -f "$SV_CONTRACT" ] && inputs="$inputs $SV_CONTRACT"
-    for f in $(sed -n '/<!-- BEGIN DERIVED/,/<!-- END DERIVED -->/p' "$PAGE" \
-               | sed -n 's/^| `\([a-z0-9_]*\)` |.*/\1/p'); do
-      [ -f "grammars/$f.ebnf" ] && inputs="$inputs grammars/$f.ebnf"
-    done
-    for f in $inputs; do
+    att=$(cat_idx "$ATTEST")
+    cur_block=$(cat_idx "$PAGE" | block_of | sha_of)
+    att_block=$(printf '%s\n' "$att" | awk -F'\t' '$1=="block"{print $3; exit}')
+    if [ -n "$att_block" ] && [ "$att_block" = "$cur_block" ]; then
+      attested=1
+    elif [ -n "$att" ]; then
+      say "NOTE — $ATTEST attests ANOTHER block than the one $PAGE publishes; it is not evidence for"
+      say "       this table, so commit distance judges alone. Re-attest: bash $0 --restamp"
+    fi
+    page_c=$(git log -1 --format=%H -- "$PAGE" 2>/dev/null)
+    base_c="$page_c"
+    if [ "$attested" = 1 ]; then
+      att_c=$(git log -1 --format=%H -- "$ATTEST" 2>/dev/null)
+      if [ -n "$att_c" ] && { [ -z "$base_c" ] || git merge-base --is-ancestor "$base_c" "$att_c" 2>/dev/null; }; then
+        base_c="$att_c"
+      fi
+    fi
+    for f in $(declared_inputs); do
+      local moved_by_digest=0
+      if [ "$attested" = 1 ]; then
+        rec=$(printf '%s\n' "$att" | awk -F'\t' -v p="$f" '$1=="input" && $2==p {print $3; exit}')
+        cur=$(cat_idx "$f" | sha_of)
+        if [ -n "$rec" ] && [ "$rec" = "$cur" ]; then unmoved=$((unmoved + 1)); continue; fi
+        moved_by_digest=1
+      fi
+      if [ -z "$base_c" ]; then
+        say "⚠️ NOT EVALUATED — $PAGE has no commit yet, so nothing can be counted against it ($f)."
+        continue
+      fi
       in_c=$(git log -1 --format=%H -- "$f" 2>/dev/null) || continue
       [ -n "$in_c" ] || continue
-      lead=$(git rev-list --count "$page_c".."$in_c" 2>/dev/null) || continue
+      lead=$(git rev-list --count "$base_c".."$in_c" 2>/dev/null) || continue
+      # an input that the digests say moved, with no commit ahead yet, moved in the commit being made
+      [ "${lead:-0}" -eq 0 ] && [ "$moved_by_digest" = 1 ] && lead=1
       [ "${lead:-0}" -eq 0 ] && continue
       if [ "$lead" -gt "$BUDGET" ]; then
         say "✗ (1) $f leads the published table by $lead commits (budget $BUDGET) — the table may"
-        say "      be stale. Re-derive it: bash $PRODUCER --markdown, then republish the block."
+        say "      be stale. Re-derive it: bash $0 --restamp   (tier 2; when the table reads identical the"
+        say "      recorded digests are refreshed — stage $ATTEST). If it differs, republish the block first:"
+        say "      bash $PRODUCER --markdown"
         rc=1
       else
         say "NOTE — $f leads the published table by $lead commit(s), inside the budget of $BUDGET."
@@ -199,10 +273,10 @@ tier1() {
       fi
     done
   fi
-  fi
 
   if [ "$rc" -eq 0 ]; then
     local tail=""; [ "$notes" -gt 0 ] && tail=", $notes staleness note(s) inside budget"
+    [ "$unmoved" -gt 0 ] && tail="$tail; $unmoved input(s) unmoved since the attested derivation"
     say "OK (tier 1: block well-formed, --check wired and refusing, population agrees, no input past budget$tail)"
   fi
   return "$rc"
@@ -227,6 +301,18 @@ oracle() {
   local rc=$?
   [ "$rc" -eq 0 ] && say "OK (tier 2: the published table equals a fresh derivation)"
   return "$rc"
+}
+
+# ---------------------------------------------------------------------------- tier 2 + the attestation
+restamp() {
+  oracle || {
+    say "REFUSED (2) — NOT restamped: tier 2 did not find the published block current. Republish it"
+    say "              (bash $PRODUCER --markdown, splice the block), then --restamp."
+    return 2
+  }
+  write_attest "$ATTEST" || { say "REFUSED (2) — could not write $ATTEST"; return 2; }
+  say "restamped $ATTEST — $(grep -c '^input' "$ATTEST") input digest(s) recorded for the block tier 2 just re-derived."
+  say "Stage it with the commit: git add $ATTEST"
 }
 
 # ---------------------------------------------------------------------------- the refusal arms
@@ -284,6 +370,22 @@ STUB
     "$PAGE" > "$t/extra_family.md"
   arm "a published family that does not ship BREACHES" 1 env PGEN_GCC_PAGE="$t/extra_family.md" bash "$0"
 
+  # --- A4 the attestation (GRAMMAR-CERT-STATUS.6). Each arm measures the REAL page (the staged-page
+  # shortcut switched off, so the arm's verdict does not depend on what this commit stages) under a
+  # budget of ZERO, where the commit-distance arm alone would refuse whenever any input has a newer commit.
+  write_attest "$t/attest_current.tsv"
+  arm "inputs attested unmoved HOLD past the budget" 0 env PGEN_GCC_ATTEST="$t/attest_current.tsv" \
+      PGEN_GCC_MEASURE_STAGED_PAGE=1 PGEN_GRAMMAR_CERT_LEAD_BUDGET=0 bash "$0"
+  awk -F'\t' 'BEGIN{OFS="\t"} $1=="input" && !d {$3="0000000000000000000000000000000000000000000000000000000000000000"; d=1} {print}' \
+      "$t/attest_current.tsv" > "$t/attest_moved.tsv"
+  arm "an input MOVED since the attestation BREACHES"  1 env PGEN_GCC_ATTEST="$t/attest_moved.tsv" \
+      PGEN_GCC_MEASURE_STAGED_PAGE=1 PGEN_GRAMMAR_CERT_LEAD_BUDGET=0 bash "$0"
+  awk -F'\t' 'BEGIN{OFS="\t"} $1=="block" {$3="1111111111111111111111111111111111111111111111111111111111111111"} {print}' \
+      "$t/attest_current.tsv" > "$t/attest_other_block.tsv"
+  arm "an attestation for ANOTHER block is not evidence" 1 env PGEN_GCC_ATTEST="$t/attest_other_block.tsv" \
+      PGEN_GCC_MEASURE_STAGED_PAGE=1 PGEN_GRAMMAR_CERT_LEAD_BUDGET=0 bash "$0"
+  arm "--restamp REFUSES an unknown extra argument"   2 bash "$0" --restamp-now
+
   printf '  (the DIFF arm — a drifted table — needs the 65 s derivation and is driven by --oracle,\n' >&2
   printf '   not here. Stated rather than quietly skipped.)\n' >&2
   printf 'grammar-cert-currency self-test: %d/%d arms as expected\n' "$pass" "$total" >&2
@@ -293,5 +395,6 @@ STUB
 case "$MODE" in
   tier1)    tier1 ;;
   oracle)   oracle ;;
+  restamp)  restamp ;;
   selftest) selftest ;;
 esac

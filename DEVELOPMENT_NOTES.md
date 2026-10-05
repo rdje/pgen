@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-05 — GRAMMAR-CERT-STATUS.6 (`PGEN-GRAMMAR-CERT-STATUS-0008`): a commit count is not staleness, and "parked" has an end condition
+
+- **Measure the thing, not its proxy.** The arm asked "how many commits since the page was touched" when the question was "has anything the table depends on changed since it was last re-derived". The proxy fails in the PASSING table's direction: re-deriving and finding nothing to change left no trace, so diligence was indistinguishable from neglect. Recording the input digests at the derivation makes the diligent act leave a byte.
+- **A remedy must be reachable from the refusal.** The refusal said "re-derive and republish"; an identical re-derivation had nothing to republish. `.5` fixed one unreachable remedy (a staged page); this was the same class one step on. When writing a refusal, run its remedy on the case where the answer is "already correct".
+- **Read the index, not the working tree, in a pre-commit enforcer.** A restamped sidecar that is not staged would have passed the hook locally and refused on a clean clone. The check reads what the commit will contain, and the unstaged case is one of the measured arms.
+- **"Parked — it blocks nothing today" is a condition, not a status.** It ended at the first commit after a release whose table re-derived identical; the leaf said so in its own title, which is why the fix took an hour instead of a diagnosis.
+- promotion: declined — the first lesson is an instance of [[a-delta-is-a-claim-about-a-join]]'s family (a count standing in for a property) and of `BASELINE-IDENTITY`'s own design; the rest are operational. Filed here until seen again.
+
 ## 2026-10-05 — SV-CORPUS-GRAD.45 (`PGEN-SV-CORPUS-GRAD-0431`, release 1.0.250): a prediction that names files, a residual explained by its tool, and a shape kept over a witness
 
 - **Predict FILES, not counts.** `.43` predicted "seven packages" and measured six; `.45` named three files and measured those three. The difference was reading every construct site first — each `binsof` name was matched to a cross item of its own cross, and each file's other stops were already known from the tolerant reading — so the prediction was a list a measurement could refute row by row.

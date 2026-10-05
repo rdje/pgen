@@ -167,14 +167,25 @@ tiers, because the oracle costs about a minute and a pre-commit hook may not:
 
 | tier | when | cost | what it proves |
 |---|---|---|---|
-| **1** (default) | **every commit**, via `.githooks/pre-commit` | **0.27 s** | the page carries exactly one well-formed derived block; the producer's `--check` is genuinely **wired**; the published **population** equals the families that actually ship; and no input the table depends on has run ahead of the page beyond a budget |
+| **1** (default) | **every commit**, via `.githooks/pre-commit` | **0.27 s** | the page carries exactly one well-formed derived block; the producer's `--check` is genuinely **wired**; the published **population** equals the families that actually ship; and no input the table depends on has **moved** — by sha256, against the digests recorded when the table was last re-derived — for more than a budget of commits |
 | **2** (`--oracle`) | on demand | **64.5 s** | the whole table is **re-derived and diffed** against the published block — after first proving the producer still **refuses** a page it cannot read |
 
 ```bash
 bash scripts/check_grammar_certification.sh              # tier 1 — the doctrine
 bash scripts/check_grammar_certification.sh --oracle     # tier 2 — re-derive and diff
-bash scripts/check_grammar_certification.sh --self-test  # prove the refusal arms fire (9/9)
+bash scripts/check_grammar_certification.sh --restamp    # tier 2, then record what the table was re-derived against
+bash scripts/check_grammar_certification.sh --self-test  # prove the arms fire (13/13)
 ```
+
+⭐ **What "moved" means, and why it is not a commit count** (`GRAMMAR-CERT-STATUS.6`, 2026-10-05). The fourth
+arm used to count commits between the page's last commit and an input's. That measures how long ago the page was
+*touched*, not whether the table is stale: a re-derivation that reads identical leaves no byte to commit, so the
+count kept growing and the arm twice refused a table that had just been re-derived unchanged. `--restamp` now runs
+tier 2 and, when the published block equals the fresh derivation, records the sha256 of every input in a tracked
+sidecar (`docs/tasks/artifacts/grammar_cert_status/derived_inputs.tsv`). Tier 1 compares digests first: an input that
+still has its recorded digest has not moved since the table was last re-derived, however many commits have passed;
+one that differs is counted against the budget, and its remedy always produces a file to commit. A sidecar that was
+restamped but not staged, or one made for another block, is not evidence, and the commit count judges alone.
 
 ⚠️ **Stated plainly, because a gate's limits belong beside its green tick**: tier 1 is a *staleness*
 argument, not a correctness proof — it inherits whatever tier 2 last established. And because
@@ -183,7 +194,7 @@ never as a pass.
 
 ⭐ **Tier 1 tests the instrument rather than trusting it**, and that is not defensive
 over-engineering — it is this page's own history. The check that keeps this table honest was once
-deleted while its flag survived, and nothing noticed for a commit. Two of the nine self-test arms
+deleted while its flag survived, and nothing noticed for a commit. Two of the thirteen self-test arms
 reconstruct that exact failure from both sides.
 
 ## Re-derive it yourself
