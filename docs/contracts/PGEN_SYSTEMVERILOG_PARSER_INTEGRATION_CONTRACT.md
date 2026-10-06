@@ -2074,7 +2074,15 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   `E_SVPP_UNTERMINATED_PROTECTED_ENVELOPE`), block comments spanning lines and following an `` `include ``, the
   fifteen `` `SV_COV_* `` coverage-control macros predefined (§40.3.1), conditional groups with the
   `--stage-opt conditional_symbol_policy=…` (`E_SVPP_UNDEFINED_CONDITIONAL_SYMBOL` under the strict policy) and macro
-  redefinition under `--stage-opt macro_redefine_policy=…` (`E_SVPP_MACRO_REDEFINED` when disallowed). Every event is
+  redefinition under `--stage-opt macro_redefine_policy=…` (`E_SVPP_MACRO_REDEFINED` when disallowed); since
+  `SVPP-EXPANSION.5`(s)–(v) (2026-10-06): macro text that leaves a plain STRING LITERAL open at its end is refused
+  naming §22.5.1 (*"shall not be split across … String literals"*, the standard's own `first_half` example), a
+  COMPILER DIRECTIVE cannot be redefined as a macro name and IS a defined name to `` `ifdef `` / `` `ifndef `` /
+  `` `elsif `` (§22.5.1 *"All compiler directives shall be considered predefined macro names"*; the set is the
+  edition's own — 1364-2005's nineteen under a Verilog profile, plus `undefineall`, `__FILE__`, `__LINE__` under
+  1800), a backslash-newline INSIDE a string literal of the macro text omits both characters under the 2023 reading
+  (1800-2023 §22.5.1) and becomes a newline under 2017, and a formal's default argument may hold `(`, `)` or `,`
+  inside a string literal. Every event is
   logged (`Define Undef Include Ifdef Ifndef Elsif Else Endif PassthroughLine SkippedLine MacroExpand
   LineDirective ProtectedEnvelope KeywordsRegion`).
 - **`` `begin_keywords `` regions are APPLIED, and the profile reaches this stage** (`SVPP-EXPANSION.8`,

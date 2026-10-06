@@ -304,6 +304,7 @@ each one a sentence of the standard that a corpus row had been failing on:
   | a block comment in macro text — `` `define Y(a) a /* c */ + 1 `` | the comment is part of the substituted text | the comment is NOT substituted (one space stands where it was) | 1800-2023 §22.5.1: *"If a one-line comment or block comment (see 5.4) is included in the text, then the comment shall not become part of the substituted text"*; 1800-2017 says it of one-line comments only |
   | a block comment that the macro text opens and the NEXT line closes — `` `define X 1 /* multi `` / `line */ + 2` | REFUSED, naming the clause: the newline ended the macro text inside a comment (*"shall not be split across … Comments"*) | the comment carries the `` `define `` across its newlines; `X` is `1 + 2` | 1800-2023 §22.5.1: *"A newline character that is not contained in a triple-quoted string literal or in a block comment and is not preceded by a backslash shall end the macro text"* |
   | a macro USAGE as the argument of `` `ifdef `` / `` `ifndef `` / `` `elsif `` / `` `undef `` — `` `ifndef `ID(HAVE) `` | the argument is read as written (Syntax 22-6 takes a `text_macro_identifier`) | the usage is expanded first and the directive reads what it yields | 1800-2023 §22.2: *"Macro expansion shall occur within a compiler directive"* |
+  | a backslash-newline INSIDE a string literal of the macro text — `` `define MSG "two \ `` / `lines"` | the continuation becomes a newline inside the literal, which the parser then rejects as a two-line string (§5.9) — the 2017 text has no exception | both the backslash and the newline are omitted: the literal reads `"two lines"` | 1800-2023 §22.5.1: *"An exception to the previous sentence is that if the backslash-newline character sequence occurs in the middle of a string literal, both the backslash and the newline characters are omitted in the expanded macro"* (`docs/systemverilog/2023/md/section-22-compiler-directives.md:182-184`; `SVPP-EXPANSION.5`(u)) |
 
   The 2017 column is the strict reading of that edition, not a guess at tool behaviour: where the older text has no
   sentence the newer one adds, the older reading stays as it was. Each of the first two rows that changes a verdict is
@@ -335,6 +336,22 @@ each one a sentence of the standard that a corpus row had been failing on:
   NOT continue the macro text** on any profile: 2017 *"preceded by a backslash"*, 2023 *"immediately preceded"*
   — the macro ends at that line and the following lines are source. The corpus writes that shape at two sites,
   both tests (verilator's own `BSSPACE` lint-error test is one); no stage option exists for it.
+- **Macro text may not leave a string literal open** (`SVPP-EXPANSION.5`(s); §22.5.1 *"The text specified for
+  macro text shall not be split across the following lexical tokens: Comments, Numbers, String literals,
+  Identifiers, Keywords, Operators"*, with the standard's own illegal example `` `define first_half "start of
+  string ``). The definition is refused, naming the clause; through `1.0.250` it was accepted and the use site glued
+  one string. The scan is the stage's own (comments and `` `"…`" `` macro strings skipped, `\"` an escape, a
+  backslash-newline inside a string a continuation); a text cut at the end of a number, identifier, keyword or
+  operator is not judged — a stated bound. A formal's default argument may hold `(`, `)` or `,` inside a string
+  literal (`.5`(v)); the list closes at the parenthesis outside every string.
+- **A compiler directive cannot be redefined as a macro name, and is a defined name** (`SVPP-EXPANSION.5`(t);
+  §22.5.1 *"All compiler directives shall be considered predefined macro names; it shall be illegal to redefine a
+  compiler directive as a macro name"*). `` `define define "illegal" `` and `` `define include 1 `` are refused;
+  `` `ifdef __FILE__ `` is true and `` `ifndef __FILE__ `` false, so a guarded redefinition is skipped (the ispras
+  22.13 test's shape). The set is the edition's own: IEEE 1364-2005 clause 19 lists nineteen directives; IEEE 1800
+  adds `undefineall` (§22.5.3) and `__FILE__` / `__LINE__` (§22.13), so under the `verilog_2005` profile those
+  three are ordinary macro names. Through `1.0.250` both were accepted and a directive name was undefined to the
+  conditionals.
 - **A function-like macro may open its parentheses on the next line** (§22.5.1 requires the parentheses;
   §5.3 lets white space, newlines included, separate the tokens): `` `FOO `` at the end of a line followed by
   `(1, 2)` on the next is one invocation.
@@ -554,8 +571,10 @@ and **2 should-fail tests the pipeline ACCEPTS**: the standard's own illegal exa
 across a string literal (`22.5.1--define-expansion_21.sv`, §22.5.1 *"shall not be split across the
 following lexical tokens: … String literals"*) and the redefinition of a compiler directive as a macro name
 (`22.5.1--define-expansion_23.sv`, `` `define define "illegal" ``, §22.5.1 *"it shall be illegal to redefine
-a compiler directive as a macro name"*). Both are over-acceptances of the preprocessor, on the bar under
-the pipeline (its fifth number reads 2) until `SVPP-EXPANSION.5`(s) and (t) land. The other suites'
+a compiler directive as a macro name"*). Both were over-acceptances of the preprocessor, on the bar under
+the pipeline (its fifth number read 2) until `SVPP-EXPANSION.5`(s) and (t) landed the same day: both tests are
+now refused at the expansion stage with the clause, the bar reads 0, and the two rows testify as
+`must_reject:refused_engine`. The other suites'
 svpp-owned rows (22 accepted, 28 rejected, 25 refused) have no header convention derived yet and keep no
 verdict.
 

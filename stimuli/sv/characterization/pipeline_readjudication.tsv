@@ -289,7 +289,7 @@ Surelog	tests/TestFileSplit/middle.v	deferred:chained_only	ONE-SIDED (raw pass)	
 Surelog	tests/TestFileSplit/mod.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/TestFileSplit/top.v	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/TestFileSplit/top2.v	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
-Surelog	tests/TestMacros/TestMacros.v	deferred:chained_only	IN-WINDOW	fail	included file		-	chained:hollow	stimuli/sv/subs/Surelog/tests/TestMacros/macros.inc:1:1
+Surelog	tests/TestMacros/TestMacros.v	deferred:chained_only	IN-WINDOW	pp_fail	engine		-	chained:refused_engine	"invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/TestMacros/TestMacros.v:12: the macro name 'define' is a compiler directive — IEEE 1800-2017 §22.5.1: """
 Surelog	tests/TestMacros/macros.v	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/TestMacros/macros.v:6:1
 Surelog	tests/TestMacros/xl.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/TestNoHash/pkg1.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
@@ -5146,9 +5146,9 @@ sv-tests	tests/chapter-22/22.5.1--define-expansion_18.sv	deferred:svpp_owned	pin
 sv-tests	tests/chapter-22/22.5.1--define-expansion_19.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
 sv-tests	tests/chapter-22/22.5.1--define-expansion_2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
 sv-tests	tests/chapter-22/22.5.1--define-expansion_20.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_21.sv	deferred:svpp_owned	pinned, raw lane demoted	pass	-		-	must_reject:accepts_invalid	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_21.sv	deferred:svpp_owned	pinned, raw lane demoted	pp_fail	engine		-	must_reject:refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_21.sv:17: the macro text is split across a string literal — IEEE 18
 sv-tests	tests/chapter-22/22.5.1--define-expansion_22.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_23.sv	deferred:svpp_owned	pinned, raw lane demoted	pass	-		-	must_reject:accepts_invalid	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_23.sv	deferred:svpp_owned	pinned, raw lane demoted	pp_fail	engine		-	must_reject:refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_23.sv:17: the macro name 'define' is a compiler directive — IEEE 18
 sv-tests	tests/chapter-22/22.5.1--define-expansion_24.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
 sv-tests	tests/chapter-22/22.5.1--define-expansion_25.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
 sv-tests	tests/chapter-22/22.5.1--define-expansion_26.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
@@ -5390,7 +5390,7 @@ sv2v	test/error/localparam_type_no_default.sv	match	match	fail	own file		other	m
 sv2v	test/error/macro_arg_bad_eq.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/macro_arg_bad_eq.sv:2: invalid macro parameter list: invalid trailing text in macro parameter 'a#'
 sv2v	test/error/macro_arg_bad_name.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/macro_arg_bad_name.sv:2: invalid macro parameter list: invalid macro parameter token '#'
 sv2v	test/error/macro_args_empty.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv2v	test/error/macro_illegal_name.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+sv2v	test/error/macro_illegal_name.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	"invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/macro_illegal_name.sv:2: the macro name 'define' is a compiler directive — IEEE 1800-2017 §22.5.1: ""A"
 sv2v	test/error/macro_overapplied.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	E_SVPP_EXTRA_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/macro_overapplied.sv:3: `MACRO invoked with 3 arguments for 2 formals — IEEE 1800-2017 §22.5.1: it 
 sv2v	test/error/macro_unapplied.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 sv2v	test/error/macro_unapplied_eof.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
@@ -5439,7 +5439,7 @@ sv2v	test/lex/begin_keywords.sv	divergence:explained_svpp_keywords_region	not-in
 sv2v	test/lex/cond.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/file_line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-sv2v	test/lex/macro.sv	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/lex/macro.sv:142:14
+sv2v	test/lex/macro.sv	deferred:svpp_owned	pinned, raw lane demoted	pp_fail	engine		-	must_reject:refused_engine	"invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/macro.sv:100: the macro text is split across a string literal — IEEE 1800-2017 §22.5.1: ""The text speci"
 sv2v	test/lex/macro_arg_comment.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pp_fail	engine		-	refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/macro_arg_comment.sv:1: invalid macro parameter list: a comment inside a macro formal argument list is not
 sv2v	test/lex/macro_arg_escape.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/macro_boundary.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -6444,7 +6444,7 @@ verilator	test_regress/t/t_pgo_profoutofdate_bad.v	deferred:svpp_owned	pinned, r
 verilator	test_regress/t/t_pipe_filter.v	deferred:chained_only	deferred:chained_only	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_pipe_filter.v:11:8
 verilator	test_regress/t/t_pp_circ_subst_bad.v	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	E_SVPP_RECURSIVE_MACRO at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_pp_circ_subst_bad.v:8: macro 'e' expands to a usage of itself (`e -> `e) — IEEE 1800-2017 §22
 verilator	test_regress/t/t_pp_circdef_bad.v	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	E_SVPP_RECURSIVE_MACRO at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_pp_circdef_bad.v:14: macro 'SEL_NUM_BITS' expands to a usage of itself (`SEL_NUM_BITS -> `SEL_NU
-verilator	test_regress/t/t_pp_defkwd_bad.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+verilator	test_regress/t/t_pp_defkwd_bad.v	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_pp_defkwd_bad.v:7: the macro name 'define' is a compiler directive — IEEE 1800-2017 §22.5.
 verilator	test_regress/t/t_pp_defnettype_bad.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_pp_defnettype_bad.v:7:17
 verilator	test_regress/t/t_pp_defparen_bad.v	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_pp_defparen_bad.v:10:10
 verilator	test_regress/t/t_pp_display.v	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_pp_display.v:40:14

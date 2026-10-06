@@ -7,11 +7,11 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 
 | input | path | sha256 |
 |---|---|---|
-| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `b83b557d1478f8d160e662e13417afe319184e5ce85175cad363d3df6ad00bfb` |
-| sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `612b2a24b9d06c19f04a4aab93106b0ee4990ee930376e82767346defb9c2254` |
-| sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `10ca5fce7dfa4510a0e44783357b7c8dc4b86c2ff823b754e33baff9f1e6d265` |
-| sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `e2551e4773a283c708d02b62983f937813335d6705f92f613a0cd921ead10443` |
-| expansion binary | `rust/target/debug/ast_pipeline` | `edf4581044ca91173c2d3f24c8b246ea31b1aed8445e1a2864481bd0df5805a1` |
+| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `157740e2ac54bf86d439869f9138c46a721d27eec35af2b1f7f8de4dd34b5bd7` |
+| sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `4f63ace26d451a0b218330f971e5362775b4903f36a7acf585c9cfc4b802b6d2` |
+| sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `e541ba5a335ea521a65dc905630bafd05696882cc123d0bb42e59a050320beba` |
+| sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `7defc287e8fae32ac146679fc3b59f3697d739f1a5c85786bb0798168d7fe194` |
+| expansion binary | `rust/target/debug/ast_pipeline` | `13508a1cff6368ef0ed8dcfc16473ad326a5151c012e3bdc70e433e3adef753d` |
 
 ## The classes — 305 rows
 

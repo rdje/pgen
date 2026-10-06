@@ -9,20 +9,20 @@
 | answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e0034b25fb9e7de646f1f4933d348839a052249e8588632541195d4a04efea08` |
 | explained_svpp audit | `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/after/audit.tsv` | `e30149eb2dc125d24f0a27c537984fc2e11b6ba13062e0e62f162e7d02dfeded` |
 | dark chained_only audit | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv` | `33a0bedc2898f35855ff81f95c3d2f8ad0671140c7c80295c4f3e63135c86290` |
-| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `612b2a24b9d06c19f04a4aab93106b0ee4990ee930376e82767346defb9c2254` |
+| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `4f63ace26d451a0b218330f971e5362775b4903f36a7acf585c9cfc4b802b6d2` |
 | refuted dispositions (`.6b`) | `stimuli/sv/characterization/refuted_dispositions.tsv` | `1eabd58928cc56c6107f64301870e9cd1d4cc7bc5c92f36440c1a72758c73db7` |
-| parse binary | `rust/target/debug/parseability_probe` | `91de33b51d32f1b9f584bcab3512c17fc63cbfea3ea7dbb9f01913f432222fb9` |
+| parse binary | `rust/target/debug/parseability_probe` | `7fb692c607b09fef85e65cfbe73689e100f5d8a9e7ab9290912572729346fe61` |
 
-Measured at `HEAD` = `f2b63480f+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
+Measured at `HEAD` = `26a3f24fe+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
 
 ## The headline
 
 - rows re-read: **6,911** (manifest rows in the three populations that the lane ran; 0 such rows have no lane row)
 - **explained_svpp** — must-accept rows the raw lane explained away by preprocessing (`divergence:explained_svpp_*`; `.12a`'s position test, `.12b`'s 263): 1,362 rows → `corroborated` 1,334, `refuted:vendor_identity_branch` 9, `refuted:driver_define` 7, `refused_context` 5, `refused_engine` 4, `refuted:cross_file_define` 1, `refuted:preprocessor_item` 1, `refuted` 1
-- **chained_only** — multi-file design rows the raw lane could not judge (`deferred:chained_only`; `.13c`'s strata, `.13d`'s expansion-owned rows): 4,926 rows → `chained:accepted_under_expansion` 2,404, `chained:accepted_in_unit` 1,501, `chained:unreached_in_unit` 498, `chained:rejects_own_file` 277, `chained:refused_context` 208, `chained:hollow` 26, `chained:refused_engine` 12
-- **svpp_owned** — rows whose conformance the raw lane routed to the preprocessor lane (`deferred:svpp_owned`) and for which this lane derives no expectation yet: 78 rows → `svpp_owned:rejects_own_file` 28, `svpp_owned:refused_engine` 25, `svpp_owned:accepted_under_expansion` 22, `svpp_owned:refused_context` 2, `svpp_owned:hollow` 1
+- **chained_only** — multi-file design rows the raw lane could not judge (`deferred:chained_only`; `.13c`'s strata, `.13d`'s expansion-owned rows): 4,926 rows → `chained:accepted_under_expansion` 2,404, `chained:accepted_in_unit` 1,501, `chained:unreached_in_unit` 498, `chained:rejects_own_file` 277, `chained:refused_context` 208, `chained:hollow` 25, `chained:refused_engine` 13
+- **svpp_owned** — rows whose conformance the raw lane routed to the preprocessor lane (`deferred:svpp_owned`) and for which this lane derives no expectation yet: 78 rows → `svpp_owned:rejects_own_file` 28, `svpp_owned:refused_engine` 27, `svpp_owned:accepted_under_expansion` 20, `svpp_owned:refused_context` 2, `svpp_owned:hollow` 1
 - **svpp_owned_expected** — svpp_owned rows whose own header this lane reads as must_accept — sv-tests `:type: preprocessing` tests without `:should_fail_because:` (`.6c.3`, the answer key's own function in its pipeline mode); a should_fail header joins must_reject: 86 rows → `svpp_owned:corroborated` 86
-- **must_reject** — rows the answer key expects REJECTED — the manifest's `expected`, or a pin the raw lane demoted (`.6b.1`); a pipeline pass here is an over-acceptance candidate: 459 rows → `must_reject:match_under_expansion` 453, `must_reject:refused_engine` 4, `must_reject:accepts_invalid` 2
+- **must_reject** — rows the answer key expects REJECTED — the manifest's `expected`, or a pin the raw lane demoted (`.6b.1`); a pipeline pass here is an over-acceptance candidate: 459 rows → `must_reject:match_under_expansion` 452, `must_reject:refused_engine` 7
 
 ## explained_svpp — the `.12a` position verdict against the parse that actually happened
 
@@ -90,7 +90,7 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 
 | `.13c` stratum | rows | `accepted_under_expansion` | `accepted_in_unit` | `rejects_own_file` | `hollow` | `unreached_in_unit` | `refused_context` | `refused_engine` |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `IN-WINDOW` | 1479 | 1115 | 54 | 72 | 21 | 11 | 195 | 11 |
+| `IN-WINDOW` | 1479 | 1115 | 54 | 72 | 20 | 11 | 195 | 12 |
 | `NO-ALTERABLE-TICK/CROSS-LIBRARY` | 3 | 0 | 0 | 2 | 0 | 1 | 0 | 0 |
 | `NO-ALTERABLE-TICK/FACT-GATED-CROSS-FILE` | 50 | 9 | 18 | 20 | 0 | 3 | 0 | 0 |
 | `NO-ALTERABLE-TICK/FACT-GATED-LOCAL-TYPE` | 2 | 0 | 2 | 0 | 0 | 0 | 0 | 0 |
@@ -104,7 +104,7 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 | `PRE-TICK/NO-FACT-GATE-AT-FAILURE` | 9 | 0 | 4 | 5 | 0 | 0 | 0 | 0 |
 | `PRE-TICK/UNDECLARED-ANYWHERE` | 14 | 0 | 2 | 11 | 0 | 0 | 1 | 0 |
 
-**The expansion-owned stratum** (`IN-WINDOW` + `PAST-LAST-TICK` with no cross-file channel — `.13d`'s pre-registered population): **1,487** rows in the audit; under the pipeline `accepted_under_expansion` 1119, `accepted_in_unit` 56, `rejects_own_file` 73, `hollow` 21, `unreached_in_unit` 11, `refused_context` 196, `refused_engine` 11.
+**The expansion-owned stratum** (`IN-WINDOW` + `PAST-LAST-TICK` with no cross-file channel — `.13d`'s pre-registered population): **1,487** rows in the audit; under the pipeline `accepted_under_expansion` 1119, `accepted_in_unit` 56, `rejects_own_file` 73, `hollow` 20, `unreached_in_unit` 11, `refused_context` 196, `refused_engine` 12.
 
 **The rows that still reject in their own file after expansion, by construct** (chained_only, all strata — the barrier BEHIND the macro barrier):
 
@@ -137,15 +137,15 @@ Every row whose expected verdict is `must_reject` — the manifest's column, or 
 |---|---:|---:|---:|---:|---:|---:|
 | `deferred:chained_only` | 7 | 7 | 0 | 0 | 0 | 0 |
 | `match` | 371 | 371 | 0 | 0 | 0 | 0 |
-| `pinned, raw lane demoted` | 81 | 75 | 2 | 0 | 0 | 4 |
+| `pinned, raw lane demoted` | 81 | 74 | 0 | 0 | 0 | 7 |
 
 ## svpp_owned — the rows routed to the preprocessor lane
 
 | verdict | rows |
 |---|---:|
 | `svpp_owned:rejects_own_file` | 28 |
-| `svpp_owned:refused_engine` | 25 |
-| `svpp_owned:accepted_under_expansion` | 22 |
+| `svpp_owned:refused_engine` | 27 |
+| `svpp_owned:accepted_under_expansion` | 20 |
 | `svpp_owned:refused_context` | 2 |
 | `svpp_owned:hollow` | 1 |
 

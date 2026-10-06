@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-caa991ed.js";
+            window.path_to_searchindex_js = "searchindex-4de82e5f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -488,6 +488,7 @@ select 1800-2017). They are the three places where 1800-2023’s clause 22 says 
 <tr><td>a block comment in macro text — <code>`define Y(a) a /* c */ + 1</code></td><td>the comment is part of the substituted text</td><td>the comment is NOT substituted (one space stands where it was)</td><td>1800-2023 §22.5.1: <em>“If a one-line comment or block comment (see 5.4) is included in the text, then the comment shall not become part of the substituted text”</em>; 1800-2017 says it of one-line comments only</td></tr>
 <tr><td>a block comment that the macro text opens and the NEXT line closes — <code>`define X 1 /* multi</code> / <code>line */ + 2</code></td><td>REFUSED, naming the clause: the newline ended the macro text inside a comment (<em>“shall not be split across … Comments”</em>)</td><td>the comment carries the <code>`define</code> across its newlines; <code>X</code> is <code>1 + 2</code></td><td>1800-2023 §22.5.1: <em>“A newline character that is not contained in a triple-quoted string literal or in a block comment and is not preceded by a backslash shall end the macro text”</em></td></tr>
 <tr><td>a macro USAGE as the argument of <code>`ifdef</code> / <code>`ifndef</code> / <code>`elsif</code> / <code>`undef</code> — <code>`ifndef `ID(HAVE)</code></td><td>the argument is read as written (Syntax 22-6 takes a <code>text_macro_identifier</code>)</td><td>the usage is expanded first and the directive reads what it yields</td><td>1800-2023 §22.2: <em>“Macro expansion shall occur within a compiler directive”</em></td></tr>
+<tr><td>a backslash-newline INSIDE a string literal of the macro text — <code>`define MSG "two \</code> / <code>lines"</code></td><td>the continuation becomes a newline inside the literal, which the parser then rejects as a two-line string (§5.9) — the 2017 text has no exception</td><td>both the backslash and the newline are omitted: the literal reads <code>"two lines"</code></td><td>1800-2023 §22.5.1: <em>“An exception to the previous sentence is that if the backslash-newline character sequence occurs in the middle of a string literal, both the backslash and the newline characters are omitted in the expanded macro”</em> (<code>docs/systemverilog/2023/md/section-22-compiler-directives.md:182-184</code>; <code>SVPP-EXPANSION.5</code>(u))</td></tr>
 </tbody>
 </table>
 </div>
@@ -527,6 +528,25 @@ profiles and pinned (<code>SVPP-EXPANSION.5</code>(r)). <strong>A backslash foll
 NOT continue the macro text</strong> on any profile: 2017 <em>“preceded by a backslash”</em>, 2023 <em>“immediately preceded”</em>
 — the macro ends at that line and the following lines are source. The corpus writes that shape at two sites,
 both tests (verilator’s own <code>BSSPACE</code> lint-error test is one); no stage option exists for it.</p>
+</li>
+<li>
+<p><strong>Macro text may not leave a string literal open</strong> (<code>SVPP-EXPANSION.5</code>(s); §22.5.1 <em>“The text specified for
+macro text shall not be split across the following lexical tokens: Comments, Numbers, String literals,
+Identifiers, Keywords, Operators”</em>, with the standard’s own illegal example <code>`define first_half "start of string</code>). The definition is refused, naming the clause; through <code>1.0.250</code> it was accepted and the use site glued
+one string. The scan is the stage’s own (comments and <code>`"…`"</code> macro strings skipped, <code>\"</code> an escape, a
+backslash-newline inside a string a continuation); a text cut at the end of a number, identifier, keyword or
+operator is not judged — a stated bound. A formal’s default argument may hold <code>(</code>, <code>)</code> or <code>,</code> inside a string
+literal (<code>.5</code>(v)); the list closes at the parenthesis outside every string.</p>
+</li>
+<li>
+<p><strong>A compiler directive cannot be redefined as a macro name, and is a defined name</strong> (<code>SVPP-EXPANSION.5</code>(t);
+§22.5.1 <em>“All compiler directives shall be considered predefined macro names; it shall be illegal to redefine a
+compiler directive as a macro name”</em>). <code>`define define "illegal"</code> and <code>`define include 1</code> are refused;
+<code>`ifdef __FILE__</code> is true and <code>`ifndef __FILE__</code> false, so a guarded redefinition is skipped (the ispras
+22.13 test’s shape). The set is the edition’s own: IEEE 1364-2005 clause 19 lists nineteen directives; IEEE 1800
+adds <code>undefineall</code> (§22.5.3) and <code>__FILE__</code> / <code>__LINE__</code> (§22.13), so under the <code>verilog_2005</code> profile those
+three are ordinary macro names. Through <code>1.0.250</code> both were accepted and a directive name was undefined to the
+conditionals.</p>
 </li>
 <li>
 <p><strong>A function-like macro may open its parentheses on the next line</strong> (§22.5.1 requires the parentheses;
@@ -716,8 +736,10 @@ and <strong>2 should-fail tests the pipeline ACCEPTS</strong>: the standard’s 
 across a string literal (<code>22.5.1--define-expansion_21.sv</code>, §22.5.1 <em>“shall not be split across the
 following lexical tokens: … String literals”</em>) and the redefinition of a compiler directive as a macro name
 (<code>22.5.1--define-expansion_23.sv</code>, <code>`define define "illegal"</code>, §22.5.1 <em>“it shall be illegal to redefine
-a compiler directive as a macro name”</em>). Both are over-acceptances of the preprocessor, on the bar under
-the pipeline (its fifth number reads 2) until <code>SVPP-EXPANSION.5</code>(s) and (t) land. The other suites’
+a compiler directive as a macro name”</em>). Both were over-acceptances of the preprocessor, on the bar under
+the pipeline (its fifth number read 2) until <code>SVPP-EXPANSION.5</code>(s) and (t) landed the same day: both tests are
+now refused at the expansion stage with the clause, the bar reads 0, and the two rows testify as
+<code>must_reject:refused_engine</code>. The other suites’
 svpp-owned rows (22 accepted, 28 rejected, 25 refused) have no header convention derived yet and keep no
 verdict.</p>
 <p><strong>The file’s own configuration (<code>.4c.1</code>).</strong> A test suite’s driver does not run a file bare: verilator’s

@@ -1244,11 +1244,14 @@ fn preprocess_text_internal(
                         continue;
                     }
                     if line_has_continuation(&raw_line) && continuation_index + 1 < lines.len() {
-                        raw_line = format!(
-                            "{}\n{}",
-                            strip_line_continuation(&raw_line),
-                            lines[continuation_index + 1]
-                        );
+                        // `SVPP-EXPANSION.5`(u): IEEE 1800-2023 §22.5.1 — "if the backslash-newline character
+                        // sequence occurs in the middle of a string literal, both the backslash and the newline
+                        // characters are omitted in the expanded macro" (docs/systemverilog/2023/md/
+                        // section-22-compiler-directives.md:182-184). 1800-2017 has no such sentence: the
+                        // continuation is replaced by a newline there, inside a string as anywhere else.
+                        let stripped = strip_line_continuation(&raw_line);
+                        let joiner = if lrm_2023 && macro_text_leaves_string_open(&stripped) { "" } else { "\n" };
+                        raw_line = format!("{}{}{}", stripped, joiner, lines[continuation_index + 1]);
                         continuation_index += 1;
                         continue;
                     }
@@ -1382,7 +1385,12 @@ fn preprocess_text_internal(
                     );
                     if active {
                         let (name, definition) =
-                            parse_define_directive(rest, lrm_2023).with_context(|| {
+                            parse_define_directive(
+                                rest,
+                                lrm_2023,
+                                version_for_profile(state.config.parse_profile.as_deref()),
+                            )
+                            .with_context(|| {
                                 format!(
                                     "invalid `define directive at {}:{}",
                                     file_path.display(),
@@ -1577,8 +1585,14 @@ fn preprocess_text_internal(
                         )?;
                     }
                     // `ifndef is defined in terms of symbol presence, and should not
-                    // trigger undefined-symbol diagnostics for the "missing" branch.
-                    let cond = !state.macros.contains_key(name);
+                    // trigger undefined-symbol diagnostics for the "missing" branch. `SVPP-EXPANSION.5`(t):
+                    // a compiler directive's name is a PREDEFINED macro name (IEEE 1800-2017 §22.5.1), so
+                    // `` `ifndef __FILE__ `` is false (ispras 22.13_01.sv guards its redefinition with it).
+                    let cond = !(state.macros.contains_key(name)
+                        || is_compiler_directive_name(
+                            name,
+                            version_for_profile(state.config.parse_profile.as_deref()),
+                        ));
                     let parent_active = active;
                     let current_active = parent_active && cond;
                     conditionals.push(ConditionalFrame {
@@ -2185,7 +2199,11 @@ fn eval_symbol_condition(
     line: usize,
     directive: &str,
 ) -> Result<bool> {
-    let defined = state.macros.contains_key(symbol);
+    // `SVPP-EXPANSION.5`(t): "All compiler directives shall be considered predefined macro names" (IEEE
+    // 1800-2017 §22.5.1) — a directive name is DEFINED to `ifdef / `ifndef / `elsif, so a guarded
+    // `` `ifndef __FILE__ `` / `` `define __FILE__ … `` (ispras 22.13_01.sv) skips the illegal redefinition.
+    let defined = state.macros.contains_key(symbol)
+        || is_compiler_directive_name(symbol, version_for_profile(state.config.parse_profile.as_deref()));
     if !defined {
         match state.config.conditional_symbol_policy {
             ConditionalSymbolPolicy::AssumeFalseSilent => {}
@@ -2481,6 +2499,92 @@ fn expand_directive_argument(
 
 /// The macro text as the edition reads it BEFORE the one-line-comment cut: 1800-2023 drops block
 /// comments (`SVPP-EXPANSION.5`(p)(ii)); 1800-2017 keeps them.
+/// `SVPP-EXPANSION.5`(t): the compiler directives of the EDITION behind the profile — IEEE 1800-2017 §22.5.1
+/// "All compiler directives shall be considered predefined macro names; it shall be illegal to redefine a
+/// compiler directive as a macro name" (docs/systemverilog/2017/md/section-22-compiler-directives.md:139-140;
+/// 1800-2023 :152-153). IEEE 1364-2005 §19.3.1 says the same of ITS directives ("Text macro names may not be the
+/// same as compiler directive keywords", docs/verilog/2005/md/section-19-compiler-directives.md:100-101, :229),
+/// and its §19 lists neither `undefineall` (1800 §22.5.3) nor `__FILE__` / `__LINE__` (1800 §22.13), so under a
+/// Verilog profile those three are ordinary macro names. The set is matched as a whole name.
+const DIRECTIVES_1364_2005: &[&str] = &[
+    "begin_keywords", "celldefine", "default_nettype", "define", "else", "elsif", "end_keywords",
+    "endcelldefine", "endif", "ifdef", "ifndef", "include", "line", "nounconnected_drive", "pragma",
+    "resetall", "timescale", "unconnected_drive", "undef",
+];
+const DIRECTIVES_1800_ONLY: &[&str] = &["undefineall", "__FILE__", "__LINE__"];
+
+fn is_compiler_directive_name(name: &str, version: KeywordVersion) -> bool {
+    let sv = !matches!(
+        version,
+        KeywordVersion::Verilog1995
+            | KeywordVersion::Verilog2001NoConfig
+            | KeywordVersion::Verilog2001
+            | KeywordVersion::Verilog2005
+    );
+    DIRECTIVES_1364_2005.contains(&name) || (sv && DIRECTIVES_1800_ONLY.contains(&name))
+}
+
+/// `SVPP-EXPANSION.5`(s): does the macro text leave a plain string literal OPEN at its end? IEEE 1800-2017 §22.5.1
+/// "The text specified for macro text shall not be split across the following lexical tokens: … String literals"
+/// and its own illegal example `` `define first_half "start of string `` (docs/systemverilog/2017/md/
+/// section-22-compiler-directives.md:275-281, :295-297; 1800-2023 :307, :320-322; 1364-2005 §19.3.1 :172, :192,
+/// :214-215). The scan is the stage's own: a `"` inside a `//` or `/* … */` comment or inside a `` `"…`" `` macro
+/// string is not a delimiter, `\"` inside a string is an escape, and a backslash-newline inside a string continues
+/// it (1800-2023 :176-177 names that exception). Macro strings (`` `" ``) have their own rules (`.5`(i)) and are
+/// not judged here.
+fn macro_text_leaves_string_open(text: &str) -> bool {
+    let bytes = text.as_bytes();
+    let mut i = 0usize;
+    let (mut in_string, mut escaped, mut in_macro_string) = (false, false, false);
+    while i < bytes.len() {
+        let b = bytes[i];
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if b == b'\\' {
+                escaped = true;
+            } else if b == b'"' {
+                in_string = false;
+            }
+            i += 1;
+            continue;
+        }
+        if text[i..].starts_with("`\\`\"") {
+            i += 4;
+            continue;
+        }
+        if text[i..].starts_with("`\"") {
+            in_macro_string = !in_macro_string;
+            i += 2;
+            continue;
+        }
+        if in_macro_string {
+            i += 1;
+            continue;
+        }
+        if b == b'"' {
+            in_string = true;
+            i += 1;
+            continue;
+        }
+        if text[i..].starts_with("//") {
+            while i < bytes.len() && bytes[i] != b'\n' {
+                i += 1;
+            }
+            continue;
+        }
+        if text[i..].starts_with("/*") {
+            match text[i + 2..].find("*/") {
+                Some(close) => i += 2 + close + 2,
+                None => i = bytes.len(),
+            }
+            continue;
+        }
+        i += 1;
+    }
+    in_string
+}
+
 fn macro_text_for_edition(text: &str, lrm_2023: bool) -> String {
     if lrm_2023 {
         drop_block_comments_from_macro_text(text)
@@ -2489,13 +2593,32 @@ fn macro_text_for_edition(text: &str, lrm_2023: bool) -> String {
     }
 }
 
-fn parse_define_directive(input: &str, lrm_2023: bool) -> Result<(String, MacroDefinition)> {
+fn parse_define_directive(
+    input: &str,
+    lrm_2023: bool,
+    version: KeywordVersion,
+) -> Result<(String, MacroDefinition)> {
     let trimmed = input.trim_end_matches(['\r', '\n']);
     let (name, rest_after_name) = parse_macro_name_token(trimmed.trim_start())
         .with_context(|| "missing macro name in `define")?;
+    if is_compiler_directive_name(name, version) {
+        bail!(
+            "the macro name '{}' is a compiler directive — IEEE 1800-2017 §22.5.1: \"All compiler directives shall \
+             be considered predefined macro names; it shall be illegal to redefine a compiler directive as a macro \
+             name\" (IEEE 1364-2005 §19.3.1: \"Text macro names may not be the same as compiler directive keywords\")",
+            name
+        );
+    }
     if rest_after_name.starts_with('(') {
         let (params, after) = parse_macro_parameter_list(rest_after_name)
             .with_context(|| "invalid macro parameter list")?;
+        if macro_text_leaves_string_open(after) {
+            bail!(
+                "the macro text is split across a string literal — IEEE 1800-2017 §22.5.1: \"The text specified for \
+                 macro text shall not be split across the following lexical tokens: … String literals\" (the \
+                 standard's own illegal example is `define first_half \"start of string)"
+            );
+        }
         let text = macro_text_for_edition(after.trim_start(), lrm_2023);
         let body = normalize_macro_body_for_directives(&strip_line_comments_from_macro_text(&text));
         Ok((
@@ -2506,6 +2629,13 @@ fn parse_define_directive(input: &str, lrm_2023: bool) -> Result<(String, MacroD
             },
         ))
     } else {
+        if macro_text_leaves_string_open(rest_after_name) {
+            bail!(
+                "the macro text is split across a string literal — IEEE 1800-2017 §22.5.1: \"The text specified for \
+                 macro text shall not be split across the following lexical tokens: … String literals\" (the \
+                 standard's own illegal example is `define first_half \"start of string)"
+            );
+        }
         Ok((
             name.to_string(),
             MacroDefinition {
@@ -2672,10 +2802,26 @@ fn parse_macro_parameter_list(input: &str) -> Result<(Vec<MacroParameter>, &str)
     if !input.starts_with('(') {
         bail!("macro parameter list must start with '('");
     }
+    // `SVPP-EXPANSION.5`(v): the list closes at the `)` matching its `(` OUTSIDE any string literal — a default
+    // argument may be a string holding `)` or `(` (verilator t_preproc_def09.v:56 `(a="==)",b="((((",c=() )`);
+    // the two sibling scanners were string-aware already, this one closed inside "==)" and handed the rest of
+    // the list to the macro text.
     let mut depth = 0usize;
     let mut end_idx = None;
+    let (mut in_string, mut escaped) = (false, false);
     for (idx, ch) in input.char_indices() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+            }
+            continue;
+        }
         match ch {
+            '"' => in_string = true,
             '(' => depth += 1,
             ')' => {
                 if depth == 0 {
@@ -6644,6 +6790,178 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             preprocess_systemverilog_file(&input, &config_2023).expect("the 2023 reading");
         assert!(!out.text.contains("wire still;"), "{}", out.text);
         assert!(out.text.contains("wire ok;"), "{}", out.text);
+    }
+
+    #[test]
+    fn a_define_whose_text_is_split_across_a_string_literal_is_refused() {
+        // `SVPP-EXPANSION.5`(s): IEEE 1800-2017 §22.5.1 — "The text specified for macro text shall not be split
+        // across the following lexical tokens: Comments, Numbers, String literals, Identifiers, Keywords, Operators"
+        // and "The following is illegal syntax because it is split across a string: `define first_half "start of
+        // string / $display(`first_half end of string");" (docs/systemverilog/2017/md/section-22-compiler-directives.md
+        // :275-281, :295-297; 1800-2023 :307, :320-322; 1364-2005 §19.3.1 :172, :192, :214-215). Before this the
+        // definition was accepted and the use site glued one string: $display("start of string end of string");
+        // (sv-tests 22.5.1--define-expansion_21.sv, keyed should_fail, ACCEPTED under the pipeline).
+        for profile in [None, Some("sv_2017"), Some("sv_2023"), Some("verilog_2005")] {
+            let dir = create_repo_scratch_dir("svpp_split_string");
+            let input = dir.join("top.sv");
+            fs::write(
+                &input,
+                "`define first_half \"start of string\nmodule top ();\ninitial $display(`first_half end of string\");\nendmodule\n",
+            )
+            .expect("write");
+            let config = SvPreprocessorConfig { parse_profile: profile.map(str::to_string), ..SvPreprocessorConfig::default() };
+            let err = preprocess_systemverilog_file(&input, &config)
+                .expect_err("macro text split across a string literal must be refused");
+            let text = format!("{err:#}");
+            assert!(text.contains("invalid `define directive"), "{text}");
+            assert!(text.contains("split across a string literal") && text.contains("22.5.1"), "{text}");
+        }
+    }
+
+    #[test]
+    fn a_string_literal_spanning_a_continuation_is_not_split() {
+        // `SVPP-EXPANSION.5`(s) control: the backslash-newline continues the macro text INSIDE the string, so the
+        // literal is complete by the end of the text (1800-2023 §22.5.1 :176-177 names the exception outright; the
+        // 2017 text's continuation rule says the same of the joined text). A `"` inside a comment in the macro text
+        // is not a string delimiter either.
+        let dir = create_repo_scratch_dir("svpp_string_continuation");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define MSG \"two \\\nlines\"\n`define Q 1 // a \" in a comment\n`define R 2 /* a \" in a block comment */\nmodule top ();\ninitial $display(`MSG, `Q, `R);\nendmodule\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("a string spanning a continuation and quotes inside comments are not splits");
+        assert!(out.text.contains("$display("), "{}", out.text);
+        assert!(!out.text.contains('`'), "every usage expanded:\n{}", out.text);
+    }
+
+    #[test]
+    fn a_compiler_directive_cannot_be_redefined_as_a_macro_name() {
+        // `SVPP-EXPANSION.5`(t): IEEE 1800-2017 §22.5.1 — "All compiler directives shall be considered predefined
+        // macro names; it shall be illegal to redefine a compiler directive as a macro name"
+        // (docs/systemverilog/2017/md/section-22-compiler-directives.md:139-140; 1800-2023 :152-153; 1364-2005
+        // §19.3.1 :100-101 and :229 "Text macro names may not be the same as compiler directive keywords"). Before
+        // this `define define "illegal" and `define include 1 were accepted (sv-tests 22.5.1--define-expansion_23.sv,
+        // keyed should_fail, ACCEPTED under the pipeline).
+        for (name, profile) in [("define", None), ("include", Some("sv_2017")), ("celldefine", Some("sv_2023")),
+                                ("timescale", Some("verilog_2005")), ("__FILE__", Some("sv_2017"))] {
+            let dir = create_repo_scratch_dir("svpp_redefine_directive");
+            let input = dir.join("top.sv");
+            fs::write(&input, format!("`define {name} 1\nmodule top (); endmodule\n")).expect("write");
+            let config = SvPreprocessorConfig { parse_profile: profile.map(str::to_string), ..SvPreprocessorConfig::default() };
+            let err = preprocess_systemverilog_file(&input, &config)
+                .expect_err("a compiler directive redefined as a macro name must be refused");
+            let text = format!("{err:#}");
+            assert!(text.contains("invalid `define directive"), "{name}: {text}");
+            assert!(text.contains("compiler directive") && text.contains("22.5.1"), "{name}: {text}");
+        }
+    }
+
+    #[test]
+    fn the_directive_set_is_the_editions_own() {
+        // `SVPP-EXPANSION.5`(t): `__FILE__`, `__LINE__` and `undefineall` are IEEE 1800 directives (§22.13, §22.5.3)
+        // and not IEEE 1364-2005's (§19 lists neither), so under the verilog_2005 profile they are ordinary macro
+        // names — the set is the edition's own list, not a union.
+        let dir = create_repo_scratch_dir("svpp_directive_set_edition");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define __LINE__ 0\n`define undefineall 2\nmodule top (); initial $display(`__LINE__, `undefineall); endmodule\n")
+            .expect("write");
+        let v2005 = SvPreprocessorConfig { parse_profile: Some("verilog_2005".to_string()), ..SvPreprocessorConfig::default() };
+        let out = preprocess_systemverilog_file(&input, &v2005).expect("not directives of 1364-2005: ordinary macro names");
+        assert!(out.text.contains("$display(0, 2)"), "{}", out.text);
+        let sv = SvPreprocessorConfig { parse_profile: Some("sv_2017".to_string()), ..SvPreprocessorConfig::default() };
+        let err = preprocess_systemverilog_file(&input, &sv).expect_err("`__LINE__ is an IEEE 1800 directive");
+        assert!(format!("{err:#}").contains("compiler directive"), "{err:#}");
+    }
+
+    #[test]
+    fn a_macro_named_like_a_directive_with_a_suffix_is_an_ordinary_name() {
+        // `SVPP-EXPANSION.5`(t) control: the set is matched as a whole name — `define_me`, `includes`, `line1` are
+        // not directives (the corpus writes `` `define DEFINE_MACROS `` and `` `define LINE_WIDTH `` shapes freely).
+        let dir = create_repo_scratch_dir("svpp_directive_like_names");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define define_me 1\n`define includes 2\n`define line1 3\n`define DEFINE 4\nmodule top (); initial $display(`define_me, `includes, `line1, `DEFINE); endmodule\n")
+            .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default()).expect("ordinary names");
+        assert!(out.text.contains("$display(1, 2, 3, 4)"), "{}", out.text);
+    }
+
+    #[test]
+    fn the_lrm_split_string_example_is_refused_and_a_closed_string_in_text_is_not() {
+        // `SVPP-EXPANSION.5`(s) control: a complete string literal in macro text is fine; the refusal is for one the
+        // text leaves OPEN at its end (the standard's own example), under every profile.
+        let dir = create_repo_scratch_dir("svpp_closed_string");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define WHOLE \"a whole string\"\n`define TWO(a) $display(\"%s\", a)\nmodule top ();\ninitial `TWO(`WHOLE);\nendmodule\n")
+            .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default()).expect("closed strings");
+        assert!(out.text.contains("$display(\"%s\", \"a whole string\")"), "{}", out.text);
+    }
+
+    #[test]
+    fn a_compiler_directive_name_is_predefined_to_the_conditionals() {
+        // `SVPP-EXPANSION.5`(t): the SAME sentence — "All compiler directives shall be considered predefined macro
+        // names" — makes `` `ifdef __FILE__ `` true and `` `ifndef __FILE__ `` false, so a guarded redefinition is
+        // skipped rather than refused (ispras ieee-1800-2012/22/22.13_01.sv, keyed must_accept: `ifndef __FILE__ /
+        // `define __FILE__ "unknown" / `endif). Before this a directive name was "not defined" to the conditionals.
+        let dir = create_repo_scratch_dir("svpp_directive_predefined");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`ifndef __FILE__\n`define __FILE__ \"unknown\"\n`endif\n`ifdef define\nmodule define_is_predefined; endmodule\n`endif\n`ifndef include\nmodule include_not_defined; endmodule\n`endif\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("the guarded redefinition is skipped: the directive is predefined");
+        assert!(out.text.contains("define_is_predefined"), "{}", out.text);
+        assert!(!out.text.contains("include_not_defined"), "{}", out.text);
+        // under a Verilog profile `__FILE__` is not a directive: the guard is TRUE and the (legal) definition runs
+        let v2005 = SvPreprocessorConfig { parse_profile: Some("verilog_2005".to_string()), ..SvPreprocessorConfig::default() };
+        fs::write(&input, "`ifndef __FILE__\n`define __FILE__ \"unknown\"\n`endif\nmodule t; initial $display(`__FILE__); endmodule\n").expect("write");
+        let out = preprocess_systemverilog_file(&input, &v2005).expect("an ordinary macro under 1364-2005");
+        assert!(out.text.contains("$display(\"unknown\")"), "{}", out.text);
+    }
+
+    #[test]
+    fn a_continuation_inside_a_string_literal_omits_both_characters_under_2023() {
+        // `SVPP-EXPANSION.5`(u): IEEE 1800-2023 §22.5.1 — "An exception to the previous sentence is that if the
+        // backslash-newline character sequence occurs in the middle of a string literal, both the backslash and the
+        // newline characters are omitted in the expanded macro (see 5.9)" (docs/systemverilog/2023/md/
+        // section-22-compiler-directives.md:182-184). 1800-2017 has no such sentence: its continuation "shall be
+        // replaced in the expanded macro with a newline character" (docs/systemverilog/2017/md/
+        // section-22-compiler-directives.md:171-175), so there the literal spans two lines and the parser rejects it
+        // (§5.9: a string literal is a single line). The edition twin pins hold both readings.
+        let dir = create_repo_scratch_dir("svpp_string_continuation_2023");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define MSG \"two \\\nlines\"\nmodule top ();\ninitial $display(`MSG);\nendmodule\n").expect("write");
+        let sv2023 = SvPreprocessorConfig { parse_profile: Some("sv_2023".to_string()), ..SvPreprocessorConfig::default() };
+        let out = preprocess_systemverilog_file(&input, &sv2023).expect("2023: the string continues");
+        assert!(out.text.contains("$display(\"two lines\")"), "2023 omits both characters:\n{}", out.text);
+        let sv2017 = SvPreprocessorConfig { parse_profile: Some("sv_2017".to_string()), ..SvPreprocessorConfig::default() };
+        let out = preprocess_systemverilog_file(&input, &sv2017).expect("2017: the continuation is a newline");
+        assert!(out.text.contains("$display(\"two \nlines\")"), "2017 keeps the newline:\n{}", out.text);
+    }
+
+    #[test]
+    fn a_default_argument_may_hold_parentheses_and_commas_inside_a_string_literal() {
+        // `SVPP-EXPANSION.5`(v): the formal list closes at the `)` that matches its `(` OUTSIDE any string literal
+        // (IEEE 1800-2017 §22.5.1 Syntax 22-2: `default_text`; §5.9: a string literal is one token). The closing
+        // scan read `(a="==)",b="((((",c=() )` as closing inside "==)" and handed the rest to the macro text — a
+        // mis-split since the scanner's first commit, surfaced by `.5`(s)'s check on the text it left behind
+        // (verilator t_preproc_def09.v:56). The sibling scanners (`define_formal_list_unclosed`,
+        // `split_macro_parameter_tokens`) were already string-aware.
+        let dir = create_repo_scratch_dir("svpp_default_arg_string_parens");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define MACROQUOTE(a=\"==)\",b=\"((((\",c=() ) [a b c]\nmodule top ();\ninitial $display(\"%s\", `MACROQUOTE());\nendmodule\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("the list closes outside the string literals");
+        assert!(out.text.contains("[\"==)\" \"((((\" ()]"), "the three defaults substituted:\n{}", out.text);
     }
 
     #[test]

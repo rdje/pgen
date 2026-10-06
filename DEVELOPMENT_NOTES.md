@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-06 — SVPP-EXPANSION.5(s)(t)(u)(v) (`PGEN-SVPP-EXPANSION-0043`): the pins and the pre-screen are the slice's own reviewers
+
+- **A sentence can have two halves and a fix one.** "All compiler directives shall be considered predefined macro names; it shall be illegal to redefine …" — the refusal is the second half; the first makes `` `ifndef __FILE__ `` false. Implementing only the refusal turned a must-accept row red in the first GREEN run; the RED-first test for the guard shape was what caught it.
+- **A control pin is a claim about the parser too.** My control for (s) wrote a string literal across a continuation; under the 2017 text that is a two-line literal and the parser rejects it. The pin suite refused the control on three profiles, and reading the 2023 text for why found an exception the stage had never implemented (.5(u)). A control that cannot fail is not a control; one that fails for a reason you did not expect is a finding.
+- **Pre-screen the census sites on the rebuilt probe before the lane.** Twelve files, one minute: one refusal for the wrong reason (a formal-list scanner that closed inside a string, .5(v)) and one prediction wrong about a test whose illegal lines sit under `ifdef NEGATIVE_TEST` — both caught before a three-hour reading was spent on them.
+- **Kill the chain before it writes.** The first reading was stopped at 13:40 when the pre-screen deviations were understood; the dumps' mtimes (09:28 / 09:49) confirm nothing was overwritten. A chain resumed from a later step must not re-run a step with side effects — the pin-apply step ran twice and appended six duplicate manifest rows and a stale file, repaired by hand.
+- promotion: declined — the first is an instance of [[a-spelling-test-standing-in-for-a-property-test]]'s family (a refusal standing in for a definition); the second and third are the lane's standing pre-screen and pin practice, recorded in the leaf; the fourth is an operations note. Filed here until seen again.
+
 ## 2026-10-06 — SVPP-EXPANSION.6c.3 (`PGEN-SVPP-EXPANSION-0042`): a deferral "to lane X" is a promise lane X must cash
 
 - **Read the NO VERDICT bucket for rows that PASS.** A row that parses and counts for nothing is either a missing expectation or a missing derivation; 110 such rows sat in the pipeline tuple's dark side with a class whose own definition named the lane that should judge them — this one.
