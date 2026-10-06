@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-06 — SVPP-EXPANSION.5(r) (`PGEN-SVPP-EXPANSION-0041`): separate the two candidate causes with a repro pair before reading a word of the standard
+
+- **One failing line, two hypotheses, one byte of difference.** The Surelog line carried both a comment and trailing white space after its backslash. Two scratch files that differ only in the white space settled which one the stage trips on in seconds; the editions were then read for the cause that remained, not for both.
+- **`cat -A` before the LRM.** The trailing tab and spaces are invisible in a plain listing; the first reading of the file saw a comment-backslash line and framed the question wrong. Look at the bytes of the failing line before naming the construct.
+- **A shape only error tests write is a ruling, not a knob.** Two corpus sites, both tests, one of them a tool's own lint-error test for the shape: the strict reading stands and no stage option is added. A knob with no real customer is a maintenance promise nobody asked for.
+- promotion: declined — the first two are the TOOLBOX's own isolate-first practice; the third is the standing rule of the tolerance work (a spelling needs a measured customer). Filed here until seen again.
+
 ## 2026-10-06 — SVPP-EXPANSION.6d.8 (`PGEN-SVPP-EXPANSION-0040`): a build's first source argument is a unit predecessor nobody includes
 
 - **A configuration header passed on the command line leaves no trace in the sources.** VeeR's `common_defines.vh` is generated and compiled first; no file `include`s it, so the include derivation cannot see it and every use of its macros reaches the parser as a raw backtick. The Makefile is the only source that names it — read the flow, not the files, for this class.

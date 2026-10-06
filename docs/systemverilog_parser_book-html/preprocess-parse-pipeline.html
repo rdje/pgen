@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e23243eb.js";
+            window.path_to_searchindex_js = "searchindex-7477621f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -517,6 +517,16 @@ parenthesis from the macro name”</em>); a usage spelled with the backslash is 
 white space IS a defined name, so the escaped-quote token <code>`\`"</code> of a macro string keeps its meaning.
 Through <code>1.0.250</code> such a <code>`define</code> was refused as <em>“missing macro name”</em> (iverilog
 <code>escaped_macro_name.v</code>).</p>
+</li>
+<li>
+<p><strong>A one-line comment inside macro text continues the text when its line ends in backslash-newline, and the
+comment is dropped</strong> — 1800-2023 §22.5.1 says it outright (<em>“If a one-line comment is followed by a backslash
+and newline character, the comment ends before the backslash and the macro text continues on the next
+line”</em>), and the 2017 text’s two sentences read together say the same; measured licensed under both
+profiles and pinned (<code>SVPP-EXPANSION.5</code>(r)). <strong>A backslash followed by white space before the newline does
+NOT continue the macro text</strong> on any profile: 2017 <em>“preceded by a backslash”</em>, 2023 <em>“immediately preceded”</em>
+— the macro ends at that line and the following lines are source. The corpus writes that shape at two sites,
+both tests (verilator’s own <code>BSSPACE</code> lint-error test is one); no stage option exists for it.</p>
 </li>
 <li>
 <p><strong>A function-like macro may open its parentheses on the next line</strong> (§22.5.1 requires the parentheses;

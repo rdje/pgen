@@ -327,6 +327,14 @@ each one a sentence of the standard that a corpus row had been failing on:
   white space IS a defined name, so the escaped-quote token `` `\`" `` of a macro string keeps its meaning.
   Through `1.0.250` such a `` `define `` was refused as *"missing macro name"* (iverilog
   `escaped_macro_name.v`).
+- **A one-line comment inside macro text continues the text when its line ends in backslash-newline, and the
+  comment is dropped** — 1800-2023 §22.5.1 says it outright (*"If a one-line comment is followed by a backslash
+  and newline character, the comment ends before the backslash and the macro text continues on the next
+  line"*), and the 2017 text's two sentences read together say the same; measured licensed under both
+  profiles and pinned (`SVPP-EXPANSION.5`(r)). **A backslash followed by white space before the newline does
+  NOT continue the macro text** on any profile: 2017 *"preceded by a backslash"*, 2023 *"immediately preceded"*
+  — the macro ends at that line and the following lines are source. The corpus writes that shape at two sites,
+  both tests (verilator's own `BSSPACE` lint-error test is one); no stage option exists for it.
 - **A function-like macro may open its parentheses on the next line** (§22.5.1 requires the parentheses;
   §5.3 lets white space, newlines included, separate the tokens): `` `FOO `` at the end of a line followed by
   `(1, 2)` on the next is one invocation.
