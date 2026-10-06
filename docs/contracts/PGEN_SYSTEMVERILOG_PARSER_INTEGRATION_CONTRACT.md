@@ -2041,7 +2041,10 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   (`stimuli/sv/pipeline_context.py` → `stimuli/sv/pipeline_context{,_files,_defines,_units}.tsv`, and
   `stimuli/sv/pipeline_library.py`); a downstream consumer supplies its own from its build declaration. The
   lane never guesses a context: an ambiguous include, a computed define, a `-f` list, a glob, a package two
-  files declare differently are REPORTED and left unapplied.
+  files declare differently are REPORTED and left unapplied — and, since `SVPP-EXPANSION.4d` (2026-10-06), an
+  include candidate is any file of the tree whatever its suffix (§22.4 constrains neither), a tie between copies
+  of one text resolves per file, and a directory that would resolve an ambiguous name by the side door is never
+  emitted (a suite directory in that position refuses the derivation; a per-file one is withheld for its includer).
 - **What the expansion stage guarantees** (the `SVPP-EXPANSION.5` / `.6b.2` / `.6b.5` rules, each with its
   clause and a corpus reproducer in `docs/tasks/SVPP-EXPANSION.md`): object and function-like macros with
   actuals and defaults (§22.5.1), the `` `` `` paste and `` `" `` / `` `\`" `` string forms — the paste with

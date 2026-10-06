@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-06 — SVPP-EXPANSION.4d (`PGEN-SVPP-EXPANSION-0038`): the refused-context census, and a guard that caught its own slice
+
+- **Read the refusal's reason where it is recorded.** The re-adjudication table files a refusal as `refused_context` with no reason; the lane's dump carries the preprocessor's own line. Grouping 268 lines by normalised text took one script and sorted the population in minutes: one unvendored library (168 rows), a handful of top-specific ties, error tests — and 25 rows the instrument had answered wrongly.
+- **A suffix filter is a predicate about one population.** The source-suffix filter is right for the INCLUDER population (what the lane parses) and wrong for the CANDIDATE population (what an `` `include `` may name); reusing it reported a header the tree held once as absent for weeks, in the derivation's own `--suite` report that nobody read. An instance of [[porting-a-predicate-to-a-new-population-is-a-re-derivation]].
+- **A search-path entry grants every name in the directory.** The identical-tie rule's first cut emitted its directory suite-wide; the shadow guard written beside it refused the real tree on the first run, because the chosen directory also held two ambiguous names. Scope a derived resolution as narrowly as its justification (per file), and write the guard for what the widening may resolve by accident in the same slice — promoted as [[a-search-path-entry-grants-every-name-in-it-not-the-one-it-was-derived-for]].
+- **A prediction that names the rows is the measurement's control.** The four `pp_fail → pass` rows and the one `pp_fail → fail` row were pre-measured by hand with the probe and the directory before the lane ran; the lane returned exactly those five under each of the three readings and twenty reason-only movers, as written. A chain that only confirms is cheap evidence; a chain that surprises is the finding.
+- promotion: the third lesson is PROMOTED (the card above); the second is an instance of the card it names; the first and fourth are the lane's standing practice, filed here.
+
 ## 2026-10-06 — SVPP-EXPANSION.5(q) (`PGEN-SVPP-EXPANSION-0037`): the refusals grouped by reason, and a bound keyed on a stronger property than the clause
 
 - **Group the refusals by reason before reading a file.** The lane's 47 `refused_engine` rows fall into 12 reason families; ten are correct (error tests by name, the standard's own "illegal" example lines, `should_fail` conformance tests) and two are defects. The census took minutes and left the hard reading to two files instead of forty-seven — the same move that found `.5`(m), (n) and (o).

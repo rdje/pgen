@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d8c0b051.js";
+            window.path_to_searchindex_js = "searchindex-1aa06e85.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -306,7 +306,10 @@ stderr as a per-file measurement column, and an unconditional line would edit a 
 grammar, parser, context and dumps every number below depends on) parses every source file of a
 corpus suite through the chain under a context DERIVED from the corpus itself
 (<code>stimuli/sv/pipeline_context.py</code>: for every <code>`include</code> an includer’s own directory does not
-satisfy, the one directory that does; an ambiguous name is reported, never guessed — and, since
+satisfy, the one directory that does — any file of the tree, whatever its suffix, since <code>.4d</code>; a tie
+between copies of one text resolved per file to the nearest copy; an ambiguous name is reported, never
+guessed, and a directory the derivation would emit that also holds an ambiguous name is refused (a suite
+directory) or withheld for its includer (a per-file one), since <code>.4d</code> — and, since
 <code>.4c.1</code>, the defines a file’s own driver passes for it: verilator’s <code>t_x.py</code> flags and sv-tests’
 <code>:defines:</code> header, a literal value only, applied per file as <code>--symbol</code>; a value the driver
 computes at run time and a file several variant drivers configure differently are reported, not
@@ -842,6 +845,25 @@ pass under the tolerant profile that <code>sv_2023</code> rejects (<code>sec_cm_
 the three files named before the measurement, and nothing else under any reading. Under the tolerant reading 11
 OpenTitan package files still reject: 10 behind per-IP defines and 1 behind a per-target include — context the
 corpus does not supply, not syntax.</p>
+<p>What the preprocessor REFUSES on the primary reading is a census too, not a residue (<code>SVPP-EXPANSION.4d</code>,
+2026-10-06, the lane’s own reason column): 263 (268 before the slice) rows. 168 of them are black-parrot files
+whose first <code>`include</code> names BaseJump STL (<code>bsg_defines.sv</code>, <code>bsg_noc_links.svh</code>, <code>bsg_cache.svh</code>), a library the
+corpus does not vendor — honestly absent on the volume, and left so. The rest are top-specific files OpenTitan
+and HardFloat select with a build target (<code>riscv_core_setting.sv</code> in twelve copies of eleven texts; the <code>xbar</code>
+autogen pair; <code>HardFloat_specialize.vi</code> in three texts, equidistant from every <code>source/*.v</code> that includes it),
+build outputs, and error tests by name — unbalanced conditionals, macro-arity and recursion tests, the four
+include loops, two unquoted include paths. The derivation that supplies the context
+(<code>stimuli/sv/pipeline_context.py</code>) was itself wrong in two places the census exposed: its include-candidate
+population was the source files only (<code>.sv</code> / <code>.svh</code> / <code>.v</code> / <code>.vh</code>), so a <code>.vi</code> or <code>.vams</code> header the tree held
+exactly once was reported <em>absent</em> (IEEE 1800-2017 §22.4 constrains neither the filename nor its suffix); and
+a tie between copies of one text was reported <em>ambiguous</em>, when the choice cannot change the expansion. Both
+are fixed — every file is a candidate, an identical tie resolves per file to the nearest copy — and the fix
+came with the guard it needed: a directory the derivation would emit that also holds an AMBIGUOUS name would
+let the preprocessor resolve that name by the side door, so a suite directory in that position refuses the
+derivation and a per-file one is withheld for its includer. The guard fired on its first real run, on the fix’s
+own first cut (OpenTitan’s darjeeling <code>pwrmgr</code> sequence library, one text for <code>pwrmgr_vseq_list.sv</code>, holds a
+<code>pwrmgr_base_vseq.sv</code> that differs per top), and the rule was redesigned before anything was measured.
+Measured on the three readings after the fix: five rows left the refused class under each — two HardFloat <code>specialize.v</code> files and two iverilog <code>.vams</code> tests now parse, the friscv testbench now reaches the parser and stops there — none moved the other way, and twenty HardFloat <code>source</code> rows now stop at the honest three-way tie behind the header the fix resolved. The tuple under the pipeline reads <code>11173/2606/2557/1270/0</code>.</p>
 <p>Measured on the whole lane (the same debug probe, 689 s wall): <strong>425 rows <code>fail → pass</code> and none the other
 way</strong> — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
 <code>el2_param.vh:182</code>, a typedef of <code>el2_pkg</code>). The library: 407 package files, 230 accepted, 170 rejected,
@@ -936,7 +958,8 @@ multi-file design still needs the library flags for cross-file declarations.</li
 <li>Nothing yet reads a build system’s own context (<code>.core</code>, <code>.f</code>, <code>+incdir+</code>); on the command line
 the context is what you pass, and in the corpus lane it is derived from the corpus — a shared
 directory per suite, the nearest candidate per file for a name that exists in several, and a
-reported tie where the tree cannot decide.</li>
+reported tie where the tree cannot decide (a tie between copies of one text is not one); and a
+directory that would resolve an ambiguous name by the side door is never emitted (<code>.4d</code>).</li>
 </ul>
 
                     </main>

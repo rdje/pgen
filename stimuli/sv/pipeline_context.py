@@ -13,8 +13,18 @@ an include search path. Nothing in this repository reads a build system's own co
       if `dirname(includer)/NAME` exists      -> LOCAL: the preprocessor already searches the
                                                  including file's own directory first; no dir needed
       else the directories D with `D/NAME`   -> exactly one: D is a SHARED header directory -> emitted
-                                              -> several:    AMBIGUOUS-NONLOCAL, reported, not guessed
+         (D/NAME may be ANY file the tree       -> several, ONE text (every copy byte-identical):
+          holds — IEEE 1800-2017 §22.4 puts         IDENTICAL — the choice cannot change the expansion,
+          no constraint on the filename, and        so it is resolved PER FILE (a `.4b` row: the nearest
+          a corpus writes `.vi` / `.vams`             copy, the first on a tie) and the copy count is
+          headers; `.4d`)                           reported — never as a suite directory (SVPP-EXPANSION.4d)
+                                              -> several texts: AMBIGUOUS-NONLOCAL, reported, not guessed
                                               -> none:       ABSENT, reported
+    and the SHADOW guard (`.4d`): a directory emitted for one name that also holds an AMBIGUOUS name
+    would let the preprocessor resolve the ambiguous name silently — a guess by the back door. A SUITE
+    directory in that position REFUSES the derivation (exit 4), naming the suite, the name and the
+    directory; a PER-FILE directory in that position (the includer itself includes the ambiguous name)
+    is WITHHELD for that includer and reported, and the includer keeps its honest refusal.
 
 The emitted directories are ordered by how many includers need them (ties by path), which is the
 order the preprocessor searches them in. ⛔ An ambiguous name is reported with every candidate and
@@ -46,6 +56,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import hashlib
 import os
 import pathlib
 import re
@@ -140,6 +151,25 @@ def source_files(base: pathlib.Path) -> list[pathlib.Path]:
     return sorted(p for p in base.rglob("*") if p.is_file() and p.suffix in SOURCE_SUFFIXES)
 
 
+def all_files(base: pathlib.Path) -> list[pathlib.Path]:
+    """Every regular file of the tree — the INCLUDE CANDIDATE population (`.4d`). An `include names a
+    file by its path; the standard constrains neither the suffix nor the content, and the corpora write
+    `.vi` (Berkeley HardFloat) and `.vams` (iverilog) headers that the source-suffix scan, which is right
+    for the INCLUDER population, called absent while the tree held exactly one copy."""
+    return sorted(p for p in base.rglob("*") if p.is_file())
+
+
+def identical_text(paths: list[pathlib.Path]) -> bool:
+    """True when every path holds the same bytes (two or more paths)."""
+    digests = set()
+    for p in paths:
+        try:
+            digests.add(hashlib.sha256(p.read_bytes()).hexdigest())
+        except OSError:
+            return False
+    return len(digests) == 1
+
+
 def derive(base: pathlib.Path):
     """Return (dirs, ambiguous, absent, stats) for the suite rooted at `base`.
 
@@ -150,18 +180,20 @@ def derive(base: pathlib.Path):
     files = source_files(base)
     # every file path relative to `base`, so a NAME with a subpath ("macros/x.svh") matches
     # `D/NAME` for every directory D whose subtree holds it; the shared library trees join the
-    # candidate set under their own repo-relative prefix
-    rel_paths = {p.relative_to(base).as_posix() for p in files}
+    # candidate set under their own repo-relative prefix. The candidate population is EVERY file
+    # of the tree (`.4d`), the includer population the source files.
+    rel_paths = {p.relative_to(base).as_posix() for p in all_files(base)}
     lib_paths: dict[str, pathlib.Path] = {}
     for lib in SHARED_LIBRARIES:
         lib_base = ROOT / lib
         if lib_base.exists() and not lib_base.is_relative_to(base):
-            for lp in source_files(lib_base):
+            for lp in all_files(lib_base):
                 lib_paths[lp.relative_to(ROOT).as_posix()] = lp
     dirs: dict[str, set[str]] = collections.defaultdict(set)
     needed_by: collections.Counter = collections.Counter()
     ambiguous: dict[str, list[str]] = {}
     absent: collections.Counter = collections.Counter()
+    identical: dict[str, int] = {}              # name -> copy count, every copy one text (`.4d`)
     per_file: list[tuple[str, str, str]] = []   # (includer relpath, include_dir, name) — nearest-candidate rows
     local = 0
     for p in files:
@@ -186,6 +218,19 @@ def derive(base: pathlib.Path):
                     if lp == name_posix or lp.endswith("/" + name_posix)
                 }
             )
+            if len(candidates) > 1 and identical_text([ROOT / c / name_posix for c in candidates]):
+                # `.4d`: several copies, ONE text — whichever directory is searched, the expansion is
+                # the same, so there is nothing to guess. Resolved PER FILE (a `.4b` row for this
+                # includer: the nearest copy, the first on a tie), never as a suite directory: the
+                # first derivation emitted the chosen directory suite-wide and the shadow guard refused
+                # it on the real tree — OpenTitan's darjeeling seq_lib, chosen for pwrmgr_vseq_list.sv
+                # (4 copies, one text), also holds pwrmgr_base_vseq.sv, which is ambiguous.
+                identical[name] = len(candidates)
+                includer = p.relative_to(ROOT).as_posix()
+                chosen = nearest_candidate(includer, candidates) or candidates[0]
+                per_file.append((includer, chosen, name))
+                ambiguous.setdefault("__resolved_per_file__", []).append(name)
+                continue
             if not candidates:
                 absent[name] += 1
             elif len(candidates) == 1:
@@ -206,8 +251,38 @@ def derive(base: pathlib.Path):
                     ambiguous.setdefault("__resolved_per_file__", []).append(name)
     dirs.pop("__per_file__", None)
     resolved_per_file = sorted(set(ambiguous.pop("__resolved_per_file__", [])))
+    # `.4d` SHADOW guard: an emitted directory (a suite one, or a per-file one for THAT includer) that
+    # holds an ambiguous name would resolve it silently — reported here, refused by the caller
+    shadowed: list[tuple[str, str]] = []       # (ambiguous name, emitted dir holding it)
+    for name, cands in ambiguous.items():
+        name_posix = pathlib.PurePosixPath(name).as_posix()
+        for d in sorted(dirs):
+            if d in cands or (ROOT / d / name_posix).is_file():
+                shadowed.append((name, d))
+    # the per-file form of the same hazard is WITHHELD, not refused: a per-file directory handed to
+    # includer I for name A that also holds an ambiguous name B that I includes would resolve B for I
+    # silently — so none of I's rows for that directory is emitted and I keeps its honest refusal
+    # (measured on the first real run: OpenTitan's ip_templates pwrmgr vseq list includes vseqs that
+    # are one text across the tops AND pwrmgr_base_vseq.sv, which differs per top)
+    per_file_includes: dict[str, set[str]] = collections.defaultdict(set)
+    for includer, d, _ in per_file:
+        per_file_includes[includer].add(d)
+    withheld: dict[tuple[str, str], list[str]] = {}   # (includer, dir) -> the ambiguous names the dir holds
+    for includer, pf_dirs in per_file_includes.items():
+        try:
+            names = INCLUDE_RE.findall((ROOT / includer).read_text(errors="replace"))
+        except OSError:
+            continue
+        for name in names:
+            if name in ambiguous:
+                for d in sorted(pf_dirs):
+                    if (ROOT / d / pathlib.PurePosixPath(name).as_posix()).is_file():
+                        withheld.setdefault((includer, d), []).append(name)
+    if withheld:
+        per_file = [(i, d, n) for i, d, n in per_file if (i, d) not in withheld]
     stats = {"files": len(files), "local": local, "per_file_rows": len(per_file),
-             "resolved_per_file_names": resolved_per_file}
+             "resolved_per_file_names": resolved_per_file, "identical": identical, "shadowed": shadowed,
+             "withheld": withheld}
     return {d: (needed_by[d], dirs[d]) for d in dirs}, ambiguous, absent, stats, per_file
 
 
@@ -475,6 +550,7 @@ def report(suite: str, rows, ambiguous, absent, stats, out=sys.stdout):
         f"include_dirs={n_dirs} per_file_rows={stats['per_file_rows']} "
         f"names_resolved_per_file={len(stats['resolved_per_file_names'])} "
         f"ambiguous_nonlocal_names={len(ambiguous)} absent_names={len(absent)} "
+        f"identical_names={len(stats.get('identical', {}))} shadowed={len(stats.get('shadowed', []))} withheld={len(stats.get('withheld', {}))} "
         f"define_rows={stats.get('define_rows', 0)} computed_defines={len(stats.get('computed_defines', {}))} "
         f"define_ties={len(stats.get('define_ties', {}))} "
         f"unit_rows={stats.get('unit_rows', 0)} unit_reported={len(stats.get('unit_reported', {}))} "
@@ -485,6 +561,12 @@ def report(suite: str, rows, ambiguous, absent, stats, out=sys.stdout):
         print(f"  ambiguous {name}: {' '.join(ambiguous[name])}", file=out)
     for name in sorted(absent):
         print(f"  absent    {name} (x{absent[name]})", file=out)
+    for name in sorted(stats.get("identical", {})):
+        print(f"  identical {name}: {stats['identical'][name]} copies, one text — resolved per file to the nearest copy", file=out)
+    for name, d in stats.get("shadowed", []):
+        print(f"  SHADOW    {name} is ambiguous and {d} holds a copy — the directory would resolve it silently; REFUSED", file=out)
+    for (includer, d), names in sorted(stats.get("withheld", {}).items()):
+        print(f"  withheld  {includer}: per-file dir {d} not applied — it holds the ambiguous {' '.join(sorted(names))} this file includes; the file keeps its refusal", file=out)
     for rel in sorted(stats.get("computed_defines", {})):
         print(f"  computed  {rel}: {' '.join(stats['computed_defines'][rel])} (the driver builds the value at run time; not derived)", file=out)
     for rel in sorted(stats.get("define_ties", {})):
@@ -523,6 +605,13 @@ def render_units(unit_rows) -> str:
     return "\n".join(lines) + "\n"
 
 
+def refuse_if_shadowed(suite: str, stats) -> None:
+    """`.4d`: a context table with a back-door guess in it is not written and does not pass --check."""
+    if stats.get("shadowed"):
+        print(f"PIPELINE-CONTEXT: REFUSED — suite={suite} emits a directory holding an ambiguous name (a guess by the back door; SVPP-EXPANSION.4d)", file=sys.stderr)
+        raise SystemExit(4)
+
+
 def derive_all(suites=None):
     all_rows = []
     all_file_rows = []
@@ -537,6 +626,7 @@ def derive_all(suites=None):
             continue
         rows, ambiguous, absent, stats, file_rows, define_rows, unit_rows = rows_for(suite, base)
         report(suite, rows, ambiguous, absent, stats)
+        refuse_if_shadowed(suite, stats)
         all_rows.extend(rows)
         all_file_rows.extend(file_rows)
         all_define_rows.extend(define_rows)
@@ -559,8 +649,15 @@ def self_test() -> int:
         (base / "top_a" / "env" / "seq_lib").mkdir(parents=True); (base / "top_b" / "env" / "seq_lib").mkdir(parents=True)
         (base / "top_a" / "env" / "seq_lib" / "list.sv").write_text("// a\n"); (base / "top_b" / "env" / "seq_lib" / "list.sv").write_text("// b\n")
         (base / "top_a" / "env" / "pkg.sv").write_text('`include "list.sv"\n')
+        # `.4d`: a header with a non-source suffix, held once; a tie of byte-identical copies; a tie of differing texts
+        (base / "consts").mkdir(); (base / "consts" / "k.vi").write_text("`define K 1\n")
+        (base / "same1").mkdir(); (base / "same2").mkdir()
+        (base / "same1" / "same.svh").write_text("// one text\n"); (base / "same2" / "same.svh").write_text("// one text\n")
+        (base / "a" / "uses.sv").write_text('`include "k.vi"\n`include "same.svh"\n')
         dirs, ambiguous, absent, stats, per_file = derive(base)
         shared = (base.relative_to(ROOT) / "shared").as_posix()
+        consts = (base.relative_to(ROOT) / "consts").as_posix()
+        same1 = (base.relative_to(ROOT) / "same1").as_posix()
         top_a_seq = (base.relative_to(ROOT) / "top_a" / "env" / "seq_lib").as_posix()
         checks = [
             ("local include needs no dir", stats["local"] == 1),
@@ -572,10 +669,49 @@ def self_test() -> int:
             ("a name with a NEAREST candidate is resolved per file, to the includer's own top",
              any(d == top_a_seq and n == "list.sv" for _, d, n in per_file)),
             ("and it is not reported as ambiguous", "list.sv" not in ambiguous),
+            # SVPP-EXPANSION.4d
+            ("a header with a non-source suffix (.vi) held once is a candidate: its dir is emitted, it is not absent",
+             consts in dirs and "k.vi" not in absent),
+            ("a tie of byte-identical copies is resolved PER FILE to the first copy and reported as identical — no suite dir",
+             same1 not in dirs and any(d == same1 and n == "same.svh" for _, d, n in per_file)
+             and "same.svh" not in ambiguous and stats["identical"].get("same.svh") == 2),
+            ("a tie of differing texts is still ambiguous", len(ambiguous.get("dup.svh", [])) == 2 and "dup.svh" not in stats["identical"]),
+            ("no emitted directory holds an ambiguous name here", stats["shadowed"] == []),
         ]
         for label, ok in checks:
             print(f"  {'PASS' if ok else 'FAIL'} {label}")
             failures += 0 if ok else 1
+        # `.4d` the SHADOW arm: a dir emitted for one name holds an ambiguous one → reported, and derive_all REFUSES
+        (base / "x" / "only_x.svh").write_text("// x only\n")
+        (base / "a" / "shadow.sv").write_text('`include "only_x.svh"\n')   # x is now emitted for only_x.svh, and x holds dup.svh
+        _, _, _, stats_sh, _ = derive(base)
+        ok = ("dup.svh", (base.relative_to(ROOT) / "x").as_posix()) in stats_sh["shadowed"]
+        print(f"  {'PASS' if ok else 'FAIL'} a directory emitted for one name that holds an ambiguous name is reported as a SHADOW")
+        failures += 0 if ok else 1
+        checks.append(("shadow", ok))
+        try:
+            refuse_if_shadowed("synthetic", stats_sh)
+            ok = False
+        except SystemExit as e:
+            ok = e.code == 4
+        print(f"  {'PASS' if ok else 'FAIL'} and the derivation REFUSES it (exit 4) — the red control of the shadow guard")
+        failures += 0 if ok else 1
+        checks.append(("shadow-refusal", ok))
+        (base / "x" / "only_x.svh").unlink(); (base / "a" / "shadow.sv").unlink()
+        # `.4d` the per-file form: top_a's pkg gets seq_lib for list.sv; make seq_lib also hold an ambiguous name pkg includes
+        # two differing copies EQUIDISTANT from the includer, so amb.svh is a tie (ambiguous) for pkg.sv
+        (base / "top_a" / "env" / "other").mkdir()
+        (base / "top_a" / "env" / "seq_lib" / "amb.svh").write_text("// a\n"); (base / "top_a" / "env" / "other" / "amb.svh").write_text("// o\n")
+        (base / "top_a" / "env" / "pkg.sv").write_text('`include "list.sv"\n`include "amb.svh"\n')
+        _, amb_w, _, stats_w, per_file_w = derive(base)
+        pkg = (base.relative_to(ROOT) / "top_a" / "env" / "pkg.sv").as_posix()
+        ok = ("amb.svh" in amb_w and not any(i == pkg for i, _, _ in per_file_w)
+              and (pkg, top_a_seq) in stats_w["withheld"] and stats_w["shadowed"] == [])
+        print(f"  {'PASS' if ok else 'FAIL'} a per-file dir that holds an ambiguous name the includer also includes is WITHHELD for that includer, not refused")
+        failures += 0 if ok else 1
+        checks.append(("withheld", ok))
+        (base / "top_a" / "env" / "seq_lib" / "amb.svh").unlink(); (base / "top_a" / "env" / "other" / "amb.svh").unlink(); (base / "top_a" / "env" / "other").rmdir()
+        (base / "top_a" / "env" / "pkg.sv").write_text('`include "list.sv"\n')
         # SVPP-EXPANSION.4c.1 — a synthetic verilator tree: a same-stem driver with a literal and a
         # computed define, a single variant driver, and two variant drivers (a tie)
         t = base / "test_regress" / "t"; t.mkdir(parents=True)

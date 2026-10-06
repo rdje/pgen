@@ -135,7 +135,10 @@ The pipeline lane (`stimuli/run_pipeline_lane.sh`, joined against the raw lane b
 grammar, parser, context and dumps every number below depends on) parses every source file of a
 corpus suite through the chain under a context DERIVED from the corpus itself
 (`stimuli/sv/pipeline_context.py`: for every `` `include `` an includer's own directory does not
-satisfy, the one directory that does; an ambiguous name is reported, never guessed — and, since
+satisfy, the one directory that does — any file of the tree, whatever its suffix, since `.4d`; a tie
+between copies of one text resolved per file to the nearest copy; an ambiguous name is reported, never
+guessed, and a directory the derivation would emit that also holds an ambiguous name is refused (a suite
+directory) or withheld for its includer (a per-file one), since `.4d` — and, since
 `.4c.1`, the defines a file's own driver passes for it: verilator's `t_x.py` flags and sv-tests'
 `:defines:` header, a literal value only, applied per file as `--symbol`; a value the driver
 computes at run time and a file several variant drivers configure differently are reported, not
@@ -687,6 +690,26 @@ the three files named before the measurement, and nothing else under any reading
 OpenTitan package files still reject: 10 behind per-IP defines and 1 behind a per-target include — context the
 corpus does not supply, not syntax.
 
+What the preprocessor REFUSES on the primary reading is a census too, not a residue (`SVPP-EXPANSION.4d`,
+2026-10-06, the lane's own reason column): 263 (268 before the slice) rows. 168 of them are black-parrot files
+whose first `` `include `` names BaseJump STL (`bsg_defines.sv`, `bsg_noc_links.svh`, `bsg_cache.svh`), a library the
+corpus does not vendor — honestly absent on the volume, and left so. The rest are top-specific files OpenTitan
+and HardFloat select with a build target (`riscv_core_setting.sv` in twelve copies of eleven texts; the `xbar`
+autogen pair; `HardFloat_specialize.vi` in three texts, equidistant from every `source/*.v` that includes it),
+build outputs, and error tests by name — unbalanced conditionals, macro-arity and recursion tests, the four
+include loops, two unquoted include paths. The derivation that supplies the context
+(`stimuli/sv/pipeline_context.py`) was itself wrong in two places the census exposed: its include-candidate
+population was the source files only (`.sv` / `.svh` / `.v` / `.vh`), so a `.vi` or `.vams` header the tree held
+exactly once was reported *absent* (IEEE 1800-2017 §22.4 constrains neither the filename nor its suffix); and
+a tie between copies of one text was reported *ambiguous*, when the choice cannot change the expansion. Both
+are fixed — every file is a candidate, an identical tie resolves per file to the nearest copy — and the fix
+came with the guard it needed: a directory the derivation would emit that also holds an AMBIGUOUS name would
+let the preprocessor resolve that name by the side door, so a suite directory in that position refuses the
+derivation and a per-file one is withheld for its includer. The guard fired on its first real run, on the fix's
+own first cut (OpenTitan's darjeeling `pwrmgr` sequence library, one text for `pwrmgr_vseq_list.sv`, holds a
+`pwrmgr_base_vseq.sv` that differs per top), and the rule was redesigned before anything was measured.
+Measured on the three readings after the fix: five rows left the refused class under each — two HardFloat `specialize.v` files and two iverilog `.vams` tests now parse, the friscv testbench now reaches the parser and stops there — none moved the other way, and twenty HardFloat `source` rows now stop at the honest three-way tie behind the header the fix resolved. The tuple under the pipeline reads `11173/2606/2557/1270/0`.
+
 Measured on the whole lane (the same debug probe, 689 s wall): **425 rows `fail → pass` and none the other
 way** — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
 `el2_param.vh:182`, a typedef of `el2_pkg`). The library: 407 package files, 230 accepted, 170 rejected,
@@ -785,4 +808,5 @@ and the number is now on the table for the leaf that decides how a per-file lane
 - Nothing yet reads a build system's own context (`.core`, `.f`, `+incdir+`); on the command line
   the context is what you pass, and in the corpus lane it is derived from the corpus — a shared
   directory per suite, the nearest candidate per file for a name that exists in several, and a
-  reported tie where the tree cannot decide.
+  reported tie where the tree cannot decide (a tie between copies of one text is not one); and a
+  directory that would resolve an ambiguous name by the side door is never emitted (`.4d`).

@@ -9,6 +9,7 @@ Surelog	stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/top_1.v	stimuli/sv/
 Surelog	stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/top_2.v	stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/foo	bar.vh
 Surelog	stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/top_3.v	stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/foo	bar.vh
 Surelog	stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/top_4.v	stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/foo	bar.vh
+friscv	stimuli/sv/subs/friscv/test/common/friscv_testbench.sv	stimuli/sv/subs/friscv/test/apps	svut_h.sv
 opentitan	stimuli/sv/subs/opentitan/hw/ip_templates/flash_ctrl/dv/env/flash_ctrl_env_pkg.sv	stimuli/sv/subs/opentitan/hw/ip_templates/flash_ctrl/dv/env/seq_lib	flash_ctrl_vseq_list.sv
 opentitan	stimuli/sv/subs/opentitan/hw/top_darjeeling/dv/env/chip_env_pkg.sv	stimuli/sv/subs/opentitan/hw/top_darjeeling/dv/env/seq_lib	chip_vseq_list.sv
 opentitan	stimuli/sv/subs/opentitan/hw/top_darjeeling/dv/env/chip_env_pkg.sv	stimuli/sv/subs/opentitan/hw/top_darjeeling/dv/tb	chip_hier_macros.svh
