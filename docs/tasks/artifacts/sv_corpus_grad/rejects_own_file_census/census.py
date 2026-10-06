@@ -76,6 +76,7 @@ INCLUDE_RE = re.compile(r'^[ \t]*`include[ \t]+"([^"]+)"', re.M)
 INTENDED_INVALID_RE = re.compile(r"_bad|/error/|should_fail|_fail")
 BASE_CLASS = "class header with a base class (`extends`)"
 SOURCE_SUFFIXES = (".sv", ".svh", ".v", ".vh")
+LRM_DIRECTIVES = set("begin_keywords celldefine default_nettype define else elsif end_keywords endcelldefine endif ifdef ifndef include line nounconnected_drive pragma resetall timescale unconnected_drive undef undefineall __FILE__ __LINE__".split())
 CLASSES = ["raw_backtick", "base_class", "edition_2023", "tolerated_spelling", "edition_2023_moves", "tolerated_moves",
            "error_test", "preprocess_only", "declared_fragment", "fragment", "undeclared_type", "residue"]
 DECLARED_FRAGMENT_RE = re.compile(r"verilog_syntax:\s*parse-as-")
@@ -116,7 +117,11 @@ def classify(at: str, construct: str, passes_2023: bool, relpath: str, include_t
              before: str = "", fp_2017: int = -1, fp_2023: int = -1, fp_tol: int = -1) -> str:
     """The mechanical class of one row — the order is the docstring's."""
     head = at.lstrip()
-    if re.match(r"\S*`", head):
+    m = re.match(r"\S*`([A-Za-z_][A-Za-z0-9_]*)?", head)
+    if m and (m.group(1) or "") not in LRM_DIRECTIVES:
+        # `.6f`: a backtick the stage let through is an LRM directive the parser reads (`` `resetall `` inside a
+        # module, refused by the grammar's own position rule) — not an unresolved usage; every other backtick
+        # at the stop is one (and since `.6f` the stage refuses it before the parser can meet it)
         return "raw_backtick"
     if construct == BASE_CLASS:
         return "base_class"
@@ -380,6 +385,7 @@ def self_test() -> int:
         ("an intended-invalid name is error_test", classify("x", "other", False, "t/t_x_bad.v", 0) == "error_test"),
         ("an include target is a fragment", classify("x", "other", False, "a.sv", 2) == "fragment"),
         ("otherwise residue", classify("x", "other", False, "a.sv", 0) == "residue"),
+        ("an LRM directive at the stop (`resetall inside a module) is NOT raw_backtick", classify("`resetall\nmodule t;", "other", False, "t/t_pp_resetall_bad.v", 0) == "error_test"),
         ("a backtick glued after a based prefix is raw_backtick (32'h`DM_ADDR)", classify("h`DM_ADDR;", "other", False, "a.sv", 0) == "raw_backtick"),
         ("a row that passes under the tolerant profile only is tolerated_spelling", classify(".rlb iff", "other", False, "a.sv", 0, passes_tolerant=True) == "tolerated_spelling"),
         ("a -E driver makes preprocess_only, before the fragment test", classify("Hello in x", "other", False, "t/t_x.v", 1, preprocess_only=True) == "preprocess_only"),

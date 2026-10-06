@@ -248,7 +248,11 @@ def landing_of(status: str, repo_rel: str, origin: str) -> str:
         # `SVPP-EXPANSION.5`(q): the include bound's refusal ("include nesting deeper than N levels …", IEEE 1800
         # §22.4) is the ENGINE's bound, not a missing file; the spelling "cycle detected" it replaced stays for
         # the frozen dumps that still carry it.
-        return "engine" if re.search(r"E_SVPP_|invalid `|without matching|cycle detected|nesting deeper|unterminated", origin) else "context"
+        # `SVPP-EXPANSION.6f`: a backtick that survives expansion is refused at the stage — an UNDEFINED name
+        # ("neither a defined macro nor a compiler directive") lands as CONTEXT (the derived context supplies
+        # no definition); a function-like macro used bare or with an unclosed list, a macro-string token
+        # outside macro text and an unmatched `end_keywords are the file's own errors — ENGINE refusals.
+        return "engine" if re.search(r"E_SVPP_|invalid `|without matching|cycle detected|nesting deeper|unterminated|used without a complete argument list|outside macro text|closes no open", origin) else "context"
     return status
 
 

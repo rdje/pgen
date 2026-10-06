@@ -30,6 +30,12 @@ pub struct SvPreprocessorConfig {
     /// `SVPP-EXPANSION.5`(k): a formal inside a plain `"…"` string in macro text (default: the standard's opaque string)
     pub plain_string_substitution: PlainStringSubstitutionPolicy,
     pub strict_warning_codes: HashSet<String>,
+    /// `SVPP-EXPANSION.6f`: what a backtick that SURVIVES expansion outside a comment or string means —
+    /// `Error` (the default): an undefined macro, a function-like macro without its argument list, a
+    /// stray macro-string token or an unknown directive is refused with its clause, because the
+    /// expanded text is otherwise handed to a parser whose raw-lane residue would ACCEPT a top-level
+    /// backtick line; `Keep`: the old passthrough, for a consumer that resolves the rest itself.
+    pub undefined_macro_policy: UndefinedMacroPolicy,
     /// `SVPP-EXPANSION.2`(a) — the compilation context's PREDEFINED macros (the `+define+` of every
     /// commercial front end). Each one is seeded into the macro table before the first source line
     /// is read, exactly as if `` `define NAME TEXT `` stood at the top of the compilation unit — so
@@ -57,8 +63,26 @@ impl Default for SvPreprocessorConfig {
             conditional_expr_policy: ConditionalExprPolicy::IdentifierOrDefined,
             plain_string_substitution: PlainStringSubstitutionPolicy::Standard,
             strict_warning_codes: HashSet::new(),
+            undefined_macro_policy: UndefinedMacroPolicy::Error,
             defines: Vec::new(),
             parse_profile: None,
+        }
+    }
+}
+
+/// `SVPP-EXPANSION.6f`: see [`SvPreprocessorConfig::undefined_macro_policy`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UndefinedMacroPolicy {
+    Error,
+    Keep,
+}
+
+impl UndefinedMacroPolicy {
+    pub fn parse(raw: &str) -> Option<Self> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "error" | "refuse" => Some(Self::Error),
+            "keep" | "passthrough" => Some(Self::Keep),
+            _ => None,
         }
     }
 }
@@ -560,6 +584,7 @@ impl PreprocessorState {
         let mut warnings: Vec<(&'static str, PathBuf, usize, String, String)> = Vec::new();
         let mut events: Vec<(PathBuf, usize, String)> = Vec::new();
         // (the region's version, how many tokens it has rendered in THIS file)
+        let mut unknown_open: usize = 0;
         let mut open: Vec<(KeywordVersion, usize)> = self
             .keyword_regions
             .iter()
@@ -648,16 +673,20 @@ impl PreprocessorState {
                                 line,
                                 format!("end_keywords \"{}\" escaped={escaped}", region.specifier()),
                             )),
-                            None => warnings.push((
-                                "W_SVPP_UNMATCHED_END_KEYWORDS",
-                                file,
-                                line,
-                                "`end_keywords closes no open `begin_keywords region".to_string(),
-                                "IEEE 1364-2005 §19.11: \"Each `begin_keywords directive must be \
-                                 paired with an `end_keywords directive\"; nothing is rendered here \
-                                 and the directive is left for the parser"
-                                    .to_string(),
-                            )),
+                            None if unknown_open > 0 => {
+                                // closes a region whose specifier the stage did not recognise: the
+                                // parser refuses the `begin_keywords line, this directive pairs with it
+                                unknown_open -= 1;
+                            }
+                            // `SVPP-EXPANSION.6f`: refused, not left for the parser (which reads the line as
+                            // a directive and ACCEPTED verilator t_preproc_kwd_bad.v)
+                            None => bail!(
+                                "`end_keywords closes no open `begin_keywords region at {}:{} — IEEE 1364-2005 \
+                                 §19.11: \"Each `begin_keywords directive must be paired with an `end_keywords \
+                                 directive\"; IEEE 1800-2017 §22.14 speaks of \"the matching `end_keywords directive\"",
+                                file.display(),
+                                line
+                            ),
                         }
                         unreserved = open
                             .last()
@@ -693,6 +722,11 @@ impl PreprocessorState {
                     // No region is opened either way: an unknown version has no known keyword set,
                     // so there is nothing this stage could correctly render.
                     let Some(region) = KeywordVersion::from_specifier(specifier) else {
+                        // `SVPP-EXPANSION.6f`: the region's PAIRING is a textual fact independent of the
+                        // version being known — its `end_keywords closes it (counted here), so the refusal
+                        // of an unmatched `end_keywords below does not preempt the parser's own refusal of
+                        // the unknown specifier
+                        unknown_open += 1;
                         warnings.push((
                             "W_SVPP_UNKNOWN_KEYWORDS_VERSION",
                             file,
@@ -815,6 +849,114 @@ impl PreprocessorState {
     /// The `(file, line)` the byte at `offset` of the expanded text came from, or `None` when no
     /// chunk covers it. The map is appended in output order, so the covering chunk is found by
     /// bisection rather than by scanning (`SVPP-EXPANSION.8`).
+    /// `SVPP-EXPANSION.6f`: a backtick that SURVIVES expansion outside a comment or a string literal is not
+    /// text the parser may judge. IEEE 1800-2017 §22.5.1 gives a text-macro usage its meaning by substitution
+    /// ("Once a text macro name has been defined, it can be used anywhere …", docs/systemverilog/2017/md/
+    /// section-22-compiler-directives.md:272-273) — an undefined name has no derivation; "For a macro with
+    /// arguments, the parentheses are always required in the macro call" (:224-225) — a function-like macro
+    /// used bare, or with an argument list the file never closes (Syntax 22-3), is an incomplete usage kept as
+    /// written by the expander; `` `" `` / `` `\`" `` / `` `` `` have meaning only inside macro text. Before
+    /// this the leftover reached the parser, whose raw-lane residue (`compiler_directive` → `opaque`) ACCEPTS
+    /// a top-level backtick line: 38 pipeline rows read `pass` over text the stage never resolved. The LRM
+    /// directives the parser reads (`` `timescale ``, `` `default_nettype ``, …) are not unresolved usages.
+    fn refuse_unresolved_backticks(&self) -> Result<()> {
+        if self.config.undefined_macro_policy == UndefinedMacroPolicy::Keep {
+            return Ok(());
+        }
+        let version = version_for_profile(self.config.parse_profile.as_deref());
+        let text = &self.output;
+        let bytes = text.as_bytes();
+        let mut i = 0usize;
+        let (mut in_string, mut escaped) = (false, false);
+        while i < bytes.len() {
+            let b = bytes[i];
+            if in_string {
+                if escaped {
+                    escaped = false;
+                } else if b == b'\\' {
+                    escaped = true;
+                } else if b == b'"' || b == b'\n' {
+                    in_string = false;
+                }
+                i += 1;
+                continue;
+            }
+            if b == b'"' {
+                in_string = true;
+                i += 1;
+                continue;
+            }
+            if text[i..].starts_with("//") {
+                while i < bytes.len() && bytes[i] != b'\n' {
+                    i += 1;
+                }
+                continue;
+            }
+            if text[i..].starts_with("/*") {
+                match text[i + 2..].find("*/") {
+                    Some(close) => i += 2 + close + 2,
+                    None => i = bytes.len(),
+                }
+                continue;
+            }
+            if b == b'`' {
+                let (file, line) = self
+                    .origin_of_output_offset(i)
+                    .unwrap_or_else(|| (PathBuf::from("<expanded>"), 0));
+                let next = bytes.get(i + 1).copied();
+                if matches!(next, Some(b'"') | Some(b'\\') | Some(b'`')) {
+                    bail!(
+                        "a macro-string or paste token (`\", `\\`\", ``) outside macro text at {}:{} — IEEE \
+                         1800-2017 §22.5.1 gives these tokens meaning only within the text of a `define; \
+                         here they are no token of the language",
+                        file.display(),
+                        line
+                    );
+                }
+                if next.is_some_and(is_ident_start) {
+                    let mut e = i + 2;
+                    while e < bytes.len() && is_ident_continue(bytes[e]) {
+                        e += 1;
+                    }
+                    let name = &text[i + 1..e];
+                    if is_compiler_directive_name(name, version) {
+                        i = e;
+                        continue;
+                    }
+                    match self.macros.get(name) {
+                        Some(def) if def.params.is_some() => bail!(
+                            "the function-like macro `{} is used without a complete argument list at {}:{} — IEEE \
+                             1800-2017 §22.5.1: \"For a macro with arguments, the parentheses are always required in \
+                             the macro call, even if all the arguments have defaults\" (Syntax 22-3: the closing \
+                             parenthesis is part of the usage)",
+                            name,
+                            file.display(),
+                            line
+                        ),
+                        Some(_) => bail!(
+                            "the macro `{} survived expansion at {}:{} — an internal expansion gap, please report it",
+                            name,
+                            file.display(),
+                            line
+                        ),
+                        None => bail!(
+                            "`{} is neither a defined macro nor a compiler directive at {}:{} — IEEE 1800-2017 \
+                             §22.5.1 gives a text-macro usage its meaning by substitution (\"Once a text macro name \
+                             has been defined, it can be used anywhere in the compilation unit where it is defined\"); \
+                             no definition in the compilation unit or its context, no substitution (a vendor's own \
+                             directive is refused here too: clause 22 lists the standard's)",
+                            name,
+                            file.display(),
+                            line
+                        ),
+                    }
+                }
+            }
+            i += 1;
+        }
+        Ok(())
+    }
+
     fn origin_of_output_offset(&self, offset: usize) -> Option<(PathBuf, usize)> {
         let at = self
             .source_map
@@ -929,6 +1071,7 @@ pub fn preprocess_systemverilog_file(
     let mut state = PreprocessorState::new(config.clone());
     preprocess_file_internal(input_path, &mut state, 0)?;
     state.render_keyword_regions()?;
+    state.refuse_unresolved_backticks()?;
     Ok(state.take_output())
 }
 
@@ -974,6 +1117,14 @@ pub fn preprocess_systemverilog_unit(
             )
         })?;
         state.render_keyword_regions().with_context(|| {
+            format!(
+                "compilation unit file {} of {} ('{}') failed to preprocess",
+                index + 1,
+                files.len(),
+                file.display()
+            )
+        })?;
+        state.refuse_unresolved_backticks().with_context(|| {
             format!(
                 "compilation unit file {} of {} ('{}') failed to preprocess",
                 index + 1,
@@ -4475,7 +4626,7 @@ mod tests {
         ConditionalSymbolPolicy, IncludePathPolicy, MacroDefinition, MacroParameter,
         MacroRedefinitionPolicy, PlainStringSubstitutionPolicy, PredefinedMacro,
         PreprocessedOutput, PreprocessorDiagnosticSeverity, PreprocessorEventKind,
-        SvPreprocessorConfig, expand_function_macro, normalize_macro_body_for_directives,
+        SvPreprocessorConfig, UndefinedMacroPolicy, expand_function_macro, normalize_macro_body_for_directives,
         parse_strict_warning_codes, preprocess_systemverilog_file, preprocess_systemverilog_unit,
     };
     use std::collections::HashMap;
@@ -5423,17 +5574,15 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
     /// IEEE 1364-2005 §19.11: *"Each `begin_keywords directive must be paired with an
     /// `end_keywords directive."* An unpaired close is reported and renders nothing.
     #[test]
-    fn an_unmatched_end_keywords_is_reported() {
-        let output =
-            preprocess_with_profile("module m; endmodule\n`end_keywords\n", Some("sv_2017"));
-        assert_eq!(
-            output
-                .diagnostics
-                .iter()
-                .map(|d| d.code.as_str())
-                .collect::<Vec<_>>(),
-            vec!["W_SVPP_UNMATCHED_END_KEYWORDS"]
-        );
+    fn an_unmatched_end_keywords_is_refused() {
+        // `SVPP-EXPANSION.6f`: through `1.0.250` this was a warning (W_SVPP_UNMATCHED_END_KEYWORDS) and the
+        // directive was left for the parser, which reads the line as a directive and accepted it.
+        let dir = create_repo_scratch_dir("svpp_unmatched_end_keywords_profile");
+        let input = dir.join("top.sv");
+        fs::write(&input, "module m; endmodule\n`end_keywords\n").expect("write");
+        let config = SvPreprocessorConfig { parse_profile: Some("sv_2017".to_string()), ..SvPreprocessorConfig::default() };
+        let err = preprocess_systemverilog_file(&input, &config).expect_err("closes no open region");
+        assert!(format!("{err:#}").contains("`end_keywords closes no open `begin_keywords region"), "{err:#}");
     }
 
     /// §22.14: the region *"affects all source code that follows the directive, even across source
@@ -5562,9 +5711,17 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         );
         assert!(output.text.contains("logic [8-1:0] d;"), "{}", output.text);
 
-        // the same file with NO context takes the other branch and leaves `WIDTH unexpanded
-        let bare = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
-            .expect("preprocess without context");
+        // the same file with NO context takes the other branch and leaves `WIDTH unresolved — which
+        // `SVPP-EXPANSION.6f` REFUSES, naming the macro (a context gap, read at the stage); under `keep`
+        // the usage stays as written, as before
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("without the context `WIDTH is undefined");
+        assert!(format!("{err:#}").contains("`WIDTH is neither a defined macro"), "{err:#}");
+        let keep = SvPreprocessorConfig {
+            undefined_macro_policy: UndefinedMacroPolicy::Keep,
+            ..SvPreprocessorConfig::default()
+        };
+        let bare = preprocess_systemverilog_file(&input, &keep).expect("preprocess without context (keep)");
         assert!(bare.text.contains("logic plain_branch;"), "{}", bare.text);
         assert!(bare.text.contains("`WIDTH"), "{}", bare.text);
     }
@@ -5675,11 +5832,19 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         let config = SvPreprocessorConfig::default();
         let _ =
             preprocess_systemverilog_unit(std::slice::from_ref(&first), &config).expect("unit 1");
-        let alone =
-            preprocess_systemverilog_unit(std::slice::from_ref(&second), &config).expect("unit 2");
+        // `SVPP-EXPANSION.6f`: the second unit does not see the first's macro, so its usage is an
+        // UNDEFINED one — refused, naming the name (the isolation claim, read through the refusal)
+        let err = preprocess_systemverilog_unit(std::slice::from_ref(&second), &config)
+            .expect_err("unit 2 does not see ONLY_IN_A");
+        assert!(format!("{err:#}").contains("`ONLY_IN_A is neither a defined macro"), "{err:#}");
+        // and the one-file entry is the one-file unit — byte-identical text, read under `keep`
+        let keep = SvPreprocessorConfig {
+            undefined_macro_policy: UndefinedMacroPolicy::Keep,
+            ..SvPreprocessorConfig::default()
+        };
+        let alone = preprocess_systemverilog_unit(std::slice::from_ref(&second), &keep).expect("unit 2 (keep)");
         assert!(alone[0].text.contains("`ONLY_IN_A"), "{}", alone[0].text);
-        // and the one-file entry is the one-file unit — byte-identical text
-        let single = preprocess_systemverilog_file(&second, &config).expect("single");
+        let single = preprocess_systemverilog_file(&second, &keep).expect("single");
         assert_eq!(single.text, alone[0].text);
     }
 
@@ -6245,6 +6410,20 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             .text
     }
 
+    /// `SVPP-EXPANSION.6f`: the same, under the `keep` policy — for a test whose SUBJECT is the expansion
+    /// machinery (a paste that constructs an undefined name, a region that keeps a bare usage) and whose
+    /// text deliberately leaves a usage unresolved; under the default policy that leftover is refused.
+    fn expand_text_keep(prefix: &str, source: &str) -> String {
+        let dir = create_repo_scratch_dir(prefix);
+        let input = dir.join("top.sv");
+        fs::write(&input, source).expect("write");
+        let keep = SvPreprocessorConfig {
+            undefined_macro_policy: UndefinedMacroPolicy::Keep,
+            ..SvPreprocessorConfig::default()
+        };
+        preprocess_systemverilog_file(&input, &keep).expect("expand").text
+    }
+
     #[test]
     fn a_usage_on_the_right_of_a_paste_is_expanded_before_the_join() {
         // sv2v test/lex/macro_macro.sv verbatim — its reference macro_macro.v reads 1 2 / 3 4 / 5 5
@@ -6286,7 +6465,7 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         // stays a usage of an undefined name — no partial lookup of `PREFIX_` — and `name3(PREFIX)`
         // is `my_prefix_suffix`), and the bug1225 families (`XXE_```EMPTY` → XXE_, `XXS_```SOME` →
         // XXS_some, `XYS_```SOMEP(foo)` → XYS_foo), each the line of t_preproc.out
-        let text = expand_text(
+        let text = expand_text_keep(
             "svpp_paste_order_whole_name",
             "`define QA_b zzz\n`define Q1 `QA``_b\n`define PREFIX_ my_prefix_\n`define SUFFIX my_suffix\n`define PREFIX_SUFFIX my_prefix_suffix\n`define name1 `PREFIX``_```SUFFIX\n`define name3(p) ```p``_SUFFIX\n`define EMPTY\n`define SOME some\n`define SOMEP(foo) foo\n`define XXE_FAMILY XXE_```EMPTY\n`define XXS_FAMILY XXS_```SOME\n`define XYS_FAMILY XYS_```SOMEP(foo)\nmodule `Q1 ; endmodule\nA `name1\nB `name3(PREFIX)\nC `XXE_FAMILY\nD `XXS_FAMILY\nE `XYS_FAMILY\n",
         );
@@ -6390,7 +6569,15 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         // §22.5.1 defines `" for MACRO text; sv2v test/lex/string_macro.sv:9 ($display(`"`FOO`");) is
         // pinned must-reject on exactly that (SVPP-EXPANSION.6c.2). Verilator 5.050 renders a
         // source-line region ("standalone") and Icarus 13.0 leaves it — recorded, not followed
-        let text = expand_text(
+        // `SVPP-EXPANSION.6f`: under the default policy the stage REFUSES the stray `" (the pin's verdict,
+        // now at the expansion stage); the region's bytes are read under `keep` to hold the rendering rule
+        let dir = create_repo_scratch_dir("svpp_region_source_line_refused");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define FOO BAR\nmodule t; initial $display(`\"standalone `FOO`\"); endmodule\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("a macro-string token outside macro text is refused");
+        assert!(format!("{err:#}").contains("outside macro text"), "{err:#}");
+        let text = expand_text_keep(
             "svpp_region_source_line",
             "`define FOO BAR\nmodule t; initial $display(`\"standalone `FOO`\"); endmodule\n",
         );
@@ -6962,6 +7149,104 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
             .expect("the list closes outside the string literals");
         assert!(out.text.contains("[\"==)\" \"((((\" ()]"), "the three defaults substituted:\n{}", out.text);
+    }
+
+    #[test]
+    fn an_unresolved_macro_usage_in_the_expanded_text_is_refused() {
+        // `SVPP-EXPANSION.6f`: a backtick that SURVIVES expansion outside a comment or string is not text the parser
+        // may judge — an undefined macro has no derivation in IEEE 1800-2017 §22.5.1 ("Once a text macro name has
+        // been defined, it can be used anywhere …": no definition, no substitution), and the SV grammar's raw-lane
+        // residue (`compiler_directive` → `opaque`) would otherwise ACCEPT a top-level `` `not_defined `` line, which
+        // is how 38 pipeline rows read `pass` over text the stage never resolved (verilator t_preproc_nodef_bad.v,
+        // sv2v error/undefined_macro.sv, 25 riscv-dv instruction files whose macros live in a package that fails).
+        let dir = create_repo_scratch_dir("svpp_unresolved_usage");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`not_defined\nmodule t;\nendmodule\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("an undefined usage left in the output is refused");
+        let text = format!("{err:#}");
+        assert!(text.contains("`not_defined") && text.contains("neither a defined macro nor a compiler directive"), "{text}");
+        assert!(text.contains("top.sv:1"), "the refusal names the source origin:\n{text}");
+        // the `keep` policy is the old passthrough, for a consumer that resolves the rest itself
+        let keep = SvPreprocessorConfig { undefined_macro_policy: UndefinedMacroPolicy::Keep, ..SvPreprocessorConfig::default() };
+        let out = preprocess_systemverilog_file(&input, &keep).expect("keep: passthrough");
+        assert!(out.text.contains("`not_defined"), "{}", out.text);
+    }
+
+    #[test]
+    fn a_backtick_inside_a_string_or_comment_survives_expansion_legitimately() {
+        // `SVPP-EXPANSION.6f` control: the scan skips string literals and both comment forms, and an LRM directive
+        // the parser reads (`` `timescale ``, `` `default_nettype ``) is not an unresolved usage.
+        let dir = create_repo_scratch_dir("svpp_backtick_in_string");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`timescale 1ns/1ps\n`default_nettype none\nmodule t;\n  // a `comment_word here\n  /* and `another */\n  initial $display(\"a `string_word\");\nendmodule\n`default_nettype wire\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default()).expect("legitimate backticks");
+        assert!(out.text.contains("`timescale 1ns/1ps") && out.text.contains("\"a `string_word\""), "{}", out.text);
+    }
+
+    #[test]
+    fn a_function_like_macro_used_without_its_argument_list_is_refused() {
+        // `SVPP-EXPANSION.6f`: IEEE 1800-2017 §22.5.1 — "For a macro with arguments, the parentheses are always required
+        // in the macro call, even if all the arguments have defaults" (docs/systemverilog/2017/md/
+        // section-22-compiler-directives.md:224-225). sv2v error/macro_unapplied.sv (`MACRO asdf) and
+        // macro_unapplied_eof.sv (`MACRO at end of input) read `pass` before this: the usage was kept as written and
+        // the grammar's opaque residue accepted the line.
+        for body in ["`define MACRO(a) a\n`MACRO asdf\nmodule t; endmodule\n", "`define MACRO(a) a\n`MACRO\n"] {
+            let dir = create_repo_scratch_dir("svpp_bare_function_like");
+            let input = dir.join("top.sv");
+            fs::write(&input, body).expect("write");
+            let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+                .expect_err("a function-like macro without its parentheses is refused");
+            let text = format!("{err:#}");
+            assert!(text.contains("`MACRO") && text.contains("parentheses are always required"), "{text}");
+        }
+    }
+
+    #[test]
+    fn an_unterminated_macro_argument_list_is_refused() {
+        // `SVPP-EXPANSION.6f`: Syntax 22-3 `text_macro_usage ::= `text_macro_identifier [ ( list_of_actual_arguments ) ]`
+        // — the closing parenthesis is part of the usage; verilator t_preproc_eof3_bad.v (`FOO(1, at end of file) read
+        // `pass` before this, the incomplete usage kept as written and accepted as an opaque directive line.
+        let dir = create_repo_scratch_dir("svpp_unterminated_actuals");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define FOO(a,b)\n`FOO(1,\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("an unterminated argument list is refused");
+        let text = format!("{err:#}");
+        assert!(text.contains("`FOO") && text.contains("argument list"), "{text}");
+    }
+
+    #[test]
+    fn a_macro_string_token_outside_macro_text_is_refused() {
+        // `SVPP-EXPANSION.6f`: `` `" ``, `` `\`" `` and `` `` `` have meaning only INSIDE macro text (§22.5.1); at the
+        // top level they are no token of the language (sv2v error/string_directive.sv `"asdf `line`",
+        // string_literal_backtick_eof.sv `"; friscv's testbenches write ``TCNAME in plain text).
+        let dir = create_repo_scratch_dir("svpp_stray_macro_string");
+        let input = dir.join("top.sv");
+        fs::write(&input, "module t;\ninitial $display(`\"asdf`\");\nendmodule\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("a macro-string token outside macro text is refused");
+        let text = format!("{err:#}");
+        assert!(text.contains("outside macro text"), "{text}");
+    }
+
+    #[test]
+    fn an_end_keywords_with_no_open_region_is_refused() {
+        // `SVPP-EXPANSION.6f`: IEEE 1364-2005 §19.11 "Each `begin_keywords directive must be paired with an `end_keywords
+        // directive"; IEEE 1800-2017 §22.14 speaks of "the matching `end_keywords directive" and a stacked pair. An
+        // `end_keywords that closes nothing was a WARNING left for the parser, which reads the line as a directive
+        // (verilator t_preproc_kwd_bad.v read `pass`). It is refused, naming the clause.
+        let dir = create_repo_scratch_dir("svpp_unmatched_end_keywords");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`end_keywords\nmodule t;\nendmodule\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("an unmatched `end_keywords is refused");
+        let text = format!("{err:#}");
+        assert!(text.contains("`end_keywords") && text.contains("begin_keywords"), "{text}");
     }
 
     #[test]

@@ -40,12 +40,13 @@ context the pipeline takes, and each has the same spelling on both CLIs:
 | predefined macros | `--symbol NAME` / `--symbol NAME=VALUE` (repeatable, ordered; alias `--define`) | seeded into the macro table before the first line is read, exactly as if `` `define NAME TEXT `` stood at the top of the unit; `NAME` alone defines it with **empty** text (the meaning a bare `` `define NAME `` line has). A predefine is an ordinary definition: `` `ifdef ``, `` `undef `` and the redefinition policy treat it as one |
 | the compilation unit | `--unit-file F` (repeatable, ordered) | the files preprocessed **before** the input, under the **same macro table**; the input is the unit's last file |
 | a formal inside a plain `"…"` string | `--stage-opt plain_string_substitution=standard\|paste_delimited\|all` (default `standard`) | what a formal's name inside a plain string literal in MACRO TEXT means: `standard` — the string is opaque, IEEE 1800-2017 §22.5.1's own `` `define H(x) "Hello, x" `` prints `Hello, x`; `paste_delimited` — only a formal marked by paste tokens on both sides (`"…[``i``]…"`, OpenTitan's idiom) is substituted; `all` — every formal substituted and every paste joined (Icarus's reading). The same spelling on `ast_pipeline --preprocess-systemverilog` |
+| a backtick that survives expansion | `--stage-opt undefined_macro_policy=error\|keep` (default `error`) | what the stage does with a backtick left in its OUTPUT outside a comment or string literal — an undefined macro, a function-like macro without its argument list, a stray `` `" `` token, a vendor directive: `error` refuses it with its clause (`SVPP-EXPANSION.6f`: the parser's raw-lane residue would otherwise accept a top-level one), `keep` hands it on as written for a consumer that resolves the rest itself |
 
 The spellings are the neutral engine's (`ENGINE-UNIVERSAL-SERVICES.113`, 2026-09-29): the family's own
 knobs travel as `--stage-opt KEY=VALUE` — `ast_pipeline INPUT.sv --preprocess systemverilog
 --list-stage-options` lists them: `include_max_depth`, `include_path_policy`, `macro_redefine_policy`,
 `conditional_symbol_policy`, `conditional_expr_policy`, `plain_string_substitution`,
-`strict_warning_codes` — and the pre-`.113` spellings (`--preprocess-systemverilog`, `--sv-include-dir`,
+`strict_warning_codes`, `undefined_macro_policy` — and the pre-`.113` spellings (`--preprocess-systemverilog`, `--sv-include-dir`,
 `--sv-define`, `--sv-unit-file`, `--sv-keyword-profile`, the `--sv-*-policy` flags,
 `--sv-disallow-macro-redefine`, the three `--sv-*-json` outputs) are accepted through release `1.0.247`,
 each rewritten to the neutral form with one deprecation line on stderr, and removed after it.
@@ -352,6 +353,18 @@ each one a sentence of the standard that a corpus row had been failing on:
   adds `undefineall` (§22.5.3) and `__FILE__` / `__LINE__` (§22.13), so under the `verilog_2005` profile those
   three are ordinary macro names. Through `1.0.250` both were accepted and a directive name was undefined to the
   conditionals.
+- **A backtick that survives expansion is refused, not handed to the parser** (`SVPP-EXPANSION.6f`). The stage's
+  post-condition: outside a comment or a string literal, the expanded text carries no backtick except a directive
+  the parser reads. An undefined name is refused as *"neither a defined macro nor a compiler directive"* (§22.5.1
+  gives a usage its meaning by substitution — no definition, no derivation; a vendor's own directive falls under
+  the same sentence), a function-like macro used bare or with an argument list the file never closes under
+  *"the parentheses are always required in the macro call"* and Syntax 22-3, a `` `" `` / `` `\`" `` / `` `` ``
+  outside macro text as no token of the language, and an `` `end_keywords `` that closes no region under 1364-2005
+  §19.11 *"must be paired"*. Through `1.0.250` the stage kept the leftover as written and the SV grammar's
+  `compiler_directive` residue — the RAW lane's design, an opaque backtick line accepted so an unexpanded file
+  parses around its macro uses — accepted a top-level one: 38 pipeline rows read `pass` over text the stage never
+  resolved (25 of them riscv-dv instruction files whose macros live in a package the lane refuses), and 318
+  failing rows carried one too. `--stage-opt undefined_macro_policy=keep` restores the passthrough.
 - **A function-like macro may open its parentheses on the next line** (§22.5.1 requires the parentheses;
   §5.3 lets white space, newlines included, separate the tokens): `` `FOO `` at the end of a line followed by
   `(1, 2)` on the next is one invocation.
@@ -827,7 +840,7 @@ classed by what the parser actually SAW, not by the source line the stop maps ba
 reading of 2026-10-06 the 310 rows fall as follows: 143 are the base-class barrier above (126 of
 them files only ever read through the package that `include`s them); **47 stop at a raw backtick in
 the expanded text — an undefined macro reached the parser, a CONTEXT gap that happened one stage
-late** (OpenTitan's per-IP build defines such as `EN_MASKING` and `RNG_BUS_WIDTH`, which live in the
+late; since `.6f` the stage refuses such a leftover before the parser can meet it and the class is EMPTY, kept as a tripwire** (OpenTitan's per-IP build defines such as `EN_MASKING` and `RNG_BUS_WIDTH`, which live in the
 IPs' `*_sim_cfg.hjson` build options; VeeR's `RV_*` configuration macros, whose `common_defines.vh`
 the VeeR Makefile compiles first — supplied since `.6d.8`, three rows now pass; two BlackParrot and one friscv header chain); 55 are `include`
 fragments of a module, testbench or package whose standalone reading is not a claim about the

@@ -7,78 +7,47 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 
 | input | path | sha256 |
 |---|---|---|
-| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `157740e2ac54bf86d439869f9138c46a721d27eec35af2b1f7f8de4dd34b5bd7` |
-| sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `4f63ace26d451a0b218330f971e5362775b4903f36a7acf585c9cfc4b802b6d2` |
-| sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `e541ba5a335ea521a65dc905630bafd05696882cc123d0bb42e59a050320beba` |
-| sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `7defc287e8fae32ac146679fc3b59f3697d739f1a5c85786bb0798168d7fe194` |
-| expansion binary | `rust/target/debug/ast_pipeline` | `13508a1cff6368ef0ed8dcfc16473ad326a5151c012e3bdc70e433e3adef753d` |
+| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `7f8e422bfcc2fbae51d6ae5d173f730a948b01418265db30fd293f9c917cc409` |
+| sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `6d0eabec327e9697ab814c1304a9c0d5bc295fc9eac34abf78eb8ea52c470097` |
+| sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `dc0f74836f6ceabfdd20584c12ca69d4f07c1a08660ad850842a26f900428ac5` |
+| sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `7289e42f374d6c6e159e1090e4358a60699cf832c3e02ff8a07ad5f1801ee9da` |
+| expansion binary | `rust/target/debug/ast_pipeline` | `03949beb82671cd85ad051f4a6734d97993a10e04e2a93893112d65398ad6caa` |
 
-## The classes — 305 rows
+## The classes — 324 rows
 
 | class | rows | what it means |
 |---|---:|---|
-| `raw_backtick` | 42 | the expanded text at the stop begins with a backtick: an undefined macro reached the parser — CONTEXT, not syntax |
-| `base_class` | 143 | a class header with a base class the parser has not seen declared — the cross-file declaration barrier |
+| `raw_backtick` | 0 | the expanded text at the stop begins with a backtick: an undefined macro reached the parser — CONTEXT, not syntax |
+| `base_class` | 222 | a class header with a base class the parser has not seen declared — the cross-file declaration barrier |
 | `edition_2023` | 4 | the same row passes under the `sv_2023` reading — the 2017 rejection is the older text's |
 | `tolerated_spelling` | 5 | the same row passes under `sv_2023_tolerant` only — a spelling of the opt-in profile's closed list |
-| `edition_2023_moves` | 3 | the 2023 reading stops further: the construct at this stop is the 2023 text's, a later barrier remains |
+| `edition_2023_moves` | 1 | the 2023 reading stops further: the construct at this stop is the 2023 text's, a later barrier remains |
 | `tolerated_moves` | 0 | the tolerant reading stops further than the 2023 one: a tolerated spelling here, a later barrier remains |
 | `error_test` | 6 | an intended-invalid test by name — the rejection is the expected verdict |
 | `preprocess_only` | 5 | a verilator test its own driver runs with `-E` — the preprocessor's input, not SystemVerilog to parse |
 | `declared_fragment` | 5 | the file declares itself a module body (`verilog_syntax: parse-as-…`) — the suite's own convention |
-| `fragment` | 55 | the file is the `include` target of another corpus file — its standalone reading is not the parser's claim |
+| `fragment` | 39 | the file is the `include` target of another corpus file — its standalone reading is not the parser's claim |
 | `undeclared_type` | 11 | a declaration whose type is an identifier the parser has not seen declared — the cross-file barrier in data position |
 | `residue` | 26 | none of the above — adjudicated one by one below |
 
-## `raw_backtick` — 42 rows, by the macro the context did not define
+## `raw_backtick` — 0 rows, by the macro the context did not define
 
 | macro | rows | files |
 |---|---:|---|
-| `` `EN_MASKING `` | 6 | opentitan:aes_bind.sv, opentitan:aes_reseed_if.sv, opentitan:fi_ghash_if.sv, opentitan:kmac_if.sv, opentitan:tb.sv, opentitan:tb.sv |
-| `` ` `` | 4 | friscv:friscv_testbench.sv, friscv:icache_testbench.sv, sv2v:double_backtick.sv, verilator:t_pp_display.v |
-| `` `RNG_BUS_WIDTH `` | 4 | opentitan:entropy_src_cov_if.sv, opentitan:entropy_src_env_pkg.sv, opentitan:entropy_src_xht_if.sv, opentitan:tb.sv |
-| `` `VERILATOR_TEST_STATUS_ADDR `` | 3 | opentitan:chip_sim_tb.sv, opentitan:chip_sim_tb.sv, opentitan:chip_sim_tb.sv |
-| `` `MEM_BKDR_UTIL_FILE_OP `` | 2 | opentitan:tb.sv, opentitan:tb.sv |
-| `` `NUM_END_POINTS `` | 2 | opentitan:edn_cov_if.sv, opentitan:tb.sv |
-| `/` | 1 | sv2v:stray_escaped_vendor_comment.sv |
-| `` `DATA_LENGTH `` | 1 | opentitan:aes_tb.sv |
-| `` `EN_GCM `` | 1 | opentitan:aes_cov_if.sv |
-| `` `INOUT_AI `` | 1 | opentitan:chip_earlgrey_asic.sv |
-| `` `INOUT_AO `` | 1 | opentitan:chip_earlgrey_cw340.sv |
-| `` `INSTR_EXEC `` | 1 | opentitan:tb.sv |
-| `` `LDI `` | 1 | verilator:rom.sv |
-| `` `NDEFINED `` | 1 | verilator:t_pp_misdef_bad.v |
-| `` `NUM_REQUESTS `` | 1 | opentitan:aes_tb_reqs.sv |
-| `` `SB `` | 1 | friscv:friscv_memfy_h.sv |
-| `` `SEC_VOLATILE_RAW_UNLOCK_EN `` | 1 | opentitan:tb.sv |
-| `` `SRAM_TYPE `` | 1 | opentitan:tb.sv |
-| `` `TEST_INNER `` | 1 | sv2v:typename_deep.svh |
-| `` `UVM_REG_DATA_WIDTH `` | 1 | uvm-core:uvm_hdl_polling.svh |
-| `` `VALUE_B `` | 1 | verilator:t_hier_block_import_subB.v |
-| `` `WIDTH `` | 1 | verilator:t_pp_lib_library.v |
-| `` `bp_aviary_define_override `` | 1 | black-parrot:bp_common_aviary_cfg_pkgdef.svh |
-| `` `bp_cce_inst_data_width `` | 1 | black-parrot:bp_me_cce_inst_pkgdef.svh |
-| `` `error `` | 1 | verilator:t_preproc_undefineall.v |
-| `` `resetall `` | 1 | verilator:t_pp_resetall_bad.v |
-| `h` | 1 | opentitan:core_ibex_tb_top.sv |
 
-## `fragment` — 55 rows, by the token at the stop
+## `fragment` — 39 rows, by the token at the stop
 
 | token at the stop | rows | one example |
 |---|---:|---|
 | `SATP_MODE` | 13 | `Cores-VeeR-EL2` `tools/riscv-dv/riscv_core_setting.sv` (6) |
 | `xbar_devices` | 11 | `opentitan` `hw/top_darjeeling/dv/autogen/xbar_env_pkg__params.sv` (9) |
-| `assign` | 8 | `Cores-VeeR-EL2` `design/include/el2_dec_csr_equ_m.svh` (86) |
-| `dut` | 8 | `opentitan` `hw/top_darjeeling/ip/xbar_dbg/dv/autogen/tb__xbar_connect.sv` (7) |
 | `clk_rst_if_main` | 3 | `opentitan` `hw/top_darjeeling/dv/autogen/tb__xbar_connect.sv` (30) |
+| `#` | 2 | `opentitan` `hw/ip/sram_ctrl/dv/env/sram_ctrl_env_cfg.sv` (6) |
+| `assign` | 2 | `Cores-VeeR-EL2` `design/include/el2_dec_csr_equ_m.svh` (86) |
 | `initial` | 2 | `opentitan` `hw/ip/prim/rtl/prim_util_memload.svh` (54) |
 | `"` | 1 | `verilator` `test_regress/t/t_preproc_persist_inc.v` (10) |
 | `,` | 1 | `opentitan` `hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv` (2) |
-| `:` | 1 | `opentitan` `hw/vendor/lowrisc_ibex/dv/formal/check/protocol/irqs.sv` (12) |
 | `NUM_ALERTS` | 1 | `opentitan` `hw/top_englishbreakfast/dv/env/autogen/chip_env_pkg__params.sv` (7) |
-| `cfg` | 1 | `opentitan` `hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/riscv_instr_cover_group.sv` (483) |
-| `gpr_enum` | 1 | `opentitan` `hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/riscv_instr_cov.svh` (2) |
-| `main_mode` | 1 | `opentitan` `hw/vendor/lowrisc_ibex/dv/formal/check/spec_instance.sv` (14) |
 | `num_dev` | 1 | `opentitan` `hw/ip/tlul/generic_dv/env/xbar_env_cov.sv` (6) |
 | `state` | 1 | `black-parrot` `bp_me/src/include/bp_me_cce_pkgdef.svh` (19) |
 | `type_id` | 1 | `opentitan` `hw/ip/tlul/generic_dv/env/xbar_scoreboard.sv` (15) |
@@ -99,13 +68,12 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `uvm_component` | 1 | Surelog:top.v |
 | `uvm_packer` | 1 | Surelog:top_1.sv |
 
-## `base_class` — 143 rows, by suite
+## `base_class` — 222 rows, by suite
 
 | suite | rows |
 |---|---:|
-| `opentitan` | 125 |
-| `Surelog` | 10 |
-| `Cores-VeeR-EL2` | 8 |
+| `opentitan` | 218 |
+| `Surelog` | 4 |
 
 ## `edition_2023` — 4 rows, by suite
 
@@ -120,12 +88,11 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 |---|---:|
 | `opentitan` | 5 |
 
-## `edition_2023_moves` — 3 rows, by suite
+## `edition_2023_moves` — 1 rows, by suite
 
 | suite | rows |
 |---|---:|
-| `verilator` | 2 |
-| `opentitan` | 1 |
+| `verilator` | 1 |
 
 ## `tolerated_moves` — 0 rows, by suite
 

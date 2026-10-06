@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-06 — SVPP-EXPANSION.6f (`PGEN-SVPP-EXPANSION-0044`): two correct designs composed into a wrong claim
+
+- **A pipeline's pass is a conjunction, and the weakest stage's post-condition decides it.** The expander's leniency (keep an unresolved usage as written) and the grammar's raw-lane residue (accept an opaque backtick line) are each right for the lane they serve; composed, they passed a file whose first line was an undefined macro. The stage now refuses its own leftovers — promoted as [[a-stage-that-passes-through-what-it-did-not-resolve-lets-the-next-stage-accept-it]].
+- **Measure a hole by re-deriving the passes.** Two censuses of the failing rows had not shown it, because an accepted leftover leaves no failure to read. Re-expanding the 12 749 passing rows and scanning the output took minutes and named 38.
+- **A suite's own convention finds over-acceptances a positive-only reading cannot.** The eleven candidates came from joining verilator's driver rule and sv2v's `error/` contract to the pipeline's verdicts; six were real and all six were one hole.
+- **Adapt a test to the rule it meets, not to the fix.** Six older tests relied on the passthrough; each now reads its bytes under `keep` where its subject is the expansion machinery, or asserts the refusal where the leftover is its subject. A test rewritten to pass is a test deleted.
+- promotion: the first is PROMOTED (the card above); the second is the same card's second bullet; the third and fourth are the lane's standing practice. Filed here.
+
 ## 2026-10-06 — SVPP-EXPANSION.5(s)(t)(u)(v) (`PGEN-SVPP-EXPANSION-0043`): the pins and the pre-screen are the slice's own reviewers
 
 - **A sentence can have two halves and a fix one.** "All compiler directives shall be considered predefined macro names; it shall be illegal to redefine …" — the refusal is the second half; the first makes `` `ifndef __FILE__ `` false. Implementing only the refusal turned a must-accept row red in the first GREEN run; the RED-first test for the guard shape was what caught it.

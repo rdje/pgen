@@ -10,14 +10,14 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `7fb692c607b09fef85e65cfbe73689e100f5d8a9e7ab9290912572729346fe61` |
+| parse binary | `rust/target/debug/parseability_probe` | `1defb08022e34c3887181a502ba1c50b7f00cb2bf6b843da3e47d46fadfeb511` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `3e45efe9f0d5424cdf8007c5131d802d5ad89d2cde94c90e585ad00c1cb38191` |
-| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `e541ba5a335ea521a65dc905630bafd05696882cc123d0bb42e59a050320beba` |
-| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `7a22f444032b771027010e6b7fd0b6f8ade516e9b34acc06e23d7de84afcbe26` |
-| sv_2023_tolerant pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `7defc287e8fae32ac146679fc3b59f3697d739f1a5c85786bb0798168d7fe194` |
-| sv_2023_tolerant library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023_tolerant.tsv` | `b3c74159e3cc0a3fb60fa8508517659fea3b0981856c64e16e43073cccdac201` |
-| unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023_tolerant.tsv` | `97f4cb5f4523c0640414462acd3d27f32e2554d396fe78eeed669cba0bb4a821` |
-| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `157740e2ac54bf86d439869f9138c46a721d27eec35af2b1f7f8de4dd34b5bd7` |
+| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `dc0f74836f6ceabfdd20584c12ca69d4f07c1a08660ad850842a26f900428ac5` |
+| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `92de091b90faa66134a786fc39a8897c2a5f600e687b537be005fc4bb924ea42` |
+| sv_2023_tolerant pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `7289e42f374d6c6e159e1090e4358a60699cf832c3e02ff8a07ad5f1801ee9da` |
+| sv_2023_tolerant library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023_tolerant.tsv` | `f9edada48a9a1d5bebb736c39e634deb4581aeae9739633b0a4e6ee1d35f4e3f` |
+| unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023_tolerant.tsv` | `acac7a118b3cfe26a207b0d1bf64e5758093b730c825a75122d3c7fb1b6c3c6c` |
+| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `7f8e422bfcc2fbae51d6ae5d173f730a948b01418265db30fd293f9c917cc409` |
 | sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `c196f707a1fdc43a664113eb663e99de004a82c4ac72754fb8929f2c1a7b91fe` |
 
 The tolerant run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6` `files=16336`.
@@ -26,15 +26,15 @@ The tolerant run's own parameters (its provenance sidecar): `timeout_s=600` `job
 
 | reading | `pass` | `fail` | `pp_fail` | `timeout` | `crash` |
 |---|---:|---:|---:|---:|---:|
-| `sv_2023` | 12789 | 3278 | 269 | 0 | 0 |
-| `sv_2023_tolerant` | 12807 | 3260 | 269 | 0 | 0 |
+| `sv_2023` | 12744 | 2957 | 635 | 0 | 0 |
+| `sv_2023_tolerant` | 12762 | 2939 | 635 | 0 | 0 |
 
 Rows joined: **16336**; only in the sv_2023 reading: **0**; only in the sv_2023_tolerant reading: **0** (a non-zero here is a population breach, not a verdict).
 
 | cell | rows | meaning |
 |---|---:|---|
-| `both_pass` | 12789 | parses under both profiles |
-| `both_nonpass` | 3529 | parses under neither |
+| `both_pass` | 12744 | parses under both profiles |
+| `both_nonpass` | 3574 | parses under neither |
 | `tolerant_only_pass` | 18 | text the standard does not derive and the opt-in tolerance profile accepts — the closed list of tool tolerances at work |
 | `2023_only_pass` | 0 | the SUPERSET broken: `sv_2023` accepts it and the tolerant profile does not — must stay 0 |
 
@@ -42,9 +42,9 @@ Rows joined: **16336**; only in the sv_2023 reading: **0**; only in the sv_2023_
 
 | sv_2023 | sv_2023_tolerant | rows |
 |---|---|---:|
-| `pass` | `pass` | 12789 |
-| `fail` | `fail` | 3260 |
-| `pp_fail` | `pp_fail` | 269 |
+| `pass` | `pass` | 12744 |
+| `fail` | `fail` | 2939 |
+| `pp_fail` | `pp_fail` | 635 |
 | `fail` | `pass` | 18 |
 
 ### Every row whose verdict differs
@@ -109,7 +109,7 @@ A member file's verdict under the pipeline is its package unit's (`SVPP-EXPANSIO
 
 | 2017 reading | rows | under `sv_2023_tolerant` |
 |---|---:|---|
-| `unreached_in_unit` | 498 | **337** are included by a unit that PASSES — reached |
+| `unreached_in_unit` | 337 | **337** are included by a unit that PASSES — reached |
 | `accepted_in_unit` | 1501 | **0** have no passing unit — a regression candidate |
 
 The members the tolerant reading reaches, by the passing unit that includes them (the per-member rows are in `census.tsv`, kind `member`):

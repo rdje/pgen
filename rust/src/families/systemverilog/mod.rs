@@ -39,7 +39,7 @@ pub mod preprocessor;
 
 use preprocessor::{
     ConditionalExprPolicy, ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy,
-    PlainStringSubstitutionPolicy, PredefinedMacro, SvPreprocessorConfig, parse_strict_warning_codes,
+    PlainStringSubstitutionPolicy, PredefinedMacro, SvPreprocessorConfig, UndefinedMacroPolicy, parse_strict_warning_codes,
     preprocess_systemverilog_file, preprocess_systemverilog_unit,
 };
 
@@ -53,6 +53,7 @@ const STAGE_OPTIONS: &[StageOptionSpec] = &[
     StageOptionSpec { key: "conditional_expr_policy", values: "identifier_only|identifier_or_defined", default: "identifier_or_defined", doc: "what an `elsif condition may be" },
     StageOptionSpec { key: "plain_string_substitution", values: "standard|paste_delimited|all", default: "standard", doc: "what a formal's name inside a plain \"…\" string in macro text means (SVPP-EXPANSION.5 (k))" },
     StageOptionSpec { key: "strict_warning_codes", values: "all|none|CODE[,CODE…]", default: "none (or PGEN_SVPP_STRICT_WARNING_CODES)", doc: "warning codes promoted to errors" },
+    StageOptionSpec { key: "undefined_macro_policy", values: "error|keep", default: "error", doc: "what a backtick that survives expansion outside a comment or string means — an undefined macro, a function-like macro without its argument list, a stray macro-string token or an unknown directive: refused with its clause (SVPP-EXPANSION.6f), or kept as written for a consumer that resolves the rest itself" },
 ];
 
 /// The pre-`.113` spellings, accepted one release: the family's own prefix on the universal
@@ -126,6 +127,11 @@ fn run_stage(request: &StageRequest) -> anyhow::Result<Vec<StageOutput>> {
                 })?;
             }
             "strict_warning_codes" => strict_warning_codes = Some(value.clone()),
+            "undefined_macro_policy" => {
+                config.undefined_macro_policy = UndefinedMacroPolicy::parse(value).ok_or_else(|| {
+                    anyhow::anyhow!("invalid undefined_macro_policy '{}'; expected error|keep", value)
+                })?;
+            }
             other => anyhow::bail!("unknown stage option '{}'", other),
         }
     }

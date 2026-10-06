@@ -2082,7 +2082,13 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   edition's own — 1364-2005's nineteen under a Verilog profile, plus `undefineall`, `__FILE__`, `__LINE__` under
   1800), a backslash-newline INSIDE a string literal of the macro text omits both characters under the 2023 reading
   (1800-2023 §22.5.1) and becomes a newline under 2017, and a formal's default argument may hold `(`, `)` or `,`
-  inside a string literal. Every event is
+  inside a string literal; and since `SVPP-EXPANSION.6f` (2026-10-06) the stage's POST-CONDITION: no backtick
+  survives expansion outside a comment or string literal unless it is a directive the parser reads — an undefined
+  name (§22.5.1: a usage means substitution; "neither a defined macro nor a compiler directive"), a function-like
+  macro used without its argument list or with an unclosed one (§22.5.1 *"the parentheses are always
+  required"*, Syntax 22-3), a `` `" `` / `` `\`" `` / `` `` `` outside macro text, and an `` `end_keywords ``
+  closing no region are refused with their clause; `--stage-opt undefined_macro_policy=keep` restores the
+  passthrough for a consumer that resolves the rest itself. Every event is
   logged (`Define Undef Include Ifdef Ifndef Elsif Else Endif PassthroughLine SkippedLine MacroExpand
   LineDirective ProtectedEnvelope KeywordsRegion`).
 - **`` `begin_keywords `` regions are APPLIED, and the profile reaches this stage** (`SVPP-EXPANSION.8`,
