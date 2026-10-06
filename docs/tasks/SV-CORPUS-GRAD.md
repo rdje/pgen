@@ -24230,4 +24230,15 @@ The rejects-own-file census (`docs/tasks/artifacts/sv_corpus_grad/rejects_own_fi
 | a sized literal whose size has a leading zero (`01'b0`) | 1 | §5.7.1 / A.8.7 `size ::= non_zero_unsigned_number`, which begins with a non-zero digit | friscv `rtl/friscv_alu.sv:195` |
 | `#a.b` — a member select as a delay value | 2 | A.6.5 `delay_value ::= unsigned_number \| real_number \| ps_identifier \| time_literal \| 1step` — a select needs `#( … )` | verilator's bundled UVM 1.0 (`uvm_pkg_all_v2017_1_0_*.svh:18004`); UVM 2020.3.1 does not write it |
 
-Parked: none blocks a release leg; the first to be measured ecosystem-wide should be `$fatal("…")` (RTL, not test code) and `static task` (six rows).
+**Measured on this host, 2026-10-06 21:50** (`PGEN-SVPP-EXPANSION-0046`; Verilator 5.050 `--lint-only -Wno-fatal`, Icarus Verilog 13.0 `-g2012`; six minimal repros under `rust/target/sv46/`; `rc` is the tool's exit status, the message its first error line) — the ecosystem reading each candidate must pass before any admission:
+
+| candidate | Verilator 5.050 | Icarus 13.0 | reading |
+|---|---|---|---|
+| `$fatal("…")` with a string first | accepts (rc 0) | REFUSES (`Elaboration task $fatal() finish number argument must be numeric`) | split — a tool extension of one of two |
+| `static task` / `static function` outside a class | REFUSES (`syntax error, unexpected task, expecting IDENTIFIER-for-type`) | REFUSES (`syntax error`) | **DROPPED as a candidate**: no measured tool accepts it; OpenTitan's six `pre_dv` files never compiled on these tools; the parser's refusal is the LRM's and the ecosystem's |
+| `#(.Param)` implicit named parameter assignment | accepts (rc 0) | REFUSES (`syntax error`) | split |
+| a sized literal whose size has a leading zero (`01'b0`) | accepts (rc 0) | accepts (rc 0) | **every measured tool accepts** — the strongest candidate; friscv's RTL writes it; a LEXICAL spelling (`size ::= non_zero_unsigned_number`), so the admission would be a tolerated sized-literal alternative, not a rule gate on a nonterminal |
+| `#a.b` — a member select as a delay value | accepts (rc 0) | REFUSES (`syntax error`) | split; UVM 1.0's spelling, not 2020.3.1's |
+| `` `define X() `` — an empty formal list (joined 2026-10-06 from `SVPP-EXPANSION.6c.4`) | accepts (rc 0) | REFUSES (`` malformed `define directive (')') ``) | split; verilator's own positive `t_timing_split.v` writes it |
+
+Still parked, with the measurement on the table: slang, sv2v and Surelog are not installed here (the corpus carries their TEST SUITES, not the tools), so the ecosystem reading is two tools wide. The one candidate every measured tool accepts, `01'b0`, is the only one the director's bar (*"sota, signoff and production-grade"*) could admit on this evidence; the four split spellings are one tool's extensions and stay out; `static task` is withdrawn.
