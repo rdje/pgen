@@ -1010,10 +1010,27 @@ fn preprocess_file_internal(
     depth: usize,
 ) -> Result<()> {
     if depth > state.config.max_include_depth {
+        // `SVPP-EXPANSION.5`(q)(i): IEEE 1800-2017 §22.4 — "The number of nesting levels for include files
+        // shall be finite. Implementations may limit the maximum number of levels to which include files can
+        // be nested, but the limit shall be at least 15." The bound is NESTING: a file that includes itself
+        // under a guard nests once and is finite (sv2v `file_line.sv`, `include_self.sv`); one that does so
+        // unguarded reaches this limit, and the refusal shows the chain's last steps.
+        let chain = state
+            .include_stack
+            .iter()
+            .rev()
+            .take(5)
+            .map(|p| p.display().to_string())
+            .collect::<Vec<_>>();
+        let chain = chain.into_iter().rev().collect::<Vec<_>>().join(" -> ");
         bail!(
-            "include depth {} exceeded max {} while entering '{}'",
-            depth,
+            "include nesting deeper than {} levels while entering '{}' (IEEE 1800-2017 §22.4: \"The number \
+             of nesting levels for include files shall be finite. Implementations may limit the maximum \
+             number of levels to which include files can be nested, but the limit shall be at least 15\"); \
+             the chain's last steps: {} -> {}",
             state.config.max_include_depth,
+            path.display(),
+            chain,
             path.display()
         );
     }
@@ -1021,20 +1038,6 @@ fn preprocess_file_internal(
     let canonical_path = path
         .canonicalize()
         .with_context(|| format!("failed to canonicalize '{}'", path.display()))?;
-
-    if state.include_stack.contains(&canonical_path) {
-        let cycle = state
-            .include_stack
-            .iter()
-            .map(|p| p.display().to_string())
-            .collect::<Vec<_>>()
-            .join(" -> ");
-        bail!(
-            "include cycle detected: {} -> {}",
-            cycle,
-            canonical_path.display()
-        );
-    }
 
     let content_bytes = fs::read(&canonical_path)
         .with_context(|| format!("failed to read '{}'", canonical_path.display()))?;
@@ -1429,7 +1432,7 @@ fn preprocess_text_internal(
                             None
                         };
                         let rest: &str = argument.as_deref().unwrap_or(rest);
-                        if let Some((name, _)) = parse_identifier_token(rest.trim_start()) {
+                        if let Some((name, _)) = parse_macro_name_token(rest.trim_start()) {
                             state.macros.remove(name);
                         }
                     }
@@ -1943,7 +1946,7 @@ fn first_midline_conditional(line: &str) -> Option<usize> {
 /// defined — silently, under the default policy. Returns `(symbol, remainder)`.
 fn split_conditional_argument(rest: &str) -> (&str, &str) {
     let trimmed = rest.trim_start();
-    match parse_identifier_token(trimmed) {
+    match parse_macro_name_token(trimmed) {
         Some((name, remainder)) => (name, remainder),
         None => (trimmed.trim_end_matches(['\r', '\n']), ""),
     }
@@ -1988,7 +1991,7 @@ fn define_formal_list_unclosed(line: &str) -> bool {
     let Some(rest) = trimmed.strip_prefix("`define") else {
         return false;
     };
-    let Some((_, after_name)) = parse_identifier_token(rest.trim_start()) else {
+    let Some((_, after_name)) = parse_macro_name_token(rest.trim_start()) else {
         return false;
     };
     if !after_name.starts_with('(') {
@@ -2278,6 +2281,32 @@ fn evaluate_elsif_expression(
     }
 }
 
+/// `SVPP-EXPANSION.5`(q)(ii): a MACRO NAME — IEEE 1800-2017 §22.5.1 Syntax 22-2 `text_macro_identifier ::=
+/// identifier`, and A.9.3's identifier is a simple OR an escaped one; 1800-2023 §22.5.1 says it outright
+/// ("The macro name may be either a simple_identifier or an escaped_identifier"). An escaped identifier is a
+/// backslash and the printable characters up to white space (§5.6.1), and "is treated the same as a
+/// nonescaped identifier": the name returned is WITHOUT its backslash, so `\esc` and `esc` are one key.
+/// For an escaped name exactly ONE terminating white-space character is consumed, so a `(` right after it
+/// opens the formal list (1800-2023: "only the single white space character terminating the identifier
+/// name … shall separate the opening parenthesis from the macro name"). The caller trims nothing before.
+fn parse_macro_name_token(input: &str) -> Option<(&str, &str)> {
+    if let Some(after_backslash) = input.strip_prefix('\\') {
+        let end = after_backslash
+            .find(|c: char| c.is_ascii_whitespace())
+            .unwrap_or(after_backslash.len());
+        if end == 0 {
+            return None;
+        }
+        let name = &after_backslash[..end];
+        let rest = &after_backslash[end..];
+        let rest = rest
+            .strip_prefix(|c: char| c.is_ascii_whitespace() && c != '\n' && c != '\r')
+            .unwrap_or(rest);
+        return Some((name, rest));
+    }
+    parse_identifier_token(input)
+}
+
 fn parse_identifier_token(input: &str) -> Option<(&str, &str)> {
     let mut chars = input.char_indices();
     let (_, first) = chars.next()?;
@@ -2462,7 +2491,7 @@ fn macro_text_for_edition(text: &str, lrm_2023: bool) -> String {
 
 fn parse_define_directive(input: &str, lrm_2023: bool) -> Result<(String, MacroDefinition)> {
     let trimmed = input.trim_end_matches(['\r', '\n']);
-    let (name, rest_after_name) = parse_identifier_token(trimmed.trim_start())
+    let (name, rest_after_name) = parse_macro_name_token(trimmed.trim_start())
         .with_context(|| "missing macro name in `define")?;
     if rest_after_name.starts_with('(') {
         let (params, after) = parse_macro_parameter_list(rest_after_name)
@@ -3043,16 +3072,39 @@ fn expand_macros_in_text(
             continue;
         }
 
-        let ident_start = i + 1;
-        if ident_start >= bytes.len() || !is_ident_start(bytes[ident_start]) {
+        let mut ident_start = i + 1;
+        // `SVPP-EXPANSION.5`(q)(ii): a usage spelled with an ESCAPED name — a backtick, a backslash and
+        // the characters up to white space (`` `\esc ``, `` `\M@CRO3 ( 1 ) ``, iverilog's `` `\`name ``).
+        // Recognised only where the run IS a defined macro name, so the escaped-quote token `` `\`" ``
+        // of a macro string keeps its meaning wherever that run is not a name someone defined.
+        let mut escaped_run_end: Option<usize> = None;
+        if ident_start < bytes.len() && bytes[ident_start] == b'\\' {
+            let mut e = ident_start + 1;
+            while e < bytes.len() && !bytes[e].is_ascii_whitespace() {
+                e += 1;
+            }
+            if e > ident_start + 1 && macros.contains_key(&text[ident_start + 1..e]) {
+                escaped_run_end = Some(e);
+                ident_start += 1;
+            }
+        }
+        if escaped_run_end.is_none()
+            && (ident_start >= bytes.len() || !is_ident_start(bytes[ident_start]))
+        {
             out.push('`');
             i += 1;
             continue;
         }
-        let mut ident_end = ident_start + 1;
-        while ident_end < bytes.len() && is_ident_continue(bytes[ident_end]) {
-            ident_end += 1;
-        }
+        let mut ident_end = match escaped_run_end {
+            Some(e) => e,
+            None => {
+                let mut e = ident_start + 1;
+                while e < bytes.len() && is_ident_continue(bytes[e]) {
+                    e += 1;
+                }
+                e
+            }
+        };
         let usage_start = i;
         // `SVPP-EXPANSION.5`(i): an UNDEFINED usage immediately followed by a ``` `` ``` paste is the
         // LEFT END of a CONSTRUCTED usage — `` `CHOICE_``A```SUFFIX `` (sv2v `macro_macro.sv`),
@@ -3072,7 +3124,8 @@ fn expand_macros_in_text(
         // Icarus and here). A source line (`user_mask` = `None`) keeps its paste for the parser.
         let mut joined: std::borrow::Cow<'_, str> =
             std::borrow::Cow::Borrowed(&text[ident_start..ident_end]);
-        if user_mask.is_some()
+        if escaped_run_end.is_none()
+            && user_mask.is_some()
             && !macros.contains_key(joined.as_ref())
             && text[ident_end..].starts_with("``")
         {
@@ -6591,6 +6644,146 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             preprocess_systemverilog_file(&input, &config_2023).expect("the 2023 reading");
         assert!(!out.text.contains("wire still;"), "{}", out.text);
         assert!(out.text.contains("wire ok;"), "{}", out.text);
+    }
+
+    #[test]
+    fn an_escaped_identifier_names_a_macro_in_both_spellings() {
+        // `SVPP-EXPANSION.5`(q)(ii): IEEE 1800-2017 §22.5.1 Syntax 22-2 `text_macro_identifier ::= identifier`
+        // (docs/systemverilog/2017/txt/section-22-compiler-directives.txt:131-132) and A.9.3 `identifier ::=
+        // simple_identifier | escaped_identifier`; 1800-2023 §22.5.1 says it in a sentence — "The macro name may be
+        // either a simple_identifier or an escaped_identifier (see 5.6)" (docs/systemverilog/2023/txt/
+        // section-22-compiler-directives.txt:130). §5.6.1: "an escaped identifier \cpu3 is treated the same as a
+        // nonescaped identifier cpu3" — so `\escaped` and `escaped` name ONE macro (iverilog
+        // ivltests/escaped_macro_name.v:1-2, :11-14). Before this: `invalid `define directive … missing macro name`.
+        let dir = create_repo_scratch_dir("svpp_escaped_macro_name");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define simple      \"simple name\"\n`define \\escaped    \"escaped name\"\nmodule t;\ninitial begin\n  $display(`simple);\n  $display(`\\simple );\n  $display(`escaped);\n  $display(`\\escaped );\nend\nendmodule\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("an escaped identifier is a macro name");
+        assert_eq!(
+            out.text.matches("\"simple name\"").count(),
+            2,
+            "`simple and `\\simple name one macro:\n{}",
+            out.text
+        );
+        assert_eq!(
+            out.text.matches("\"escaped name\"").count(),
+            2,
+            "`escaped and `\\escaped name one macro:\n{}",
+            out.text
+        );
+        assert!(!out.text.contains('`'), "every usage expanded:\n{}", out.text);
+    }
+
+    #[test]
+    fn an_escaped_macro_name_takes_its_formals_after_one_space() {
+        // `SVPP-EXPANSION.5`(q)(ii): IEEE 1800-2023 §22.5.1 — "If the macro name is an escaped_identifier, only the
+        // single white space character terminating the identifier name (see 5.6.1) shall separate the opening
+        // parenthesis from the macro name" (:166-167), with the standard's own example `\M@CRO3` (:268-275); in a
+        // usage "If the text macro name is an escaped identifier, then white space shall be required" (:223).
+        let dir = create_repo_scratch_dir("svpp_escaped_macro_formals");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define \\M@CRO3 (a=5, b=0, c=\"C\") $display(a,,b,,c);\nmodule t;\ninitial begin\n`\\M@CRO3 ( 1 )\n`\\M@CRO3 ( )\nend\nendmodule\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("the standard's own example");
+        assert!(out.text.contains("$display(1,,0,,\"C\");"), "{}", out.text);
+        assert!(out.text.contains("$display(5,,0,,\"C\");"), "{}", out.text);
+    }
+
+    #[test]
+    fn an_escaped_macro_name_may_contain_a_backtick() {
+        // `SVPP-EXPANSION.5`(q)(ii): §5.6.1 — an escaped identifier is a backslash and "any printable ASCII
+        // characters except white space", so the NAME may hold a backtick or a quote (iverilog
+        // ivltests/escaped_macro_name.v:3-6, :15-19). The usage `` `\`\`" `` is the macro named `` `\`" `` where that
+        // name is defined, while the escaped-quote token `` `\`" `` of a macro STRING keeps its meaning.
+        let dir = create_repo_scratch_dir("svpp_escaped_macro_backtick");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define \\`name      \"backtick name\"\n`define \\`          \"backtick\"\n`define \\quote (x)  `\"`\\`\"x`\\`\"`\"\n`define \\`\\`\"       \"escaped quote\"\nmodule t;\ninitial begin\n  $display(`\\`name );\n  $display(`\\` );\n  $display(`quote(text));\n  $display(`\\quote (text));\n  $display(`\\`\\`\" );\nend\nendmodule\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("escaped names holding a backtick or a quote");
+        assert!(out.text.contains("$display(\"backtick name\" );"), "{}", out.text);
+        assert!(out.text.contains("$display(\"backtick\" );"), "{}", out.text);
+        assert_eq!(
+            out.text.matches("$display(\"\\\"text\\\"\");").count(),
+            2,
+            "`quote(text) and `\\quote (text) both render the escaped quotes:\n{}",
+            out.text
+        );
+        assert!(out.text.contains("$display(\"escaped quote\" );"), "{}", out.text);
+    }
+
+    #[test]
+    fn an_escaped_identifier_as_a_conditional_argument() {
+        // `SVPP-EXPANSION.5`(q)(ii): `ifdef / `undef take a text_macro_identifier, which may be escaped, and
+        // `\esc` is `esc` (§5.6.1).
+        let dir = create_repo_scratch_dir("svpp_escaped_conditional");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define \\esc 1\n`ifdef \\esc\nwire a;\n`endif\n`undef \\esc\n`ifdef esc\nwire b;\n`endif\nwire ok;\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand");
+        assert!(out.text.contains("wire a;"), "{}", out.text);
+        assert!(!out.text.contains("wire b;"), "{}", out.text);
+        assert!(out.text.contains("wire ok;"), "{}", out.text);
+    }
+
+    #[test]
+    fn a_guarded_self_include_is_finite_and_accepted() {
+        // `SVPP-EXPANSION.5`(q)(i): IEEE 1800-2017 §22.4 — "A file included in the source using the `include
+        // compiler directive may contain other `include compiler directives. The number of nesting levels for
+        // include files shall be finite. Implementations may limit the maximum number of levels to which include
+        // files can be nested, but the limit shall be at least 15." (docs/systemverilog/2017/txt/
+        // section-22-compiler-directives.txt:96-98; 1800-2023 :107-109). A file that includes ITSELF under a
+        // guard nests once and is finite (sv2v `test/lex/file_line.sv`, `include_self.sv`); before this the
+        // stage refused any file already on the include stack as an "include cycle".
+        let dir = create_repo_scratch_dir("svpp_guarded_self_include");
+        let input = dir.join("self.sv");
+        fs::write(
+            &input,
+            "`ifndef INCLUDED\n`define INCLUDED\n`include \"self.sv\"\n`else\nwire from_second_pass;\n`endif\nwire after;\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("a guarded self-include is finite");
+        assert_eq!(
+            out.text.matches("wire from_second_pass;").count(),
+            1,
+            "{}",
+            out.text
+        );
+        assert_eq!(out.text.matches("wire after;").count(), 2, "{}", out.text);
+    }
+
+    #[test]
+    fn an_unguarded_self_include_is_refused_by_depth_naming_the_clause() {
+        // `SVPP-EXPANSION.5`(q)(i), the other side: the bound the standard names is NESTING, so an unguarded
+        // self-include is refused when it passes the depth limit, and the refusal cites §22.4 and shows the chain.
+        let dir = create_repo_scratch_dir("svpp_unguarded_self_include");
+        let input = dir.join("loop.sv");
+        fs::write(&input, "wire w;\n`include \"loop.sv\"\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("an infinite include nesting is refused");
+        let text = format!("{:#}", err);
+        assert!(
+            text.contains("22.4") && text.contains("finite") && text.contains("loop.sv -> "),
+            "{}",
+            text
+        );
     }
 
     #[test]

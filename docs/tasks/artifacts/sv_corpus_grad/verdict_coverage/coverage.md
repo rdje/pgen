@@ -255,18 +255,18 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 ## Under the PIPELINE — the same rows re-read through preprocess→parse (SVPP-EXPANSION.6c.1)
 
-> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`ba6b5cc5c7249e1d48ac65ea0c3acfca06fcb0505f7131f2d7a25c2f71d1fae5`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
+> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`c2a78eeed076a88b1264e4115d9cd3061ed2751fb0cdbf12409b07f7b4366609`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
 
-**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11169/2606/2561/1274/0`** (raw: `7485/2606/6245/3864/0`).
+**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11171/2606/2559/1272/0`** (raw: `7485/2606/6245/3864/0`).
 
-- **ADJUDICATED: 11,169 rows (68.4 %)** (raw 7,485, +3,684)
+- **ADJUDICATED: 11,171 rows (68.4 %)** (raw 7,485, +3,686)
 - **ROUTED: 2,606 rows (16.0 %)** (raw 2,606, +0)
-- **NO VERDICT: 2,561 rows (15.7 %)** (raw 6,245, -3,684)
+- **NO VERDICT: 2,559 rows (15.7 %)** (raw 6,245, -3,686)
 
 | bucket | class under the pipeline | rows | % | why |
 |---|---|---:|---:|---|
 | ADJUDICATED | `match` | 5,698 | 34.9 % | expected and observed agree - the row testifies FOR the parser |
-| ADJUDICATED | `pipeline:corroborated` | 1,332 | 8.2 % | a must-accept row the raw lane explained away by preprocessing PASSES once preprocessed — the explanation held; the row testifies FOR the parser |
+| ADJUDICATED | `pipeline:corroborated` | 1,334 | 8.2 % | a must-accept row the raw lane explained away by preprocessing PASSES once preprocessed — the explanation held; the row testifies FOR the parser |
 | ADJUDICATED | `pipeline:must_reject:match_under_expansion` | 451 | 2.8 % | a row the key expects rejected IS rejected in its own text under the pipeline — the raw lane could not reach the construct |
 | ADJUDICATED | `divergence:explained_store_gate` | 54 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
 | ROUTED | `deferred:v2005_profile_lane` | 2,606 | 16.0 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
@@ -284,9 +284,9 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | NO VERDICT | `pipeline:chained:refused_engine` | 12 | 0.1 % | refused by the preprocessor |
 | NO VERDICT | `pipeline:refuted:vendor_identity_branch` | 9 | 0.1 % | the file's portable branch is the vendor's own `` `error `` stub behind its identity macro — a fact about the row's context |
 | NO VERDICT | `pipeline:refuted:driver_define` | 7 | 0.0 % | the suite's driver defines the macro on its command line (.4c) |
-| NO VERDICT | `pipeline:refused_engine` | 6 | 0.0 % | the preprocessor refused the row (E_SVPP_* / a malformed directive) |
 | NO VERDICT | `deferred:ni_unimplemented` | 6 | 0.0 % | upstream marks the construct not-implemented |
 | NO VERDICT | `pipeline:refused_context` | 5 | 0.0 % | the preprocessor could not supply an include the derived context lacks |
+| NO VERDICT | `pipeline:refused_engine` | 4 | 0.0 % | the preprocessor refused the row (E_SVPP_* / a malformed directive) |
 | NO VERDICT | `pipeline:svpp_owned:refused_context` | 2 | 0.0 % | conformance owned by the preprocessor lane |
 | NO VERDICT | `pipeline:refuted:cross_file_define` | 1 | 0.0 % | a predecessor file of the unit defines the macro (the unit design) |
 | NO VERDICT | `pipeline:refuted:preprocessor_item` | 1 | 0.0 % | an expansion-stage rule not yet implemented (named per row) |

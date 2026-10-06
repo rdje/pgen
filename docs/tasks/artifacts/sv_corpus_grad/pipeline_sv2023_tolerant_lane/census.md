@@ -10,14 +10,14 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `ac5e11891d627a442f644f5a3cb3665dd22d5cdb29d7e6f2bdbafc909ab74a52` |
+| parse binary | `rust/target/debug/parseability_probe` | `91de33b51d32f1b9f584bcab3512c17fc63cbfea3ea7dbb9f01913f432222fb9` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `3e45efe9f0d5424cdf8007c5131d802d5ad89d2cde94c90e585ad00c1cb38191` |
-| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `c909c4be5b4d0cfa73c4acd45012649b4d85ff04687c59af17140a3d6081b560` |
-| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `b6b199eb0fa3779eaf145bdc9c9d8129236fa5755f7f67198bfb8e921e5280a9` |
-| sv_2023_tolerant pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `8042d9001b2fffaf0236c954c452a10e76ad45140338328660eb15f135d19290` |
-| sv_2023_tolerant library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023_tolerant.tsv` | `235090de383b9e2ebd5b7e1b7d0a5ec0e407a2793d51ecb8a08d579c699d2b1d` |
+| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `2033f4ec13dc376d1228df77f21ce9d50bc5ff601d0b89da41739de5137cadeb` |
+| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `62d1bb15047e8778bc16aa24bf4b1aa21f15d4f78fc140b46590b200379f826c` |
+| sv_2023_tolerant pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `63704de5f25589f5f2fced06653cd5b6344388524f648c6012765de001de07ba` |
+| sv_2023_tolerant library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023_tolerant.tsv` | `cc9860deff9be126ab8b285a21c1a9f940d29b2d17c903f1bc4308337f8466be` |
 | unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023_tolerant.tsv` | `97f4cb5f4523c0640414462acd3d27f32e2554d396fe78eeed669cba0bb4a821` |
-| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `ba6b5cc5c7249e1d48ac65ea0c3acfca06fcb0505f7131f2d7a25c2f71d1fae5` |
+| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `e107a64f765a859a4afbd1b6191d9bff80f34252d883bcb4c7fce9177119a539` |
 | sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `c196f707a1fdc43a664113eb663e99de004a82c4ac72754fb8929f2c1a7b91fe` |
 
 The tolerant run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6` `files=16336`.
@@ -26,15 +26,15 @@ The tolerant run's own parameters (its provenance sidecar): `timeout_s=600` `job
 
 | reading | `pass` | `fail` | `pp_fail` | `timeout` | `crash` |
 |---|---:|---:|---:|---:|---:|
-| `sv_2023` | 12783 | 3282 | 271 | 0 | 0 |
-| `sv_2023_tolerant` | 12801 | 3264 | 271 | 0 | 0 |
+| `sv_2023` | 12786 | 3282 | 268 | 0 | 0 |
+| `sv_2023_tolerant` | 12804 | 3264 | 268 | 0 | 0 |
 
 Rows joined: **16336**; only in the sv_2023 reading: **0**; only in the sv_2023_tolerant reading: **0** (a non-zero here is a population breach, not a verdict).
 
 | cell | rows | meaning |
 |---|---:|---|
-| `both_pass` | 12783 | parses under both profiles |
-| `both_nonpass` | 3535 | parses under neither |
+| `both_pass` | 12786 | parses under both profiles |
+| `both_nonpass` | 3532 | parses under neither |
 | `tolerant_only_pass` | 18 | text the standard does not derive and the opt-in tolerance profile accepts — the closed list of tool tolerances at work |
 | `2023_only_pass` | 0 | the SUPERSET broken: `sv_2023` accepts it and the tolerant profile does not — must stay 0 |
 
@@ -42,9 +42,9 @@ Rows joined: **16336**; only in the sv_2023 reading: **0**; only in the sv_2023_
 
 | sv_2023 | sv_2023_tolerant | rows |
 |---|---|---:|
-| `pass` | `pass` | 12783 |
+| `pass` | `pass` | 12786 |
 | `fail` | `fail` | 3264 |
-| `pp_fail` | `pp_fail` | 271 |
+| `pp_fail` | `pp_fail` | 268 |
 | `fail` | `pass` | 18 |
 
 ### Every row whose verdict differs

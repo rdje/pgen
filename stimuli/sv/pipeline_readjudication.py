@@ -218,7 +218,10 @@ def landing_of(status: str, repo_rel: str, origin: str) -> str:
         origin_file = m.group(1) if m else origin
         return "own file" if origin_file == repo_rel else "included file"
     if status == "pp_fail":
-        return "engine" if re.search(r"E_SVPP_|invalid `|without matching|cycle detected|unterminated", origin) else "context"
+        # `SVPP-EXPANSION.5`(q): the include bound's refusal ("include nesting deeper than N levels …", IEEE 1800
+        # §22.4) is the ENGINE's bound, not a missing file; the spelling "cycle detected" it replaced stays for
+        # the frozen dumps that still carry it.
+        return "engine" if re.search(r"E_SVPP_|invalid `|without matching|cycle detected|nesting deeper|unterminated", origin) else "context"
     return status
 
 

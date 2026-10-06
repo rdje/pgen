@@ -699,7 +699,7 @@ iverilog	ivtest/ivltests/enum_base_fail_string1.v	match	match	fail	own file		oth
 iverilog	ivtest/ivltests/enum_dims_invalid.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/enum_dims_invalid.v:8:14
 iverilog	ivtest/ivltests/enum_method_signed1.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/enum_method_signed3.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-iverilog	ivtest/ivltests/escaped_macro_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pp_fail	engine		-	refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/iverilog/ivtest/ivltests/escaped_macro_name.v:2: missing macro name in `define
+iverilog	ivtest/ivltests/escaped_macro_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/fileline.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/fileline2.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/func_empty_arg1.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -4997,7 +4997,7 @@ slang	tests/unittests/data/incdir_first_test.sv	divergence:explained_svpp_includ
 slang	tests/unittests/data/incdir_shadow.svh	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 slang	tests/unittests/data/include.svh	deferred:chained_only	ONE-SIDED (raw pass)	pp_fail	context		-	chained:refused_context	failed to resolve include 'nonexistent.svh' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/slang/tests/unittests/data/nested/file.svh:2: include 'nonexistent.svh' was not found in search paths
 slang	tests/unittests/data/include_once.svh	deferred:chained_only	ONE-SIDED (raw pass)	fail	included file		other	chained:hollow	stimuli/sv/subs/slang/tests/unittests/data/local.svh:2:1
-slang	tests/unittests/data/infinite_chain.svh	deferred:chained_only	ONE-SIDED (raw pass)	pp_fail	engine		-	chained:refused_engine	include cycle detected: /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/slang/tests/unittests/data/infinite_chain.svh -> /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/slang/tests/unittests/dat
+slang	tests/unittests/data/infinite_chain.svh	deferred:chained_only	ONE-SIDED (raw pass)	pp_fail	engine		-	chained:refused_engine	"include nesting deeper than 64 levels while entering '/Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/slang/tests/unittests/data/infinite_chain.svh' (IEEE 1800-2017 §22.4: ""The number of nesting l"
 slang	tests/unittests/data/library/other.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 slang	tests/unittests/data/library/pkg.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 slang	tests/unittests/data/libtest/mod1.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
@@ -5370,8 +5370,8 @@ sv2v	test/error/for_loop_init_stray.sv	match	match	fail	own file		other	must_rej
 sv2v	test/error/highz0_highz1.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/error/highz0_highz1.sv:3:18
 sv2v	test/error/include_apos.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/include_apos.sv:1: include path must be quoted or angle-bracketed (IEEE 1800-2017 §22.4 Syntax 22-1: `
 sv2v	test/error/include_filename_eof.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/include_filename_eof.sv:2: unterminated angle include path
-sv2v	test/error/include_loop_1.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	include cycle detected: /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/include_loop_1.sv -> /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/include_loop_1.sv
-sv2v	test/error/include_loop_2.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	include cycle detected: /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/include_loop_2.sv -> /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/include_loop_1.sv -> 
+sv2v	test/error/include_loop_1.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	"include nesting deeper than 64 levels while entering '/Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/include_loop_1.sv' (IEEE 1800-2017 §22.4: ""The number of nesting levels for in"
+sv2v	test/error/include_loop_2.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	"include nesting deeper than 64 levels while entering '/Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/error/include_loop_1.sv' (IEEE 1800-2017 §22.4: ""The number of nesting levels for in"
 sv2v	test/error/instantiation_extra_comma.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/error/instantiation_extra_comma.sv:3:17
 sv2v	test/error/instantiation_missing_ports.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/error/instantiation_missing_ports.sv:3:14
 sv2v	test/error/instantiation_no_label.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/error/instantiation_no_label.sv:3:14
@@ -5437,7 +5437,7 @@ sv2v	test/error/unmatched_ifndef.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp
 sv2v	test/error/var_var.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/error/var_var.sv:3:8
 sv2v	test/lex/begin_keywords.sv	divergence:explained_svpp_keywords_region	not-in-audit	pass	-		-	corroborated	
 sv2v	test/lex/cond.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-sv2v	test/lex/file_line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pp_fail	engine		-	refused_engine	include cycle detected: /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/file_line.sv -> /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/file_line.sv
+sv2v	test/lex/file_line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/macro.sv	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/lex/macro.sv:142:14
 sv2v	test/lex/macro_arg_comment.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pp_fail	engine		-	refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/macro_arg_comment.sv:1: invalid macro parameter list: a comment inside a macro formal argument list is not
@@ -6478,7 +6478,7 @@ verilator	test_regress/t/t_preproc_ifexpr_bad.v	deferred:svpp_owned	-	pp_fail	en
 verilator	test_regress/t/t_preproc_inc_bad.v	deferred:svpp_owned	-	fail	included file		-	svpp_owned:hollow	stimuli/sv/subs/verilator/test_regress/t/t_preproc_inc_inc_bad.vh:10:1
 verilator	test_regress/t/t_preproc_inc_fn_bad.v	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	`else without matching `ifdef/`ifndef at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_inc_fn_bad.v:7
 verilator	test_regress/t/t_preproc_inc_notfound_bad.v	deferred:svpp_owned	-	pp_fail	context		-	svpp_owned:refused_context	failed to resolve include 'this_file_is_not_found.vh' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_inc_notfound_bad.v:7: include 'this_file_is_not_found.vh'
-verilator	test_regress/t/t_preproc_inc_recurse_bad.v	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	include cycle detected: /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_inc_recurse_bad.v -> /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_reg
+verilator	test_regress/t/t_preproc_inc_recurse_bad.v	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	"include nesting deeper than 64 levels while entering '/Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_inc_recurse_bad.v' (IEEE 1800-2017 §22.4: ""The number of ne"
 verilator	test_regress/t/t_preproc_kwd.v	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_kwd.v:83:16
 verilator	test_regress/t/t_preproc_kwd_bad.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 verilator	test_regress/t/t_preproc_nodef_bad.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	

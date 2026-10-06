@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-06 — SVPP-EXPANSION.5(q) (`PGEN-SVPP-EXPANSION-0037`): the refusals grouped by reason, and a bound keyed on a stronger property than the clause
+
+- **Group the refusals by reason before reading a file.** The lane's 47 `refused_engine` rows fall into 12 reason families; ten are correct (error tests by name, the standard's own "illegal" example lines, `should_fail` conformance tests) and two are defects. The census took minutes and left the hard reading to two files instead of forty-seven — the same move that found `.5`(m), (n) and (o).
+- **A refusal keyed on a STRONGER property than the clause refuses legal text.** §22.4 bounds include files by nesting depth ("finite … at least 15"); the stage refused a file's reappearance on the include stack — a cycle test, stronger than a depth bound — and so refused the guarded self-include two sv2v inputs write. Read the clause for what it bounds, and bound exactly that.
+- **An identifier class is a lexer fact and must reach every reader of a name.** Escaped identifiers are identifiers (A.9.3), so a macro name may be one; the fix is a single name-token helper used by `define`, `undef`, the conditional arms and the usage scanner — not a patch at the site the test hit. The usage scanner admits the escaped spelling only for a DEFINED name, so the macro-string escape token `` `\`" ``, which begins the same way, keeps its meaning.
+- promotion: declined — the first is the standing census practice of this lane; the second is an instance of [[a-spelling-test-standing-in-for-a-property-test]] (a cycle test standing in for a depth bound); the third is local to the preprocessor. Filed here until seen again.
+
 ## 2026-10-05 — SVPP-EXPANSION.5(p) (`PGEN-SVPP-EXPANSION-0036`): the edition reaches the preprocessor, and the older reading is the older TEXT
 
 - **A profile's edition is not only a keyword table.** The preprocessor already took `--profile` for §22.14. Three sentences exist in 1800-2023's clause 22 and not in 1800-2017's; each selects a different expansion of the same bytes. The switch is one predicate on the profile (`reads_1800_2023`), not three knobs — a knob per sentence would let a caller build an edition no standard describes.

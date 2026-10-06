@@ -302,6 +302,25 @@ each one a sentence of the standard that a corpus row had been failing on:
   The 2017 column is the strict reading of that edition, not a guess at tool behaviour: where the older text has no
   sentence the newer one adds, the older reading stays as it was. Each of the first two rows that changes a verdict is
   pinned as an edition twin — one file accepted under `sv_2023`, its byte twin rejected under `sv_2017`.
+- **Include nesting is bounded by DEPTH, not by a file's reappearance** (`SVPP-EXPANSION.5`(q); §22.4: *"The
+  number of nesting levels for include files shall be finite. Implementations may limit the maximum number of
+  levels to which include files can be nested, but the limit shall be at least 15"*). A file that includes
+  itself under a guard (`` `ifndef INCLUDED `` / `` `define INCLUDED `` / `` `include "self.sv" `` / `` `else `` …)
+  nests once and is finite — sv2v's `file_line.sv` and `include_self.sv` write that shape — and is read; an
+  unguarded loop is refused when it passes the stage's limit of 64 levels, and the refusal cites §22.4 and shows
+  the chain's last steps. Through `1.0.250` any file already on the include stack was refused as an
+  "include cycle", guarded or not.
+- **An escaped identifier is a macro name** (`SVPP-EXPANSION.5`(q); 1800-2017 Syntax 22-2's
+  `text_macro_identifier` is an `identifier`, which A.9.3 makes simple OR escaped; 1800-2023 §22.5.1 says it
+  outright and gives `` `define \M@CRO3 (a=5, b=0, c="C") … `` / `` `\M@CRO3 ( 1 ) `` as its example). The
+  name is read without its backslash — §5.6.1: *"an escaped identifier \cpu3 is treated the same as a
+  nonescaped identifier cpu3"* — so `` `define \escaped `` is used as `` `escaped `` or `` `\escaped ``; one
+  terminating white-space character is consumed, so a `(` right after it opens the formal list (1800-2023:
+  *"only the single white space character terminating the identifier name … shall separate the opening
+  parenthesis from the macro name"*); a usage spelled with the backslash is recognised where the run up to
+  white space IS a defined name, so the escaped-quote token `` `\`" `` of a macro string keeps its meaning.
+  Through `1.0.250` such a `` `define `` was refused as *"missing macro name"* (iverilog
+  `escaped_macro_name.v`).
 - **A function-like macro may open its parentheses on the next line** (§22.5.1 requires the parentheses;
   §5.3 lets white space, newlines included, separate the tokens): `` `FOO `` at the end of a line followed by
   `(1, 2)` on the next is one invocation.
