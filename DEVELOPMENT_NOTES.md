@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-06 — SVPP-EXPANSION.6d.8 (`PGEN-SVPP-EXPANSION-0040`): a build's first source argument is a unit predecessor nobody includes
+
+- **A configuration header passed on the command line leaves no trace in the sources.** VeeR's `common_defines.vh` is generated and compiled first; no file `include`s it, so the include derivation cannot see it and every use of its macros reaches the parser as a raw backtick. The Makefile is the only source that names it — read the flow, not the files, for this class.
+- **Pre-measure the whole suite, not the three rows.** The unit file could in principle redefine a macro a passing file defines; probing all 82 passing rows with the three predecessors (82 rc 0) made the prediction two-sided before the chain ran. The chain returned exactly those three under each reading.
+- promotion: declined — the first is the `.6d.6` lesson's second instance (OpenTitan's dvsim unit, now VeeR's Makefile), recorded in the pipeline chapter where a reader meets it; the second is the lane's pre-screen practice. Filed here until seen again.
+
 ## 2026-10-06 — SVPP-EXPANSION.6e (`PGEN-SVPP-EXPANSION-0039`): a rejection is classed by what the parser saw, not by the line the stop maps back to
 
 - **Read the expansion at the stop, not the source line.** The re-adjudication's construct column reads the source line at the mapped origin; the parser read the expansion. A stop on a macro use site maps to a line that says nothing about what stood there after expansion, so a missing define, an include fragment and a parser defect all read `other`. Re-expanding 310 rows took 22 s and re-sorted 138 unclassified rows into eleven classes, 47 of them context gaps filed as parser rejections.

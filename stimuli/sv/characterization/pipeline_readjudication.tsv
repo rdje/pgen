@@ -36,7 +36,7 @@ Cores-VeeR-EL2	design/include/el2_dec_csr_equ_mu.svh	deferred:chained_only	NO-AL
 Cores-VeeR-EL2	design/include/el2_def.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	design/lib/ahb_to_axi4.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	design/lib/axi4_to_ahb.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
-Cores-VeeR-EL2	design/lib/beh_lib.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/Cores-VeeR-EL2/design/lib/beh_lib.sv:770:7
+Cores-VeeR-EL2	design/lib/beh_lib.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	design/lib/el2_lib.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	design/lib/el2_mem_if.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	design/lib/el2_regfile_if.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
@@ -64,10 +64,10 @@ Cores-VeeR-EL2	testbench/axi4_mux/axi_crossbar_wrap_2x1.v	deferred:chained_only	
 Cores-VeeR-EL2	testbench/axi4_mux/axi_register_rd.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	testbench/axi4_mux/axi_register_wr.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	testbench/axi4_mux/priority_encoder.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
-Cores-VeeR-EL2	testbench/axi_lsu_dma_bridge.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi_lsu_dma_bridge.sv:82:22
+Cores-VeeR-EL2	testbench/axi_lsu_dma_bridge.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	testbench/icache_macros.svh	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	testbench/jtagdpi/jtagdpi.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
-Cores-VeeR-EL2	testbench/tb_top.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/Cores-VeeR-EL2/testbench/tb_top.sv:996:25
+Cores-VeeR-EL2	testbench/tb_top.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	testbench/tb_top_pkg.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	testbench/user_cells.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Cores-VeeR-EL2	testbench/uvm/mem/hdl/dccm_agent.sv	deferred:chained_only	IN-WINDOW	fail	included file		class header with a base class (`extends`)	chained:hollow	stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4:63

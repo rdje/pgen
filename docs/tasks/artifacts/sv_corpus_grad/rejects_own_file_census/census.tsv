@@ -1,7 +1,4 @@
 suite	relpath	class	furthest_position	origin	token_at_stop	construct	sv_2023	sv_2023_tolerant	include_target	verdict
-Cores-VeeR-EL2	design/lib/beh_lib.sv	raw_backtick	23804	stimuli/sv/subs/Cores-VeeR-EL2/design/lib/beh_lib.sv:770:7	`TEC_RV_ICG	other	fail	fail	0	chained:rejects_own_file
-Cores-VeeR-EL2	testbench/axi_lsu_dma_bridge.sv	raw_backtick	2055	stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi_lsu_dma_bridge.sv:82:22	`RV_ICCM_BITS	other	fail	fail	0	chained:rejects_own_file
-Cores-VeeR-EL2	testbench/tb_top.sv	raw_backtick	24800	stimuli/sv/subs/Cores-VeeR-EL2/testbench/tb_top.sv:996:25	`RV_RESET_VEC	other	fail	fail	0	chained:rejects_own_file
 black-parrot	bp_common/src/include/bp_common_aviary_cfg_pkgdef.svh	raw_backtick	13095	stimuli/sv/subs/black-parrot/bp_common/src/include/bp_common_aviary_cfg_pkgdef.svh:408:7	`bp_aviary_define_override	other	fail	fail	3	chained:rejects_own_file
 black-parrot	bp_me/src/include/bp_me_cce_inst_pkgdef.svh	raw_backtick	24608	stimuli/sv/subs/black-parrot/bp_me/src/include/bp_me_cce_inst_pkgdef.svh:522:14	`bp_cce_inst_data_width	other	fail	fail	1	chained:rejects_own_file
 friscv	rtl/friscv_memfy_h.sv	raw_backtick	2510	stimuli/sv/subs/friscv/rtl/friscv_memfy_h.sv:68:21	`SB	other	fail	fail	1	chained:rejects_own_file

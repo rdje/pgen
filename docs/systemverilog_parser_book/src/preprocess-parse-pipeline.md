@@ -149,7 +149,10 @@ files, sv2v's explicit multi-file runs; a `-f` list, a glob, a `--siloed` run an
 are reported, not applied — and, since `.6d.6`, the predecessors a suite's whole FLOW compiles before every
 file, hand-curated with their source: OpenTitan's dvsim builds one compilation unit that starts with UVM and
 compiles `dv_utils_pkg.sv` and the RTL before any DV package, so `uvm_macros.svh`, `dv_macros.svh`,
-`prim_assert.sv` and, since `.6d.7`, `cip_macros.svh` precede every OpenTitan row). The first
+`prim_assert.sv` and, since `.6d.7`, `cip_macros.svh` precede every OpenTitan row; and, since `.6d.8`, VeeR's
+generated configuration header `snapshots/default/common_defines.vh` — the first source its Makefile
+compiles (`tools/Makefile:167`, `:210`), which no VeeR file `include`s by name — precedes every VeeR row,
+with the two other entries of the Makefile's `defines` list after it for fidelity). The first
 measurement, on the two suites the raw lane cannot judge at all (every one of their rows is
 `deferred:chained_only` in the raw answer key), release probe, `sv_2017`, 45 s wall:
 
@@ -782,7 +785,7 @@ them files only ever read through the package that `include`s them); **47 stop a
 the expanded text — an undefined macro reached the parser, a CONTEXT gap that happened one stage
 late** (OpenTitan's per-IP build defines such as `EN_MASKING` and `RNG_BUS_WIDTH`, which live in the
 IPs' `*_sim_cfg.hjson` build options; VeeR's `RV_*` configuration macros, whose `common_defines.vh`
-the VeeR Makefile compiles first; two BlackParrot and one friscv header chain); 55 are `include`
+the VeeR Makefile compiles first — supplied since `.6d.8`, three rows now pass; two BlackParrot and one friscv header chain); 55 are `include`
 fragments of a module, testbench or package whose standalone reading is not a claim about the
 parser (riscv-dv's `riscv_core_setting.sv`, the `xbar` autogen pair, VeeR's `el2_dec_csr_equ_*.svh`);
 11 are the same declaration barrier in data position (`mubi4_t sel_mux;` — the type is declared in

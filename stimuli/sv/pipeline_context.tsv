@@ -3,6 +3,9 @@ uvm-core	include_dir	stimuli/sv/uvm/uvm-core-2020.3.1/src	144	base/uvm_barrier.s
 Cores-VeeR-EL2	include_dir	stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default	74	el2_param.vh,el2_pdef.vh,pic_map_auto.h
 Cores-VeeR-EL2	include_dir	stimuli/sv/subs/Cores-VeeR-EL2/design/include	2	el2_dec_csr_equ_m.svh,el2_dec_csr_equ_mu.svh
 Cores-VeeR-EL2	include_dir	stimuli/sv/uvm/uvm-core-2020.3.1/src	1	uvm_pkg.sv
+Cores-VeeR-EL2	unit_file	stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/common_defines.vh	hand	stimuli/sv/subs/Cores-VeeR-EL2/tools/Makefile:167 (defines = $(BUILD_DIR)/common_defines.vh) and :210 (the first source argument of the VCS build; the generated configuration header every VeeR build compiles first)
+Cores-VeeR-EL2	unit_file	stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_def.sv	hand	stimuli/sv/subs/Cores-VeeR-EL2/tools/Makefile:168 (defines += ${RV_ROOT}/design/include/el2_def.sv; its include guard is commented out, so it defines nothing)
+Cores-VeeR-EL2	unit_file	stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_pdef.vh	hand	stimuli/sv/subs/Cores-VeeR-EL2/tools/Makefile:169 (defines += $(BUILD_DIR)/el2_pdef.vh; parameter text, no directive)
 Surelog	include_dir	stimuli/sv/uvm/uvm-core-2020.3.1/src	2	uvm_macros.svh
 black-parrot	include_dir	stimuli/sv/subs/black-parrot/bp_common/src/include	162	bp_common_accelerator_pkgdef.svh,bp_common_addr_pkgdef.svh,bp_common_aviary_cfg_pkgdef.svh,bp_common_bedrock_pkgdef.svh,bp_common_cache_engine_pkgdef.svh,bp_common_cache_pkgdef.svh,bp_common_cfg_bus_pkgdef.svh,bp_common_clint_pkgdef.svh,bp_common_core_if.svh,bp_common_core_pkgdef.svh,bp_common_defines.svh,bp_common_host_pkgdef.svh,bp_common_rv64_pkgdef.svh
 black-parrot	include_dir	stimuli/sv/subs/black-parrot/bp_me/src/include	85	bp_me_defines.svh

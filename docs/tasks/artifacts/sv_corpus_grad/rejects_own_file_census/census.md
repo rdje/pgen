@@ -7,17 +7,17 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 
 | input | path | sha256 |
 |---|---|---|
-| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `36a46648fac36a324cc14f77b35625d613155b49b9fd0da12c3a06aeb7fd9a36` |
-| sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `1d5f9ca3b773349e99509a2ab3404468dd8373b279425ee2f4132b4d4ade3b46` |
-| sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `8ec10727b1c54eea86807e76e16f2f38e7a51447f55b75abb78e4b07506dd3db` |
-| sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `ea889cb8532e46b57b5e54f438e198ebe2c4aa4b69a8c79641ed277873d44b9d` |
+| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `e6cac4f2f89285e4e6dc86b4175b3b1552e6515ec6f204364e1b50114b87501c` |
+| sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `612b2a24b9d06c19f04a4aab93106b0ee4990ee930376e82767346defb9c2254` |
+| sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `10ca5fce7dfa4510a0e44783357b7c8dc4b86c2ff823b754e33baff9f1e6d265` |
+| sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `e2551e4773a283c708d02b62983f937813335d6705f92f613a0cd921ead10443` |
 | expansion binary | `rust/target/debug/ast_pipeline` | `edf4581044ca91173c2d3f24c8b246ea31b1aed8445e1a2864481bd0df5805a1` |
 
-## The classes — 310 rows
+## The classes — 307 rows
 
 | class | rows | what it means |
 |---|---:|---|
-| `raw_backtick` | 47 | the expanded text at the stop begins with a backtick: an undefined macro reached the parser — CONTEXT, not syntax |
+| `raw_backtick` | 44 | the expanded text at the stop begins with a backtick: an undefined macro reached the parser — CONTEXT, not syntax |
 | `base_class` | 143 | a class header with a base class the parser has not seen declared — the cross-file declaration barrier |
 | `edition_2023` | 4 | the same row passes under the `sv_2023` reading — the 2017 rejection is the older text's |
 | `tolerated_spelling` | 5 | the same row passes under `sv_2023_tolerant` only — a spelling of the opt-in profile's closed list |
@@ -30,7 +30,7 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `undeclared_type` | 11 | a declaration whose type is an identifier the parser has not seen declared — the cross-file barrier in data position |
 | `residue` | 26 | none of the above — adjudicated one by one below |
 
-## `raw_backtick` — 47 rows, by the macro the context did not define
+## `raw_backtick` — 44 rows, by the macro the context did not define
 
 | macro | rows | files |
 |---|---:|---|
@@ -51,12 +51,9 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `` `MACRO3 `` | 1 | sv-tests:22.5.1--define-expansion_18.sv |
 | `` `NDEFINED `` | 1 | verilator:t_pp_misdef_bad.v |
 | `` `NUM_REQUESTS `` | 1 | opentitan:aes_tb_reqs.sv |
-| `` `RV_ICCM_BITS `` | 1 | Cores-VeeR-EL2:axi_lsu_dma_bridge.sv |
-| `` `RV_RESET_VEC `` | 1 | Cores-VeeR-EL2:tb_top.sv |
 | `` `SB `` | 1 | friscv:friscv_memfy_h.sv |
 | `` `SEC_VOLATILE_RAW_UNLOCK_EN `` | 1 | opentitan:tb.sv |
 | `` `SRAM_TYPE `` | 1 | opentitan:tb.sv |
-| `` `TEC_RV_ICG `` | 1 | Cores-VeeR-EL2:beh_lib.sv |
 | `` `TEST_INNER `` | 1 | sv2v:typename_deep.svh |
 | `` `UVM_REG_DATA_WIDTH `` | 1 | uvm-core:uvm_hdl_polling.svh |
 | `` `VALUE_B `` | 1 | verilator:t_hier_block_import_subB.v |

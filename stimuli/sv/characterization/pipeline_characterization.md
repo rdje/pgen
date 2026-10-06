@@ -21,20 +21,20 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 | grammar | `grammars/systemverilog.ebnf` | `bba2df022c7416723881d3d48b95c7100d37dfbd5536a1deff20b110953fdbf4` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `3e45efe9f0d5424cdf8007c5131d802d5ad89d2cde94c90e585ad00c1cb38191` |
 | generated parser | `generated/systemverilog_parser.rs` | `a5b5b9dc5c8ee247cd9f1cd8595f106c0fc2eb8cd60d1da5a0ccfee7d44ebaa5` |
-| context | `stimuli/sv/pipeline_context.tsv` | `09d2817bee592684f71c718bc6c11d1b9b86d4ecbd4bb0c125d73882d748f1f1` |
+| context | `stimuli/sv/pipeline_context.tsv` | `7da1ee0e0aa1b66dd57c7b70dd711c7e34e6eb9ba01c6e969794bd9c80b3779f` |
 | context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `636c8dec8eeab13488b6dd91c0b5547e53c3f6a25c46ccca884d2fb01f459333` |
 | context (per-file unit predecessors) | `stimuli/sv/pipeline_context_units.tsv` | `df065bdc8a87ff15fb441550d42775de494a6cf63eb971b1303e85ab4500bc70` |
-| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `4a9f4722790a8da5c35f1b7b50819e8ae4ed410aebf4e88248136b617d7fcc27` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `1d5f9ca3b773349e99509a2ab3404468dd8373b279425ee2f4132b4d4ade3b46` |
+| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `3631f42f8f1f0a21f39eb84d978dfa3c13b311c986262aeea1d900eb38135bc5` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `612b2a24b9d06c19f04a4aab93106b0ee4990ee930376e82767346defb9c2254` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
 
-Measured at `HEAD` = `22a2f044b+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `9ddbe7b51+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
 | suite | rows | raw pass | raw fail | raw timeout | pipeline pass | pipeline fail | pp_fail | timeout | crash | Δ pass |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Cores-VeeR-EL2 | 102 | 19 | 83 | 0 | 82 | 20 | 0 | 0 | 0 | +63 |
+| Cores-VeeR-EL2 | 102 | 19 | 83 | 0 | 85 | 17 | 0 | 0 | 0 | +66 |
 | Surelog | 828 | 718 | 110 | 0 | 753 | 63 | 12 | 0 | 0 | +35 |
 | black-parrot | 205 | 37 | 168 | 0 | 33 | 4 | 168 | 0 | 0 | -4 |
 | friscv | 441 | 38 | 403 | 0 | 62 | 350 | 29 | 0 | 0 | +24 |
@@ -48,15 +48,15 @@ Measured at `HEAD` = `22a2f044b+dirty`; the parse binary is a **debug** build (t
 | uvm-core | 174 | 33 | 141 | 0 | 31 | 143 | 0 | 0 | 0 | -2 |
 | verible | 152 | 121 | 31 | 0 | 130 | 22 | 0 | 0 | 0 | +9 |
 | verilator | 3263 | 2081 | 1182 | 0 | 2958 | 288 | 17 | 0 | 0 | +877 |
-| **total** | 16336 | 10022 | 6314 | 0 | 12750 | 3323 | 263 | 0 | 0 | +2728 |
+| **total** | 16336 | 10022 | 6314 | 0 | 12753 | 3320 | 263 | 0 | 0 | +2731 |
 
 ## Transitions — raw status → pipeline status
 
 | suite | raw → pipeline | rows |
 |---|---|---:|
-| Cores-VeeR-EL2 | `fail` → `pass` | 64 |
-| Cores-VeeR-EL2 | `fail` → `fail` | 19 |
+| Cores-VeeR-EL2 | `fail` → `pass` | 67 |
 | Cores-VeeR-EL2 | `pass` → `pass` | 18 |
+| Cores-VeeR-EL2 | `fail` → `fail` | 16 |
 | Cores-VeeR-EL2 | `pass` → `fail` | 1 |
 | Surelog | `pass` → `pass` | 718 |
 | Surelog | `fail` → `fail` | 63 |
@@ -142,7 +142,7 @@ Measured at `HEAD` = `22a2f044b+dirty`; the parse binary is a **debug** build (t
 | adjudication class | rows | pipeline pass | pipeline fail | pp_fail | timeout | crash |
 |---|---:|---:|---:|---:|---:|---:|
 | `match` | 6069 | 5697 | 372 | 0 | 0 | 0 |
-| `deferred:chained_only` | 4933 | 2401 | 2312 | 220 | 0 | 0 |
+| `deferred:chained_only` | 4933 | 2404 | 2309 | 220 | 0 | 0 |
 | `deferred:v2005_profile_lane` | 2606 | 2539 | 65 | 2 | 0 | 0 |
 | `divergence:explained_svpp_macro_use` | 1026 | 1006 | 17 | 3 | 0 | 0 |
 | `deferred:no_sv_key` | 596 | 568 | 27 | 1 | 0 | 0 |
@@ -166,7 +166,7 @@ Measured at `HEAD` = `22a2f044b+dirty`; the parse binary is a **debug** build (t
 | construct at the origin line | rows | one example (origin — line) |
 |---|---:|---|
 | class header with a base class (`extends`) | 1996 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4:63` — `class dccm_transaction_sequence_item extends uvm_sequence_item;` |
-| other | 1088 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
+| other | 1085 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
 | a parameter port list `#(` | 101 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
 | a `typedef` | 54 | `stimuli/sv/subs/Surelog/tests/NetType/dut.sv:18:24` — `typedef some_other_type myalias;` |
 | a function / task header | 33 | `stimuli/sv/subs/Surelog/tests/BitSelectHier/dut.sv:37:32` — `extern function uvm_mem_mam_cfg reconfigure(uvm_mem_mam_cfg cfg = null);` |
@@ -288,6 +288,9 @@ A package file's row here is its verdict AS A UNIT (its own text plus what it in
 | Cores-VeeR-EL2 | include_dir | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default` | 74 |
 | Cores-VeeR-EL2 | include_dir | `stimuli/sv/subs/Cores-VeeR-EL2/design/include` | 2 |
 | Cores-VeeR-EL2 | include_dir | `stimuli/sv/uvm/uvm-core-2020.3.1/src` | 1 |
+| Cores-VeeR-EL2 | unit_file | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/common_defines.vh` | hand |
+| Cores-VeeR-EL2 | unit_file | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_def.sv` | hand |
+| Cores-VeeR-EL2 | unit_file | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_pdef.vh` | hand |
 | Surelog | include_dir | `stimuli/sv/uvm/uvm-core-2020.3.1/src` | 2 |
 | black-parrot | include_dir | `stimuli/sv/subs/black-parrot/bp_common/src/include` | 162 |
 | black-parrot | include_dir | `stimuli/sv/subs/black-parrot/bp_me/src/include` | 85 |

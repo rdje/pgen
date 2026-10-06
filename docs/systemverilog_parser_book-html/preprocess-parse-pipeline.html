@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4ee9d0d1.js";
+            window.path_to_searchindex_js = "searchindex-e23243eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -320,7 +320,10 @@ files, sv2v’s explicit multi-file runs; a <code>-f</code> list, a glob, a <cod
 are reported, not applied — and, since <code>.6d.6</code>, the predecessors a suite’s whole FLOW compiles before every
 file, hand-curated with their source: OpenTitan’s dvsim builds one compilation unit that starts with UVM and
 compiles <code>dv_utils_pkg.sv</code> and the RTL before any DV package, so <code>uvm_macros.svh</code>, <code>dv_macros.svh</code>,
-<code>prim_assert.sv</code> and, since <code>.6d.7</code>, <code>cip_macros.svh</code> precede every OpenTitan row). The first
+<code>prim_assert.sv</code> and, since <code>.6d.7</code>, <code>cip_macros.svh</code> precede every OpenTitan row; and, since <code>.6d.8</code>, VeeR’s
+generated configuration header <code>snapshots/default/common_defines.vh</code> — the first source its Makefile
+compiles (<code>tools/Makefile:167</code>, <code>:210</code>), which no VeeR file <code>include</code>s by name — precedes every VeeR row,
+with the two other entries of the Makefile’s <code>defines</code> list after it for fidelity). The first
 measurement, on the two suites the raw lane cannot judge at all (every one of their rows is
 <code>deferred:chained_only</code> in the raw answer key), release probe, <code>sv_2017</code>, 45 s wall:</p>
 <div class="table-wrapper">
@@ -930,7 +933,7 @@ them files only ever read through the package that <code>include</code>s them); 
 the expanded text — an undefined macro reached the parser, a CONTEXT gap that happened one stage
 late</strong> (OpenTitan’s per-IP build defines such as <code>EN_MASKING</code> and <code>RNG_BUS_WIDTH</code>, which live in the
 IPs’ <code>*_sim_cfg.hjson</code> build options; VeeR’s <code>RV_*</code> configuration macros, whose <code>common_defines.vh</code>
-the VeeR Makefile compiles first; two BlackParrot and one friscv header chain); 55 are <code>include</code>
+the VeeR Makefile compiles first — supplied since <code>.6d.8</code>, three rows now pass; two BlackParrot and one friscv header chain); 55 are <code>include</code>
 fragments of a module, testbench or package whose standalone reading is not a claim about the
 parser (riscv-dv’s <code>riscv_core_setting.sv</code>, the <code>xbar</code> autogen pair, VeeR’s <code>el2_dec_csr_equ_*.svh</code>);
 11 are the same declaration barrier in data position (<code>mubi4_t sel_mux;</code> — the type is declared in

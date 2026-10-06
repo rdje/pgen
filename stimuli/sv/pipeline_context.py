@@ -128,6 +128,21 @@ HAND_DEFINES: dict[str, list[tuple[str, str]]] = {
 # lane as `--unit-file`, in this order, to every row of the suite (an RTL row sees three macro headers
 # it already includes behind their own guards — no change there, measured by the lane's movers).
 HAND_UNITS: dict[str, list[tuple[str, str]]] = {
+    # SVPP-EXPANSION.6d.8: VeeR's flow compiles the generated configuration header FIRST — tools/Makefile:167
+    # `defines  = $(BUILD_DIR)/common_defines.vh` (then el2_def.sv and el2_pdef.vh, :168-169), and :210 passes
+    # it as the first source argument of the VCS build after `+incdir+${RV_ROOT}/design/include`. No source
+    # file `include`s it by name (grep: none), so without it every `RV_*` / `TEC_RV_ICG` use is a raw backtick
+    # at the parser (tb_top.sv:996, axi_lsu_dma_bridge.sv:82, beh_lib.sv:770). The two other `defines` entries
+    # carry no directive (el2_def.sv's guard is commented out, 1 define; el2_pdef.vh is parameter text, 0) and
+    # are listed for fidelity to the flow, in its order.
+    "Cores-VeeR-EL2": [
+        ("stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/common_defines.vh",
+         "stimuli/sv/subs/Cores-VeeR-EL2/tools/Makefile:167 (defines = $(BUILD_DIR)/common_defines.vh) and :210 (the first source argument of the VCS build; the generated configuration header every VeeR build compiles first)"),
+        ("stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_def.sv",
+         "stimuli/sv/subs/Cores-VeeR-EL2/tools/Makefile:168 (defines += ${RV_ROOT}/design/include/el2_def.sv; its include guard is commented out, so it defines nothing)"),
+        ("stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_pdef.vh",
+         "stimuli/sv/subs/Cores-VeeR-EL2/tools/Makefile:169 (defines += $(BUILD_DIR)/el2_pdef.vh; parameter text, no directive)"),
+    ],
     "opentitan": [
         ("stimuli/sv/uvm/uvm-core-2020.3.1/src/uvm_macros.svh",
          "stimuli/sv/subs/opentitan/hw/dv/tools/dvsim/dsim.hjson:14-15 ({UVM_HOME}/src/uvm_pkg.sv compiled first; uvm_pkg.sv includes uvm_macros.svh)"),
