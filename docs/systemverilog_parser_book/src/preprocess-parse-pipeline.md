@@ -587,7 +587,14 @@ following lexical tokens: … String literals"*) and the redefinition of a compi
 a compiler directive as a macro name"*). Both were over-acceptances of the preprocessor, on the bar under
 the pipeline (its fifth number read 2) until `SVPP-EXPANSION.5`(s) and (t) landed the same day: both tests are
 now refused at the expansion stage with the clause, the bar reads 0, and the two rows testify as
-`must_reject:refused_engine`. The other suites'
+`must_reject:refused_engine`. Since `.6c.4` verilator's and sv2v's svpp-owned rows are judged the same way, through
+the key's own functions in a pipeline mode: verilator's driver rule with the preprocessor's error vocabulary read off
+its goldens (`fails=True` + a preprocessor- or parse-stage golden → must_reject; a lint-only golden → must_accept; a
+`-E` driver's success → the preprocessor must not refuse, and the parse of the expanded text is no claim), sv2v's
+`error/` as must_reject by contract — 27 more rows testify, two carry a `key_question` disposition (an 1800-2023
+keyword specifier under the 2017 reading), and the only svpp-owned rows still without a verdict are two accepted
+(Surelog's `PreProcMacro`, sv2v's `` `define MACRO() `` — an empty formal list the standard does not derive and every
+tool accepts, recorded as a tolerance candidate), seven fragments and 31 refusals with no convention to read. The other suites'
 svpp-owned rows (22 accepted, 28 rejected, 25 refused) have no header convention derived yet and keep no
 verdict.
 

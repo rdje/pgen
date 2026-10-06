@@ -1129,6 +1129,35 @@ SYNTAX_ERR_RE = re.compile(r"syntax error", re.IGNORECASE)
 #   `Unterminated /* comment inside -f file.`       -> a `-f` COMMAND FILE, not source text at all.
 # Matching `EOF in ` would have swept all four into the parse verdict. So this is an enumerated
 # allowlist, exactly as `.3.14b`'s directive whitelist had to be, and for the same reason.
+# SVPP-EXPANSION.6c.4 — the PREPROCESSOR-stage vocabulary of verilator's goldens, enumerated from the
+# `t_pp_*` / `t_preproc_*` drivers that fail (the same allowlist discipline as the parse-stage one below;
+# a `%Warning-…` golden, REDEFMACRO / PREPROCZERO, and the `%Error-BADVLTPRAGMA` meta-comment error are
+# LINT verdicts, not conformance claims, and stay must_accept by .3.24's rule). Read only under the
+# pipeline lane, where the preprocessor's refusal IS the stage the test addresses.
+VERILATOR_PREPROCESS_STAGE_RE = re.compile(
+    r"Define or directive not defined"
+    r"|Attempting to define built-in directive"
+    r"|Recursive `define substitution"
+    r"|Recursive inclusion of file"
+    r"|Too many preprocessor tokens"
+    r"|Illegal text before '\(' that starts define arguments"
+    r"|Unterminated \( in define formal arguments"
+    r"|EOF in define argument list"
+    r"|EOF in unterminated preprocessor expression"
+    r"|`elsif with no matching `if"
+    r"|`else with no matching `if"
+    r"|`endif with no matching `if"
+    r"|`ifdef not terminated at EOF"
+    r"|`end_keywords when not inside `begin_keywords block"
+    r"|Expecting include filename"
+    r"|Cannot find include file"
+    r"|Define missing argument"
+    r"|Define passed too many arguments"
+)
+# a driver whose verilator run is `-E` / `-P` (preprocess only): the golden is the EXPANDED TEXT, so a
+# must_accept here means "the preprocessor must not refuse" — the parse of that text is not the test's claim
+VERILATOR_PREPROCESS_ONLY_RE = re.compile(r"""(?<![\w-])["']?-[EP]["']?(?![\w-])""")
+
 VERILATOR_PARSE_STAGE_RE = re.compile(
     r"syntax error"                                   # the parser proper
     r"|EOF in unterminated (?:\"\"\" )?string"         # 5.9: a string literal running to EOF
@@ -2640,15 +2669,29 @@ class VerilatorIndex:
                 self.pass_stems.add(stem)
             for ref in TOP_FILENAME_RE.findall(text):
                 self.top_ref.setdefault(Path(ref).stem, stem)
+        self.preprocess_out_stems = set()     # SVPP-EXPANSION.6c.4
+        self.preprocess_only_stems = set()    # drivers that run verilator -E / -P
+        for py in sorted(t_dir.glob("*.py")):
+            if VERILATOR_PREPROCESS_ONLY_RE.search(read_text(py)):
+                self.preprocess_only_stems.add(py.stem)
         for out in sorted(t_dir.glob("*.out")):
             # .3.24: the PARSE-STAGE vocabulary, not just the literal "syntax error" —
             # verilator's lexer errors never carry those two words. See
             # VERILATOR_PARSE_STAGE_RE for the enumeration and for the four spellings
             # deliberately left out (three preprocessor, one `-f` command file).
-            if VERILATOR_PARSE_STAGE_RE.search(read_text(out)):
+            text = read_text(out)
+            if VERILATOR_PARSE_STAGE_RE.search(text):
                 self.syntax_out_stems.add(out.stem)
+            if VERILATOR_PREPROCESS_STAGE_RE.search(text):
+                self.preprocess_out_stems.add(out.stem)
 
-    def expect(self, relpath: str):
+    def expect(self, relpath: str, lane: str = "raw"):
+        """The driver convention. `lane="raw"` (the answer key) defers a preprocessor-target test
+        (`t_pp_*` / `t_preproc_*`) to the preprocessor lane; `lane="pipeline"` (SVPP-EXPANSION.6c.4, the
+        preprocess→parse lane's re-adjudication) IS that lane and judges it by the same driver rule, with the
+        preprocessor-stage golden vocabulary beside the parse-stage one, and with a `-E` driver's must_accept
+        meaning "must preprocess" (the expected tuple's third member says so). The raw manifests are unchanged
+        by the parameter."""
         # relpath is relative to the verilator submodule root.
         # SV-CORPUS-GRAD.3.14a: the LRM pins run FIRST - they override the driver
         # heuristic below, which is tool testimony rather than a conformance claim.
@@ -2660,13 +2703,37 @@ class VerilatorIndex:
             return ("chained_only",
                     "verilator: multi-file test payload outside flat test_regress/t/")
         stem = Path(parts[2]).stem
-        if stem.startswith(("t_pp_", "t_preproc_")):
+        if stem.startswith(("t_pp_", "t_preproc_")) and lane != "pipeline":
             # The test's target is the PREPROCESSOR (mirrors the sv-tests
             # ':type: preprocessing' rule): its verdicts belong to the svpp
             # lane, not to isolation parse of the raw text.
             return ("out_of_scope_with_cause",
                     "verilator: preprocessor-target test (t_pp_*/t_preproc_*) - "
                     "svpp-owned conformance")
+        if lane == "pipeline":
+            driver = None
+            if stem in self.fail_stems or stem in self.pass_stems:
+                driver = stem
+            elif stem in self.top_ref:
+                driver = self.top_ref[stem]
+            if driver is None:
+                return ("chained_only", "verilator: no same-stem driver and never a top_filename - "
+                                        "include/companion fragment")
+            pp_only = driver in self.preprocess_only_stems
+            if driver in self.fail_stems:
+                if driver in self.syntax_out_stems or stem in self.syntax_out_stems:
+                    return ("must_reject", f"verilator: driver {driver}.py fails=True and golden .out reports a "
+                                           "PARSE-STAGE error (.3.24)")
+                if driver in self.preprocess_out_stems or stem in self.preprocess_out_stems:
+                    return ("must_reject", f"verilator: driver {driver}.py fails=True and golden .out reports a "
+                                           "PREPROCESSOR-STAGE error (SVPP-EXPANSION.6c.4's enumerated vocabulary)")
+                return ("must_accept", f"verilator: driver {driver}.py fails=True but golden .out is a post-parse "
+                                       "tool error (lint/elab/unsupported) - syntax valid")
+            if pp_only:
+                return ("must_accept", f"verilator: driver {driver}.py runs -E and expects success - the "
+                                       "preprocessor must not refuse; the parse of the expanded text is not the "
+                                       "test's claim (preprocess_only)")
+            return ("must_accept", f"verilator: driver {driver}.py expects success")
         driver = None
         if stem in self.fail_stems or stem in self.pass_stems:
             driver = stem
@@ -4898,12 +4965,15 @@ for _n, (_cls, _basis) in SV2V_PINNED.items():
         SV2V_ERROR_KEY[_n] = (_cls, "sv2v error-suite " + _basis)
 
 
-def expect_sv2v(relpath: str):
+def expect_sv2v(relpath: str, lane: str = "raw"):
     """sv2v test suite: `.sv` files are conversion INPUTS (valid SV by suite
     contract); `.v` files are conversion GOLDENS (Verilog-2005 by contract);
     error/ negatives are stage-classified from their `// pattern:` upstream
     keys against the LRM BNF (leaf .8b.1); the ambiguous residue stays in
-    error_pretriage for per-file pinning (leaf .8b.2)."""
+    error_pretriage for per-file pinning (leaf .8b.2). `lane="pipeline"`
+    (SVPP-EXPANSION.6c.4): an error/ negative the raw key left in pretriage is
+    must_reject by the suite's own contract — every file under test/error/ is a
+    conversion that must fail — and the preprocess→parse lane can judge it."""
     p = relpath.replace("\\", "/")
     if p.endswith(".v"):
         return ("out_of_scope_with_cause:v2005_profile_lane",
@@ -4913,6 +4983,9 @@ def expect_sv2v(relpath: str):
         key = SV2V_ERROR_KEY.get(Path(p).stem)
         if key:
             return key
+        if lane == "pipeline":
+            return ("must_reject", "sv2v: error/ negative - the suite's contract (a conversion that must "
+                                   "fail), judged under the preprocess→parse lane (SVPP-EXPANSION.6c.4)")
         return ("out_of_scope_with_cause:error_pretriage",
                 "sv2v: error/ negative outside the .8b.1/.8b.2 classified "
                 "population (added upstream after the vendored pin?) - "

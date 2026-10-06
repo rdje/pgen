@@ -135,9 +135,12 @@ POPULATIONS = (
                      "`.13c`'s strata, `.13d`'s expansion-owned rows)"),
     ("svpp_owned", "rows whose conformance the raw lane routed to the preprocessor lane "
                    "(`deferred:svpp_owned`) and for which this lane derives no expectation yet"),
-    ("svpp_owned_expected", "svpp_owned rows whose own header this lane reads as must_accept — sv-tests "
-                            "`:type: preprocessing` tests without `:should_fail_because:` (`.6c.3`, the answer "
-                            "key's own function in its pipeline mode); a should_fail header joins must_reject"),
+    ("svpp_owned_expected", "svpp_owned rows whose own suite convention this lane reads as must_accept — sv-tests "
+                            "`:type: preprocessing` tests without `:should_fail_because:` (`.6c.3`), verilator "
+                            "preprocessor tests whose driver expects success or whose golden is a lint verdict "
+                            "(`.6c.4`; a `-E` driver's must_accept is \"must preprocess\") — the answer key's own "
+                            "functions in their pipeline mode; a should-fail header, a preprocessor- or "
+                            "parse-stage golden, or sv2v's `error/` contract joins must_reject"),
     ("must_reject", "rows the answer key expects REJECTED — the manifest's `expected`, or a pin the raw "
                     "lane demoted (`.6b.1`); a pipeline pass here is an over-acceptance candidate"),
 )
@@ -189,21 +192,36 @@ def pinned_expected(suite: str, relpath: str) -> str | None:
     return None
 
 
-def svpp_owned_expected(suite: str, relpath: str) -> str | None:
-    """SVPP-EXPANSION.6c.3 — the expectation of a `deferred:svpp_owned` row UNDER THIS LANE, derived by the
-    answer key's own function in its pipeline mode: the raw key deferred a sv-tests `:type: preprocessing`
-    test to the preprocessor lane BY DESIGN; this lane is it, and the file's own header says what the
-    test expects. Other suites' svpp_owned rows have no derivation here yet (None: the row keeps its
-    expectation-free verdict). Never derived from the fix: the header is the suite's convention."""
-    if suite != "sv-tests":
-        return None
-    path = ROOT / "stimuli" / "sv" / "subs" / "sv-tests" / relpath
-    try:
-        text = path.read_text(errors="replace")
-    except OSError:
-        return None
-    expected, _basis = adj.expect_sv_tests(relpath, text, lane="pipeline")
-    return expected if expected in ("must_accept", "must_reject") else None
+_VERILATOR_INDEX: list = []   # built once; the answer key's own index over the drivers and goldens
+
+
+def svpp_owned_expected(suite: str, relpath: str) -> tuple[str, bool] | None:
+    """SVPP-EXPANSION.6c.3 / .6c.4 — the expectation of a `deferred:svpp_owned` row UNDER THIS LANE, derived by
+    the answer key's own functions in their pipeline mode — the raw key deferred these rows to the preprocessor
+    lane BY DESIGN, and this lane is it: sv-tests by the file's own header (`.6c.3`), verilator by its driver
+    and golden with the preprocessor-stage vocabulary beside the parse-stage one, sv2v's `error/` by the
+    suite's contract (`.6c.4`). Returns (expected, preprocess_only): the flag marks a verilator `-E` driver,
+    whose must_accept means "must preprocess" — the parse of the expanded text is not the test's claim.
+    None: no derivation for this suite yet (the row keeps its expectation-free verdict)."""
+    if suite == "sv-tests":
+        path = ROOT / "stimuli" / "sv" / "subs" / "sv-tests" / relpath
+        try:
+            text = path.read_text(errors="replace")
+        except OSError:
+            return None
+        expected, _basis = adj.expect_sv_tests(relpath, text, lane="pipeline")
+        return (expected, False) if expected in ("must_accept", "must_reject") else None
+    if suite == "verilator":
+        if not _VERILATOR_INDEX:
+            _VERILATOR_INDEX.append(adj.VerilatorIndex(ROOT / "stimuli" / "sv" / "subs" / "verilator" / "test_regress" / "t"))
+        expected, basis = _VERILATOR_INDEX[0].expect(relpath, lane="pipeline")
+        if expected not in ("must_accept", "must_reject"):
+            return None
+        return (expected, "(preprocess_only)" in basis)
+    if suite == "sv2v":
+        expected, _basis = adj.expect_sv2v(relpath, lane="pipeline")
+        return (expected, False) if expected in ("must_accept", "must_reject") else None
+    return None
 
 
 def expected_of(m: list[str]) -> str:
@@ -219,8 +237,16 @@ def expected_of(m: list[str]) -> str:
     if m[4] == "deferred:svpp_owned":
         derived = svpp_owned_expected(m[0], m[1])
         if derived is not None:
-            return derived
+            return derived[0]
     return m[3]
+
+
+def preprocess_only_of(m: list[str]) -> bool:
+    """`.6c.4`: a verilator `-E` driver's row — its must_accept is "must preprocess"."""
+    if m[4] != "deferred:svpp_owned":
+        return False
+    derived = svpp_owned_expected(m[0], m[1])
+    return bool(derived and derived[1])
 
 
 def population_of(raw_class: str, expected: str) -> str | None:
@@ -256,7 +282,7 @@ def landing_of(status: str, repo_rel: str, origin: str) -> str:
     return status
 
 
-def verdict_of(population: str, status: str, landing: str) -> str:
+def verdict_of(population: str, status: str, landing: str, preprocess_only: bool = False) -> str:
     prefix = {"explained_svpp": "", "chained_only": "chained:", "svpp_owned": "svpp_owned:",
               "svpp_owned_expected": "svpp_owned:", "must_reject": "must_reject:"}[population]
     judged = population in ("explained_svpp", "svpp_owned_expected")   # a must-accept expectation exists
@@ -268,6 +294,10 @@ def verdict_of(population: str, status: str, landing: str) -> str:
         if landing == "own file":
             if population == "must_reject":
                 return prefix + "match_under_expansion"
+            if judged and preprocess_only:
+                # `.6c.4`: a verilator -E test whose expanded text the parser rejects — the driver compares the
+                # TEXT, the parse is not its claim; the preprocessor did what the test asks
+                return prefix + "preprocess_only_output"
             return prefix + ("refuted" if judged else "rejects_own_file")
         return prefix + "hollow"
     if status == "pp_fail":
@@ -547,7 +577,7 @@ def main() -> int:
             "suite": key[0], "relpath": key[1], "raw_class": m[4], "population": pop,
             "prior_stratum": prior_stratum(pop, key, explained, dark, m[4]),
             "pipeline_status": status, "landing": landing, "construct": construct,
-            "verdict": verdict_of(pop, status, landing), "origin": origin, "unit": "",
+            "verdict": verdict_of(pop, status, landing, preprocess_only_of(m)), "origin": origin, "unit": "",
         })
     # SVPP-EXPANSION.6d.2 — the unit-membership reading (a member's verdict is its package unit's)
     units = read_units(LIBRARY, LIBRARY_MEMBERS)
@@ -561,7 +591,9 @@ def main() -> int:
             r["verdict"], r["unit"] = ur
 
     dispositions = read_dispositions(DISPOSITIONS)
-    refuted_keys = {(r["suite"], r["relpath"]) for r in rows if r["verdict"] == "refuted"}
+    # `.6c.4`: a svpp-owned row this lane judged must_accept and still fails in its own text is `svpp_owned:refuted`
+    # — the same disposition table, the same closed vocabulary, the verdict `svpp_owned:refuted:<disposition>`
+    refuted_keys = {(r["suite"], r["relpath"]) for r in rows if r["verdict"] in ("refuted", "svpp_owned:refuted")}
     stale = sorted(k for k in dispositions if k not in refuted_keys)
     if stale:
         print("PIPELINE-READJUDICATION: REFUSED — " + rel(DISPOSITIONS) + " dispositions rows that are not "
@@ -570,8 +602,8 @@ def main() -> int:
               + " — a disposition for a row that moved is a stale claim; drop it", file=sys.stderr)
         return 2
     for r in rows:
-        if r["verdict"] == "refuted" and (r["suite"], r["relpath"]) in dispositions:
-            r["verdict"] = "refuted:" + dispositions[(r["suite"], r["relpath"])][0]
+        if r["verdict"] in ("refuted", "svpp_owned:refuted") and (r["suite"], r["relpath"]) in dispositions:
+            r["verdict"] = r["verdict"] + ":" + dispositions[(r["suite"], r["relpath"])][0]
 
     out_md = pathlib.Path(args.out)
     out_tsv = pathlib.Path(args.out_tsv)
@@ -586,7 +618,7 @@ def main() -> int:
     counts: dict[str, int] = {}
     for r in rows:
         counts[r["verdict"]] = counts.get(r["verdict"], 0) + 1
-    counts["refuted_awaiting_disposition"] = sum(1 for r in rows if r["verdict"] == "refuted")
+    counts["refuted_awaiting_disposition"] = sum(1 for r in rows if r["verdict"] in ("refuted", "svpp_owned:refuted"))
     summary = " ".join(f"{k}={v}" for k, v in sorted(counts.items()))
     print(f"PIPELINE-READJUDICATION: rows={len(rows)} missing_lane_rows={missing} {summary} → {rel(out_md)}, {rel(out_tsv)}")
 

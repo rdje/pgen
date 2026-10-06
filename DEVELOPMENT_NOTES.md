@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-06 — SVPP-EXPANSION.6c.4 (`PGEN-SVPP-EXPANSION-0045`): a deferral's reason is the specification of the lane it defers to
+
+- **Read the vocabulary off the goldens, do not guess it.** The key's parse-stage vocabulary had left the preprocessor's spellings out on purpose and said so; the pipeline mode needed those spellings, and eighteen of them were enumerated from the `t_pp_*` / `t_preproc_*` goldens the drivers name — the same allowlist discipline, the same reason (a prefix rule would sweep lint messages in).
+- **A `-E` test's success is a claim about one stage.** Its golden is expanded text; the parse of that text is nobody's claim, so a parser rejection there is a third verdict (`preprocess_only_output`), not a defect and not a pass.
+- promotion: declined — both are the answer key's standing allowlist practice, recorded where the next reader meets them (the index's docstring and the vocabulary's comment). Filed here.
+
 ## 2026-10-06 — SVPP-EXPANSION.6f (`PGEN-SVPP-EXPANSION-0044`): two correct designs composed into a wrong claim
 
 - **A pipeline's pass is a conjunction, and the weakest stage's post-condition decides it.** The expander's leniency (keep an unresolved usage as written) and the grammar's raw-lane residue (accept an opaque backtick line) are each right for the lane they serve; composed, they passed a file whose first line was an undefined macro. The stage now refuses its own leftovers — promoted as [[a-stage-that-passes-through-what-it-did-not-resolve-lets-the-next-stage-accept-it]].

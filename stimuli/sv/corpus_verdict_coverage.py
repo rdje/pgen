@@ -208,14 +208,25 @@ PIPELINE_CLASSES = {
                                                ":type: preprocessing, no :should_fail_because:) PASSES under the "
                                                "pipeline — the preprocessor lane answering the question the raw key "
                                                "deferred to it by design (SVPP-EXPANSION.6c.3)"),
-    "svpp_owned:refuted": ("NO VERDICT", "a svpp-owned row whose own header says must_accept still fails in its own "
-                                         "text under the pipeline — a defect candidate awaiting its disposition (.6c.3)"),
+    "svpp_owned:refuted": ("NO VERDICT", "a svpp-owned row whose own suite convention says must_accept still fails in "
+                                         "its own text under the pipeline — a defect candidate awaiting its disposition "
+                                         "(.6c.3 / .6c.4)"),
+    "svpp_owned:refuted:key_question": ("NO VERDICT", "the stage or the parser is right to refuse; the svpp-owned row's "
+                                                      "expectation (its suite's own convention) is what needs a ruling (.6c.4)"),
+    "svpp_owned:refuted:parser_question": ("ADJUDICATED", "a svpp-owned must-accept row that still fails in its own text, "
+                                                          "legal by the clause the disposition names — a defect candidate on "
+                                                          "the bar (.6c.4)"),
+    "svpp_owned:refuted:vendor_identity_branch": ("NO VERDICT", "the svpp-owned row's portable branch is the vendor's own "
+                                                                "stub (.6c.4)"),
+    "svpp_owned:preprocess_only_output": ("NO VERDICT", "a verilator -E test the preprocessor expanded as its driver asks; "
+                                                        "the expanded text is compared, not parsed, so its parse rejection is "
+                                                        "no claim either way (.6c.4)"),
     "svpp_owned:rejects_own_file": ("NO VERDICT", "conformance owned by the preprocessor lane; rejected"),
     "svpp_owned:hollow": ("NO VERDICT", "conformance owned by the preprocessor lane"),
     "svpp_owned:refused_context": ("NO VERDICT", "conformance owned by the preprocessor lane"),
     "svpp_owned:refused_engine": ("NO VERDICT", "conformance owned by the preprocessor lane"),
 }
-PIPELINE_BAR_CLASSES = {"pipeline:refuted:parser_question", "pipeline:must_reject:accepts_invalid"}
+PIPELINE_BAR_CLASSES = {"pipeline:refuted:parser_question", "pipeline:svpp_owned:refuted:parser_question", "pipeline:must_reject:accepts_invalid"}
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pipeline_context import DESIGN_SUITES  # noqa: E402  — ONE definition (SVPP-EXPANSION.6d.1)
 

@@ -17,7 +17,7 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 | sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `dc0f74836f6ceabfdd20584c12ca69d4f07c1a08660ad850842a26f900428ac5` |
 | sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `92de091b90faa66134a786fc39a8897c2a5f600e687b537be005fc4bb924ea42` |
 | unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023.tsv` | `acac7a118b3cfe26a207b0d1bf64e5758093b730c825a75122d3c7fb1b6c3c6c` |
-| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `7f8e422bfcc2fbae51d6ae5d173f730a948b01418265db30fd293f9c917cc409` |
+| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `1103138dce422f9de09c1471262bf7dbeab98b46e5f32583d88b2f693050c485` |
 | sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `c196f707a1fdc43a664113eb663e99de004a82c4ac72754fb8929f2c1a7b91fe` |
 
 The 2023 run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6` `files=16336`.
@@ -96,7 +96,7 @@ The stop is the REJECTING reading's own origin and the source line there; the 20
 | `2023_only_pass` | `verilator` | `test_regress/t/t_export_packed_struct2.v` | `t_export_packed_struct2.v:9:16` | `typedef union soft packed {` | `must_reject:match_under_expansion` | `must_accept / match` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_fork_join_none_wait_ev.v` | `t_fork_join_none_wait_ev.v:32:20` | `->ev[i];` | `must_reject:match_under_expansion` | `must_accept / divergence:explained_svpp_macro_use` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_inside_tolerance_unsup.v` | `t_inside_tolerance_unsup.v:18:30` | `` `checkh(r inside {[1492 +/- 2]}, 1'b1); `` | `must_reject:match_under_expansion` | `must_accept / divergence:explained_svpp_macro_use` |
-| `2023_only_pass` | `verilator` | `test_regress/t/t_preproc_preproczero_bad.v` | `t_preproc_preproczero_bad.v:8:16` | `` `begin_keywords "1800-2023" `` | `svpp_owned:rejects_own_file` | `out_of_scope_with_cause / deferred:svpp_owned` |
+| `2023_only_pass` | `verilator` | `test_regress/t/t_preproc_preproczero_bad.v` | `t_preproc_preproczero_bad.v:8:16` | `` `begin_keywords "1800-2023" `` | `svpp_owned:refuted:key_question` | `out_of_scope_with_cause / deferred:svpp_owned` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_string_sel.v` | `t_string_sel.v:35:18` | `if (get_str()[1] != "a") $stop;` | `must_reject:match_under_expansion` | `must_accept / match` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_union_soft.v` | `t_union_soft.v:9:8` | `union soft {` | `must_reject:match_under_expansion` | `must_accept / match` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_var_ref_static.v` | `t_var_ref_static.v:12:30` | `function void crs(const ref static i);` | `must_reject:match_under_expansion` | `must_accept / match` |

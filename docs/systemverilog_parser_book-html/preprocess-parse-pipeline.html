@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8a24f3e3.js";
+            window.path_to_searchindex_js = "searchindex-2c64ce12.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -748,7 +748,14 @@ following lexical tokens: … String literals”</em>) and the redefinition of a
 a compiler directive as a macro name”</em>). Both were over-acceptances of the preprocessor, on the bar under
 the pipeline (its fifth number read 2) until <code>SVPP-EXPANSION.5</code>(s) and (t) landed the same day: both tests are
 now refused at the expansion stage with the clause, the bar reads 0, and the two rows testify as
-<code>must_reject:refused_engine</code>. The other suites’
+<code>must_reject:refused_engine</code>. Since <code>.6c.4</code> verilator’s and sv2v’s svpp-owned rows are judged the same way, through
+the key’s own functions in a pipeline mode: verilator’s driver rule with the preprocessor’s error vocabulary read off
+its goldens (<code>fails=True</code> + a preprocessor- or parse-stage golden → must_reject; a lint-only golden → must_accept; a
+<code>-E</code> driver’s success → the preprocessor must not refuse, and the parse of the expanded text is no claim), sv2v’s
+<code>error/</code> as must_reject by contract — 27 more rows testify, two carry a <code>key_question</code> disposition (an 1800-2023
+keyword specifier under the 2017 reading), and the only svpp-owned rows still without a verdict are two accepted
+(Surelog’s <code>PreProcMacro</code>, sv2v’s <code>`define MACRO()</code> — an empty formal list the standard does not derive and every
+tool accepts, recorded as a tolerance candidate), seven fragments and 31 refusals with no convention to read. The other suites’
 svpp-owned rows (22 accepted, 28 rejected, 25 refused) have no header convention derived yet and keep no
 verdict.</p>
 <p><strong>The file’s own configuration (<code>.4c.1</code>).</strong> A test suite’s driver does not run a file bare: verilator’s

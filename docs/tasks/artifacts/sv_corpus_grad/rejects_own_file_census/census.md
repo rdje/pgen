@@ -7,24 +7,24 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 
 | input | path | sha256 |
 |---|---|---|
-| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `7f8e422bfcc2fbae51d6ae5d173f730a948b01418265db30fd293f9c917cc409` |
+| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `1103138dce422f9de09c1471262bf7dbeab98b46e5f32583d88b2f693050c485` |
 | sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `6d0eabec327e9697ab814c1304a9c0d5bc295fc9eac34abf78eb8ea52c470097` |
 | sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `dc0f74836f6ceabfdd20584c12ca69d4f07c1a08660ad850842a26f900428ac5` |
 | sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `7289e42f374d6c6e159e1090e4358a60699cf832c3e02ff8a07ad5f1801ee9da` |
 | expansion binary | `rust/target/debug/ast_pipeline` | `03949beb82671cd85ad051f4a6734d97993a10e04e2a93893112d65398ad6caa` |
 
-## The classes — 324 rows
+## The classes — 311 rows
 
 | class | rows | what it means |
 |---|---:|---|
 | `raw_backtick` | 0 | the expanded text at the stop begins with a backtick: an undefined macro reached the parser — CONTEXT, not syntax |
 | `base_class` | 222 | a class header with a base class the parser has not seen declared — the cross-file declaration barrier |
-| `edition_2023` | 4 | the same row passes under the `sv_2023` reading — the 2017 rejection is the older text's |
+| `edition_2023` | 3 | the same row passes under the `sv_2023` reading — the 2017 rejection is the older text's |
 | `tolerated_spelling` | 5 | the same row passes under `sv_2023_tolerant` only — a spelling of the opt-in profile's closed list |
-| `edition_2023_moves` | 1 | the 2023 reading stops further: the construct at this stop is the 2023 text's, a later barrier remains |
+| `edition_2023_moves` | 0 | the 2023 reading stops further: the construct at this stop is the 2023 text's, a later barrier remains |
 | `tolerated_moves` | 0 | the tolerant reading stops further than the 2023 one: a tolerated spelling here, a later barrier remains |
-| `error_test` | 6 | an intended-invalid test by name — the rejection is the expected verdict |
-| `preprocess_only` | 5 | a verilator test its own driver runs with `-E` — the preprocessor's input, not SystemVerilog to parse |
+| `error_test` | 0 | an intended-invalid test by name — the rejection is the expected verdict |
+| `preprocess_only` | 0 | a verilator test its own driver runs with `-E` — the preprocessor's input, not SystemVerilog to parse |
 | `declared_fragment` | 5 | the file declares itself a module body (`verilog_syntax: parse-as-…`) — the suite's own convention |
 | `fragment` | 39 | the file is the `include` target of another corpus file — its standalone reading is not the parser's claim |
 | `undeclared_type` | 11 | a declaration whose type is an identifier the parser has not seen declared — the cross-file barrier in data position |
@@ -75,12 +75,11 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `opentitan` | 218 |
 | `Surelog` | 4 |
 
-## `edition_2023` — 4 rows, by suite
+## `edition_2023` — 3 rows, by suite
 
 | suite | rows |
 |---|---:|
 | `opentitan` | 3 |
-| `verilator` | 1 |
 
 ## `tolerated_spelling` — 5 rows, by suite
 
@@ -88,28 +87,25 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 |---|---:|
 | `opentitan` | 5 |
 
-## `edition_2023_moves` — 1 rows, by suite
+## `edition_2023_moves` — 0 rows, by suite
 
 | suite | rows |
 |---|---:|
-| `verilator` | 1 |
 
 ## `tolerated_moves` — 0 rows, by suite
 
 | suite | rows |
 |---|---:|
 
-## `error_test` — 6 rows, by suite
+## `error_test` — 0 rows, by suite
 
 | suite | rows |
 |---|---:|
-| `verilator` | 6 |
 
-## `preprocess_only` — 5 rows, by suite
+## `preprocess_only` — 0 rows, by suite
 
 | suite | rows |
 |---|---:|
-| `verilator` | 5 |
 
 ## `declared_fragment` — 5 rows, by suite
 
