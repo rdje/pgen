@@ -766,12 +766,40 @@ the numbers). A build profile cannot change a verdict; the deadline was widened 
 slower probe could not manufacture a `timeout` (the slowest non-timeout row of the release reading
 was 5.75 s), and the identity block of the tracked report names the debug binary.
 
-Two thirds of the residue is one fact: the base class of a `class … extends` lives in another file
-of the compilation unit (a package the row `import`s, or a sibling `.sv`), and the parser's
-store gate refuses a base it has not seen declared — the strict reading `SV-PARSE-STRICT.2` escaped
-for net types and not for class bases. That is a cross-file DECLARATION barrier, exactly the one
-the library flags (`--lib-out` / `--lib-in`) exist for; sizing it was the point of the measurement,
-and the number is now on the table for the leaf that decides how a per-file lane supplies it.
+Two thirds of the residue was one fact when that reading was taken: the base class of a `class …
+extends` lives in another file of the compilation unit (a package the row `import`s, or a sibling
+`.sv`), and the parser's store gate refuses a base it has not seen declared — the strict reading
+`SV-PARSE-STRICT.2` escaped for net types and not for class bases. That is a cross-file DECLARATION
+barrier, exactly the one the library flags (`--lib-out` / `--lib-in`) exist for.
+
+**Since `SVPP-EXPANSION.6e` (2026-10-06) the residue is a census, derived and tracked** —
+`docs/tasks/artifacts/sv_corpus_grad/rejects_own_file_census/census.md`, re-derived after every lane
+reading, its identity held by the `PIPELINE-LANE-CURRENCY` doctrine's fourth arm. Every row the
+re-adjudication files as *rejected in its own file* is re-expanded under the lane's own context and
+classed by what the parser actually SAW, not by the source line the stop maps back to. On the
+reading of 2026-10-06 the 310 rows fall as follows: 143 are the base-class barrier above (126 of
+them files only ever read through the package that `include`s them); **47 stop at a raw backtick in
+the expanded text — an undefined macro reached the parser, a CONTEXT gap that happened one stage
+late** (OpenTitan's per-IP build defines such as `EN_MASKING` and `RNG_BUS_WIDTH`, which live in the
+IPs' `*_sim_cfg.hjson` build options; VeeR's `RV_*` configuration macros, whose `common_defines.vh`
+the VeeR Makefile compiles first; two BlackParrot and one friscv header chain); 55 are `include`
+fragments of a module, testbench or package whose standalone reading is not a claim about the
+parser (riscv-dv's `riscv_core_setting.sv`, the `xbar` autogen pair, VeeR's `el2_dec_csr_equ_*.svh`);
+11 are the same declaration barrier in data position (`mubi4_t sel_mux;` — the type is declared in
+a file the row did not see); 7 are the 2023 text's (a parameter's unsized `[]`, which 1800-2023's
+`param_assignment` admits and 1800-2017's does not; `` `begin_keywords "1800-2023" ``) and 5 the
+tolerant profile's; 16 are error tests by name, verilator preprocessor tests whose own driver runs
+`-E`, and verible module-body fragments that declare themselves so. The 26 that remain are
+adjudicated one by one in `SVPP-EXPANSION.6e`: invalid SystemVerilog the standard does not derive
+(`a ~& b`, a `modport` inside a `generate`, a trailing comma in a parameter list, a `do` port name
+under an SV profile, an `if` arm of two statements without `begin`/`end`, a module named after a
+synthesis cell `$_DLATCH_P_`), three more cross-file declaration barriers the mechanical shape test
+could not see, three non-SystemVerilog test inputs, one preprocessor question routed to `.5`(r) (a
+`` `define `` whose `// comment` line ends in a backslash), and five spellings the ecosystem accepts
+that no edition derives — `$fatal("…")` without its finish number, `#(.Param)` without
+parentheses, `static task` before the keyword outside a class, a size with a leading zero
+(`01'b0`), `#a.b` as a delay — recorded as candidates for the opt-in tolerance profile and not
+admitted.
 
 - The seven curated real-design cases of the external-corpus triage gate (UVM's two packages,
   scr1, friscv, VeeR) run through the single command with the manifest's include directories:

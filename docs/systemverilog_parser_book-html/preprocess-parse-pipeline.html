@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1aa06e85.js";
+            window.path_to_searchindex_js = "searchindex-4ee9d0d1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -916,12 +916,38 @@ release build’s compile now peaks just past it (the operations chapter of the 
 the numbers). A build profile cannot change a verdict; the deadline was widened to 600 s so the
 slower probe could not manufacture a <code>timeout</code> (the slowest non-timeout row of the release reading
 was 5.75 s), and the identity block of the tracked report names the debug binary.</p>
-<p>Two thirds of the residue is one fact: the base class of a <code>class … extends</code> lives in another file
-of the compilation unit (a package the row <code>import</code>s, or a sibling <code>.sv</code>), and the parser’s
-store gate refuses a base it has not seen declared — the strict reading <code>SV-PARSE-STRICT.2</code> escaped
-for net types and not for class bases. That is a cross-file DECLARATION barrier, exactly the one
-the library flags (<code>--lib-out</code> / <code>--lib-in</code>) exist for; sizing it was the point of the measurement,
-and the number is now on the table for the leaf that decides how a per-file lane supplies it.</p>
+<p>Two thirds of the residue was one fact when that reading was taken: the base class of a <code>class … extends</code> lives in another file of the compilation unit (a package the row <code>import</code>s, or a sibling
+<code>.sv</code>), and the parser’s store gate refuses a base it has not seen declared — the strict reading
+<code>SV-PARSE-STRICT.2</code> escaped for net types and not for class bases. That is a cross-file DECLARATION
+barrier, exactly the one the library flags (<code>--lib-out</code> / <code>--lib-in</code>) exist for.</p>
+<p><strong>Since <code>SVPP-EXPANSION.6e</code> (2026-10-06) the residue is a census, derived and tracked</strong> —
+<code>docs/tasks/artifacts/sv_corpus_grad/rejects_own_file_census/census.md</code>, re-derived after every lane
+reading, its identity held by the <code>PIPELINE-LANE-CURRENCY</code> doctrine’s fourth arm. Every row the
+re-adjudication files as <em>rejected in its own file</em> is re-expanded under the lane’s own context and
+classed by what the parser actually SAW, not by the source line the stop maps back to. On the
+reading of 2026-10-06 the 310 rows fall as follows: 143 are the base-class barrier above (126 of
+them files only ever read through the package that <code>include</code>s them); <strong>47 stop at a raw backtick in
+the expanded text — an undefined macro reached the parser, a CONTEXT gap that happened one stage
+late</strong> (OpenTitan’s per-IP build defines such as <code>EN_MASKING</code> and <code>RNG_BUS_WIDTH</code>, which live in the
+IPs’ <code>*_sim_cfg.hjson</code> build options; VeeR’s <code>RV_*</code> configuration macros, whose <code>common_defines.vh</code>
+the VeeR Makefile compiles first; two BlackParrot and one friscv header chain); 55 are <code>include</code>
+fragments of a module, testbench or package whose standalone reading is not a claim about the
+parser (riscv-dv’s <code>riscv_core_setting.sv</code>, the <code>xbar</code> autogen pair, VeeR’s <code>el2_dec_csr_equ_*.svh</code>);
+11 are the same declaration barrier in data position (<code>mubi4_t sel_mux;</code> — the type is declared in
+a file the row did not see); 7 are the 2023 text’s (a parameter’s unsized <code>[]</code>, which 1800-2023’s
+<code>param_assignment</code> admits and 1800-2017’s does not; <code>`begin_keywords "1800-2023"</code>) and 5 the
+tolerant profile’s; 16 are error tests by name, verilator preprocessor tests whose own driver runs
+<code>-E</code>, and verible module-body fragments that declare themselves so. The 26 that remain are
+adjudicated one by one in <code>SVPP-EXPANSION.6e</code>: invalid SystemVerilog the standard does not derive
+(<code>a ~&amp; b</code>, a <code>modport</code> inside a <code>generate</code>, a trailing comma in a parameter list, a <code>do</code> port name
+under an SV profile, an <code>if</code> arm of two statements without <code>begin</code>/<code>end</code>, a module named after a
+synthesis cell <code>$_DLATCH_P_</code>), three more cross-file declaration barriers the mechanical shape test
+could not see, three non-SystemVerilog test inputs, one preprocessor question routed to <code>.5</code>(r) (a
+<code>`define</code> whose <code>// comment</code> line ends in a backslash), and five spellings the ecosystem accepts
+that no edition derives — <code>$fatal("…")</code> without its finish number, <code>#(.Param)</code> without
+parentheses, <code>static task</code> before the keyword outside a class, a size with a leading zero
+(<code>01'b0</code>), <code>#a.b</code> as a delay — recorded as candidates for the opt-in tolerance profile and not
+admitted.</p>
 <ul>
 <li>The seven curated real-design cases of the external-corpus triage gate (UVM’s two packages,
 scr1, friscv, VeeR) run through the single command with the manifest’s include directories:

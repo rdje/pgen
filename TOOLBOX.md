@@ -316,6 +316,16 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ⭐ All four tracked tables and the tracked report are held to a fresh derivation on every commit by the
   `PIPELINE-LANE-CURRENCY` doctrine (`scripts/check_pipeline_lane_currency.sh`; the dumps being
   `.gitignore`d, a tree without them is NOT EVALUATED, loudly).
+  ⭐ **The rows the re-adjudication files as `rejects_own_file` are a CENSUS, not a residue**
+  (`SVPP-EXPANSION.6e`): `python3 docs/tasks/artifacts/sv_corpus_grad/rejects_own_file_census/census.py`
+  re-expands every such row under the lane's own derived context and classes it by what the parser SAW
+  — `raw_backtick` (an undefined macro reached the parser: context, not syntax), `base_class` /
+  `undeclared_type` (the cross-file declaration barrier), `edition_2023` / `edition_2023_moves` (the 2023
+  text licenses the stop), `tolerated_spelling`, `error_test`, `preprocess_only` (a verilator `-E`
+  driver), `declared_fragment`, `fragment` (an `include` target), `residue` (one by one). Run it after
+  every lane reading; `--check` (cheap, the identity block) is arm (4) of the doctrine; `--check --full`
+  re-derives. ⛔ Read the census BEFORE reading a rejecting file: 47 of the 310 rows of 2026-10-06 were
+  missing build defines filed as parser rejections, and 55 were files only ever read through an includer.
 - **WHEN:** any *"how much of this corpus does the SV front end actually recognise?"* question —
   the raw lane defers every macro-dependent row (`deferred:chained_only`, `explained_svpp_*`), so
   the raw number is grammar-development scaffolding and this lane's is the release reading; before

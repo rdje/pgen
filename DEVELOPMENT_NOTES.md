@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-06 — SVPP-EXPANSION.6e (`PGEN-SVPP-EXPANSION-0039`): a rejection is classed by what the parser saw, not by the line the stop maps back to
+
+- **Read the expansion at the stop, not the source line.** The re-adjudication's construct column reads the source line at the mapped origin; the parser read the expansion. A stop on a macro use site maps to a line that says nothing about what stood there after expansion, so a missing define, an include fragment and a parser defect all read `other`. Re-expanding 310 rows took 22 s and re-sorted 138 unclassified rows into eleven classes, 47 of them context gaps filed as parser rejections.
+- **A class the instrument can compute beats a class a person types.** Every class of the census is mechanical (a token test, a dump join, a driver flag, a file's own declaration, an include-target scan) and has a self-test arm; the residue is what remains, and it is 26 rows a person can rule in an hour with the clause beside each. The book's residue sentence was a hand-typed two-thirds that had already drifted.
+- **The furthest position can sit before the trivia.** Nine stops read `\n` and then the raw backtick: the parser's furthest position was the end of the last token it accepted. A token reader that skips spaces but not newlines under-counts; a backtick glued to a based prefix (`32'h`X`) hides behind the `h`. Read the whole token run after all white space.
+- **A claim about what tools accept is a measurement, not a recollection.** Four cells of the first draft said "every simulator accepts it"; none had been measured. They now say what the corpus shows (the file is a verilator testbench; the RTL is compiled by its flows) and name the measurement as not done.
+- promotion: declined — the first is an instance of [[a-furthest-position-names-a-region-not-a-token]]'s family and of the raw-backtick card; the second is the lane's census practice; the third is recorded in the census's own docstring; the fourth is an instance of [[an-unmeasured-honest-bound-is-an-unverified-claim-wearing-a-humble-face]]. Filed here until seen again.
+
 ## 2026-10-06 — SVPP-EXPANSION.4d (`PGEN-SVPP-EXPANSION-0038`): the refused-context census, and a guard that caught its own slice
 
 - **Read the refusal's reason where it is recorded.** The re-adjudication table files a refusal as `refused_context` with no reason; the lane's dump carries the preprocessor's own line. Grouping 268 lines by normalised text took one script and sorted the population in minutes: one unvendored library (168 rows), a handful of top-specific ties, error tests — and 25 rows the instrument had answered wrongly.

@@ -28,6 +28,11 @@
 #   (3) READJUDICATION — `pipeline_readjudication.py --check` (SVPP-EXPANSION.6a): the tracked
 #       re-adjudication report + per-row table (the deferred population re-read under the pipeline)
 #       equal a fresh render; the same NOT EVALUATED / REFUSED handling as arm (2).
+#   (4) REJECTS-OWN-FILE CENSUS — `docs/tasks/artifacts/sv_corpus_grad/rejects_own_file_census/census.py --check`
+#       (SVPP-EXPANSION.6e): the tracked census of the rows the parser rejects in their own file was derived
+#       from THIS re-adjudication table and THESE dumps — its identity block re-hashes (the re-expansion
+#       itself is `--check --full`, run by the lane chain, not here: 20 s of ast_pipeline is not a hook's
+#       budget); an absent dump is NOT EVALUATED; a moved input is DRIFT.
 #   (2) REPORT — `pipeline_vs_raw.py --check`: the tracked report equals a fresh render of the two
 #       dumps on this tree, the `parse binary` digest row and the `Measured at HEAD` line masked (a
 #       rebuilt probe and the commit the render ran on are provenance, not staleness — the same
@@ -52,7 +57,8 @@ TAG="PIPELINE-LANE-CURRENCY"
 CTX_TOOL=stimuli/sv/pipeline_context.py
 REPORT_TOOL=stimuli/sv/pipeline_vs_raw.py
 READJ_TOOL=stimuli/sv/pipeline_readjudication.py   # SVPP-EXPANSION.6a: the deferred population re-read (arm 3)
-[ -f "$CTX_TOOL" ] && [ -f "$REPORT_TOOL" ] && [ -f "$READJ_TOOL" ] || { echo "$TAG: REFUSE — $CTX_TOOL, $REPORT_TOOL or $READJ_TOOL is missing" >&2; exit 2; }
+CENSUS_TOOL=docs/tasks/artifacts/sv_corpus_grad/rejects_own_file_census/census.py   # SVPP-EXPANSION.6e (arm 4)
+[ -f "$CTX_TOOL" ] && [ -f "$REPORT_TOOL" ] && [ -f "$READJ_TOOL" ] && [ -f "$CENSUS_TOOL" ] || { echo "$TAG: REFUSE — $CTX_TOOL, $REPORT_TOOL, $READJ_TOOL or $CENSUS_TOOL is missing" >&2; exit 2; }
 
 run_arms() {
   local rc=0 out
@@ -65,6 +71,10 @@ run_arms() {
   out="$(python3 "$READJ_TOOL" --check 2>&1)"; local r3=$?
   if [ $r3 -ne 0 ]; then echo "$TAG: ✗ (3) READJUDICATION — $(printf '%s' "$out" | grep -E 'DRIFT|REFUSED' | tail -1 | cut -c1-200)" >&2; rc=1
   else echo "$TAG: (3) READJUDICATION — $(printf '%s' "$out" | grep -E '^PIPELINE-READJUDICATION: (OK|NOT EVALUATED)' | tail -1 | cut -c1-160)"; fi
+  # arm (4) — SVPP-EXPANSION.6e: the rejects-own-file census's identity names the table and dumps on disk
+  out="$(python3 "$CENSUS_TOOL" --check 2>&1)"; local r4=$?
+  if [ $r4 -ne 0 ]; then echo "$TAG: ✗ (4) REJECTS-OWN-FILE CENSUS — $(printf '%s' "$out" | grep -E 'DRIFT|REFUSED|no tracked' | tail -1 | cut -c1-200)" >&2; rc=1
+  else echo "$TAG: (4) REJECTS-OWN-FILE CENSUS — $(printf '%s' "$out" | grep -E '^REJECTS-OWN-FILE-CENSUS: (OK|NOT EVALUATED)' | tail -1 | cut -c1-160)"; fi
   return $rc
 }
 
@@ -102,10 +112,16 @@ PY
     sed -i.tmp '2s/\t[a-z_:]*\t\([^\t]*\)$/\tselftest_edited\t\1/' "$READJ" && rm -f "$READJ.tmp"
     if run_arms >/dev/null 2>&1; then echo "  FAIL E an edited re-adjudication verdict was NOT refused"; fails=$((fails+1)); else echo "  PASS E an edited re-adjudication verdict is refused"; fi
     cp "$READJ.selftest.bak" "$READJ"
+    # arm F — RED: the census's recorded identity for the re-adjudication table no longer hashes (SVPP-EXPANSION.6e):
+    # the table is edited in a way arm (3) does not see (a trailing comment line) so only arm (4) can refuse it
+    printf '# selftest\n' >> "$READJ"
+    f_out="$(run_arms 2>&1)"
+    if printf '%s' "$f_out" | grep -q '(4) REJECTS-OWN-FILE CENSUS — .*DRIFT'; then echo "  PASS F a re-adjudication table the census did not read is refused by arm (4)"; else echo "  FAIL F the census arm did not refuse a moved input"; fails=$((fails+1)); fi
+    cp "$READJ.selftest.bak" "$READJ"
   else
-    echo "  SKIP C/D/E (no dump on this tree — the arms need one to mutate)"
+    echo "  SKIP C/D/E/F (no dump on this tree — the arms need one to mutate)"
   fi
-  echo "$TAG-SELF-TEST: arms=$([ -f "$DUMP" ] && echo 5 || echo 2) failed=$fails"
+  echo "$TAG-SELF-TEST: arms=$([ -f "$DUMP" ] && echo 6 || echo 2) failed=$fails"
   [ $fails -eq 0 ] || exit 7
   exit 0
 fi
