@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7477621f.js";
+            window.path_to_searchindex_js = "searchindex-caa991ed.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -705,6 +705,21 @@ corpus tree (legal-looking text the parser refuses, with the clause), a key ques
 refuse and the row’s expectation is what needs a ruling), an expansion-stage rule not yet implemented. A
 disposition for a row that has since moved is refused, so the table cannot carry a stale claim. Every refuted
 row carries one; the report’s <code>refuted_awaiting_disposition</code> is the count still to be looked at.</p>
+<p><strong>The rows the raw key deferred to this lane by design (<code>.6c.3</code>, 2026-10-06).</strong> The raw answer key files a
+sv-tests test whose header says <code>:type: preprocessing</code> as <code>deferred:svpp_owned</code> — <em>“conformance owned by
+the preprocessor lane”</em> — and the preprocess→parse lane IS that lane. Its re-adjudication now reads those
+rows’ expectation the way the raw key reads every other sv-tests row, through the key’s own function in
+its pipeline mode: a <code>:should_fail_because:</code> header means must_reject, its absence means must_accept. Of
+the 94 such rows on the 2026-10-06 reading, <strong>86 positive tests parse once preprocessed</strong> (<code>svpp_owned: corroborated</code>), 4 should-fail tests are refused by the preprocessor with a clause-cited code (<code>E_SVPP_*</code>:
+the rejection the header expects, at the expansion stage), 2 are rejected in their own text as expected —
+and <strong>2 should-fail tests the pipeline ACCEPTS</strong>: the standard’s own illegal example of a macro text split
+across a string literal (<code>22.5.1--define-expansion_21.sv</code>, §22.5.1 <em>“shall not be split across the
+following lexical tokens: … String literals”</em>) and the redefinition of a compiler directive as a macro name
+(<code>22.5.1--define-expansion_23.sv</code>, <code>`define define "illegal"</code>, §22.5.1 <em>“it shall be illegal to redefine
+a compiler directive as a macro name”</em>). Both are over-acceptances of the preprocessor, on the bar under
+the pipeline (its fifth number reads 2) until <code>SVPP-EXPANSION.5</code>(s) and (t) land. The other suites’
+svpp-owned rows (22 accepted, 28 rejected, 25 refused) have no header convention derived yet and keep no
+verdict.</p>
 <p><strong>The file’s own configuration (<code>.4c.1</code>).</strong> A test suite’s driver does not run a file bare: verilator’s
 <code>t_x.py</code> passes <code>+define+NAME[=VALUE]</code> / <code>-DNAME[=VALUE]</code>, sv-tests’ header carries <code>:defines:</code>. The
 derived context now includes them per file (<code>stimuli/sv/pipeline_context_defines.tsv</code>, 55 rows on 48 files:

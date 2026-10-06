@@ -177,7 +177,9 @@ PIPELINE_CLASSES = {
                                                    "already counts it)"),
     "must_reject:hollow": ("NO VERDICT", "the rejection lands in an included file"),
     "must_reject:refused_context": ("NO VERDICT", "refused for a context gap"),
-    "must_reject:refused_engine": ("NO VERDICT", "refused by the preprocessor"),
+    "must_reject:refused_engine": ("ADJUDICATED", "a must-reject row the PREPROCESSOR refuses by a rule of its own "
+                                                  "(E_SVPP_* / an invalid directive, each naming its clause) — the "
+                                                  "rejection the key expects, at the expansion stage (SVPP-EXPANSION.6c.3)"),
     "chained:accepted_under_expansion": ("ADJUDICATED", "a design-corpus file ACCEPTED under its derived context — "
                                                         "must-accept by the suite convention (a shipping design's "
                                                         "file is valid as part of its unit); outside DESIGN_SUITES the "
@@ -199,13 +201,21 @@ PIPELINE_CLASSES = {
     "chained:hollow": ("NO VERDICT", "the rejection lands in an included file"),
     "chained:refused_context": ("NO VERDICT", "an include the derived context cannot supply"),
     "chained:refused_engine": ("NO VERDICT", "refused by the preprocessor"),
-    "svpp_owned:accepted_under_expansion": ("NO VERDICT", "conformance owned by the preprocessor lane; accepted"),
+    "svpp_owned:accepted_under_expansion": ("NO VERDICT", "conformance owned by the preprocessor lane; accepted — and "
+                                                          "no expectation derived yet for this suite (.6c.3 derives "
+                                                          "sv-tests'; the rest keep NO VERDICT)"),
+    "svpp_owned:corroborated": ("ADJUDICATED", "a svpp-owned row whose own header says must_accept (sv-tests "
+                                               ":type: preprocessing, no :should_fail_because:) PASSES under the "
+                                               "pipeline — the preprocessor lane answering the question the raw key "
+                                               "deferred to it by design (SVPP-EXPANSION.6c.3)"),
+    "svpp_owned:refuted": ("NO VERDICT", "a svpp-owned row whose own header says must_accept still fails in its own "
+                                         "text under the pipeline — a defect candidate awaiting its disposition (.6c.3)"),
     "svpp_owned:rejects_own_file": ("NO VERDICT", "conformance owned by the preprocessor lane; rejected"),
     "svpp_owned:hollow": ("NO VERDICT", "conformance owned by the preprocessor lane"),
     "svpp_owned:refused_context": ("NO VERDICT", "conformance owned by the preprocessor lane"),
     "svpp_owned:refused_engine": ("NO VERDICT", "conformance owned by the preprocessor lane"),
 }
-PIPELINE_BAR_CLASSES = {"pipeline:refuted:parser_question"}
+PIPELINE_BAR_CLASSES = {"pipeline:refuted:parser_question", "pipeline:must_reject:accepts_invalid"}
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pipeline_context import DESIGN_SUITES  # noqa: E402  — ONE definition (SVPP-EXPANSION.6d.1)
 
@@ -243,10 +253,12 @@ def pipeline_reading(rows, readj):
             bucket, _why = PIPELINE_CLASSES[verdict]
             if verdict in ("chained:accepted_under_expansion", "chained:accepted_in_unit") and r["suite"] not in DESIGN_SUITES:
                 bucket = "NO VERDICT"
-            if verdict == "must_reject:accepts_invalid":
+            if verdict == "must_reject:accepts_invalid" and raw_cls.startswith("divergence:"):
                 cls = raw_cls                      # already the raw bar's row; no double count
                 bucket = CLASSES[raw_cls][0]
             else:
+                # `.6c.3`: a must-reject row the raw lane DEFERRED (svpp_owned / chained_only) that the pipeline
+                # ACCEPTS is an over-acceptance the raw bar never counted — it is the PIPELINE's bar row
                 cls = "pipeline:" + verdict
             counts[cls] += 1
             by_bucket[bucket] += 1

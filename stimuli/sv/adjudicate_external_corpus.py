@@ -1947,7 +1947,12 @@ def _self_check_arm_split():
                          "keep today's answer (SV-CORPUS-GRAD.12c.3 F3)")
 
 
-def expect_sv_tests(relpath: str, text: str):
+def expect_sv_tests(relpath: str, text: str, lane: str = "raw"):
+    """The sv-tests expectation from the file's own header. `lane="raw"` (the answer key) defers a
+    `:type: preprocessing` test to the preprocessor lane; `lane="pipeline"` (SVPP-EXPANSION.6c.3, the
+    preprocess→parse lane's re-adjudication) IS that lane and judges it by the same header rule the
+    other types get: `:should_fail_because:` present → must_reject, absent → must_accept. One
+    function, one convention; the raw manifests are unchanged by the parameter."""
     if relpath in SVTESTS_PINNED:
         return SVTESTS_PINNED[relpath]
     fields = sv_tests_metadata(text)
@@ -1956,6 +1961,12 @@ def expect_sv_tests(relpath: str, text: str):
     types = set(fields.get("type", "").split())
     should_fail = "should_fail_because" in fields
     if "preprocessing" in types:
+        if lane == "pipeline":
+            if should_fail:
+                return ("must_reject", "sv-tests: :should_fail_because: with :type: preprocessing — judged under "
+                                       "the preprocess→parse lane (SVPP-EXPANSION.6c.3)")
+            return ("must_accept", "sv-tests: positive :type: preprocessing test — judged under the "
+                                   "preprocess→parse lane (SVPP-EXPANSION.6c.3)")
         return ("out_of_scope_with_cause",
                 "sv-tests: :type: includes preprocessing - svpp-owned conformance "
                 "(SVPP-EXPANSION lane)")

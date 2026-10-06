@@ -542,6 +542,23 @@ refuse and the row's expectation is what needs a ruling), an expansion-stage rul
 disposition for a row that has since moved is refused, so the table cannot carry a stale claim. Every refuted
 row carries one; the report's `refuted_awaiting_disposition` is the count still to be looked at.
 
+**The rows the raw key deferred to this lane by design (`.6c.3`, 2026-10-06).** The raw answer key files a
+sv-tests test whose header says `:type: preprocessing` as `deferred:svpp_owned` — *"conformance owned by
+the preprocessor lane"* — and the preprocess→parse lane IS that lane. Its re-adjudication now reads those
+rows' expectation the way the raw key reads every other sv-tests row, through the key's own function in
+its pipeline mode: a `:should_fail_because:` header means must_reject, its absence means must_accept. Of
+the 94 such rows on the 2026-10-06 reading, **86 positive tests parse once preprocessed** (`svpp_owned:
+corroborated`), 4 should-fail tests are refused by the preprocessor with a clause-cited code (`E_SVPP_*`:
+the rejection the header expects, at the expansion stage), 2 are rejected in their own text as expected —
+and **2 should-fail tests the pipeline ACCEPTS**: the standard's own illegal example of a macro text split
+across a string literal (`22.5.1--define-expansion_21.sv`, §22.5.1 *"shall not be split across the
+following lexical tokens: … String literals"*) and the redefinition of a compiler directive as a macro name
+(`22.5.1--define-expansion_23.sv`, `` `define define "illegal" ``, §22.5.1 *"it shall be illegal to redefine
+a compiler directive as a macro name"*). Both are over-acceptances of the preprocessor, on the bar under
+the pipeline (its fifth number reads 2) until `SVPP-EXPANSION.5`(s) and (t) land. The other suites'
+svpp-owned rows (22 accepted, 28 rejected, 25 refused) have no header convention derived yet and keep no
+verdict.
+
 **The file's own configuration (`.4c.1`).** A test suite's driver does not run a file bare: verilator's
 `t_x.py` passes `+define+NAME[=VALUE]` / `-DNAME[=VALUE]`, sv-tests' header carries `:defines:`. The
 derived context now includes them per file (`stimuli/sv/pipeline_context_defines.tsv`, 55 rows on 48 files:

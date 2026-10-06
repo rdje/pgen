@@ -255,32 +255,35 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 ## Under the PIPELINE — the same rows re-read through preprocess→parse (SVPP-EXPANSION.6c.1)
 
-> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`e6cac4f2f89285e4e6dc86b4175b3b1552e6515ec6f204364e1b50114b87501c`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
+> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`b83b557d1478f8d160e662e13417afe319184e5ce85175cad363d3df6ad00bfb`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
 
-**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11176/2606/2554/1267/0`** (raw: `7485/2606/6245/3864/0`).
+**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11270/2606/2460/1261/2`** (raw: `7485/2606/6245/3864/0`).
 
-- **ADJUDICATED: 11,176 rows (68.4 %)** (raw 7,485, +3,691)
+- **ADJUDICATED: 11,270 rows (69.0 %)** (raw 7,485, +3,785)
 - **ROUTED: 2,606 rows (16.0 %)** (raw 2,606, +0)
-- **NO VERDICT: 2,554 rows (15.6 %)** (raw 6,245, -3,691)
+- **NO VERDICT: 2,460 rows (15.1 %)** (raw 6,245, -3,785)
 
 | bucket | class under the pipeline | rows | % | why |
 |---|---|---:|---:|---|
 | ADJUDICATED | `match` | 5,698 | 34.9 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `pipeline:corroborated` | 1,334 | 8.2 % | a must-accept row the raw lane explained away by preprocessing PASSES once preprocessed — the explanation held; the row testifies FOR the parser |
-| ADJUDICATED | `pipeline:must_reject:match_under_expansion` | 451 | 2.8 % | a row the key expects rejected IS rejected in its own text under the pipeline — the raw lane could not reach the construct |
+| ADJUDICATED | `pipeline:must_reject:match_under_expansion` | 453 | 2.8 % | a row the key expects rejected IS rejected in its own text under the pipeline — the raw lane could not reach the construct |
+| ADJUDICATED | `pipeline:svpp_owned:corroborated` | 86 | 0.5 % | a svpp-owned row whose own header says must_accept (sv-tests :type: preprocessing, no :should_fail_because:) PASSES under the pipeline — the preprocessor lane answering the question the raw key deferred to it by design (SVPP-EXPANSION.6c.3) |
 | ADJUDICATED | `divergence:explained_store_gate` | 54 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
+| ADJUDICATED | `pipeline:must_reject:refused_engine` | 4 | 0.0 % | a must-reject row the PREPROCESSOR refuses by a rule of its own (E_SVPP_* / an invalid directive, each naming its clause) — the rejection the key expects, at the expansion stage (SVPP-EXPANSION.6c.3) |
+| ADJUDICATED | `pipeline:must_reject:accepts_invalid` | 2 | 0.0 % | invalid SV the parser accepts (the axis-2 bar; the raw class already counts it) |
 | ROUTED | `deferred:v2005_profile_lane` | 2,606 | 16.0 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
 | NO VERDICT | `deferred:no_sv_key` | 596 | 3.6 % | no upstream answer key exists - expectation underivable |
 | NO VERDICT | `pipeline:chained:unreached_in_unit` | 498 | 3.0 % | DARK UNDER THE PIPELINE: a member whose every including unit rejects elsewhere (.6d.2) — the unit's own origin row carries the verdict |
 | NO VERDICT | `deferred:not_source_text` | 350 | 2.1 % | the file is not SystemVerilog source text at all (a $readmemh memory image, a bare string literal, a tool command line) - it testifies to nothing about the parser; a CORPUS-COMPOSITION fact, stated per row (SV-CORPUS-GRAD.13c.1) |
 | NO VERDICT | `pipeline:chained:rejects_own_file` | 277 | 1.7 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |
 | NO VERDICT | `pipeline:chained:refused_context` | 208 | 1.3 % | an include the derived context cannot supply |
-| NO VERDICT | `pipeline:svpp_owned:accepted_under_expansion` | 110 | 0.7 % | conformance owned by the preprocessor lane; accepted |
 | NO VERDICT | `deferred:impl_varying` | 90 | 0.6 % | LRM leaves the behaviour implementation-defined |
-| NO VERDICT | `pipeline:svpp_owned:rejects_own_file` | 30 | 0.2 % | conformance owned by the preprocessor lane; rejected |
-| NO VERDICT | `pipeline:svpp_owned:refused_engine` | 29 | 0.2 % | conformance owned by the preprocessor lane |
+| NO VERDICT | `pipeline:svpp_owned:rejects_own_file` | 28 | 0.2 % | conformance owned by the preprocessor lane; rejected |
 | NO VERDICT | `pipeline:chained:hollow` | 26 | 0.2 % | the rejection lands in an included file |
 | NO VERDICT | `deferred:verilog_ams_lane` | 25 | 0.2 % | Verilog-AMS, a different language family |
+| NO VERDICT | `pipeline:svpp_owned:refused_engine` | 25 | 0.2 % | conformance owned by the preprocessor lane |
+| NO VERDICT | `pipeline:svpp_owned:accepted_under_expansion` | 22 | 0.1 % | conformance owned by the preprocessor lane; accepted — and no expectation derived yet for this suite (.6c.3 derives sv-tests'; the rest keep NO VERDICT) |
 | NO VERDICT | `pipeline:chained:refused_engine` | 12 | 0.1 % | refused by the preprocessor |
 | NO VERDICT | `pipeline:refuted:vendor_identity_branch` | 9 | 0.1 % | the file's portable branch is the vendor's own `` `error `` stub behind its identity macro — a fact about the row's context |
 | NO VERDICT | `pipeline:refuted:driver_define` | 7 | 0.0 % | the suite's driver defines the macro on its command line (.4c) |

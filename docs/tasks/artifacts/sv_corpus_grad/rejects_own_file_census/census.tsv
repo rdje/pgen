@@ -30,8 +30,6 @@ opentitan	hw/top_earlgrey/rtl/autogen/chip_earlgrey_asic.sv	raw_backtick	662	sti
 opentitan	hw/top_earlgrey/rtl/autogen/chip_earlgrey_cw340.sv	raw_backtick	2409	stimuli/sv/subs/opentitan/hw/top_earlgrey/rtl/autogen/chip_earlgrey_cw340.sv:55:1	`INOUT_AO	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/top_englishbreakfast/dv/verilator/chip_sim_tb.sv	raw_backtick	6968	stimuli/sv/subs/opentitan/hw/top_englishbreakfast/dv/verilator/chip_sim_tb.sv:203:42	`VERILATOR_TEST_STATUS_ADDR	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/tb/core_ibex_tb_top.sv	raw_backtick	11839	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/tb/core_ibex_tb_top.sv:75:48	h	other	fail	fail	0	chained:rejects_own_file
-sv-tests	tests/chapter-22/22.3--resetall_illegal.sv	raw_backtick	554	stimuli/sv/subs/sv-tests/tests/chapter-22/22.3--resetall_illegal.sv:18:15	`resetall	other	fail	fail	0	svpp_owned:rejects_own_file
-sv-tests	tests/chapter-22/22.5.1--define-expansion_18.sv	raw_backtick	495	stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_18.sv:18:15	`MACRO3	other	fail	fail	0	svpp_owned:rejects_own_file
 sv2v	test/core/typename_deep.svh	raw_backtick	12	stimuli/sv/subs/sv2v/test/core/typename_deep.svh:11:12	`TEST_INNER	other	fail	fail	2	chained:rejects_own_file
 sv2v	test/error/double_backtick.sv	raw_backtick	77	stimuli/sv/subs/sv2v/test/error/double_backtick.sv:3:12	`	other	fail	fail	0	svpp_owned:rejects_own_file
 sv2v	test/error/stray_escaped_vendor_comment.sv	raw_backtick	90	stimuli/sv/subs/sv2v/test/error/stray_escaped_vendor_comment.sv:3:12	/	other	fail	fail	0	svpp_owned:rejects_own_file

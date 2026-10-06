@@ -7,17 +7,17 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 
 | input | path | sha256 |
 |---|---|---|
-| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `e6cac4f2f89285e4e6dc86b4175b3b1552e6515ec6f204364e1b50114b87501c` |
+| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `b83b557d1478f8d160e662e13417afe319184e5ce85175cad363d3df6ad00bfb` |
 | sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `612b2a24b9d06c19f04a4aab93106b0ee4990ee930376e82767346defb9c2254` |
 | sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `10ca5fce7dfa4510a0e44783357b7c8dc4b86c2ff823b754e33baff9f1e6d265` |
 | sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `e2551e4773a283c708d02b62983f937813335d6705f92f613a0cd921ead10443` |
 | expansion binary | `rust/target/debug/ast_pipeline` | `edf4581044ca91173c2d3f24c8b246ea31b1aed8445e1a2864481bd0df5805a1` |
 
-## The classes — 307 rows
+## The classes — 305 rows
 
 | class | rows | what it means |
 |---|---:|---|
-| `raw_backtick` | 44 | the expanded text at the stop begins with a backtick: an undefined macro reached the parser — CONTEXT, not syntax |
+| `raw_backtick` | 42 | the expanded text at the stop begins with a backtick: an undefined macro reached the parser — CONTEXT, not syntax |
 | `base_class` | 143 | a class header with a base class the parser has not seen declared — the cross-file declaration barrier |
 | `edition_2023` | 4 | the same row passes under the `sv_2023` reading — the 2017 rejection is the older text's |
 | `tolerated_spelling` | 5 | the same row passes under `sv_2023_tolerant` only — a spelling of the opt-in profile's closed list |
@@ -30,7 +30,7 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `undeclared_type` | 11 | a declaration whose type is an identifier the parser has not seen declared — the cross-file barrier in data position |
 | `residue` | 26 | none of the above — adjudicated one by one below |
 
-## `raw_backtick` — 44 rows, by the macro the context did not define
+## `raw_backtick` — 42 rows, by the macro the context did not define
 
 | macro | rows | files |
 |---|---:|---|
@@ -40,7 +40,6 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `` `VERILATOR_TEST_STATUS_ADDR `` | 3 | opentitan:chip_sim_tb.sv, opentitan:chip_sim_tb.sv, opentitan:chip_sim_tb.sv |
 | `` `MEM_BKDR_UTIL_FILE_OP `` | 2 | opentitan:tb.sv, opentitan:tb.sv |
 | `` `NUM_END_POINTS `` | 2 | opentitan:edn_cov_if.sv, opentitan:tb.sv |
-| `` `resetall `` | 2 | sv-tests:22.3--resetall_illegal.sv, verilator:t_pp_resetall_bad.v |
 | `/` | 1 | sv2v:stray_escaped_vendor_comment.sv |
 | `` `DATA_LENGTH `` | 1 | opentitan:aes_tb.sv |
 | `` `EN_GCM `` | 1 | opentitan:aes_cov_if.sv |
@@ -48,7 +47,6 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `` `INOUT_AO `` | 1 | opentitan:chip_earlgrey_cw340.sv |
 | `` `INSTR_EXEC `` | 1 | opentitan:tb.sv |
 | `` `LDI `` | 1 | verilator:rom.sv |
-| `` `MACRO3 `` | 1 | sv-tests:22.5.1--define-expansion_18.sv |
 | `` `NDEFINED `` | 1 | verilator:t_pp_misdef_bad.v |
 | `` `NUM_REQUESTS `` | 1 | opentitan:aes_tb_reqs.sv |
 | `` `SB `` | 1 | friscv:friscv_memfy_h.sv |
@@ -61,6 +59,7 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `` `bp_aviary_define_override `` | 1 | black-parrot:bp_common_aviary_cfg_pkgdef.svh |
 | `` `bp_cce_inst_data_width `` | 1 | black-parrot:bp_me_cce_inst_pkgdef.svh |
 | `` `error `` | 1 | verilator:t_preproc_undefineall.v |
+| `` `resetall `` | 1 | verilator:t_pp_resetall_bad.v |
 | `h` | 1 | opentitan:core_ibex_tb_top.sv |
 
 ## `fragment` — 55 rows, by the token at the stop

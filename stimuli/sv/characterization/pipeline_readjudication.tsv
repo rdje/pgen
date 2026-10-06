@@ -5109,86 +5109,86 @@ sv-tests	tests/chapter-18/18.8--disabling-random-variables-with-rand_mode_5.sv	d
 sv-tests	tests/chapter-18/18.9--controlling-constraints-with-constraint_mode_0.sv	divergence:explained_svpp_include	IN-WINDOW	pass	-		-	corroborated	
 sv-tests	tests/chapter-18/18.9--controlling-constraints-with-constraint_mode_2.sv	divergence:explained_svpp_include	IN-WINDOW	pass	-		-	corroborated	
 sv-tests	tests/chapter-20/20.14--coverage.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-sv-tests	tests/chapter-22/22.10--celldefine-basic-1.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.10--celldefine-basic-2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.11--pragma-basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.11--pragma-complex.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+sv-tests	tests/chapter-22/22.10--celldefine-basic-1.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.10--celldefine-basic-2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.11--pragma-basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.11--pragma-complex.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
 sv-tests	tests/chapter-22/22.11--pragma-invalid.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-22/22.11--pragma-invalid.sv:17:8
-sv-tests	tests/chapter-22/22.11--pragma-nested.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.11--pragma-number-multi.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.11--pragma-number.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.12--line-basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.12--line-complex.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+sv-tests	tests/chapter-22/22.11--pragma-nested.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.11--pragma-number-multi.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.11--pragma-number.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.12--line-basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.12--line-complex.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
 sv-tests	tests/chapter-22/22.12--line-illegal-1.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-1.sv:17:19
 sv-tests	tests/chapter-22/22.12--line-illegal-2.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-2.sv:17:8
 sv-tests	tests/chapter-22/22.12--line-illegal-3.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-3.sv:17:6
 sv-tests	tests/chapter-22/22.12--line-illegal-4.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-4.sv:17:19
 sv-tests	tests/chapter-22/22.12--line-illegal-5.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-5.sv:17:8
-sv-tests	tests/chapter-22/22.3--resetall_basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.3--resetall_illegal.sv	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/sv-tests/tests/chapter-22/22.3--resetall_illegal.sv:18:15
-sv-tests	tests/chapter-22/22.3--resetall_multiple.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.4--check_included_definitions.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.4--include_basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.4--include_basic_rpath.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.4--include_from_other_directory.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.4--include_via_define.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.4--include_with_comment.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_1.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_10.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_11.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_12.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_12.sv:19: `MACRO1 invoked with 1 of 3 arguments and formal 'c' ha
-sv-tests	tests/chapter-22/22.5.1--define-expansion_13.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_14.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_15.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_16.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_17.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_18.sv	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_18.sv:18:15
-sv-tests	tests/chapter-22/22.5.1--define-expansion_19.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_20.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_21.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_22.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_23.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_24.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_25.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_26.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_3.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_4.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_5.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define-expansion_6.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_6.sv:19: `D invoked with 1 of 2 arguments and formal 'y' has no d
-sv-tests	tests/chapter-22/22.5.1--define-expansion_7.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_7.sv:18: `D invoked with 1 of 2 arguments and formal 'y' has no d
-sv-tests	tests/chapter-22/22.5.1--define-expansion_8.sv	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	E_SVPP_EXTRA_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_8.sv:18: `D invoked with 3 arguments for 2 formals — IEEE 1800-20
-sv-tests	tests/chapter-22/22.5.1--define-expansion_9.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--define_and_resetall.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.1--include-define-expansion.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.2--undef-basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.2--undef-nonexisting.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.3--undefineall-and-redefine.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.5.3--undefineall-basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.6--ifdef-behavioral.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.6--ifdef-chained-nested.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.6--ifdef-nested.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.7--timescale-basic-1.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.7--timescale-basic-2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+sv-tests	tests/chapter-22/22.3--resetall_basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.3--resetall_illegal.sv	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-22/22.3--resetall_illegal.sv:18:15
+sv-tests	tests/chapter-22/22.3--resetall_multiple.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.4--check_included_definitions.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.4--include_basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.4--include_basic_rpath.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.4--include_from_other_directory.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.4--include_via_define.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.4--include_with_comment.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_1.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_10.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_11.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_12.sv	deferred:svpp_owned	pinned, raw lane demoted	pp_fail	engine		-	must_reject:refused_engine	E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_12.sv:19: `MACRO1 invoked with 1 of 3 arguments and formal 'c' ha
+sv-tests	tests/chapter-22/22.5.1--define-expansion_13.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_14.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_15.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_16.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_17.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_18.sv	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_18.sv:18:15
+sv-tests	tests/chapter-22/22.5.1--define-expansion_19.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_20.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_21.sv	deferred:svpp_owned	pinned, raw lane demoted	pass	-		-	must_reject:accepts_invalid	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_22.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_23.sv	deferred:svpp_owned	pinned, raw lane demoted	pass	-		-	must_reject:accepts_invalid	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_24.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_25.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_26.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_3.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_4.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_5.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define-expansion_6.sv	deferred:svpp_owned	pinned, raw lane demoted	pp_fail	engine		-	must_reject:refused_engine	E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_6.sv:19: `D invoked with 1 of 2 arguments and formal 'y' has no d
+sv-tests	tests/chapter-22/22.5.1--define-expansion_7.sv	deferred:svpp_owned	pinned, raw lane demoted	pp_fail	engine		-	must_reject:refused_engine	E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_7.sv:18: `D invoked with 1 of 2 arguments and formal 'y' has no d
+sv-tests	tests/chapter-22/22.5.1--define-expansion_8.sv	deferred:svpp_owned	pinned, raw lane demoted	pp_fail	engine		-	must_reject:refused_engine	E_SVPP_EXTRA_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_8.sv:18: `D invoked with 3 arguments for 2 formals — IEEE 1800-20
+sv-tests	tests/chapter-22/22.5.1--define-expansion_9.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--define_and_resetall.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.1--include-define-expansion.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.2--undef-basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.2--undef-nonexisting.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.3--undefineall-and-redefine.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.5.3--undefineall-basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.6--ifdef-behavioral.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.6--ifdef-chained-nested.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.6--ifdef-nested.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.7--timescale-basic-1.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.7--timescale-basic-2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
 sv-tests	tests/chapter-22/22.7--timescale-basic-3.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-22/22.7--timescale-basic-3.sv:17:11
-sv-tests	tests/chapter-22/22.7--timescale-module.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.7--timescale-reset.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.8--default_nettype-redefinition.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.8--default_nettype.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.9--unconnected_drive-basic-2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/22.9--unconnected_drive-basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+sv-tests	tests/chapter-22/22.7--timescale-module.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.7--timescale-reset.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.8--default_nettype-redefinition.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.8--default_nettype.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.9--unconnected_drive-basic-2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/22.9--unconnected_drive-basic.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
 sv-tests	tests/chapter-22/22.9--unconnected_drive-invalid-1.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-22/22.9--unconnected_drive-invalid-1.sv:17:19
 sv-tests	tests/chapter-22/22.9--unconnected_drive-invalid-2.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-22/22.9--unconnected_drive-invalid-2.sv:17:19
 sv-tests	tests/chapter-22/22.9--unconnected_drive-invalid-3.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-22/22.9--unconnected_drive-invalid-3.sv:18:21
-sv-tests	tests/chapter-22/dummy_include.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/chapter-22/include_directory/defs.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+sv-tests	tests/chapter-22/dummy_include.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/chapter-22/include_directory/defs.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
 sv-tests	tests/chapter-5/5.6--wrong-identifiers.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-5/5.6--wrong-identifiers.sv:17:6
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-begin-keywords.sv	divergence:explained_svpp_keywords_region	not-in-audit	pass	-		-	corroborated	
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-debug.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-sv-tests	tests/chapter-5/5.6.4--compiler-directives-preprocessor-macro_0.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-preprocessor-macro_0.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-preprocessor-macro_1.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-sv-tests	tests/chapter-5/5.6.4--compiler-directives-unconnected-drive.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+sv-tests	tests/chapter-5/5.6.4--compiler-directives-unconnected-drive.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
 sv-tests	tests/chapter-5/5.7.1--integers-signed-illegal.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-5/5.7.1--integers-signed-illegal.sv:20:11
 sv-tests	tests/chapter-5/5.7.1--integers-unsized-illegal.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-5/5.7.1--integers-unsized-illegal.sv:20:10
 sv-tests	tests/chapter-5/5.7.2-real-constants-illegal.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv-tests/tests/chapter-5/5.7.2-real-constants-illegal.sv:20:8
@@ -5205,35 +5205,35 @@ sv-tests	tests/generic/class/class_test_66.sv	divergence:explained_svpp_conditio
 sv-tests	tests/generic/class/class_test_67.sv	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv-tests	tests/generic/class/class_test_68.sv	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv-tests	tests/generic/class/class_test_69.sv	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-sv-tests	tests/generic/desc/desc_test_0.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_1.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_10.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_15.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_16.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_17.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_18.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_3.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_4.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_5.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_6.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_7.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_8.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/desc/desc_test_9.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/empty/empty_test_0.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/empty/empty_test_1.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/empty/empty_test_2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/empty/empty_test_3.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/empty/empty_test_4.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/empty/empty_test_5.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/preproc/preproc_test_0.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/preproc/preproc_test_2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+sv-tests	tests/generic/desc/desc_test_0.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_1.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_10.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_15.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_16.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_17.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_18.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_3.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_4.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_5.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_6.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_7.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_8.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/desc/desc_test_9.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/empty/empty_test_0.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/empty/empty_test_1.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/empty/empty_test_2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/empty/empty_test_3.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/empty/empty_test_4.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/empty/empty_test_5.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/preproc/preproc_test_0.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/preproc/preproc_test_2.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
 sv-tests	tests/generic/preproc/preproc_test_2.svh	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
-sv-tests	tests/generic/preproc/preproc_test_4.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/preproc/preproc_test_5.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/preproc/preproc_test_6.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/preproc/preproc_test_7.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
-sv-tests	tests/generic/preproc/preproc_test_8.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+sv-tests	tests/generic/preproc/preproc_test_4.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/preproc/preproc_test_5.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/preproc/preproc_test_6.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/preproc/preproc_test_7.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
+sv-tests	tests/generic/preproc/preproc_test_8.sv	deferred:svpp_owned	-	pass	-		-	svpp_owned:corroborated	
 sv-tests	tests/generic/typedef/typedef_test_25.sv	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv-tests	tests/generic/typedef/typedef_test_25__bad.sv	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv-tests	tests/generic/typedef/typedef_test_26.sv	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	

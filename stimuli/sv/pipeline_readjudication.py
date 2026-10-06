@@ -134,7 +134,10 @@ POPULATIONS = (
     ("chained_only", "multi-file design rows the raw lane could not judge (`deferred:chained_only`; "
                      "`.13c`'s strata, `.13d`'s expansion-owned rows)"),
     ("svpp_owned", "rows whose conformance the raw lane routed to the preprocessor lane "
-                   "(`deferred:svpp_owned`)"),
+                   "(`deferred:svpp_owned`) and for which this lane derives no expectation yet"),
+    ("svpp_owned_expected", "svpp_owned rows whose own header this lane reads as must_accept — sv-tests "
+                            "`:type: preprocessing` tests without `:should_fail_because:` (`.6c.3`, the answer "
+                            "key's own function in its pipeline mode); a should_fail header joins must_reject"),
     ("must_reject", "rows the answer key expects REJECTED — the manifest's `expected`, or a pin the raw "
                     "lane demoted (`.6b.1`); a pipeline pass here is an over-acceptance candidate"),
 )
@@ -186,15 +189,37 @@ def pinned_expected(suite: str, relpath: str) -> str | None:
     return None
 
 
+def svpp_owned_expected(suite: str, relpath: str) -> str | None:
+    """SVPP-EXPANSION.6c.3 — the expectation of a `deferred:svpp_owned` row UNDER THIS LANE, derived by the
+    answer key's own function in its pipeline mode: the raw key deferred a sv-tests `:type: preprocessing`
+    test to the preprocessor lane BY DESIGN; this lane is it, and the file's own header says what the
+    test expects. Other suites' svpp_owned rows have no derivation here yet (None: the row keeps its
+    expectation-free verdict). Never derived from the fix: the header is the suite's convention."""
+    if suite != "sv-tests":
+        return None
+    path = ROOT / "stimuli" / "sv" / "subs" / "sv-tests" / relpath
+    try:
+        text = path.read_text(errors="replace")
+    except OSError:
+        return None
+    expected, _basis = adj.expect_sv_tests(relpath, text, lane="pipeline")
+    return expected if expected in ("must_accept", "must_reject") else None
+
+
 def expected_of(m: list[str]) -> str:
     """The row's EXPECTED verdict: the manifest's column, unless a pin the raw lane demoted says
-    otherwise (the demotion rewrites the column to `out_of_scope_with_cause` but keeps the cite)."""
+    otherwise (the demotion rewrites the column to `out_of_scope_with_cause` but keeps the cite), or —
+    for a `deferred:svpp_owned` row — the derivation this lane owns (`svpp_owned_expected`)."""
     if m[3] == "must_reject":
         return "must_reject"
     # a demoted pin: macro/conditional-dependent rows demote to svpp_owned, `include-dependent
     # rows to chained_only (`reject_arm_demotion`, both arms) — the pin is the key's ruling either way
     if m[4] in ("deferred:svpp_owned", "deferred:chained_only") and pinned_expected(m[0], m[1]) == "must_reject":
         return "must_reject"
+    if m[4] == "deferred:svpp_owned":
+        derived = svpp_owned_expected(m[0], m[1])
+        if derived is not None:
+            return derived
     return m[3]
 
 
@@ -206,7 +231,9 @@ def population_of(raw_class: str, expected: str) -> str | None:
     if raw_class == "deferred:chained_only":
         return "chained_only"
     if raw_class == "deferred:svpp_owned":
-        return "svpp_owned"
+        # `.6c.3`: a svpp_owned row whose expectation THIS lane derives as must_accept is judged like an
+        # explained_svpp row (a must-accept row the raw lane could not reach): corroborated / refuted
+        return "svpp_owned_expected" if expected == "must_accept" else "svpp_owned"
     return None
 
 
@@ -227,16 +254,17 @@ def landing_of(status: str, repo_rel: str, origin: str) -> str:
 
 def verdict_of(population: str, status: str, landing: str) -> str:
     prefix = {"explained_svpp": "", "chained_only": "chained:", "svpp_owned": "svpp_owned:",
-              "must_reject": "must_reject:"}[population]
+              "svpp_owned_expected": "svpp_owned:", "must_reject": "must_reject:"}[population]
+    judged = population in ("explained_svpp", "svpp_owned_expected")   # a must-accept expectation exists
     if status == "pass":
         if population == "must_reject":
             return prefix + "accepts_invalid"
-        return prefix + ("corroborated" if population == "explained_svpp" else "accepted_under_expansion")
+        return prefix + ("corroborated" if judged else "accepted_under_expansion")
     if status == "fail":
         if landing == "own file":
             if population == "must_reject":
                 return prefix + "match_under_expansion"
-            return prefix + ("refuted" if population == "explained_svpp" else "rejects_own_file")
+            return prefix + ("refuted" if judged else "rejects_own_file")
         return prefix + "hollow"
     if status == "pp_fail":
         return prefix + ("refused_engine" if landing == "engine" else "refused_context")

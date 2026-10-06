@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-06 — SVPP-EXPANSION.6c.3 (`PGEN-SVPP-EXPANSION-0042`): a deferral "to lane X" is a promise lane X must cash
+
+- **Read the NO VERDICT bucket for rows that PASS.** A row that parses and counts for nothing is either a missing expectation or a missing derivation; 110 such rows sat in the pipeline tuple's dark side with a class whose own definition named the lane that should judge them — this one.
+- **Cash a deferral with the deferrer's own rule.** The raw key already reads sv-tests headers for every other test type; a parameter on that function, not a second copy of the rule, is what keeps two lanes from disagreeing about one header.
+- **The standard's own illegal examples are a conformance suite nobody skips.** The first over-acceptance the judged rows surfaced is the LRM's own `first_half` example, which the preprocessor had accepted since it existed; a positive-only corpus never shows an over-acceptance.
+- **A bare `:N` after a clause number is a Markdown line, not a plain-text one.** `LRM-CLAUSE-CITATION` judges `§X.Y `:N`` against the clause's `md/` twin; the `txt/` files the greps run on number differently. Three of today's citations were measured in `txt/` and written bare — two fell inside the right clause by coincidence, one (`:118`) fell in §22.4 and the doctrine refused the commit. Measure in `md/`, or cite the `txt/` path explicitly (which the census declines to judge rather than misjudges); the `.5`(r) citations of the previous commit were re-pointed at the `md/` lines here.
+- promotion: declined — the first is an instance of [[a-zero-in-a-census-can-mean-shadowed-not-absent-and-an-overlap-is-broken-by-a-guard-not-by-reordering]]'s family (a bucket read for what it hides); the second is the ONE-definition rule the lane already follows (`DESIGN_SUITES`); the third is the answer key's standing doctrine (the SPEC outranks the tool); the fourth is [[a-number-read-out-of-context-carries-a-frame-you-did-not-measure]] exactly (the doctrine's own founding card). Filed here until seen again.
+
 ## 2026-10-06 — SVPP-EXPANSION.5(r) (`PGEN-SVPP-EXPANSION-0041`): separate the two candidate causes with a repro pair before reading a word of the standard
 
 - **One failing line, two hypotheses, one byte of difference.** The Surelog line carried both a comment and trailing white space after its backslash. Two scratch files that differ only in the white space settled which one the stage trips on in seconds; the editions were then read for the cause that remained, not for both.
