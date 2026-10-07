@@ -10,12 +10,12 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `1defb08022e34c3887181a502ba1c50b7f00cb2bf6b843da3e47d46fadfeb511` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `3e45efe9f0d5424cdf8007c5131d802d5ad89d2cde94c90e585ad00c1cb38191` |
-| sv_2017 pipeline results | `stimuli/sv/characterization/pipeline_results.tsv` | `6d0eabec327e9697ab814c1304a9c0d5bc295fc9eac34abf78eb8ea52c470097` |
-| sv_2017 library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `6ffbf5c0ec404e84d8bd9d5961a5e1f5c881abc71b755cbf42dc9cc26017b6e9` |
-| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `dc0f74836f6ceabfdd20584c12ca69d4f07c1a08660ad850842a26f900428ac5` |
-| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `92de091b90faa66134a786fc39a8897c2a5f600e687b537be005fc4bb924ea42` |
+| parse binary | `rust/target/debug/parseability_probe` | `c94bd02e7490668a522fc8515d710dd3c107c73e47f84289aaa5bda8cc8e922a` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `315f3a2212a87f1cd155c982b88a8b21239582e3b11861cb4a0feba72969920a` |
+| sv_2017 pipeline results | `stimuli/sv/characterization/pipeline_results.tsv` | `3548541498ddf7415bc1b891ceb2988053b173d2a4ea1cd9e22e3d668d119e02` |
+| sv_2017 library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `d62c5ddd35eb2e94cd4e7823ba126042b9152f7ee0d1dabd347e9f04e64d4947` |
+| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `784da7c1cacdc244dac999e4f749eec1205b299095c3f3657999e90dc67abacf` |
+| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `a135bc20052923a30fd42cc1ef75f8c2174d5e336c1ff2c3e0878e6dc3080a37` |
 | unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023.tsv` | `acac7a118b3cfe26a207b0d1bf64e5758093b730c825a75122d3c7fb1b6c3c6c` |
 | sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `1103138dce422f9de09c1471262bf7dbeab98b46e5f32583d88b2f693050c485` |
 | sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `c196f707a1fdc43a664113eb663e99de004a82c4ac72754fb8929f2c1a7b91fe` |
@@ -27,15 +27,15 @@ The 2023 run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6`
 | reading | `pass` | `fail` | `pp_fail` | `timeout` | `crash` |
 |---|---:|---:|---:|---:|---:|
 | `sv_2017` | 12704 | 2997 | 635 | 0 | 0 |
-| `sv_2023` | 12744 | 2957 | 635 | 0 | 0 |
+| `sv_2023` | 12745 | 2956 | 635 | 0 | 0 |
 
 Rows joined: **16336**; only in the sv_2017 reading: **0**; only in the sv_2023 reading: **0** (a non-zero here is a population breach, not a verdict).
 
 | cell | rows | meaning |
 |---|---:|---|
 | `both_pass` | 12704 | parses under both editions |
-| `both_nonpass` | 3592 | parses under neither |
-| `2023_only_pass` | 40 | text the 2017 profile rejects and the 2023 profile accepts — adjudicated where the standard admits it |
+| `both_nonpass` | 3591 | parses under neither |
+| `2023_only_pass` | 41 | text the 2017 profile rejects and the 2023 profile accepts — adjudicated where the standard admits it |
 | `2017_only_pass` | 0 | a 2023-profile REGRESSION candidate — a parser question until adjudicated |
 
 ### Status pairs (sv_2017, sv_2023)
@@ -43,14 +43,15 @@ Rows joined: **16336**; only in the sv_2017 reading: **0**; only in the sv_2023 
 | sv_2017 | sv_2023 | rows |
 |---|---|---:|
 | `pass` | `pass` | 12704 |
-| `fail` | `fail` | 2957 |
+| `fail` | `fail` | 2956 |
 | `pp_fail` | `pp_fail` | 635 |
-| `fail` | `pass` | 40 |
+| `fail` | `pass` | 41 |
 
 ### Every row whose verdict differs
 
 | cell | suite | rows |
 |---|---|---:|
+| `2023_only_pass` | `friscv` | 1 |
 | `2023_only_pass` | `iverilog` | 20 |
 | `2023_only_pass` | `opentitan` | 3 |
 | `2023_only_pass` | `slang` | 1 |
@@ -60,6 +61,7 @@ The stop is the REJECTING reading's own origin and the source line there; the 20
 
 | cell | suite | relpath | stop (origin) | text at the stop | 2017 re-adjudication | 2023 key |
 |---|---|---|---|---|---|---|
+| `2023_only_pass` | `friscv` | `rtl/friscv_alu.sv` | `friscv_alu.sv:195:43` | `assign _srli = (shamt == 5'd01) ? {01'b0, alu_rs1_val[XLEN-1:01]} :` | `chained:rejects_own_file` | `chained_only / deferred:chained_only` |
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/begin_keywords_1800_2023.v` | `begin_keywords_1800_2023.v:3:16` | `` `begin_keywords "1800-2023" `` | `must_reject:match_under_expansion` | `must_accept / match` |
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/event_array.v` | `event_array.v:23:19` | `#1 ->my_event[0];` | `-` | `out_of_scope_with_cause:v2005_profile_lane / deferred:v2005_profile_lane` |
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/sv_soft_packed_union.v` | `sv_soft_packed_union.v:7:16` | `typedef union soft packed {` | `must_reject:match_under_expansion` | `must_accept / divergence:explained_svpp_macro_use` |

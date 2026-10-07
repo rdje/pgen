@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2c64ce12.js";
+            window.path_to_searchindex_js = "searchindex-e55f5b1c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -1010,10 +1010,13 @@ under an SV profile, an <code>if</code> arm of two statements without <code>begi
 synthesis cell <code>$_DLATCH_P_</code>), three more cross-file declaration barriers the mechanical shape test
 could not see, three non-SystemVerilog test inputs, one preprocessor question routed to <code>.5</code>(r) (a
 <code>`define</code> whose <code>// comment</code> line ends in a backslash), and five spellings the ecosystem accepts
-that no edition derives — <code>$fatal("…")</code> without its finish number, <code>#(.Param)</code> without
+that the census read as derived by no edition — <code>$fatal("…")</code> without its finish number, <code>#(.Param)</code> without
 parentheses, <code>static task</code> before the keyword outside a class, a size with a leading zero
-(<code>01'b0</code>), <code>#a.b</code> as a delay — recorded as candidates for the opt-in tolerance profile and not
-admitted.</p>
+(<code>01'b0</code>), <code>#a.b</code> as a delay — recorded as candidates for the opt-in tolerance profile. None was admitted:
+<code>SV-CORPUS-GRAD.46</code> measured them against the two tools on this host (<code>static task</code> refused by both — withdrawn;
+three accepted by one tool only — out), and the one every tool accepts, <code>01'b0</code>, turned out to be DERIVED by
+IEEE 1800-2023 (<code>size ::= unsigned_number</code>; <code>SV-CORPUS-GRAD.47</code>, release <code>1.0.251</code>): it parses under <code>sv_2023</code>
+as standard text, not as a tolerance, and friscv’s <code>rtl/friscv_alu.sv</code> passes under that reading.</p>
 <ul>
 <li>The seven curated real-design cases of the external-corpus triage gate (UVM’s two packages,
 scr1, friscv, VeeR) run through the single command with the manifest’s include directories:

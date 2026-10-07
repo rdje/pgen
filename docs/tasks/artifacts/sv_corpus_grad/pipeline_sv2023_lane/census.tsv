@@ -1,4 +1,5 @@
 kind	cell	suite	relpath	sv_2017	sv_2023	stop_origin	stop_text	readjudication_2017	key_2023	unit
+row	2023_only_pass	friscv	rtl/friscv_alu.sv	fail	pass	stimuli/sv/subs/friscv/rtl/friscv_alu.sv:195:43	assign _srli = (shamt == 5'd01) ? {01'b0, alu_rs1_val[XLEN-1:01]} :	chained:rejects_own_file	chained_only / deferred:chained_only	
 row	2023_only_pass	iverilog	ivtest/ivltests/begin_keywords_1800_2023.v	fail	pass	stimuli/sv/subs/iverilog/ivtest/ivltests/begin_keywords_1800_2023.v:3:16	`begin_keywords "1800-2023"	must_reject:match_under_expansion	must_accept / match	
 row	2023_only_pass	iverilog	ivtest/ivltests/event_array.v	fail	pass	stimuli/sv/subs/iverilog/ivtest/ivltests/event_array.v:23:19	#1 ->my_event[0];	-	out_of_scope_with_cause:v2005_profile_lane / deferred:v2005_profile_lane	
 row	2023_only_pass	iverilog	ivtest/ivltests/sv_soft_packed_union.v	fail	pass	stimuli/sv/subs/iverilog/ivtest/ivltests/sv_soft_packed_union.v:7:16	typedef union soft packed {	must_reject:match_under_expansion	must_accept / divergence:explained_svpp_macro_use	

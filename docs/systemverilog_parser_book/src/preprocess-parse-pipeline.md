@@ -863,10 +863,13 @@ under an SV profile, an `if` arm of two statements without `begin`/`end`, a modu
 synthesis cell `$_DLATCH_P_`), three more cross-file declaration barriers the mechanical shape test
 could not see, three non-SystemVerilog test inputs, one preprocessor question routed to `.5`(r) (a
 `` `define `` whose `// comment` line ends in a backslash), and five spellings the ecosystem accepts
-that no edition derives — `$fatal("…")` without its finish number, `#(.Param)` without
+that the census read as derived by no edition — `$fatal("…")` without its finish number, `#(.Param)` without
 parentheses, `static task` before the keyword outside a class, a size with a leading zero
-(`01'b0`), `#a.b` as a delay — recorded as candidates for the opt-in tolerance profile and not
-admitted.
+(`01'b0`), `#a.b` as a delay — recorded as candidates for the opt-in tolerance profile. None was admitted:
+`SV-CORPUS-GRAD.46` measured them against the two tools on this host (`static task` refused by both — withdrawn;
+three accepted by one tool only — out), and the one every tool accepts, `01'b0`, turned out to be DERIVED by
+IEEE 1800-2023 (`size ::= unsigned_number`; `SV-CORPUS-GRAD.47`, release `1.0.251`): it parses under `sv_2023`
+as standard text, not as a tolerance, and friscv's `rtl/friscv_alu.sv` passes under that reading.
 
 - The seven curated real-design cases of the external-corpus triage gate (UVM's two packages,
   scr1, friscv, VeeR) run through the single command with the manifest's include directories:

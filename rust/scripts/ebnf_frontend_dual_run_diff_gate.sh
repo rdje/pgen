@@ -203,7 +203,15 @@ envelope_divergence_ceiling() {
         # the inline blind-spot pair (`semantic_annotation_inline` vs `semantic_annotation`, payload `sample`)
         # at the rule-head `@sample: "a.b.c"` of tolerated_bins_expression_hierarchical, the same class as its
         # sibling tolerated_cross_item_hierarchical; that class 17 -> 18, every other class count unchanged.
-        systemverilog) echo 201 ;;
+        # 201 -> 203 by SV-CORPUS-GRAD.47 (release 1.0.251, the size token split by edition), ATTRIBUTED the same
+        # way (the 1.0.250 grammar against the release's, one tool build, rows compared modulo rule_index since a
+        # rule was inserted): exactly TWO rows new and zero gone, both the .10.14 class on a @profiles directive
+        # whose rule body is a bare regex terminal — arm 2 binds the `@profiles: [sv_2023, sv_2023_tolerant]` line
+        # of the new twin integral_number_leading_zero_size_sv_2023 to the TAIL of integral_number (token 6,
+        # arm1 null vs arm2 semantic_annotation) and reads the twin's own first token as that annotation where
+        # arm 1 reads the regex (token 1, semantic_annotation vs regex). The `profiles` class 51 -> 52 and one
+        # `semantic_annotation -> regex` row; every other class count unchanged.
+        systemverilog) echo 203 ;;
         systemverilog_lrm_profiled_generated) echo 317 ;;
         # .10.14 plus the two documented arm-2 blind spots: `[> …]` lexical annotations (which
         # arm 2 misparses as character classes) and arm 1's inline/rule-level annotation

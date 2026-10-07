@@ -589,6 +589,7 @@ integer_type	covered	74	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
 integer_vector_type	covered	5593	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
 integer_vector_type_sv_only	covered	3014	sv_2017,sv_2023,sv_2023_tolerant
 integral_number	covered	7990	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
+integral_number_leading_zero_size_sv_2023	na_profile	0	sv_2023,sv_2023_tolerant
 interconnect_net_declaration_sv_only	covered	8	sv_2017,sv_2023,sv_2023_tolerant
 interface_ansi_header	covered	453	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
 interface_class_declaration	covered	53	sv_2017,sv_2023,sv_2023_tolerant

@@ -8,10 +8,10 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | input | path | sha256 |
 |---|---|---|
 | re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `1103138dce422f9de09c1471262bf7dbeab98b46e5f32583d88b2f693050c485` |
-| sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `6d0eabec327e9697ab814c1304a9c0d5bc295fc9eac34abf78eb8ea52c470097` |
-| sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `dc0f74836f6ceabfdd20584c12ca69d4f07c1a08660ad850842a26f900428ac5` |
-| sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `7289e42f374d6c6e159e1090e4358a60699cf832c3e02ff8a07ad5f1801ee9da` |
-| expansion binary | `rust/target/debug/ast_pipeline` | `03949beb82671cd85ad051f4a6734d97993a10e04e2a93893112d65398ad6caa` |
+| sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `3548541498ddf7415bc1b891ceb2988053b173d2a4ea1cd9e22e3d668d119e02` |
+| sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `784da7c1cacdc244dac999e4f749eec1205b299095c3f3657999e90dc67abacf` |
+| sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `950f360a3dd65645dc9b33f67104a817a27f3ec68cfa7bae2de650113d21a9c6` |
+| expansion binary | `rust/target/debug/ast_pipeline` | `715b66b353ebba05f4f415bce6c24ebfcc830566de433f45fe5152e47a88705d` |
 
 ## The classes — 311 rows
 
@@ -19,7 +19,7 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 |---|---:|---|
 | `raw_backtick` | 0 | the expanded text at the stop begins with a backtick: an undefined macro reached the parser — CONTEXT, not syntax |
 | `base_class` | 222 | a class header with a base class the parser has not seen declared — the cross-file declaration barrier |
-| `edition_2023` | 3 | the same row passes under the `sv_2023` reading — the 2017 rejection is the older text's |
+| `edition_2023` | 4 | the same row passes under the `sv_2023` reading — the 2017 rejection is the older text's |
 | `tolerated_spelling` | 5 | the same row passes under `sv_2023_tolerant` only — a spelling of the opt-in profile's closed list |
 | `edition_2023_moves` | 0 | the 2023 reading stops further: the construct at this stop is the 2023 text's, a later barrier remains |
 | `tolerated_moves` | 0 | the tolerant reading stops further than the 2023 one: a tolerated spelling here, a later barrier remains |
@@ -28,7 +28,7 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `declared_fragment` | 5 | the file declares itself a module body (`verilog_syntax: parse-as-…`) — the suite's own convention |
 | `fragment` | 39 | the file is the `include` target of another corpus file — its standalone reading is not the parser's claim |
 | `undeclared_type` | 11 | a declaration whose type is an identifier the parser has not seen declared — the cross-file barrier in data position |
-| `residue` | 26 | none of the above — adjudicated one by one below |
+| `residue` | 25 | none of the above — adjudicated one by one below |
 
 ## `raw_backtick` — 0 rows, by the macro the context did not define
 
@@ -75,11 +75,12 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `opentitan` | 218 |
 | `Surelog` | 4 |
 
-## `edition_2023` — 3 rows, by suite
+## `edition_2023` — 4 rows, by suite
 
 | suite | rows |
 |---|---:|
 | `opentitan` | 3 |
+| `friscv` | 1 |
 
 ## `tolerated_spelling` — 5 rows, by suite
 
@@ -113,7 +114,7 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 |---|---:|
 | `verible` | 5 |
 
-## `residue` — 26 rows, one by one
+## `residue` — 25 rows, one by one
 
 | suite | file | origin | token at the stop | source construct | sv_2023 | tolerant |
 |---|---|---|---|---|---|---|
@@ -123,7 +124,6 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `Surelog` | `tests/TestMacros/macros.v` | `Surelog/tests/TestMacros/macros.v:6:1` | `begin` | other | `fail` | `fail` |
 | `Surelog` | `tests/UnitForeach/top2.v` | `Surelog/tests/UnitForeach/top2.v:5:45` | `(` | a `::`-scoped name | `fail` | `fail` |
 | `Surelog` | `tests/UnitTest/top.v` | `Surelog/tests/UnitTest/top.v:34:22` | `~` | other | `fail` | `fail` |
-| `friscv` | `rtl/friscv_alu.sv` | `friscv/rtl/friscv_alu.sv:195:43` | `b0` | other | `fail` | `fail` |
 | `opentitan` | `hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv` | `opentitan/hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv:46:18` | `;` | other | `fail` | `fail` |
 | `opentitan` | `hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv` | `opentitan/hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv:52:33` | `)` | other | `fail` | `fail` |
 | `opentitan` | `hw/ip/otbn/dv/verilator/otbn_top_sim.sv` | `opentitan/hw/ip/otbn/dv/verilator/otbn_top_sim.sv:168:48` | `,` | a parameter port list `#(` | `fail` | `fail` |

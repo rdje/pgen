@@ -9,13 +9,13 @@ describes your tree** and the honest act is to re-measure, not to quote.
 
 | input | sha256 |
 | --- | --- |
-| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `3e45efe9f0d5424cdf8007c5131d802d5ad89d2cde94c90e585ad00c1cb38191` |
+| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `315f3a2212a87f1cd155c982b88a8b21239582e3b11861cb4a0feba72969920a` |
 | `docs/verilog/2005/md/section-Annex_B-normative-list-of-keywords.md` | `08ba9745b0f0791ad48b786284b733414ab26ce7b2b9373d95174d094218025d` |
 | `docs/tasks/artifacts/sv_corpus_grad/v2005_keyword_faithfulness/witnesses/MANIFEST.tsv` | `c79c632c8088cdba3db69012ab9a94f3c541c2167222e9fe28f056da57a9e627` |
 
 ## Population
 
-- rules in the source grammar: **1713**
+- rules in the source grammar: **1714**
 - of those, SATISFIABLE under `verilog_2005`: **1230** (the bottom-up half — *can this rule derive a string here*)
 - of those, REACHABLE under `verilog_2005` from the 4 declared entry roots: **875** (the top-down half — *can a parse get here*)
 - **satisfiable but UNREACHABLE: 355** — rules the profile admits that no `verilog_2005` input can arrive at. `kw_void_e9cede9b` is the worked example: the terminal is ungated and trivially satisfiable, while both rules that reference it are `_sv_only`. ⭐ **This is NOT a gap in the certificate accounting, and an earlier version of this report said it was.** The engine already crosses the two directions: `gather_verified_profile_proof_covered_rules` (`VERILOG-2005-PROFILE.6.7`) classifies the WHOLE active rule set, and every profile-entry-unreachable rule gets an explicitly RE-VERIFIED `ProfileEntryUnreachable` certificate — a re-verify failure is reported as a linter bug, never silently covered. Measured: all of these rules appear in the cert pass's `proof` category, exactly. The number below is useful for understanding the profile's live surface; it is not a defect.

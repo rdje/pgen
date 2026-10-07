@@ -221,6 +221,7 @@ opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/riscv_vector_cfg.sv	
 opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/test/riscv_instr_base_test.sv	base_class	654	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/test/riscv_instr_base_test.sv:19:45	;	class header with a base class (`extends`)	fail	fail	1	chained:rejects_own_file
 opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/test/riscv_instr_test.sv	base_class	690	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/test/riscv_instr_test.sv:18:53	;	class header with a base class (`extends`)	fail	fail	0	chained:rejects_own_file
 opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/test/riscv_instr_test_lib.sv	base_class	654	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/test/riscv_instr_test_lib.sv:18:58	;	class header with a base class (`extends`)	fail	fail	1	chained:rejects_own_file
+friscv	rtl/friscv_alu.sv	edition_2023	10991	stimuli/sv/subs/friscv/rtl/friscv_alu.sv:195:43	b0	other	pass	pass	0	chained:rejects_own_file
 opentitan	hw/top_darjeeling/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv	edition_2023	10309	stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv:37:34	]	other	pass	pass	0	chained:rejects_own_file
 opentitan	hw/top_earlgrey/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv	edition_2023	10309	stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv:37:34	]	other	pass	pass	0	chained:rejects_own_file
 opentitan	hw/top_englishbreakfast/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv	edition_2023	10309	stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv:37:34	]	other	pass	pass	0	chained:rejects_own_file
@@ -290,7 +291,6 @@ Surelog	tests/SimpleInterface/simple_if.sv	residue	113606	stimuli/sv/subs/Surelo
 Surelog	tests/TestMacros/macros.v	residue	0	stimuli/sv/subs/Surelog/tests/TestMacros/macros.v:6:1	begin	other	fail	fail	0	chained:rejects_own_file
 Surelog	tests/UnitForeach/top2.v	residue	66	stimuli/sv/subs/Surelog/tests/UnitForeach/top2.v:5:45	(	a `::`-scoped name	fail	fail	0	chained:rejects_own_file
 Surelog	tests/UnitTest/top.v	residue	729	stimuli/sv/subs/Surelog/tests/UnitTest/top.v:34:22	~	other	fail	fail	0	chained:rejects_own_file
-friscv	rtl/friscv_alu.sv	residue	10991	stimuli/sv/subs/friscv/rtl/friscv_alu.sv:195:43	b0	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv	residue	1299	stimuli/sv/subs/opentitan/hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv:46:18	;	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv	residue	1430	stimuli/sv/subs/opentitan/hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv:52:33	)	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	residue	6554	stimuli/sv/subs/opentitan/hw/ip/otbn/dv/verilator/otbn_top_sim.sv:168:48	,	a parameter port list `#(`	fail	fail	0	chained:rejects_own_file

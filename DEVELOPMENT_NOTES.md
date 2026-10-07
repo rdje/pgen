@@ -1,5 +1,14 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-07 — SV-CORPUS-GRAD.47 (`PGEN-SV-CORPUS-GRAD-0432`, release 1.0.251): a design refuted by its own citations, and a ceremony resumed after a host crash
+
+- **Read the citation before the chain, not after.** The v1 pins wrote *"IEEE 1800-2023 5.7.1 the same"* without opening the 2023 file; the line it would have named reads a different production. Every strict gate was green on the wrong design, because a tolerance moves nothing the strict profiles measure. The check that caught it was the cheapest one — reading the cited lines — and it ran only because the release documents cite them. Promoted: [[an-ecosystem-reading-is-not-an-edition-reading]].
+- **A ceremony is resumable from its final bytes, and only from them.** After the crash the grammar, generated parser and probes still carried the hashes the characterization had recorded, so the completed steps could be trusted and the chain resumed where it died — until the design changed, at which point everything measured on the old bytes was stale and the chain restarted from the grammar. A stale number is not cited even when it is green.
+- **A chain copied from a previous ceremony copies its missing files.** `post_chain_a.sh` came from `sv45/` without the five helper files its sweep steps read (`cand363.txt`, `lane_sv.txt`, `lane_v2005.txt`, `probe_head_v2005.sh`, `lane_movers.py`); the v1 run's sweeps failed on `FileNotFoundError` and the chain went on. A chain step that cannot start must stop the chain.
+- **Read the instrument's last line.** The v1 pins run read `failures=1` at 23:04 and the chain continued because nothing was chained on it; the superset sweep had done exactly its job (a pin the pre-screen cannot see under the tolerant profile).
+- **The pre-screen reads a pin under its LISTED profiles.** `.3.67`'s pin lists the three strict profiles, so the interpreter pre-screen could not see it move under the tolerant one; only the runner's superset sweep reads a strict pin under the tolerant profile. Two instruments, two populations — both are needed.
+- promotion: one card (above); the rest are operational.
+
 ## 2026-10-06 — SVPP-EXPANSION.6c.4 (`PGEN-SVPP-EXPANSION-0045`): a deferral's reason is the specification of the lane it defers to
 
 - **Read the vocabulary off the goldens, do not guess it.** The key's parse-stage vocabulary had left the preprocessor's spellings out on purpose and said so; the pipeline mode needed those spellings, and eighteen of them were enumerated from the `t_pp_*` / `t_preproc_*` goldens the drivers name — the same allowlist discipline, the same reason (a prefix rule would sweep lint messages in).

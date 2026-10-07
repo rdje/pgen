@@ -900,7 +900,24 @@ number := real_number     -> {kind: "real",     body: $1}
 # 5.3 white space is spaces, tabs, newlines and formfeeds, and a comment separates tokens as it does everywhere
 # else. Through 1.0.226 only spaces and tabs were admitted between the tokens (sv2v number_literal_whitespace.sv).
 integral_number := /([1-9][0-9_]*(?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*)?'[sS]?(?:[bB](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*[01xXzZ?][01xXzZ?_]*|[oO](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*[0-7xXzZ?][0-7xXzZ?_]*|[dD](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*(?:[0-9][0-9_]*|[xXzZ?]_*)|[hH](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*[0-9a-fA-FxXzZ?][0-9a-fA-FxXzZ?_]*)/
+                 | integral_number_leading_zero_size_sv_2023
                  | /[0-9][0-9_]*/
+
+# SV-CORPUS-GRAD.47 (release 1.0.251) — the SIZE token is split by EDITION. IEEE 1800-2023 §5.7 Syntax 5-2 and A.8.7 read
+# `size ::= unsigned_number` (docs/systemverilog/2023/md/section-5-lexical-conventions.md:213; docs/systemverilog/2023/md/
+# section-Annex_A-normative-formal-syntax.md:3200) and the edition defines no non_zero_unsigned_number at all, so `01'b0`
+# is DERIVED under 1800-2023; its §5.7.1 keeps the size "a nonzero unsigned decimal number" (…:258), so a ZERO size
+# (`0'b1`, `0_'b1`) stays refused on every profile. IEEE 1800-2017 §5.7 / A.8.7 and 1364-2005 §3.5 / A.8.7 read
+# `size ::= non_zero_unsigned_number` (docs/systemverilog/2017/md/section-1024-characters-if-an-identifier-exceeds-the-
+# implementation-specific-length-limit-an-error-shall-be-reported.md:152, :201; docs/verilog/2005/md/section-3-lexical-
+# conventions.md:109, :149), so sv_2017 and verilog_2005 keep rejecting it. Through 1.0.250 the one strict terminal above
+# served every profile and sv_2023 rejected text its own edition derives (friscv rtl/friscv_alu.sv writes it 27 times;
+# Verilator 5.050 and Icarus 13.0 accept it, SV-CORPUS-GRAD.46 — measured as a tolerance candidate, found to be an
+# edition difference when the pins' citations were checked against the 2023 text). ONE gated terminal twin, tried only
+# where the strict terminal fails (the tournament is longest-match: `01'b0` beats the plain decimal `01`); its body is
+# the source text, the strict terminal's own shape — nothing marks it, because under its edition it is standard text.
+@profiles: ["sv_2023", "sv_2023_tolerant"]
+integral_number_leading_zero_size_sv_2023 := /(0[0-9_]*[1-9][0-9_]*(?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*)'[sS]?(?:[bB](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*[01xXzZ?][01xXzZ?_]*|[oO](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*[0-7xXzZ?][0-7xXzZ?_]*|[dD](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*(?:[0-9][0-9_]*|[xXzZ?]_*)|[hH](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*[0-9a-fA-FxXzZ?][0-9a-fA-FxXzZ?_]*)/ -> $1
 
 real_number := /[0-9][0-9_]*\.[0-9][0-9_]*([eE][+-]?[0-9][0-9_]*)?/
              | /[0-9][0-9_]*[eE][+-]?[0-9][0-9_]*/

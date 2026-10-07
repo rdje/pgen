@@ -13,6 +13,7 @@ answers:
   - "who decided that dialect tolerance is opt-in and which spellings does it cover"
   - "how does a spelling join the tolerance profile"
   - "does the tolerant profile accept binsof of a hierarchical name, and who decided it"
+  - "is a sized literal with a leading-zero size (01'b0) a tolerance or an edition difference"
 tags: [systemverilog, profiles, tolerance, strict-lrm, director-decision, opentitan]
 status: current
 metadata:
