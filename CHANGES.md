@@ -1,5 +1,9 @@
 # CHANGES.md
 
+## 2026-10-07 - PGEN-SV-CORPUS-GRAD-0433 (leaf SV-CORPUS-GRAD.47 — the revision register's `1.0.251` row back-filled `PENDING` → `78ee19b2`; docs only: `docs/contracts/PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`, `MEMORY.md`)
+
+- The one thing the commit after a release does first (`schema-versioning.md`, *The release ceremony*, item 10): the row written `PENDING` by `PGEN-SV-CORPUS-GRAD-0432` now carries that commit's sha, so `SV-CONTRACT-CURRENCY`'s tier A reads no committed `PENDING` row.
+
 ## 2026-10-07 - PGEN-SV-CORPUS-GRAD-0432 (leaf SV-CORPUS-GRAD.47 DONE, .46 CLOSED — release 1.0.251, ledger SV-0136, contract 1.0.251, AST schema 34 UNCHANGED; GRAMMAR + PINS + CEREMONY tier: `grammars/systemverilog.ebnf` (one terminal twin gated to `sv_2023` + the tolerant profile, 1745 → 1746 rules), six pins + `MANIFEST.tsv` (941 → 946), the derived baselines and censuses, the register / ledger / contract, the SV book, the decision record, one knowledge card, the task trees, `MEMORY.md`, `DEVELOPMENT_NOTES.md`; ZERO Rust bytes by hand)
 
 - **What shipped.** Under `sv_2023` (and `sv_2023_tolerant`, which inherits every `sv_2023` rule) a sized literal whose size begins with `0` — `01'b0`, `007'h5` — parses: IEEE 1800-2023 §5.7 Syntax 5-2 and A.8.7 read `size ::= unsigned_number` and the edition defines no `non_zero_unsigned_number`. `sv_2017` and `verilog_2005` keep rejecting it (their text reads `size ::= non_zero_unsigned_number`); a ZERO size stays rejected everywhere (the 2023 prose). The literal's node is the strict shape — no new kind, schema 34 unchanged. The tolerant profile's closed list is unchanged at five.
