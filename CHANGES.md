@@ -1,5 +1,10 @@
 # CHANGES.md
 
+## 2026-10-08 - PGEN-OPS-MEMSAFE-0016 (leaf OPS-MEMSAFE.5 recurring — the §8 artifact cleanup of 2026-10-08 00:40; docs only: `docs/ARTIFACT_CLEANUP.md` overwritten (latest run only), `docs/tasks/OPS-MEMSAFE.md` (one Verification Log row), `docs/TASK_TREE.md` (the row now carries the latest two runs), `MEMORY.md`)
+
+- **Measured.** `git ls-files rust/target` → 0 tracked before anything was deleted; the stale-file census found 610 `*.log` / `*.bin` older than seven days outside the KEEP paths (`s387/` 139, `s385/` 82, `eus89/` 47, `s388/` 46, the preprocessor gates' `logs/` and `work/`, the triage gate's `logs/`, …), of which 8 are cited by a live tracked document (`git grep` over the tree minus the append-only history) and were kept; the 602 others (1,139 MB) deleted after every path was checked under `rust/target/`; `cargo sweep --time 1` from `rust/` under the guard, `Cleaned 1.78 GiB`; `du -sm rust/target` 180,430 → 177,451 MB; `debug/incremental/` untouched. The last build (2026-10-07 20:18, the `.47` ceremony's debug probes) was four hours earlier and nothing was pending, so the sequencing rule was satisfied.
+- **Verified after.** The 8 cited files re-listed; the debug `ast_pipeline` / `parseability_probe` and the release probe present, the release probe run (`--parser-fingerprint` → systemverilog `1781b11d85172ede…`, the `1.0.251` bytes); `check_no_background_jobs.sh` rc 0; disk 29 % used (2.7 TB free of 3.7 TB). Next due after 2026-10-09 00:40.
+
 ## 2026-10-07 - PGEN-SV-CORPUS-GRAD-0433 (leaf SV-CORPUS-GRAD.47 — the revision register's `1.0.251` row back-filled `PENDING` → `78ee19b2`; docs only: `docs/contracts/PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`, `MEMORY.md`)
 
 - The one thing the commit after a release does first (`schema-versioning.md`, *The release ceremony*, item 10): the row written `PENDING` by `PGEN-SV-CORPUS-GRAD-0432` now carries that commit's sha, so `SV-CONTRACT-CURRENCY`'s tier A reads no committed `PENDING` row.
