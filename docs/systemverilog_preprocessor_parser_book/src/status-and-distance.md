@@ -45,6 +45,8 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 
 **Corpus.** ⛔ **NOT MEASURED** — the language is standardized, so a corpus exists in the world, but none is wired into this repository. An UNMET leg, never an inapplicable one. Owed by `CORPUS-GRAD-ALL.1`.
 
+**Under the reading leg 3 asserts:** ⛔ **NOT MEASURED** — the done-bar register declares no tracked leg-3 assertion for this family (`leg3_surface.tracked_assertion_command`), so there is no declared reading to count under; owed by `DONE-BAR.3`.
+
 **What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. **1 tree own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 
 | Open tree | Status verdict | Where the detail lives |

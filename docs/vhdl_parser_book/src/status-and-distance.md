@@ -68,6 +68,8 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 | `nvc` | 2 074 | 594 | 1 480 | 28.6 % |
 | `vunit` | 294 | 84 | 210 | 28.6 % |
 
+**Under the reading leg 3 asserts:** ⛔ **NOT MEASURED** — the done-bar register declares no tracked leg-3 assertion for this family (`leg3_surface.tracked_assertion_command`), so there is no declared reading to count under; owed by `DONE-BAR.3`.
+
 **What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. **0 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 
 No open tree is attributed to this family — every tree that owned its work is closed. That is not the same as meeting the bar: the legs above are what decide `Done`, and cross-cutting work can still gate this family.

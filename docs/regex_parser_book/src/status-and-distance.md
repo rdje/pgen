@@ -58,6 +58,8 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 
 ⚠️ **The verdict half is anchor-held, not re-executed on every commit.** Producing it needs a cargo build of the corpus probe and a run over every case — measured 80 s and 5.5 GB peak, via `rust/scripts/regex_pcre2_compile_oracle_gate.sh` — so `bash scripts/check_corpus_census.sh regex` re-derives the DENOMINATOR from the normalizer on every commit and holds the published tuple's cell count equal to it, while `REGEX-ORACLE-ANCHOR-SYNC` holds every live anchor equal to each other and to the tracked ratchet bounds.
 
+**Under the reading leg 3 asserts:** ⛔ **NOT MEASURED** — the done-bar register declares no tracked leg-3 assertion for this family (`leg3_surface.tracked_assertion_command`), so there is no declared reading to count under; owed by `DONE-BAR.3`.
+
 **What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. **5 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 
 | Open tree | Status verdict | Where the detail lives |

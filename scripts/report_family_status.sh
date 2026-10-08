@@ -711,6 +711,78 @@ def derive(FAMILY):
     corpus_why = dict(state_decl, derived_class=derived_class,
                       blurb=schema["corpus_state"]["classes"][derived_class])
 
+    # ---------------------------------------------------------------------------------------------
+    # 2b. The reading leg 3 ASSERTS (DONE-BAR.3f / .3g) — the corpus table is the RAW lane; the bar
+    # reads a row the raw lane defers to the preprocess→parse pipeline under that pipeline's
+    # re-adjudication, and names (never demands) the permanently unadjudicable classes. The counts
+    # come from the register's `tracked_assertion_command` — the SAME command the done-bar audit
+    # evaluates `pass_query` over, so the book and the audit read one derivation — and the sv_2017
+    # lane's reading is CROSS-CHECKED against the tuple under the pipeline the census gate prints:
+    # two instruments, one reading, equal or refuse. A family declaring no tracked assertion renders
+    # NOT MEASURED with the owing leaf, never a blank.
+    # ---------------------------------------------------------------------------------------------
+    declared = None
+    surface = entry.get("leg3_surface") or {}
+    assertion_cmd = surface.get("tracked_assertion_command") or ""
+    if assertion_cmd:
+        proc = subprocess.run(assertion_cmd, shell=True, capture_output=True, text=True, cwd=ROOT)
+        try:
+            data = json.loads(proc.stdout)
+        except ValueError:
+            refuse(f"the tracked leg-3 assertion of '{FAMILY}' (`{assertion_cmd}`) printed no JSON "
+                   f"(exit {proc.returncode}); its declared-reading counts must not be published. Its "
+                   f"own words:\n  " + ((proc.stdout or "") + (proc.stderr or "")).strip().replace("\n", "\n  "))
+        if "refused" in data:
+            refuse(f"the tracked leg-3 assertion of '{FAMILY}' REFUSED: {data['refused']} — a refusal is "
+                   f"never rendered as a count")
+        need = ("rows", "declared_adjudicated", "permanent_no_verdict", "burnable_no_verdict", "unexplained",
+                "declared_bar", "readjudication_stale", "full_pass", "full_pass_raw_lane")
+        missing = [k for k in need if k not in data]
+        if missing:
+            refuse(f"the tracked leg-3 assertion of '{FAMILY}' carries no {missing}; the comparator's "
+                   f"output shape has moved — fix this reader rather than publishing a partial reading")
+        if data["rows"] != data["declared_adjudicated"] + data["permanent_no_verdict"] + data["burnable_no_verdict"]:
+            refuse(f"the declared reading of '{FAMILY}' does not partition the corpus: rows={data['rows']} but "
+                   f"adjudicated {data['declared_adjudicated']} + permanent {data['permanent_no_verdict']} + "
+                   f"burnable {data['burnable_no_verdict']} = "
+                   f"{data['declared_adjudicated'] + data['permanent_no_verdict'] + data['burnable_no_verdict']}")
+        lanes = []
+        for lane_key in ("sv_2017", "verilog_2005"):
+            l = data.get(lane_key)
+            if not isinstance(l, dict):
+                continue
+            lanes.append(dict(lane=lane_key, rows=l["rows"],
+                              adjudicated=l.get("declared_adjudicated", l["adjudicated"]),
+                              permanent=l["permanent_no_verdict"], burnable=l["burnable_no_verdict"],
+                              unexplained=l["unexplained"], bar=l.get("declared_bar", l["unexplained"]),
+                              stale=l.get("readjudication_stale", 0), full_pass=l["full_pass"],
+                              reading=l.get("declared_reading", "")))
+        pipe_marker = (census or {}).get("pipeline_tuple_marker")
+        if pipe_marker and isinstance(data.get("sv_2017"), dict):
+            if pipe_marker not in out:
+                refuse(f"`{gate}` printed no `{pipe_marker}` tuple, so the declared reading of "
+                       f"'{FAMILY}' cannot be cross-checked and must not be published")
+            # the gate prints `… under the pipeline A/R/N/D/B; artifacts fresh: …` — the tuple ends at the
+            # first white space, with the sentence's punctuation trimmed
+            gate_pipe = out.split(pipe_marker, 1)[1].split()[0].rstrip(";,.)")
+            try:
+                pa, pr, pn, _pd, pb = (int(x) for x in gate_pipe.split("/"))
+            except ValueError:
+                refuse(f"`{gate}` printed a tuple under the pipeline this reader cannot parse: {gate_pipe!r}")
+            l = data["sv_2017"]
+            mine = (l["declared_adjudicated"], l["declared_routed"], l["declared_no_verdict"], l["declared_bar"])
+            if mine != (pa, pr, pn, pb):
+                refuse(f"the tracked leg-3 assertion reads the sv_2017 lane under the pipeline as "
+                       f"{'/'.join(str(x) for x in mine)} (adjudicated/routed/no-verdict/bar) while `{gate}` derives "
+                       f"{pa}/{pr}/{pn}/{pb}. Two readings of one lane disagree — neither may be published "
+                       f"until they are reconciled.")
+        declared = dict(rows=data["rows"], adjudicated=data["declared_adjudicated"],
+                        permanent=data["permanent_no_verdict"], burnable=data["burnable_no_verdict"],
+                        unexplained=data["unexplained"], bar=data["declared_bar"],
+                        stale=data["readjudication_stale"], full_pass=data["full_pass"],
+                        full_pass_raw_lane=data["full_pass_raw_lane"], lanes=lanes, command=assertion_cmd,
+                        cross_checked_by=(gate if (pipe_marker and census) else None))
+
     # --- 3. the remaining work: this family's slice of the row states computed once above -------
     family_open, disputed, unreadable_rows, cross_open = [], [], [], 0
     for name, who, state, a, b, fname, disputed_row, unreadable_row in row_state:
@@ -727,7 +799,7 @@ def derive(FAMILY):
     family_open.sort()
 
     return dict(family=FAMILY, entry=entry, legs=legs, local_legs=local_legs, corpus=corpus,
-                corpus_why=corpus_why, family_open=family_open, disputed=disputed,
+                corpus_why=corpus_why, declared=declared, family_open=family_open, disputed=disputed,
                 unreadable_rows=unreadable_rows, cross_open=cross_open,
                 unmet=[n for n in (1, 2, 3) if legs[n]["verdict"] != "MET"])
 
@@ -755,6 +827,7 @@ rendered = {"claimed_status", "bar_leg_1", "bar_leg_2", "bar_leg_3",
             "corpus_rows", "corpus_passing", "known_defects", "remaining_work"}
 if SURFACE != "cross":
     rendered.add("language_owner")
+    rendered.add("leg3_declared_reading")
 if SURFACE == "chat":
     rendered.add("local_gate_state")
 declared = {k for k, v in schema["fields"].items() if SURFACE in v["surfaces"]}
@@ -875,6 +948,46 @@ def render_markdown(d):
         if corpus_why.get("note"):
             line += " " + corpus_why["note"]
         out.append(line)
+    declared = d["declared"]
+    out.append("")
+    if declared:
+        lanes = declared["lanes"]
+        out.append(f"**Under the reading leg 3 asserts** (`DONE-BAR.3f`): the table above is the RAW lane; "
+                   f"the bar reads a row the raw lane defers to the preprocess→parse pipeline under that "
+                   f"pipeline's re-adjudication, and names — never demands — the permanently unadjudicable "
+                   f"classes, each held under a recorded ceiling. Derived by the register's tracked assertion "
+                   f"(`{cell(declared['command'])}`)"
+                   + (f", its sv_2017 reading cross-checked against the tuple under the pipeline that "
+                      f"`{declared['cross_checked_by']}` prints" if declared.get("cross_checked_by") else "")
+                   + ".")
+        out.append("")
+        out.append("| Lane | Rows | Adjudicated | Permanently unadjudicable (named, bounded) | **Still awaiting a verdict** | Unexplained | Bar rows | `full_pass` |")
+        out.append("|---|---:|---:|---:|---:|---:|---:|---|")
+        for l in lanes:
+            label = {"sv_2017": "`sv_2017` — the corpus, raw rows read under the pipeline where it re-read them",
+                     "verilog_2005": "`verilog_2005` — the routed rows, read raw under IEEE 1364-2005"}.get(l["lane"], f"`{l['lane']}`")
+            out.append(f"| {label} | {fmt(l['rows'])} | {fmt(l['adjudicated'])} | {fmt(l['permanent'])} | "
+                       f"**{fmt(l['burnable'])}** | {fmt(l['unexplained'])} | {fmt(l['bar'])} | `{str(l['full_pass']).lower()}` |")
+        out.append(f"| **Both lanes — the corpus** | {fmt(declared['rows'])} | {fmt(declared['adjudicated'])} | "
+                   f"{fmt(declared['permanent'])} | **{fmt(declared['burnable'])}** | {fmt(declared['unexplained'])} | "
+                   f"{fmt(declared['bar'])} | `{str(declared['full_pass']).lower()}` |")
+        out.append("")
+        out.append(f"The three row counts sum to the denominator ({fmt(declared['adjudicated'])} + "
+                   f"{fmt(declared['permanent'])} + {fmt(declared['burnable'])} = {fmt(declared['rows'])}). "
+                   f"**{fmt(declared['burnable'])} rows still stand between this corpus and leg 3** — every one in a "
+                   f"named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above "
+                   f"as no-verdict rows and are never relabelled. "
+                   + (f"The re-adjudication table is current with the raw classes ({fmt(declared['stale'])} stale rows). "
+                      if declared["stale"] == 0 else
+                      f"⛔ {fmt(declared['stale'])} re-adjudication rows are STALE against the raw classes and fail the pass. ")
+                   + f"The pre-`.3f` bit (`no_verdict == 0` on the raw lane, unreachable by construction) reads "
+                   f"`{str(declared['full_pass_raw_lane']).lower()}` and is kept by name as `full_pass_raw_lane`.")
+    else:
+        owed = schema["fields"]["leg3_declared_reading"].get("owed_by_when_absent", "DONE-BAR.3")
+        out.append(f"**Under the reading leg 3 asserts:** ⛔ **NOT MEASURED** — the done-bar register declares no "
+                   f"tracked leg-3 assertion for this family (`leg3_surface.tracked_assertion_command`), so there is "
+                   f"no declared reading to count under; owed by `{owed}`.")
+
     out.append("")
     out.append(f"**What remains between here and `Done`.** Derived from the task-tree index: the "
                f"trees still OPEN whose work is attributed to this family, out of the "
@@ -957,6 +1070,18 @@ def render_text(d):
                    + (f" — owed by {corpus_why['owed_by']}" if corpus_why.get("owed_by") else "")
                    + (f"; last measured in {corpus_why['last_measured_in']}"
                       if corpus_why.get("last_measured_in") else ""))
+    declared = d["declared"]
+    if declared:
+        out.append(f"  leg 3 reads (declared) . {fmt(declared['adjudicated'])} adjudicated + {fmt(declared['permanent'])} permanent "
+                   f"(bounded) + {fmt(declared['burnable'])} AWAITING A VERDICT = {fmt(declared['rows'])} rows; "
+                   f"unexplained {fmt(declared['unexplained'])}, bar {fmt(declared['bar'])}, stale {fmt(declared['stale'])}; "
+                   f"full_pass={str(declared['full_pass']).lower()} (raw-lane bit {str(declared['full_pass_raw_lane']).lower()})")
+        for l in declared["lanes"]:
+            out.append(f"    {l['lane']:13s} {fmt(l['adjudicated']):>7s} + {fmt(l['permanent']):>4s} + {fmt(l['burnable']):>5s} = {fmt(l['rows']):>7s}   "
+                       f"unexplained {l['unexplained']}  bar {l['bar']}  full_pass={str(l['full_pass']).lower()}")
+    else:
+        owed = schema["fields"]["leg3_declared_reading"].get("owed_by_when_absent", "DONE-BAR.3")
+        out.append(f"  leg 3 reads (declared) . NOT MEASURED — no tracked leg-3 assertion declared; owed by {owed}")
     names = ", ".join(n for n, _f, _a, _b in family_open) or "(none)"
     out.append(f"  remaining work ......... {len(family_open)} open tree(s) own this family's work: {names}")
     out.append(f"                          + {cross_open} cross-cutting tree(s) that can gate any family")

@@ -56,6 +56,16 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 
 Only **7 485 rows (45.8 %)** were asked a question they could answer, and **3 864** of the no-verdict rows are *dark* — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6069/7485 would quietly drop the 38.2 % carrying no verdict at all and the 16.0 % answered in another lane's manifest.
 
+**Under the reading leg 3 asserts** (`DONE-BAR.3f`): the table above is the RAW lane; the bar reads a row the raw lane defers to the preprocess→parse pipeline under that pipeline's re-adjudication, and names — never demands — the permanently unadjudicable classes, each held under a recorded ceiling. Derived by the register's tracked assertion (`python3 stimuli/sv/corpus_conformance_compare.py --assert-tracked stimuli/sv/characterization/adjudication_manifest.tsv --assert-tracked-v2005 stimuli/sv/characterization/adjudication_manifest_v2005.tsv`), its sv_2017 reading cross-checked against the tuple under the pipeline that `bash scripts/check_sv_corpus_denominator.sh` prints.
+
+| Lane | Rows | Adjudicated | Permanently unadjudicable (named, bounded) | **Still awaiting a verdict** | Unexplained | Bar rows | `full_pass` |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `sv_2017` — the corpus, raw rows read under the pipeline where it re-read them | 16 336 | 11 259 | 471 | **2 000** | 0 | 0 | `false` |
+| `verilog_2005` — the routed rows, read raw under IEEE 1364-2005 | 2 606 | 2 535 | 29 | **42** | 0 | 0 | `false` |
+| **Both lanes — the corpus** | 16 336 | 13 794 | 500 | **2 042** | 0 | 0 | `false` |
+
+The three row counts sum to the denominator (13 794 + 500 + 2 042 = 16 336). **2 042 rows still stand between this corpus and leg 3** — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-`.3f` bit (`no_verdict == 0` on the raw lane, unreachable by construction) reads `false` and is kept by name as `full_pass_raw_lane`.
+
 **What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. **4 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 
 | Open tree | Status verdict | Where the detail lives |
@@ -98,11 +108,14 @@ parsed on its own bytes. The bar's assertion does not stop there, and since `DON
 - Everything else with no verdict is **burnable**: a row the project still owes a verdict.
 
 Before `.3f` the assertion was *zero no-verdict rows on the raw lane*, which demanded a verdict for
-the first two classes too — a bar no parser could meet. The live counts are derived, never stored
-here: `bash scripts/check_sv_corpus_denominator.sh` prints the tuple *under the pipeline*, and
-`python3 stimuli/sv/corpus_conformance_compare.py --assert-tracked stimuli/sv/characterization/adjudication_manifest.tsv --assert-tracked-v2005 stimuli/sv/characterization/adjudication_manifest_v2005.tsv`
-prints the assertion itself: `declared_adjudicated`, `permanent_no_verdict`, `burnable_no_verdict`
-(the three sum to the denominator), the unexplained and bar counts, and `full_pass`.
+the first two classes too — a bar no parser could meet. The counts under this reading are the
+*Under the reading leg 3 asserts* table inside the derived block above (`DONE-BAR.3g`): per lane,
+adjudicated + permanently unadjudicable + **still awaiting a verdict** = the denominator, with the
+unexplained and bar counts and `full_pass` itself. They are derived on every render from the
+register's tracked assertion (`stimuli/sv/corpus_conformance_compare.py --assert-tracked …`), the
+same command the done-bar audit evaluates, and cross-checked against the tuple *under the pipeline*
+that `bash scripts/check_sv_corpus_denominator.sh` prints — so the book, the audit and the
+denominator doctrine cannot disagree about this reading.
 
 ## How this page stays true
 

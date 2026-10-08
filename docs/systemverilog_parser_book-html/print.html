@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bc106d33.js";
+            window.path_to_searchindex_js = "searchindex-e2eee959.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -268,6 +268,20 @@ inapplicable one.</li>
 </table>
 </div>
 <p>Only <strong>7 485 rows (45.8 %)</strong> were asked a question they could answer, and <strong>3 864</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6069/7485 would quietly drop the 38.2 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
+<p><strong>Under the reading leg 3 asserts</strong> (<code>DONE-BAR.3f</code>): the table above is the RAW lane; the bar reads a row the raw lane defers to the preprocess→parse pipeline under that pipeline’s re-adjudication, and names — never demands — the permanently unadjudicable classes, each held under a recorded ceiling. Derived by the register’s tracked assertion (<code>python3 stimuli/sv/corpus_conformance_compare.py --assert-tracked stimuli/sv/characterization/adjudication_manifest.tsv --assert-tracked-v2005 stimuli/sv/characterization/adjudication_manifest_v2005.tsv</code>), its sv_2017 reading cross-checked against the tuple under the pipeline that <code>bash scripts/check_sv_corpus_denominator.sh</code> prints.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Lane</th><th style="text-align: right">Rows</th><th style="text-align: right">Adjudicated</th><th style="text-align: right">Permanently unadjudicable (named, bounded)</th><th style="text-align: right"><strong>Still awaiting a verdict</strong></th><th style="text-align: right">Unexplained</th><th style="text-align: right">Bar rows</th><th><code>full_pass</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 259</td><td style="text-align: right">471</td><td style="text-align: right"><strong>2 000</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><code>verilog_2005</code> — the routed rows, read raw under IEEE 1364-2005</td><td style="text-align: right">2 606</td><td style="text-align: right">2 535</td><td style="text-align: right">29</td><td style="text-align: right"><strong>42</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">13 794</td><td style="text-align: right">500</td><td style="text-align: right"><strong>2 042</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The three row counts sum to the denominator (13 794 + 500 + 2 042 = 16 336). <strong>2 042 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -310,11 +324,14 @@ and it never relabels them as a pass — they stay in the table above as no-verd
 <li>Everything else with no verdict is <strong>burnable</strong>: a row the project still owes a verdict.</li>
 </ul>
 <p>Before <code>.3f</code> the assertion was <em>zero no-verdict rows on the raw lane</em>, which demanded a verdict for
-the first two classes too — a bar no parser could meet. The live counts are derived, never stored
-here: <code>bash scripts/check_sv_corpus_denominator.sh</code> prints the tuple <em>under the pipeline</em>, and
-<code>python3 stimuli/sv/corpus_conformance_compare.py --assert-tracked stimuli/sv/characterization/adjudication_manifest.tsv --assert-tracked-v2005 stimuli/sv/characterization/adjudication_manifest_v2005.tsv</code>
-prints the assertion itself: <code>declared_adjudicated</code>, <code>permanent_no_verdict</code>, <code>burnable_no_verdict</code>
-(the three sum to the denominator), the unexplained and bar counts, and <code>full_pass</code>.</p>
+the first two classes too — a bar no parser could meet. The counts under this reading are the
+<em>Under the reading leg 3 asserts</em> table inside the derived block above (<code>DONE-BAR.3g</code>): per lane,
+adjudicated + permanently unadjudicable + <strong>still awaiting a verdict</strong> = the denominator, with the
+unexplained and bar counts and <code>full_pass</code> itself. They are derived on every render from the
+register’s tracked assertion (<code>stimuli/sv/corpus_conformance_compare.py --assert-tracked …</code>), the
+same command the done-bar audit evaluates, and cross-checked against the tuple <em>under the pipeline</em>
+that <code>bash scripts/check_sv_corpus_denominator.sh</code> prints — so the book, the audit and the
+denominator doctrine cannot disagree about this reading.</p>
 <h2 id="how-this-page-stays-true"><a class="header" href="#how-this-page-stays-true">How this page stays true</a></h2>
 <ul>
 <li>One producer emits both renderings — the brief form reported in the engineer’s completion

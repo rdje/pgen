@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-08 — DONE-BAR.3g (`PGEN-DONE-BAR-0033`): the window carries the number, not the pointer
+
+- **A sentence that names the command is not the number.** `.3f` left the book's leg-3 row ending in *"`--assert-tracked` prints the count"*. The director reads the book; a pointer to a producer is the hand-written status this tree exists to remove, one step removed. The field is now declared with its producer and rendered for every family, NOT MEASURED with an owner where no producer exists.
+- **Read the producer the audit already runs.** The register's `tracked_assertion_command` is evaluated by the done-bar audit for `pass_query`; the block runs the same command and cross-checks its sv_2017 reading against the census gate's tuple under the pipeline. One derivation, three readers, and a refusal if any two disagree.
+- **Run the real line through the new parser before trusting the seam.** The three RED arms were designed first and all fired; the GREEN control is what caught the tokenizer reading `0;` off the real gate's output. A control set that only drives failures cannot see a parser that fails on success.
+- promotion: declined — the lesson is the last bullet of `.3f`'s card (`an-assertion-whose-zero-no-work-can-reach-is-not-a-bar-it-is-a-label`) and `DONE-BAR-VISIBILITY`'s founding record; this slice applies it. Filed here.
+
 ## 2026-10-08 — DONE-BAR.3f (`PGEN-DONE-BAR-0032`): ask of every bar which work would make it true
 
 - **A bar nobody can reach is a label.** The leg-3 bit had been republished with its counts for 35 days (`.3c`) without anyone asking what would turn it true; the answer, derived from the comparator's own class map, was *nothing* — 5 649 of its 6 245 no-verdict rows were rows the project had itself ruled unadjudicable or deferred to another lane by design. A distance published against such a leg is a distance to nowhere. The check is cheap and should precede republishing any assertion: decompose the zero's denominator by the project's own prior rulings.
