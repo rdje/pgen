@@ -40,7 +40,7 @@ context the pipeline takes, and each has the same spelling on both CLIs:
 | predefined macros | `--symbol NAME` / `--symbol NAME=VALUE` (repeatable, ordered; alias `--define`) | seeded into the macro table before the first line is read, exactly as if `` `define NAME TEXT `` stood at the top of the unit; `NAME` alone defines it with **empty** text (the meaning a bare `` `define NAME `` line has). A predefine is an ordinary definition: `` `ifdef ``, `` `undef `` and the redefinition policy treat it as one |
 | the compilation unit | `--unit-file F` (repeatable, ordered) | the files preprocessed **before** the input, under the **same macro table**; the input is the unit's last file |
 | a formal inside a plain `"…"` string | `--stage-opt plain_string_substitution=standard\|paste_delimited\|all` (default `standard`) | what a formal's name inside a plain string literal in MACRO TEXT means: `standard` — the string is opaque, IEEE 1800-2017 §22.5.1's own `` `define H(x) "Hello, x" `` prints `Hello, x`; `paste_delimited` — only a formal marked by paste tokens on both sides (`"…[``i``]…"`, OpenTitan's idiom) is substituted; `all` — every formal substituted and every paste joined (Icarus's reading). The same spelling on `ast_pipeline --preprocess-systemverilog` |
-| a backtick that survives expansion | `--stage-opt undefined_macro_policy=error\|keep` (default `error`) | what the stage does with a backtick left in its OUTPUT outside a comment or string literal — an undefined macro, a function-like macro without its argument list, a stray `` `" `` token, a vendor directive: `error` refuses it with its clause (`SVPP-EXPANSION.6f`: the parser's raw-lane residue would otherwise accept a top-level one), `keep` hands it on as written for a consumer that resolves the rest itself |
+| a backtick that survives expansion | `--stage-opt undefined_macro_policy=error\|keep` (default `error`) | what the stage does with a backtick left in its OUTPUT outside a comment or string literal — an undefined macro, a function-like macro without its argument list, a stray `` `" `` token, a vendor directive: `error` refuses it with its clause (`SVPP-EXPANSION.6f`: the parser's raw-lane residue would otherwise accept a top-level one), `keep` hands it on as written for a consumer that resolves the rest itself. The SV stimuli quality gate's generated-text stages (the closed loop's two preprocess stages and the per-sample stage) run under `keep` by the contract's `preprocess.generated_text_undefined_macro_policy`, because the raw lane's opaque residue is text the generator may emit and no definition can resolve (`SVPP-EXPANSION.6g`); the hand-written realistic cases and every corpus lane keep `error` |
 
 The spellings are the neutral engine's (`ENGINE-UNIVERSAL-SERVICES.113`, 2026-09-29): the family's own
 knobs travel as `--stage-opt KEY=VALUE` — `ast_pipeline INPUT.sv --preprocess systemverilog
@@ -364,7 +364,10 @@ each one a sentence of the standard that a corpus row had been failing on:
   `compiler_directive` residue — the RAW lane's design, an opaque backtick line accepted so an unexpanded file
   parses around its macro uses — accepted a top-level one: 38 pipeline rows read `pass` over text the stage never
   resolved (25 of them riscv-dv instruction files whose macros live in a package the lane refuses), and 318
-  failing rows carried one too. `--stage-opt undefined_macro_policy=keep` restores the passthrough.
+  failing rows carried one too. `--stage-opt undefined_macro_policy=keep` restores the passthrough — and the
+  closed loop replays GENERATED raw-lane text under it by contract (`SVPP-EXPANSION.6g`, 2026-10-08): the raw
+  lane's residue is what the generator derives, and refusing it there asked the stage to resolve what no
+  definition can.
 - **A function-like macro may open its parentheses on the next line** (§22.5.1 requires the parentheses;
   §5.3 lets white space, newlines included, separate the tokens): `` `FOO `` at the end of a line followed by
   `(1, 2)` on the next is one invocation.

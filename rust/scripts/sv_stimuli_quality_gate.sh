@@ -1680,6 +1680,16 @@ macro_redefine_policy="$(jq -er '.preprocess.macro_redefine_policy | strings' "$
 conditional_symbol_policy="$(jq -er '.preprocess.conditional_symbol_policy | strings' "$CONTRACT_FILE")"
 conditional_expr_policy="$(jq -er '.preprocess.conditional_expr_policy | strings' "$CONTRACT_FILE")"
 strict_warning_codes="$(jq -er '.preprocess.strict_warning_codes | strings' "$CONTRACT_FILE")"
+# SVPP-EXPANSION.6g (2026-10-08): the text this gate preprocesses at its closed-loop and per-sample stages is
+# GENERATED from the SystemVerilog grammar's RAW lane, whose `compiler_directive` residue derives an opaque
+# backtick line on purpose (an unexpanded file parses around its macro uses). The stage's default
+# `undefined_macro_policy=error` (SVPP-EXPANSION.6f) refuses exactly that residue as "no token of the language",
+# which is right for a corpus file and a category error for a generated one: the generator cannot define what
+# the residue rule leaves undefined. So generated text is replayed with the stage in its consumer-resolves mode,
+# declared here by the contract rather than by excluding the residue rule from generation (which would move the
+# certificate). The realistic cases below are hand-written files and keep the stage's default, as does every
+# corpus lane (`sv_external_corpus_triage_gate.sh` reads its own policy; this key is never read there).
+generated_text_undefined_macro_policy="$(jq -er '.preprocess.generated_text_undefined_macro_policy | strings' "$CONTRACT_FILE")"
 
 require_nonempty_preprocessed_output="$(jq -er 'if .semantic_baseline.require_nonempty_preprocessed_output then 1 else 0 end' "$CONTRACT_FILE")"
 require_no_preprocess_errors="$(jq -er 'if .semantic_baseline.require_no_preprocess_errors then 1 else 0 end' "$CONTRACT_FILE")"
@@ -2376,7 +2386,8 @@ for profile_idx in "${!run_profiles[@]}"; do
             --stage-opt "macro_redefine_policy=$macro_redefine_policy" \
             --stage-opt "conditional_symbol_policy=$conditional_symbol_policy" \
             --stage-opt "conditional_expr_policy=$conditional_expr_policy" \
-            --stage-opt "strict_warning_codes=$strict_warning_codes"
+            --stage-opt "strict_warning_codes=$strict_warning_codes" \
+            --stage-opt "undefined_macro_policy=$generated_text_undefined_macro_policy"
         run_logged "profile_${profile_key}_closed_loop_replay_preprocess" \
             "$AST_PIPELINE_BIN" "$closed_loop_replay_stimuli" \
             --preprocess systemverilog \
@@ -2387,7 +2398,8 @@ for profile_idx in "${!run_profiles[@]}"; do
             --stage-opt "macro_redefine_policy=$macro_redefine_policy" \
             --stage-opt "conditional_symbol_policy=$conditional_symbol_policy" \
             --stage-opt "conditional_expr_policy=$conditional_expr_policy" \
-            --stage-opt "strict_warning_codes=$strict_warning_codes"
+            --stage-opt "strict_warning_codes=$strict_warning_codes" \
+            --stage-opt "undefined_macro_policy=$generated_text_undefined_macro_policy"
 
         require_file "$closed_loop_initial_diagnostics"
         require_file "$closed_loop_replay_diagnostics"
@@ -2621,7 +2633,8 @@ for profile_idx in "${!run_profiles[@]}"; do
             --stage-opt "macro_redefine_policy=$macro_redefine_policy" \
             --stage-opt "conditional_symbol_policy=$conditional_symbol_policy" \
             --stage-opt "conditional_expr_policy=$conditional_expr_policy" \
-            --stage-opt "strict_warning_codes=$strict_warning_codes"
+            --stage-opt "strict_warning_codes=$strict_warning_codes" \
+            --stage-opt "undefined_macro_policy=$generated_text_undefined_macro_policy"
         preprocess_elapsed_ms=$(( $(now_ms) - preprocess_started_ms ))
         perf_preprocess_total_ms=$((perf_preprocess_total_ms + preprocess_elapsed_ms))
         if (( preprocess_elapsed_ms > perf_preprocess_max_ms )); then

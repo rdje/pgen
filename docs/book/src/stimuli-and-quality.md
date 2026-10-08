@@ -194,6 +194,28 @@ divergence rather than treating them alike:
 The grammar is deliberately *not* part of that configuration: a grammar change
 moving the residual is precisely what the ratchet exists to catch.
 
+### The preprocess stages replay generated text, and say so
+
+The closed loop's two preprocess stages (`profile_<p>_closed_loop_initial_preprocess`,
+`…_replay_preprocess`) and the per-sample preprocess stage feed **generated** text to the
+SystemVerilog preprocessing stage and read its `--diagnostics-json`: the error and warning
+counts are the *preprocess debt* the replay may not increase. Generated text is derived from
+the grammar's raw lane, whose `compiler_directive` residue derives an opaque backtick line on
+purpose (so an unexpanded file parses around its macro uses); the stage's default
+`undefined_macro_policy=error` — right for a corpus file, where an unresolved usage means a
+missing definition — refuses exactly that residue, and a generator cannot define what the
+residue rule leaves undefined. So the contract's `preprocess` block declares the stage
+policies for generated text, beside its other closed-loop settings:
+`conditional_symbol_policy: assume_false_warn` turns a generated `` `ifdef `` of an undefined
+symbol into a warning, and since `SVPP-EXPANSION.6g` (2026-10-08)
+`generated_text_undefined_macro_policy: keep` runs the stage in its consumer-resolves mode
+(the raw-lane parser is that consumer). The gate passes it at those three stages only; the
+hand-written realistic cases keep the stage default, and no corpus lane reads the key.
+Measured before it landed: both SystemVerilog umbrellas were RED at
+`profile_2017_closed_loop_replay_preprocess` on a generated `` `\ `` line, and 2 of 16
+per-sample files were refused; after, the closed-loop totals read what they read on the last
+green run.
+
 ### The residual manifest
 
 Alongside `summary.txt` the gate now writes

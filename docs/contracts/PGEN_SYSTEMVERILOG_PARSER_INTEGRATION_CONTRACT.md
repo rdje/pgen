@@ -2090,7 +2090,8 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   macro used without its argument list or with an unclosed one (§22.5.1 *"the parentheses are always
   required"*, Syntax 22-3), a `` `" `` / `` `\`" `` / `` `` `` outside macro text, and an `` `end_keywords ``
   closing no region are refused with their clause; `--stage-opt undefined_macro_policy=keep` restores the
-  passthrough for a consumer that resolves the rest itself. Every event is
+  passthrough for a consumer that resolves the rest itself (the SV stimuli quality gate replays its GENERATED
+  raw-lane text under it by contract, `SVPP-EXPANSION.6g`; no corpus lane does). Every event is
   logged (`Define Undef Include Ifdef Ifndef Elsif Else Endif PassthroughLine SkippedLine MacroExpand
   LineDirective ProtectedEnvelope KeywordsRegion`).
 - **`` `begin_keywords `` regions are APPLIED, and the profile reaches this stage** (`SVPP-EXPANSION.8`,
