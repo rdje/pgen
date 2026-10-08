@@ -184,10 +184,12 @@ LEG_REASONS = [
     # the triage sentence: for 35 days SystemVerilog's block published "only a TRIAGE gate" while a
     # conformance gate existed, because the triage line was the first ⛔ this table recognised.
     ("UNMET by the surface's own assertion",
-     "the external-corpus CONFORMANCE gate's own assertion is false — `full_pass` needs every row adjudicated and "
-     "zero unexplained divergences, and the tracked manifests still carry no-verdict rows (the corpus table below)"),
+     "the external-corpus CONFORMANCE gate's own assertion is false — `full_pass` needs zero unexplained divergences on "
+     "both lanes and every row adjudicated under its declared reading (the preprocess→parse pipeline for a row the raw "
+     "lane defers to it; the permanently unadjudicable classes named and bounded, never counted as a gap), and rows "
+     "still carry no verdict under that reading (`corpus_conformance_compare.py --assert-tracked` prints the count)"),
     ("MET by the surface's own assertion",
-     "the external-corpus conformance gate's own assertion holds — every row adjudicated, zero unexplained divergences"),
+     "the external-corpus conformance gate's own assertion holds — zero unexplained divergences on both lanes and every row adjudicated under its declared reading, the permanently unadjudicable classes named and bounded"),
     ("holds over rust/target/",
      "the external-corpus conformance gate's own assertion holds over its artifact"),
     ("a TRIAGE gate is not a conformance gate",
@@ -225,11 +227,13 @@ def self_check():
         # order the audit prints them in — and the informational triage line alone matches nothing.
         (["    ℹ️ a TRIAGE gate characterizes; the family's CONFORMANCE gate carries the assertion",
           "    ⛔ pass_query `.full_pass == true` is FALSE over the TRACKED manifests (rows=16336) — leg 3 UNMET by the surface's own assertion (tracked derivation)"],
-         "the external-corpus CONFORMANCE gate's own assertion is false — `full_pass` needs every row adjudicated and "
-         "zero unexplained divergences, and the tracked manifests still carry no-verdict rows (the corpus table below)"),
+         "the external-corpus CONFORMANCE gate's own assertion is false — `full_pass` needs zero unexplained divergences on "
+         "both lanes and every row adjudicated under its declared reading (the preprocess→parse pipeline for a row the raw "
+         "lane defers to it; the permanently unadjudicable classes named and bounded, never counted as a gap), and rows "
+         "still carry no verdict under that reading (`corpus_conformance_compare.py --assert-tracked` prints the count)"),
         (["    ⛔ a TRIAGE gate is not a conformance gate",
           "    ✅ pass_query `.full_pass == true` holds over the TRACKED manifests (rows=4) — leg 3 MET by the surface's own assertion (tracked derivation)"],
-         "the external-corpus conformance gate's own assertion holds — every row adjudicated, zero unexplained divergences"),
+         "the external-corpus conformance gate's own assertion holds — zero unexplained divergences on both lanes and every row adjudicated under its declared reading, the permanently unadjudicable classes named and bounded"),
         (["    ℹ️ a TRIAGE gate characterizes; the family's CONFORMANCE gate carries the assertion"], None),
         (["some sentence this table has never seen"], None),
     ]

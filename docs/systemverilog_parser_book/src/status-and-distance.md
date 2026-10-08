@@ -41,7 +41,7 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 |---|---|---|
 | 1 — stimuli-generator proof | ⚠️ **UNPROVEN** | rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
 | 2 — gates green and invoked | ⚠️ **UNPROVEN** | 17 covering gate targets, 17 invoked, 0 invoked by nothing; rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
-| 3 — external corpus passing | ⛔ **UNMET** | the external-corpus CONFORMANCE gate's own assertion is false — `full_pass` needs every row adjudicated and zero unexplained divergences, and the tracked manifests still carry no-verdict rows (the corpus table below) |
+| 3 — external corpus passing | ⛔ **UNMET** | the external-corpus CONFORMANCE gate's own assertion is false — `full_pass` needs zero unexplained divergences on both lanes and every row adjudicated under its declared reading (the preprocess→parse pipeline for a row the raw lane defers to it; the permanently unadjudicable classes named and bounded, never counted as a gap), and rows still carry no verdict under that reading (`corpus_conformance_compare.py --assert-tracked` prints the count) |
 
 **Corpus.** Denominator: every row of the SystemVerilog corpus adjudication manifests over stimuli/sv/subs + stimuli/sv/uvm — **16 336 rows**, counted by `stimuli/sv/corpus_verdict_coverage.py` and held current by `bash scripts/check_sv_corpus_denominator.sh`.
 
@@ -80,6 +80,29 @@ of anything, and *unknown* and *clean* are different words.
 The **dark** rows are the sharpest edge in the table: the parse failed, and the row's deferral
 reason is why nobody has looked at it since. Every one of them is a question the project has not
 yet asked.
+
+**What leg 3 actually demands of these rows.** The table above is the **raw lane** — every file
+parsed on its own bytes. The bar's assertion does not stop there, and since `DONE-BAR.3f`
+(2026-10-08) it could not honestly: three classes of no-verdict row are not parser gaps at all.
+
+- A **chained** row (a multi-file design, `deferred:chained_only`) is deferred by the raw lane *by
+  design* and read under the preprocess→parse pipeline's re-adjudication
+  (`stimuli/sv/characterization/pipeline_readjudication.tsv`, the lane
+  [the pipeline chapter](preprocess-parse-pipeline.md) describes). The assertion reads it there.
+- A **permanently unadjudicable** row — a `$readmemh` memory image, a Verilog-AMS file, a test whose
+  own suite marks the verdict implementation-dependent, a construct the upstream runner skips — can
+  never carry a verdict about SystemVerilog, and the project said so in
+  `SV-CORPUS-GRAD.13f`: each class states its argument and is held under a recorded ceiling the
+  instruments refuse to exceed. The assertion names and counts these rows; it does not demand them,
+  and it never relabels them as a pass — they stay in the table above as no-verdict rows.
+- Everything else with no verdict is **burnable**: a row the project still owes a verdict.
+
+Before `.3f` the assertion was *zero no-verdict rows on the raw lane*, which demanded a verdict for
+the first two classes too — a bar no parser could meet. The live counts are derived, never stored
+here: `bash scripts/check_sv_corpus_denominator.sh` prints the tuple *under the pipeline*, and
+`python3 stimuli/sv/corpus_conformance_compare.py --assert-tracked stimuli/sv/characterization/adjudication_manifest.tsv --assert-tracked-v2005 stimuli/sv/characterization/adjudication_manifest_v2005.tsv`
+prints the assertion itself: `declared_adjudicated`, `permanent_no_verdict`, `burnable_no_verdict`
+(the three sum to the denominator), the unexplained and bar counts, and `full_pass`.
 
 ## How this page stays true
 

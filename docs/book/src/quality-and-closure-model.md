@@ -240,7 +240,12 @@ and simultaneously:
 2. **All our gates** — every gate covering the family is green **now**, and is **actually invoked**
    by something. A gate nothing invokes is indistinguishable from a gate that does not exist.
 3. **All the external test corpus, passing** — an officially-recognized third-party corpus, asserted
-   as a **pass**.
+   as a **pass**. The assertion reads each row under its **declared reading**: a row the raw lane
+   defers to the preprocess→parse pipeline is read under that pipeline's re-adjudication, every other
+   row under its raw class; and a row the project has ruled **permanently unadjudicable** — a
+   `$readmemh` memory image, a Verilog-AMS file, a verdict the suite's own contract leaves to the
+   implementation — is named, counted and held under a recorded ceiling, never demanded and never
+   relabelled as a pass (`DONE-BAR.3f`, below).
 
 Three exclusions do most of the work, and each exists because the opposite reading had been made
 here at least once:
@@ -331,10 +336,24 @@ one shared helper (`rust/scripts/lib/parser_family_status_bar.sh`):
   — and its artifact must satisfy the declared pass assertion. While no surface is declared, leg 3
   is unmet. Since `DONE-BAR.3c` (2026-10-08) a surface may also declare `tracked_assertion_command`:
   the same assertion derived from the **tracked tree alone** (SystemVerilog: `full_pass` over the
-  tracked adjudication manifest, `corpus_conformance_compare.py --assert-tracked`), evaluated by the
-  same `pass_query` when no artifact is on the machine — which is how the book's blocks, a
-  tracked-only reading, state the assertion's own verdict and counts instead of the next sentence the
-  audit happens to print. A triage gate beside a conformance gate is information, not a reason.
+  tracked adjudication manifests, `corpus_conformance_compare.py --assert-tracked … --assert-tracked-v2005 …`),
+  evaluated by the same `pass_query` when no artifact is on the machine — which is how the book's
+  blocks, a tracked-only reading, state the assertion's own verdict and counts instead of the next
+  sentence the audit happens to print. A triage gate beside a conformance gate is information, not a
+  reason.
+- ⛔ **An assertion whose zero no work can reach is not a bar, it is a label** (`DONE-BAR.3f`,
+  2026-10-08). Until that leaf, SystemVerilog's `full_pass` was *zero unexplained divergences and zero
+  no-verdict rows on the raw lane* — and the raw lane's no-verdict bucket held, by the project's own
+  earlier rulings, rows no parser could ever clear: the five permanent classes bounded by
+  `SV-CORPUS-GRAD.13f`'s ceilings register, and the chained rows the raw lane defers to the
+  preprocess→parse pipeline by design (`SVPP-EXPANSION.6c.1`). Measured on the tracked manifest that
+  day: 6 245 no-verdict rows, 5 649 of them unreachable by construction. The assertion now reads each
+  row under its declared reading (the coverage instrument's own *under the pipeline* rule — one
+  definition, shared with the denominator doctrine), excludes only the permanent classes of both
+  lanes and refuses if any of them grows past its ceiling, and publishes `burnable_no_verdict` — the
+  rows that still stand between the corpus and the bar — beside the retired raw-lane bit, kept by
+  name as `full_pass_raw_lane` so the change of meaning is visible. Nothing moved from no-verdict to
+  pass: the published corpus tables are unchanged; only the question the bar asks became answerable.
 - Consequently **`Done` is unreachable while leg 3 is unmet**: a family whose own closure criteria
   all hold computes `Provisional (…)`, never `Done`. The cap only applies at the top — statuses
   below `Done` pass through unchanged.

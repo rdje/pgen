@@ -9,10 +9,14 @@
 #   2. it ADJUDICATES the fresh outcomes against the answer keys (stimuli/sv/adjudicate_external_corpus.py);
 #   3. it COMPARES the fresh adjudication with the TRACKED one (stimuli/sv/corpus_conformance_compare.py):
 #      any regression of the recorded answer-key agreement FAILS the gate (exit 1);
-#   4. it records `full_pass` — every row adjudicated, zero unexplained divergences — in summary.json. That
-#      bit, not the exit code, is what the DONE-BAR register's leg3_surface pass_query reads. ⛔ A green
-#      exit is "no regression"; it is NOT "the corpus passes". Conflating the two is the silent relabelling
-#      DONE-BAR exists to stop.
+#   4. it records `full_pass` — zero unexplained divergences, and every row adjudicated under its DECLARED
+#      reading (the preprocess→parse pipeline's re-adjudication for a row the raw lane defers to it; the
+#      PERMANENT classes of both lanes named and held under their ceilings, never demanded — DONE-BAR.3f,
+#      2026-10-08) — in summary.json, beside `burnable_no_verdict` (what still stands between the corpus and
+#      the bar) and `full_pass_raw_lane` (the pre-.3f bit, `no_verdict == 0` on the raw lane, which was
+#      unreachable by construction: 716 permanent + 4 933 pipeline-only rows). That bit, not the exit code,
+#      is what the DONE-BAR register's leg3_surface pass_query reads. ⛔ A green exit is "no regression"; it
+#      is NOT "the corpus passes". Conflating the two is the silent relabelling DONE-BAR exists to stop.
 # State: rust/target/sv_external_corpus_conformance_gate/{summary.txt,summary.json,comparison.json,work,logs}
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -87,6 +91,8 @@ jq -n \
       probe_sha256: $probe_sha256, systemverilog_parser_fingerprint: $systemverilog_parser_fingerprint,
       regressions_total: $comparison.regressions_total, improvements_total: $comparison.improvements_total,
       no_regression: ($regression_exit == 0), full_pass: $comparison.full_pass,
+      full_pass_raw_lane: $comparison.full_pass_raw_lane, permanent_no_verdict: $comparison.permanent_no_verdict,
+      burnable_no_verdict: $comparison.burnable_no_verdict, full_pass_requires: $comparison.full_pass_requires,
       sv_2017: ($comparison.sv_2017 | del(.regression_rows, .improvement_rows)),
       verilog_2005: ($comparison.verilog_2005 | del(.regression_rows, .improvement_rows)),
       comparison_json: "rust/target/sv_external_corpus_conformance_gate/comparison.json"}' >"$SUMMARY_JSON"
@@ -95,11 +101,15 @@ jq -n \
     echo "corpus_roots: $CORPUS_ROOTS"
     echo "no_regression: $([[ $compare_rc -eq 0 ]] && echo true || echo false)"
     echo "full_pass: $(jq -r '.full_pass' "$SUMMARY_JSON")"
+    echo "full_pass_raw_lane: $(jq -r '.full_pass_raw_lane' "$SUMMARY_JSON")"
+    echo "permanent_no_verdict: $(jq -r '.permanent_no_verdict' "$SUMMARY_JSON")"
+    echo "burnable_no_verdict: $(jq -r '.burnable_no_verdict' "$SUMMARY_JSON")"
     echo "regressions_total: $(jq -r '.regressions_total' "$SUMMARY_JSON")"
     echo "improvements_total: $(jq -r '.improvements_total' "$SUMMARY_JSON")"
     for lane in sv_2017 verilog_2005; do
-        for k in rows match explained unexplained routed no_verdict observed_pass_to_fail; do echo "${lane}_${k}: $(jq -r ".${lane}.${k}" "$SUMMARY_JSON")"; done
+        for k in rows match explained unexplained routed no_verdict permanent_no_verdict burnable_no_verdict observed_pass_to_fail; do echo "${lane}_${k}: $(jq -r ".${lane}.${k}" "$SUMMARY_JSON")"; done
     done
+    for k in declared_adjudicated declared_routed declared_no_verdict declared_bar readjudication_stale; do echo "sv_2017_${k}: $(jq -r ".sv_2017.${k}" "$SUMMARY_JSON")"; done
     echo "tracked_manifest_sha256: $(jq -r '.tracked_manifest_sha256' "$SUMMARY_JSON")"
     echo "fresh_manifest_sha256: $(jq -r '.fresh_manifest_sha256' "$SUMMARY_JSON")"
     echo "summary_json: $SUMMARY_JSON"

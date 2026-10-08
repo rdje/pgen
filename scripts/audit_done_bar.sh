@@ -447,7 +447,11 @@ def leg3_pass_from_tracked(entry, gate, runner=None):
             os.unlink(tmp.name)
         except OSError:
             pass
-    counts = ", ".join(f"{k}={data[k]}" for k in ("rows", "adjudicated", "no_verdict", "routed", "unexplained") if k in data)
+    # DONE-BAR.3f: the assertion's own counts — under the DECLARED reading when the comparator evaluated one
+    # (burnable = the rows still standing between the corpus and the bar; permanent = named and bounded)
+    counts = ", ".join(f"{k}={data[k]}" for k in ("rows", "declared_adjudicated", "routed", "burnable_no_verdict",
+                                                   "permanent_no_verdict", "unexplained", "declared_bar",
+                                                   "readjudication_stale", "adjudicated", "no_verdict") if k in data)
     if r.returncode == 0:
         return True, f"pass_query `{query}` holds over the TRACKED manifests ({counts}) — leg 3 MET by the surface's own assertion (tracked derivation)"
     return False, f"pass_query `{query}` is FALSE over the TRACKED manifests ({counts}) — leg 3 UNMET by the surface's own assertion (tracked derivation)"

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-66d49b6e.js";
+            window.path_to_searchindex_js = "searchindex-bc106d33.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -247,7 +247,7 @@ inapplicable one.</li>
 <tbody>
 <tr><td>1 — stimuli-generator proof</td><td>⚠️ <strong>UNPROVEN</strong></td><td>rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it</td></tr>
 <tr><td>2 — gates green and invoked</td><td>⚠️ <strong>UNPROVEN</strong></td><td>17 covering gate targets, 17 invoked, 0 invoked by nothing; rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it</td></tr>
-<tr><td>3 — external corpus passing</td><td>⛔ <strong>UNMET</strong></td><td>the external-corpus CONFORMANCE gate’s own assertion is false — <code>full_pass</code> needs every row adjudicated and zero unexplained divergences, and the tracked manifests still carry no-verdict rows (the corpus table below)</td></tr>
+<tr><td>3 — external corpus passing</td><td>⛔ <strong>UNMET</strong></td><td>the external-corpus CONFORMANCE gate’s own assertion is false — <code>full_pass</code> needs zero unexplained divergences on both lanes and every row adjudicated under its declared reading (the preprocess→parse pipeline for a row the raw lane defers to it; the permanently unadjudicable classes named and bounded, never counted as a gap), and rows still carry no verdict under that reading (<code>corpus_conformance_compare.py --assert-tracked</code> prints the count)</td></tr>
 </tbody>
 </table>
 </div>
@@ -293,6 +293,28 @@ of anything, and <em>unknown</em> and <em>clean</em> are different words.</p>
 <p>The <strong>dark</strong> rows are the sharpest edge in the table: the parse failed, and the row’s deferral
 reason is why nobody has looked at it since. Every one of them is a question the project has not
 yet asked.</p>
+<p><strong>What leg 3 actually demands of these rows.</strong> The table above is the <strong>raw lane</strong> — every file
+parsed on its own bytes. The bar’s assertion does not stop there, and since <code>DONE-BAR.3f</code>
+(2026-10-08) it could not honestly: three classes of no-verdict row are not parser gaps at all.</p>
+<ul>
+<li>A <strong>chained</strong> row (a multi-file design, <code>deferred:chained_only</code>) is deferred by the raw lane <em>by
+design</em> and read under the preprocess→parse pipeline’s re-adjudication
+(<code>stimuli/sv/characterization/pipeline_readjudication.tsv</code>, the lane
+<a href="#the-preprocessparse-pipeline">the pipeline chapter</a> describes). The assertion reads it there.</li>
+<li>A <strong>permanently unadjudicable</strong> row — a <code>$readmemh</code> memory image, a Verilog-AMS file, a test whose
+own suite marks the verdict implementation-dependent, a construct the upstream runner skips — can
+never carry a verdict about SystemVerilog, and the project said so in
+<code>SV-CORPUS-GRAD.13f</code>: each class states its argument and is held under a recorded ceiling the
+instruments refuse to exceed. The assertion names and counts these rows; it does not demand them,
+and it never relabels them as a pass — they stay in the table above as no-verdict rows.</li>
+<li>Everything else with no verdict is <strong>burnable</strong>: a row the project still owes a verdict.</li>
+</ul>
+<p>Before <code>.3f</code> the assertion was <em>zero no-verdict rows on the raw lane</em>, which demanded a verdict for
+the first two classes too — a bar no parser could meet. The live counts are derived, never stored
+here: <code>bash scripts/check_sv_corpus_denominator.sh</code> prints the tuple <em>under the pipeline</em>, and
+<code>python3 stimuli/sv/corpus_conformance_compare.py --assert-tracked stimuli/sv/characterization/adjudication_manifest.tsv --assert-tracked-v2005 stimuli/sv/characterization/adjudication_manifest_v2005.tsv</code>
+prints the assertion itself: <code>declared_adjudicated</code>, <code>permanent_no_verdict</code>, <code>burnable_no_verdict</code>
+(the three sum to the denominator), the unexplained and bar counts, and <code>full_pass</code>.</p>
 <h2 id="how-this-page-stays-true"><a class="header" href="#how-this-page-stays-true">How this page stays true</a></h2>
 <ul>
 <li>One producer emits both renderings — the brief form reported in the engineer’s completion

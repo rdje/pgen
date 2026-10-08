@@ -325,6 +325,22 @@ PERMANENT = {
         "answer key, no include/define chaining and no grammar revision can produce a verdict "
         "ABOUT SYSTEMVERILOG from them; the row is a statement about the corpus's composition",
 }
+# DONE-BAR.3f (2026-10-08): the verilog_2005 LANE's permanent classes, stated beside the sv_2017 ones so
+# permanence has ONE home. That lane has no coverage instrument of its own (its rows are the sv_2017
+# lane's ROUTED rows), so this instrument never counts them; the leg-3 comparator
+# (`corpus_conformance_compare.py`) reads this set and holds each class under its ceiling in the same
+# register's `ceilings_verilog_2005` section. The two arguments are the sv_2017 lane's, restated for the
+# 1364-2005 keys: ispras-1364 marks TYPE VARYING rows implementation-dependent by its own contract, and
+# ivtest's NI descriptors are skipped by the upstream runner. `deferred:ni_unimplemented` is the same
+# class NAME on both lanes with a different population, which is why the ceilings are per lane.
+PERMANENT_V2005 = {
+    "deferred:impl_varying_v2005":
+        "the suite's own contract marks the verdict implementation-dependent (ispras-1364 TYPE VARYING) — "
+        "the LRM leaves the behaviour to the implementation, so no answer key can exist",
+    "deferred:ni_unimplemented":
+        "the upstream runner marks the construct NI (Not Implemented) and skips the test, so the "
+        "suite itself holds no expectation to compare against",
+}
 DEFAULT_CEILINGS = ("docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/"
                     "permanent_deferral_ceilings.json")
 
