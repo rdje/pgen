@@ -125,6 +125,11 @@ CLASSES = {
         "MOST realistic RTL in the corpus, contributing nothing to the claim"),
     "deferred:no_sv_key": (
         "NO VERDICT", "no upstream answer key exists - expectation underivable"),
+    "deferred:negative_stage_triage": (
+        "NO VERDICT", "an ivtest CE whose failure STAGE is unresolved - a regress-vlog95.list CE "
+        "(the -t vlog95 flow: its compile error may be the Verilog-95 code generator's, not the "
+        "parser's) or a CE with no usable golden outside the pinned population; a golden log or "
+        "a pin settles it (SV-CORPUS-GRAD.13e.13)"),
     "deferred:svpp_owned": (
         "NO VERDICT", "conformance owned by the preprocessor lane, by design"),
     "deferred:impl_varying": (
@@ -385,6 +390,11 @@ TICK_MEANING = {
     "deferred:no_sv_key":
         "information only — the label is the absence of an upstream ANSWER KEY, which "
         "no directive could supply",
+    "deferred:negative_stage_triage":
+        "information only — the label is an unresolved failure STAGE (the parser, or a later "
+        "stage / the vlog95 code generator); a backtick-free file says the reject is not "
+        "expansion's, and still not which stage refused — a golden log or a pin settles it "
+        "(SV-CORPUS-GRAD.13e.13)",
     "deferred:svpp_owned":
         "⛔ refutes NOTHING — read them: verible excerpt-mode fragments and verilator "
         "`t_preproc_*_bad` EOF/string cases. Preprocessor relevance is the test's "

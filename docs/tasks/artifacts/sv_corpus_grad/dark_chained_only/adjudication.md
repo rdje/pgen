@@ -7,19 +7,20 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `8779f0d13f30cb74418893f28db8bffdca5e40c2b66e224e992ad79f75766751` |
+| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `217bf5f5107bb2a55bcc610dc14c2ac3d36f69f1583c1559a5e4bfc0df6ced91` |
 | grammar | `grammars/systemverilog.ebnf` | `46958d34e693506ba8e16d874eca948a7b927b07161714f009e532bfaf229034` |
-| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `44144778149f8d21ac014513248eb28fb7b64bc35fa506dcaf1128fa330eecb9` |
+| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `7a2d1170aeb634603ac9e43c8be50fa220fba985fd781c553aec511eff035b03` |
 
 ## Verdicts
 
 | verdict | rows | what it means |
 |---|---:|---|
 | `MACRO-BLOCKED` | 28 | the RESIDUAL failure sits on an undefined macro invocation ⇒ expansion owns what is left (`.13d`), NOT a parser defect |
-| `INVALID-SV` | 14 | the text is NOT legal SV; the rejection is CORRECT and accepting it would be an over-acceptance defect (pinned as a negative reproducer) |
+| `INVALID-SV` | 13 | the text is NOT legal SV; the rejection is CORRECT and accepting it would be an over-acceptance defect (pinned as a negative reproducer) |
 | `CROSS-FILE-FACTS` | 5 | declaring the cross-file names the parser demanded makes the file PARSE ⇒ blocked by cross-file FACT continuity (`.4`), NOT a parser defect |
 | `FRAGMENT-MODULE` | 2 | parses only inside a `module` ⇒ an include payload, not a legal standalone compilation unit |
 | `FRAGMENT-ENUM-BODY` | 1 | an enum-member list included INSIDE an `enum { … }` — no compilation-unit wrapper can shape it |
+| `FRAGMENT-STATEMENT` | 1 | parses only inside a `statement` ⇒ an include payload, not a legal standalone compilation unit |
 | **TOTAL** | **50** | |
 
 ## Per row
@@ -38,6 +39,7 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `FRAGMENT-ENUM-BODY` | opentitan | `hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv` | 2 | — | the whole file is `CUSTOM_1,` — an enum-member list included INSIDE an `enum { … }`, so no wrapper in the ladder can shape it |
 | `FRAGMENT-MODULE` | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_m.svh` | 87 | module |  |
 | `FRAGMENT-MODULE` | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_mu.svh` | 104 | module |  |
+| `FRAGMENT-STATEMENT` | iverilog | `ivtest/ivltests/line_directive_inc.v` | 1 | — | the whole file is one bare statement, `$display("file %s line %0d", `__FILE__, `__LINE__);` — the `include payload of ivltests/line_directive.v (SV-CORPUS-GRAD.13e.13 keyed it chained_only by the `include graph). No wrapper in the ladder can shape a bare statement (a statement needs a procedural block), and inside an `initial` it still rejects on the raw lane because `__FILE__ / `__LINE__ are IEEE 1800-2017 22.13 directives the expansion stage, not the parser, resolves; its includer's row carries the verdict under the pipeline |
 | `INVALID-SV` | Surelog | `tests/ElabSysCall/dut.sv` | 3 | — | `invalid_fatal_without_finish_number.sv` |
 | `INVALID-SV` | Surelog | `tests/UnitTest/top.v` | 34 | — | `invalid_binary_reduction_nand.sv` |
 | `INVALID-SV` | black-parrot | `bp_top/test/common/bp_nonsynth_core_profiler.sv` | 3 | — | the file's first token is the bare marker `ERROR_CURRENTLY_UNSUPPORTED`, followed by a typedef — a deliberate upstream "do not compile" sentinel, not SV |
@@ -51,7 +53,6 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `INVALID-SV` | opentitan | `hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv` | 7 | — | `invalid_implicit_named_param.sv` |
 | `INVALID-SV` | opentitan | `hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v` | 6 | — | `invalid_dollar_module_identifier.sv` |
 | `INVALID-SV` | verilator | `test_regress/t/t_langext_order_sub.v` | 11 | — | `invalid_reserved_word_port.sv` |
-| `INVALID-SV` | verilator | `test_regress/t/t_pipe_filter.v` | 11 | — | `invalid_pipe_filter_placeholder_lines.sv` |
 | `MACRO-BLOCKED` | opentitan | `hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh` | 5 | class | stuck on `` `uvm_info `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__shadow_reg_errors.svh` | 5 | class | stuck on `` `uvm_fatal `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/ip/aes/dv/env/aes_ral_extension.svh` | 6 | none | stuck on `` `uvm_object_utils `` (undefined here) |

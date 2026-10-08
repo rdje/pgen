@@ -7,33 +7,33 @@
 > `SV-CORPUS-GRAD.13e.3` measured twice*, which a `clause-cited` one is not. The number
 > below says how much of the published bar rests on evidence outside the standard.
 
-## `sv_2017` — 7485 keyed rows
+## `sv_2017` — 7683 keyed rows
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **607** | 8.1% | 289 | 318 |
-| `tool-testimony` | **1719** | 23.0% | 1670 | 49 |
-| `suite-convention` | **5158** | 68.9% | 5155 | 3 |
+| `clause-cited` | **611** | 8.0% | 289 | 322 |
+| `tool-testimony` | **1719** | 22.4% | 1670 | 49 |
+| `suite-convention` | **5352** | 69.7% | 5349 | 3 |
 | `UNCLASSIFIED` | **1** | 0.0% | 0 | 1 |
 
-⇒ **trust bound: 6878 of 7485 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 7072 of 7683 (92.0%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
-## `verilog_2005` — 2535 keyed rows
+## `verilog_2005` — 2858 keyed rows
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **247** | 9.7% | 155 | 92 |
-| `tool-testimony` | **460** | 18.1% | 449 | 11 |
-| `suite-convention` | **1827** | 72.1% | 1827 | 0 |
+| `clause-cited` | **285** | 10.0% | 155 | 130 |
+| `tool-testimony` | **462** | 16.2% | 451 | 11 |
+| `suite-convention` | **2110** | 73.8% | 2110 | 0 |
 | `UNCLASSIFIED` | **1** | 0.0% | 1 | 0 |
 
-⇒ **trust bound: 2288 of 2535 (90.3%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 2573 of 2858 (90.0%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
 ## By suite — where the non-clause evidence actually lives
 
 | suite | rows | `clause-cited` | `tool-testimony` | `suite-convention` | `UNCLASSIFIED` |
 |---|---|---|---|---|---|
-| `iverilog` | 3135 | 409 | 515 | 2211 | 0 |
+| `iverilog` | 3656 | 451 | 517 | 2688 | 0 |
 | `verilator` | 3067 | 124 | 717 | 2226 | 0 |
 | `ispras-sv-tests` | 1146 | 38 | 0 | 1106 | ⛔ 2 |
 | `sv-tests` | 933 | 18 | 0 | 915 | 0 |
@@ -59,7 +59,7 @@ nothing else. That the partition is EXHAUSTIVE is why the split is trustworthy.
 
 ## ⛔ The residual, VERBATIM — a census that hides its leftovers is a census you cannot check
 
-**2 of 10020 rows** (0.02%) match no rule. Every one is printed here rather than folded into a class, because a
+**2 of 10541 rows** (0.02%) match no rule. Every one is printed here rather than folded into a class, because a
 residual absorbed into the nearest bucket is exactly how a classifier stops being
 checkable. The first cut left **4 961** unclassified (49 %) and the vocabulary was
 extended by ENUMERATING those shapes, not by widening a rule until the number fell.

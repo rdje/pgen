@@ -6,7 +6,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e0034b25fb9e7de646f1f4933d348839a052249e8588632541195d4a04efea08` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `70e83f298fa1a53384bc56a5ee350de583bb80b9a3f7ed4058cf77d0dd436046` |
 | positions | `stimuli/sv/characterization/positions.tsv` | `2570f719f50b930057e0bfa79e39ba64d104ff8571939837e675a43cb801d0ad` |
 | grammar | `grammars/systemverilog.ebnf` | `46958d34e693506ba8e16d874eca948a7b927b07161714f009e532bfaf229034` |
 
@@ -14,22 +14,22 @@
 
 | verdict | rows | % | reading |
 |---|---:|---:|---|
-| `PRE-TICK` | 2,004 | 56.1 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
+| `PRE-TICK` | 2,005 | 56.1 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
 | `IN-WINDOW` | 1,484 | 41.6 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
 | `NO-ALTERABLE-TICK` | 73 | 2.0 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
 | `PAST-LAST-TICK` | 9 | 0.3 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
-| **TOTAL** | **3,570** | **100.0 %** | |
+| **TOTAL** | **3,571** | **100.0 %** | |
 
-⇒ **2,077 of 3,570 rows (58.2 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
+⇒ **2,078 of 3,571 rows (58.2 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
 
 ## Then the FACT channel — is a cross-file *name* the live explanation?
 
 | channel | rows | reading |
 |---|---:|---|
 | `FACT-GATED-CROSS-FILE` | 1,861 |  |
-| `CROSS-LIBRARY` | 166 |  |
-| `UNDECLARED-ANYWHERE` | 26 |  |
-| `NO-FACT-GATE-AT-FAILURE` | 16 |  |
+| `CROSS-LIBRARY` | 167 |  |
+| `UNDECLARED-ANYWHERE` | 25 |  |
+| `NO-FACT-GATE-AT-FAILURE` | 17 |  |
 | `FACT-GATED-LOCAL-TYPE` | 8 |  |
 
 ⇒ **the worklist is 50 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
@@ -46,9 +46,9 @@
 | uvm-core | `NO-FACT-GATE-AT-FAILURE` | 2 |
 | Surelog | `NO-FACT-GATE-AT-FAILURE` | 1 |
 | verilator | `NO-FACT-GATE-AT-FAILURE` | 1 |
+| iverilog | `NO-FACT-GATE-AT-FAILURE` | 1 |
 | scr1 | `NO-FACT-GATE-AT-FAILURE` | 1 |
 | black-parrot | `UNDECLARED-ANYWHERE` | 1 |
-| verilator | `UNDECLARED-ANYWHERE` | 1 |
 
 ## First 40 worklist rows (source excerpt at the failure)
 
@@ -80,6 +80,7 @@
 | uvm-core | `uvm-core-2020.3.1/src/comps/uvm_pair.svh` | 48 | `FACT-GATED-LOCAL-TYPE` | ``) extends uvm_object; typedef uvm_class_pair #(T1, T2 ) this_type; `uvm_ob`` |
 | uvm-core | `uvm-core-2020.3.1/src/tlm1/uvm_sqr_connections.svh` | 57 | `FACT-GATED-LOCAL-TYPE` | ``tends uvm_port_base #(uvm_sqr_if_base #(REQ, RSP)); `UVM_SEQ_PORT(`UVM_SEQ_ITE`` |
 | uvm-core | `uvm-core-2020.3.1/src/tlm1/uvm_tlm_req_rsp.svh` | 59 | `FACT-GATED-LOCAL-TYPE` | `xtends uvm_component; typedef uvm_tlm_req_rsp_channel #(REQ, RSP) this_type;` |
+| iverilog | `ivtest/ivltests/line_directive_inc.v` | 1 | `NO-FACT-GATE-AT-FAILURE` | ``$display("file %s line %0d", `__FILE__, `__LINE__);`` |
 | opentitan | `hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh` | 5 | `NO-FACT-GATE-AT-FAILURE` | `Apache-2.0 virtual task run_sec_cm_fi_vseq(int num_times = 1); pre_run_sec_cm` |
 | opentitan | `hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__shadow_reg_errors.svh` | 5 | `NO-FACT-GATE-AT-FAILURE` | `Apache-2.0 virtual task run_shadow_reg_errors(int num_times, bit en_csr_rw_seq` |
 | opentitan | `hw/top_darjeeling/dv/autogen/tb__alert_handler_connect.sv` | 7 | `NO-FACT-GATE-AT-FAILURE` | ``y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[`` |
@@ -93,5 +94,4 @@
 | opentitan | `hw/ip/aes/dv/env/aes_ral_extension.svh` | 6 | `UNDECLARED-ANYWHERE` | ``xtends aes_reg_block; `uvm_object_utils(aes_reg_block_extended) function ne`` |
 | opentitan | `hw/top_darjeeling/ip/xbar_dbg/dv/autogen/tb__xbar_connect.sv` | 7 | `UNDECLARED-ANYWHERE` | ``.py` tool xbar_dbg dut(); `DRIVE_CLK(clk_dbg_i) `DRIVE_CLK(clk_peri_i) initia`` |
 | opentitan | `hw/top_darjeeling/ip/xbar_main/dv/autogen/tb__xbar_connect.sv` | 7 | `UNDECLARED-ANYWHERE` | ``py` tool xbar_main dut(); `DRIVE_CLK(clk_main_i) `DRIVE_CLK(clk_fixed_i) init`` |
-| opentitan | `hw/top_darjeeling/ip/xbar_mbx/dv/autogen/tb__xbar_connect.sv` | 7 | `UNDECLARED-ANYWHERE` | ``.py` tool xbar_mbx dut(); `DRIVE_CLK(clk_mbx_i) initial force dut.clk_mbx_i =`` |
 

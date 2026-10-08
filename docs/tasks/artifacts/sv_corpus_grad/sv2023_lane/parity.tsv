@@ -12,6 +12,10 @@ Surelog	tests/TranslateOff/dut.sv	IDENTICAL	module_item:IDENTICAL
 Surelog	tests/UnsizedPacked/dut.sv	IDENTICAL	packed_dimension:IDENTICAL variable_dimension:IDENTICAL
 ispras-sv-tests	ieee-1800-2012/06/06.07.01_02.sv	IDENTICAL	module_declaration:IDENTICAL module_nonansi_header:IDENTICAL module_ansi_header:IDENTICAL non_port_module_item:IDENTICAL
 ispras-sv-tests	ieee-1800-2012/08/08.26.04_01.sv	IDENTICAL	class_method:IDENTICAL
+iverilog	ivtest/blif/blif01b.v	IDENTICAL	binary_operator:IDENTICAL
+iverilog	ivtest/blif/blif01b_tb.v	IDENTICAL	binary_operator:IDENTICAL
+iverilog	ivtest/blif/blif02b.v	IDENTICAL	binary_operator:IDENTICAL
+iverilog	ivtest/blif/blif02b_tb.v	IDENTICAL	binary_operator:IDENTICAL
 iverilog	ivtest/ivltests/br_gh390a.v	DIFFERS	class_constructor_declaration:DIFFERS
 iverilog	ivtest/ivltests/display_bug.v	MISSING	data_type:IDENTICAL packed_dimension:IDENTICAL range:MISSING-2017 dynamic_array_new:IDENTICAL unpacked_dimension:IDENTICAL
 iverilog	ivtest/ivltests/module_output_port_sv_var2.v	IDENTICAL	module_declaration:IDENTICAL module_nonansi_header:IDENTICAL module_ansi_header:IDENTICAL non_port_module_item:IDENTICAL module_item:IDENTICAL

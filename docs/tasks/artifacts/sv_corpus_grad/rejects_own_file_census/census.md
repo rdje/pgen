@@ -7,13 +7,13 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 
 | input | path | sha256 |
 |---|---|---|
-| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `1103138dce422f9de09c1471262bf7dbeab98b46e5f32583d88b2f693050c485` |
+| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `f7dcd0380671fed3d148e6812d15abf310a8984d1015dea4dc54e22e51bc10a3` |
 | sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `ecabee184272344a12cd4d7c46961c9e1ac2011dc825ee3a2425f44f6c6e9d51` |
 | sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `a7741d84cad1b28c3cbd8e7e4ea0a360d6a15be7cbc016d94028f7f9f4546812` |
 | sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `69ae4e9dd35564ae0b91c3a578bb9c0ef19d31b665ae6add195f135d63c59e49` |
-| expansion binary | `rust/target/debug/ast_pipeline` | `c29ca6a23d05980d073ac455c93eac5e9b064cb8bb041a5a7623b700aee3a2ea` |
+| expansion binary | `rust/target/debug/ast_pipeline` | `a56fc36e9024f36e6af96c4d201f765799111fa28a2aa1d0d332d0ea3b052d9d` |
 
-## The classes — 311 rows
+## The classes — 312 rows
 
 | class | rows | what it means |
 |---|---:|---|
@@ -26,7 +26,7 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `error_test` | 0 | an intended-invalid test by name — the rejection is the expected verdict |
 | `preprocess_only` | 0 | a verilator test its own driver runs with `-E` — the preprocessor's input, not SystemVerilog to parse |
 | `declared_fragment` | 5 | the file declares itself a module body (`verilog_syntax: parse-as-…`) — the suite's own convention |
-| `fragment` | 39 | the file is the `include` target of another corpus file — its standalone reading is not the parser's claim |
+| `fragment` | 40 | the file is the `include` target of another corpus file — its standalone reading is not the parser's claim |
 | `undeclared_type` | 11 | a declaration whose type is an identifier the parser has not seen declared — the cross-file barrier in data position |
 | `residue` | 25 | none of the above — adjudicated one by one below |
 
@@ -35,7 +35,7 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | macro | rows | files |
 |---|---:|---|
 
-## `fragment` — 39 rows, by the token at the stop
+## `fragment` — 40 rows, by the token at the stop
 
 | token at the stop | rows | one example |
 |---|---:|---|
@@ -46,6 +46,7 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `assign` | 2 | `Cores-VeeR-EL2` `design/include/el2_dec_csr_equ_m.svh` (86) |
 | `initial` | 2 | `opentitan` `hw/ip/prim/rtl/prim_util_memload.svh` (54) |
 | `"` | 1 | `verilator` `test_regress/t/t_preproc_persist_inc.v` (10) |
+| `$display` | 1 | `iverilog` `ivtest/ivltests/line_directive_inc.v` (1) |
 | `,` | 1 | `opentitan` `hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv` (2) |
 | `NUM_ALERTS` | 1 | `opentitan` `hw/top_englishbreakfast/dv/env/autogen/chip_env_pkg__params.sv` (7) |
 | `num_dev` | 1 | `opentitan` `hw/ip/tlul/generic_dv/env/xbar_env_cov.sv` (6) |

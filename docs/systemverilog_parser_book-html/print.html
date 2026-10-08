@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e2eee959.js";
+            window.path_to_searchindex_js = "searchindex-2e046296.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -258,16 +258,16 @@ inapplicable one.</li>
 <tr><th>Outcome</th><th style="text-align: right">Rows</th><th style="text-align: right">Share of the corpus</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">6 069</td><td style="text-align: right">37.2 %</td></tr>
-<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 416</td><td style="text-align: right">8.7 %</td></tr>
+<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">6 265</td><td style="text-align: right">38.4 %</td></tr>
+<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 418</td><td style="text-align: right">8.7 %</td></tr>
 <tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">0</td><td style="text-align: right">0.0 %</td></tr>
-<tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 606</td><td style="text-align: right">16.0 %</td></tr>
-<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 245</td><td style="text-align: right">38.2 %</td></tr>
+<tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 943</td><td style="text-align: right">18.0 %</td></tr>
+<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">5 710</td><td style="text-align: right">35.0 %</td></tr>
 <tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
 </tbody>
 </table>
 </div>
-<p>Only <strong>7 485 rows (45.8 %)</strong> were asked a question they could answer, and <strong>3 864</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6069/7485 would quietly drop the 38.2 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
+<p>Only <strong>7 683 rows (47.0 %)</strong> were asked a question they could answer, and <strong>3 821</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6265/7683 would quietly drop the 35.0 % carrying no verdict at all and the 18.0 % answered in another lane’s manifest.</p>
 <p><strong>Under the reading leg 3 asserts</strong> (<code>DONE-BAR.3f</code>): the table above is the RAW lane; the bar reads a row the raw lane defers to the preprocess→parse pipeline under that pipeline’s re-adjudication, and names — never demands — the permanently unadjudicable classes, each held under a recorded ceiling. Derived by the register’s tracked assertion (<code>python3 stimuli/sv/corpus_conformance_compare.py --assert-tracked stimuli/sv/characterization/adjudication_manifest.tsv --assert-tracked-v2005 stimuli/sv/characterization/adjudication_manifest_v2005.tsv</code>), its sv_2017 reading cross-checked against the tuple under the pipeline that <code>bash scripts/check_sv_corpus_denominator.sh</code> prints.</p>
 <div class="table-wrapper">
 <table>
@@ -275,13 +275,13 @@ inapplicable one.</li>
 <tr><th>Lane</th><th style="text-align: right">Rows</th><th style="text-align: right">Adjudicated</th><th style="text-align: right">Permanently unadjudicable (named, bounded)</th><th style="text-align: right"><strong>Still awaiting a verdict</strong></th><th style="text-align: right">Unexplained</th><th style="text-align: right">Bar rows</th><th><code>full_pass</code></th></tr>
 </thead>
 <tbody>
-<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 259</td><td style="text-align: right">471</td><td style="text-align: right"><strong>2 000</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
-<tr><td><code>verilog_2005</code> — the routed rows, read raw under IEEE 1364-2005</td><td style="text-align: right">2 606</td><td style="text-align: right">2 535</td><td style="text-align: right">29</td><td style="text-align: right"><strong>42</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
-<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">13 794</td><td style="text-align: right">500</td><td style="text-align: right"><strong>2 042</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 456</td><td style="text-align: right">479</td><td style="text-align: right"><strong>1 458</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><code>verilog_2005</code> — the routed rows, read raw under IEEE 1364-2005</td><td style="text-align: right">2 943</td><td style="text-align: right">2 858</td><td style="text-align: right">33</td><td style="text-align: right"><strong>52</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">14 314</td><td style="text-align: right">512</td><td style="text-align: right"><strong>1 510</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>The three row counts sum to the denominator (13 794 + 500 + 2 042 = 16 336). <strong>2 042 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
+<p>The three row counts sum to the denominator (14 314 + 512 + 1 510 = 16 336). <strong>1 510 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -370,7 +370,7 @@ the 38 % of corpus rows with no verdict are an answer-key gap outside <code>item
 <tr><td>Done-bar legs unmet</td><td style="text-align: right">3 of 3</td><td>the derived block above (<code>report_family_status.sh</code>)</td></tr>
 <tr><td>Corpus bar rows (unexplained divergences)</td><td style="text-align: right">0 (sv_2017 0, sv_2023 0, verilog_2005 0)</td><td><code>stimuli/sv/characterization/adjudication_manifest*.tsv</code></td></tr>
 <tr><td>Open leaves owning SV work</td><td style="text-align: right">7 (SV-CORPUS-GRAD 1, engine leaves SV opened 6)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
-<tr><td>Corpus passing (sv_2017, <code>match</code> rows)</td><td style="text-align: right">6069 of 16336 (37.2 %)</td><td>the sv_2017 manifest</td></tr>
+<tr><td>Corpus passing (sv_2017, <code>match</code> rows)</td><td style="text-align: right">6265 of 16336 (38.4 %)</td><td>the sv_2017 manifest</td></tr>
 <tr><td>Known defects (unexplained, sv_2017)</td><td style="text-align: right">0</td><td>the sv_2017 manifest</td></tr>
 </tbody>
 </table>

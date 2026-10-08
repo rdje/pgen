@@ -17,7 +17,7 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `7a570cb104064f08ca8915474b7452e9e8680d6887d84424c5f022e6a5cd8c6c` |
+| parse binary | `rust/target/release/parseability_probe` | `270e50f554e35ea52d0441e83cfe0654c5104cbfe66c5600ae2bf326f7cd5cb1` |
 | grammar | `grammars/systemverilog.ebnf` | `46958d34e693506ba8e16d874eca948a7b927b07161714f009e532bfaf229034` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `315f3a2212a87f1cd155c982b88a8b21239582e3b11861cb4a0feba72969920a` |
 | generated parser | `generated/systemverilog_parser.rs` | `1781b11d85172ede964574de6d58da8b979f24efe57ad0a18f74db421fe6757e` |
@@ -28,7 +28,7 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 | pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `ecabee184272344a12cd4d7c46961c9e1ac2011dc825ee3a2425f44f6c6e9d51` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
 
-Measured at `HEAD` = `e2354828a+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `6074a1817+dirty`; the parse binary is a **release** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -146,21 +146,22 @@ Measured at `HEAD` = `e2354828a+dirty`; the parse binary is a **debug** build (t
 
 | adjudication class | rows | pipeline pass | pipeline fail | pp_fail | timeout | crash |
 |---|---:|---:|---:|---:|---:|---:|
-| `match` | 6069 | 5695 | 371 | 3 | 0 | 0 |
-| `deferred:chained_only` | 4933 | 2376 | 2032 | 525 | 0 | 0 |
-| `deferred:v2005_profile_lane` | 2606 | 2537 | 61 | 8 | 0 | 0 |
-| `divergence:explained_svpp_macro_use` | 1026 | 1004 | 4 | 18 | 0 | 0 |
-| `deferred:no_sv_key` | 596 | 568 | 19 | 9 | 0 | 0 |
+| `match` | 6265 | 5887 | 375 | 3 | 0 | 0 |
+| `deferred:chained_only` | 4937 | 2379 | 2033 | 525 | 0 | 0 |
+| `deferred:v2005_profile_lane` | 2943 | 2858 | 71 | 14 | 0 | 0 |
+| `divergence:explained_svpp_macro_use` | 1027 | 1004 | 4 | 19 | 0 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 350 | 0 | 0 | 0 |
 | `deferred:svpp_owned` | 245 | 96 | 84 | 65 | 0 | 0 |
-| `divergence:explained_svpp_conditional` | 195 | 193 | 1 | 1 | 0 | 0 |
+| `divergence:explained_svpp_conditional` | 196 | 194 | 1 | 1 | 0 | 0 |
 | `divergence:explained_svpp_include` | 133 | 128 | 0 | 5 | 0 | 0 |
 | `deferred:impl_varying` | 90 | 89 | 1 | 0 | 0 | 0 |
 | `divergence:explained_store_gate` | 54 | 0 | 54 | 0 | 0 | 0 |
+| `deferred:no_sv_key` | 48 | 42 | 4 | 2 | 0 | 0 |
 | `deferred:verilog_ams_lane` | 25 | 6 | 19 | 0 | 0 | 0 |
-| `deferred:ni_unimplemented` | 6 | 6 | 0 | 0 | 0 | 0 |
+| `deferred:ni_unimplemented` | 14 | 14 | 0 | 0 | 0 | 0 |
 | `divergence:explained_svpp_keywords_region` | 4 | 4 | 0 | 0 | 0 | 0 |
 | `divergence:explained_svpp_protected_envelope` | 4 | 2 | 1 | 1 | 0 | 0 |
+| `deferred:negative_stage_triage` | 1 | 1 | 0 | 0 | 0 | 0 |
 
 ## What sits at the origin — the construct on the rejecting line, bucketed
 

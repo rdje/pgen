@@ -662,6 +662,11 @@ ispras-sv-tests	ieee-1800-2012/22/22.14.01_02.sv	match	match	fail	own file		othe
 ispras-sv-tests	ieee-1800-2012/22/22.14.01_04.sv	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/22/22.14.01_04.sv:10:18
 ispras-sv-tests	ieee-1800-2012/23/23.10_01.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 ispras-sv-tests	ieee-1800-2012/34/34.03.01_02.sv	divergence:explained_svpp_protected_envelope	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
+iverilog	ivtest/blif/blif01b.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/blif/blif01b.v:4:21
+iverilog	ivtest/blif/blif01b_tb.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/blif/blif01b_tb.v:13:23
+iverilog	ivtest/blif/blif02b.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/blif/blif02b.v:5:17
+iverilog	ivtest/blif/blif02b_tb.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/blif/blif02b_tb.v:13:23
+iverilog	ivtest/blif/blif_shift_tb.v	divergence:explained_svpp_conditional	not-in-audit	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/begin_keywords_1800_2023.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/begin_keywords_1800_2023.v:3:16
 iverilog	ivtest/ivltests/bits3.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/bits4.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -713,6 +718,7 @@ iverilog	ivtest/ivltests/implicit_cast4.v	divergence:explained_svpp_conditional	
 iverilog	ivtest/ivltests/implicit_cast5.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/implicit_cast6.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/line_directive.v	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
+iverilog	ivtest/ivltests/line_directive_inc.v	deferred:chained_only	PRE-TICK/NO-FACT-GATE-AT-FAILURE	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/iverilog/ivtest/ivltests/line_directive_inc.v:1:1
 iverilog	ivtest/ivltests/module_output_port_sv_var2.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/module_output_port_sv_var2.v:8:14
 iverilog	ivtest/ivltests/module_port_typedef_array1.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/module_port_typedef_vector.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -722,6 +728,7 @@ iverilog	ivtest/ivltests/packed_dims_invalid_class.v	match	match	fail	own file		
 iverilog	ivtest/ivltests/packed_dims_invalid_module.v	match	match	fail	own file		a `typedef`	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/packed_dims_invalid_module.v:4:17
 iverilog	ivtest/ivltests/parameter_no_default_fail2.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/parameter_no_default_fail2.v:6:12
 iverilog	ivtest/ivltests/parameter_scalar.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
+iverilog	ivtest/ivltests/pr2215342_inc.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 iverilog	ivtest/ivltests/pr3366217d.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/pr3366217d.v:17:14
 iverilog	ivtest/ivltests/pr3515542.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/pr3515542.v:5:12
 iverilog	ivtest/ivltests/program5a.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/program5a.v:6:1
@@ -929,6 +936,7 @@ iverilog	ivtest/ivltests/sv_typedef_fwd_enum1.v	divergence:explained_svpp_macro_
 iverilog	ivtest/ivltests/sv_typedef_fwd_struct.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_typedef_fwd_union.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_typedef_nested_array.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
+iverilog	ivtest/ivltests/sv_unit1a.v	divergence:explained_svpp_macro_use	not-in-audit	pp_fail	context		-	refused_context	`MACRO1 is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/iverilog/ivtest/ivltests/sv_unit1a.v:11 — IEEE 1800-2017 §22.5.1 gives a text-macro
 iverilog	ivtest/ivltests/sv_unit1b.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_unit1c.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 iverilog	ivtest/ivltests/sv_var_block.v	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
@@ -947,6 +955,8 @@ iverilog	ivtest/ivltests/sv_void_cast_fail3.v	match	match	fail	own file		other	m
 iverilog	ivtest/ivltests/sv_wildcard_import2.v	match	match	fail	own file		a `::`-scoped name	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/sv_wildcard_import2.v:39:18
 iverilog	ivtest/ivltests/sv_wildcard_import3.v	match	match	fail	own file		a `::`-scoped name	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/sv_wildcard_import3.v:37:18
 iverilog	ivtest/ivltests/undef_lval_select_SV.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
+iverilog	ivtest/vpi/nextsimtime_cb.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
+iverilog	ivtest/vpi/value_change_cb.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/dv/dpi/dmidpi/dmidpi.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/dv/dpi/gpiodpi/gpiodpi.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/dv/dpi/jtagdpi/jtagdpi.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	

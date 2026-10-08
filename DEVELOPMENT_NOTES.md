@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-08 — SV-CORPUS-GRAD.13e.13 (`PGEN-SV-CORPUS-GRAD-0434`): a list's meaning is in the runner that reads it
+
+- **A file named `other-target` is a hypothesis about a dependency.** The answer key filed nine of ivtest's eleven lists by their names; three are read by the same runner as the two it trusted, with the same reader and types. The fix was cheap and the evidence was two greps away for 46 days; the lesson is the one `.3e` recorded one tree over — read the script, not the name — applied to answer keys.
+- **The control before the change, on every lane.** The lanes were re-measured with the binary on disk so the unchanged adjudicator could reproduce the tracked manifests byte for byte first; only then was a line edited, and every mover was attributed to its list and type. A delta that merely looks right is the failure mode an answer-key edit invites (`DOCTRINE-GAP-OWNERSHIP.6`).
+- **New keys put rows on the bar first; the clause takes them off.** Fourteen rows the lists newly keyed `must_accept` reject in PGEN; each was read at its furthest position, found to be Icarus-only text, and pinned by the production that refuses it with a reproducer the oracle re-runs. The rulings already existed (`.13e.2`, `.13e.3`); the rows had been invisible.
+- **Raise a permanent ceiling only by the rows that joined, in the same commit, naming the argument.** Twelve NI rows joined `ni_unimplemented` across two lanes; the register moved by exactly those.
+- promotion: PROMOTED — `docs/knowledge/a-test-lists-meaning-is-read-from-the-runner-that-consumes-it-never-from-its-name.md`.
+
 ## 2026-10-08 — DONE-BAR.3g (`PGEN-DONE-BAR-0033`): the window carries the number, not the pointer
 
 - **A sentence that names the command is not the number.** `.3f` left the book's leg-3 row ending in *"`--assert-tracked` prints the count"*. The director reads the book; a pointer to a producer is the hand-written status this tree exists to remove, one step removed. The field is now declared with its producer and rendered for every family, NOT MEASURED with an owner where no producer exists.

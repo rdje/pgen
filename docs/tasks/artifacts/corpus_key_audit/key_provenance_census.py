@@ -78,6 +78,12 @@ TOOL_OUTPUT = re.compile(r"golden|\.gold\b|\blog\b|error-suite|\bCE\b|exit statu
 # the published trust bound a lower bound wearing the clothes of a measurement.
 SUITE_META = re.compile(
     r"regress-\w+\.list|type (?:normal|CO|NI)\b|vvp_tests|descriptor|:tags:|\bdirectory\b"
+    # SV-CORPUS-GRAD.13e.13: the OTHER ivtest lists the vendored runners read, their list-less
+    # drivers, the runner-only types (PLI1 / TE / CN / EF / RE), a continuation source and an
+    # `include target — enumerated from the 548 rows that left no_sv_key that day (9 `PLI1` rows
+    # were UNCLASSIFIED before this line, above the residual ceiling)
+    r"|vhdl_regress\.list|vpi_regress\.list|blif\.list|fpga_reg\.list|type (?:PLI1|TE|CN|EF|RE)\b"
+    r"|continuation source of entry|`include target of"
     r"|driver \S+\.py|positive test|negative test|clause-keyed|suite contract|fixture"
     r"|:should_fail_because:|TYPE:\s*(?:POSITIVE|NEGATIVE)"
     # an annotation the corpus file carries about ITSELF is still the suite declaring intent
@@ -284,6 +290,21 @@ def self_test() -> int:
          "a task-leaf id is NOT a clause number — the rule must not fire on `.8b.3`"),
         ("some future basis nobody has a rule for", UNCLASSIFIED,
          "an unknown shape is REPORTED, never folded into a class"),
+        # SV-CORPUS-GRAD.13e.13: the other lists' shapes, each a basis the corpus now contains
+        ("ivtest: vpi_regress.list type PLI1 (vpi_reg.pl:36) - compiles under -g2005 (the compiler's own default)",
+         SUITE, "a vpi_regress.list entry with the runner-only type PLI1 is list metadata"),
+        ("ivtest: blif.list type normal (listed as `(listed)`, which the runner treats as normal) (blif_reg.py (iverilog -g2009 -tblif))",
+         SUITE, "a blif.list entry: the driver's own flow, metadata"),
+        ("ivtest: fpga_tests/fpga_reg.list type normal (listed as `(listed)`, which the runner treats as normal) (fpga_reg.sh:78,105)",
+         SUITE, "an fpga_reg.list entry, metadata"),
+        ("ivtest: vhdl_regress.list type normal (listed as `noraml`, which the runner treats as normal) (vhdl_reg.pl:45)",
+         SUITE, "a vhdl_regress.list entry (the upstream typo spelled out), metadata"),
+        ("ivtest: `include target of ivltests/line_directive.v - a fragment, not a standalone unit",
+         SUITE, "an `include target named by the suite's own file graph is metadata"),
+        ("ivtest: regress-sv.list type normal (vvp_reg.pl:54) - continuation source of entry multi, compiled in its unit under -g2012",
+         SUITE, "a continuation source compiled in a listed entry's unit, metadata"),
+        ("ivtest: regress-ivl1.list type CE (vvp_reg.pl:52) - CE under -g2005 with golden ivl_ce.gold reporting a PARSE-stage refusal",
+         TOOL, "a CE read through its golden is observed output, and outranks the list name"),
         # precedence, both edges
         ("ivtest: regress-vlg.list type normal but IEEE 1364-2005 A.4.2 admits no such form",
          CLAUSE, "clause OUTRANKS suite metadata on a row carrying both"),

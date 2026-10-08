@@ -118,6 +118,18 @@ SVTESTS_PINNED = {
 
 # Pinned rulings from in-file upstream statements (leaf .3.0 triage findings).
 EXTRA_PINNED = {
+    # ---- SV-CORPUS-GRAD.13e.13 ------------------------------------------------------------------
+    # The blif.list rows (.13e.13 keyed them must_accept by the suite's own flow, `iverilog -g2009`): four
+    # reject on `A ~& B` / `X[0] ~& X[1]` - the reduction operators used as BINARY ones, the same Icarus
+    # extension .13e.2 / .13e.3 pinned on the v2005 lane (br_gh552.v, real_invalid_ops.v), now on the SV lane.
+    ("iverilog", "ivtest/blif/blif01b.v"): ("must_reject",
+        "pinned .13e.13: line 4 `assign q_nand = A ~& B;` (and :5 `~|`) - IEEE 1800-2017 A.8.6 binary_operator (docs/systemverilog/2017/md/section-11-operators-and-expressions.md:136-140; Annex A docs/systemverilog/2017/md/section-41-data-read-api.md:3218) lists neither `~&` nor `~|`; both appear only under unary_operator (:130-134; Annex A :3213). iverilog accepts the binary form only through its default-ON `gn_icarus_misc_flag` (main.cc; parse.y:4162/4174 - the .13e.3 table), a documented NON-STANDARD extension the blif.list flow (`iverilog -g2009`) never switches off. Repro invalid_binary_reduction_nand.sv (REJECT); control control_binary_and_sv.sv (`c = a & b;`) parses"),
+    ("iverilog", "ivtest/blif/blif01b_tb.v"): ("must_reject",
+        "pinned .13e.13: line 13 `if (q_nand !== (X[0] ~& X[1]))` (and :16 `~|`) - IEEE 1800-2017 A.8.6 binary_operator (docs/systemverilog/2017/md/section-11-operators-and-expressions.md:136-140; Annex A docs/systemverilog/2017/md/section-41-data-read-api.md:3218) lists neither `~&` nor `~|`; both appear only under unary_operator (:130-134; Annex A :3213). iverilog accepts the binary form only through its default-ON `gn_icarus_misc_flag` (main.cc; parse.y:4162/4174 - the .13e.3 table), a documented NON-STANDARD extension the blif.list flow (`iverilog -g2009`) never switches off. Repro invalid_binary_reduction_nand.sv (REJECT); control control_binary_and_sv.sv (`c = a & b;`) parses"),
+    ("iverilog", "ivtest/blif/blif02b.v"): ("must_reject",
+        "pinned .13e.13: line 5 `q_nand = A ~& B;` (and :6 `~|`) - IEEE 1800-2017 A.8.6 binary_operator (docs/systemverilog/2017/md/section-11-operators-and-expressions.md:136-140; Annex A docs/systemverilog/2017/md/section-41-data-read-api.md:3218) lists neither `~&` nor `~|`; both appear only under unary_operator (:130-134; Annex A :3213). iverilog accepts the binary form only through its default-ON `gn_icarus_misc_flag` (main.cc; parse.y:4162/4174 - the .13e.3 table), a documented NON-STANDARD extension the blif.list flow (`iverilog -g2009`) never switches off. Repro invalid_binary_reduction_nand.sv (REJECT); control control_binary_and_sv.sv (`c = a & b;`) parses"),
+    ("iverilog", "ivtest/blif/blif02b_tb.v"): ("must_reject",
+        "pinned .13e.13: line 13 `if (q_nand !== (X[0] ~& X[1]))` (and :16 `~|`) - IEEE 1800-2017 A.8.6 binary_operator (docs/systemverilog/2017/md/section-11-operators-and-expressions.md:136-140; Annex A docs/systemverilog/2017/md/section-41-data-read-api.md:3218) lists neither `~&` nor `~|`; both appear only under unary_operator (:130-134; Annex A :3213). iverilog accepts the binary form only through its default-ON `gn_icarus_misc_flag` (main.cc; parse.y:4162/4174 - the .13e.3 table), a documented NON-STANDARD extension the blif.list flow (`iverilog -g2009`) never switches off. Repro invalid_binary_reduction_nand.sv (REJECT); control control_binary_and_sv.sv (`c = a & b;`) parses"),
     # ---- SV-CORPUS-GRAD.3.39 (PGEN-SV-CORPUS-GRAD-0372) ------------------------------------------
     # IEEE 1800-2017 clause 22 gives thirteen compiler directives a syntax box (every one captioned
     # "not in Annex A"), and release 1.0.217 transcribes each box as a production: the parser now
@@ -3067,6 +3079,67 @@ def expect_ispras_v2005(relpath: str, text: str):
 V2005_ANNEX_A = "docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt"
 
 V2005_LRM_PINNED = {
+    # ---- SV-CORPUS-GRAD.13e.13 ------------------------------------------------------------------
+    # Ten rows the other ivtest lists (regress-ivl1 / regress-synth / fpga_reg) keyed must_accept under the compiler's
+    # default generation, each rejecting on text IEEE 1364-2005 does not derive - every one an iverilog extension or
+    # leniency the standard's own productions refuse. Repro + control named per row; all verified REJECT by the release
+    # probe under --profile verilog_2005 at the furthest position quoted.
+    "ivtest/ivltests/binary_nand.v": (
+        "must_reject", "pinned .13e.13: line 26 `wire result2 = A ~& B;` - `~&` used as a BINARY operator. "
+        "IEEE 1364-2005 A.8.6 binary_operator (" + V2005_ANNEX_A + ":954) lists neither `~&` nor `~|`; both appear only under "
+        "unary_operator (:952). iverilog's acceptance is its default-ON `gn_icarus_misc_flag` (main.cc; the .13e.3 table) - the "
+        "same extension br_gh552.v's own golden names (`The binary NAND operator is an Icarus Verilog extension`). Repro "
+        "invalid_v2005_binary_nand_nor.sv; control control_v2005_binary_and.sv parses"),
+    "ivtest/ivltests/binary_nor.v": (
+        "must_reject", "pinned .13e.13: line 26 `wire result2 = A ~| B;` - `~|` used as a BINARY operator. "
+        "IEEE 1364-2005 A.8.6 binary_operator (" + V2005_ANNEX_A + ":954) lists neither `~&` nor `~|`; both appear only under "
+        "unary_operator (:952). iverilog's acceptance is its default-ON `gn_icarus_misc_flag` (main.cc; the .13e.3 table). Repro "
+        "invalid_v2005_binary_nand_nor.sv; control control_v2005_binary_and.sv parses"),
+    "ivtest/ivltests/bool1.v": (
+        "must_reject", "pinned .13e.13: line 26 `reg bool [31:0] idx;` - `bool` after `reg`: a CADENCE EXTENDED TYPE iverilog admits "
+        "by its default-ON `gn_cadence_types_flag` (-gxtypes, pform.cc; the .13e.3 table), never a word of the standard. IEEE 1364-2005 "
+        "A.2.1.3 reg_declaration ::= reg [ signed ] [ range ] list_of_variable_identifiers ; (" + V2005_ANNEX_A + ":172; "
+        "docs/verilog/2005/md/section-4-data-types.md:181-185) admits no type word after `reg`. Repro invalid_v2005_reg_bool.sv; "
+        "control control_reg_range.sv (`reg [31:0] idx;`) parses"),
+    "ivtest/ivltests/compare_bool_reg.v": (
+        "must_reject", "pinned .13e.13: line 3 `reg bool [31:0] idx;` - `bool` after `reg`, the Cadence extended type (-gxtypes, "
+        "default ON; the .13e.3 table). IEEE 1364-2005 A.2.1.3 reg_declaration (" + V2005_ANNEX_A + ":172; "
+        "docs/verilog/2005/md/section-4-data-types.md:181-185) admits no type word after `reg`. Repro invalid_v2005_reg_bool.sv; "
+        "control control_reg_range.sv parses"),
+    "ivtest/ivltests/constfunc8.v": (
+        "must_reject", "pinned .13e.13: line 10 `reg bool [5:0] value;` - `bool` after `reg`, the Cadence extended type (-gxtypes, "
+        "default ON; the .13e.3 table). IEEE 1364-2005 A.2.1.3 reg_declaration (" + V2005_ANNEX_A + ":172; "
+        "docs/verilog/2005/md/section-4-data-types.md:181-185) admits no type word after `reg`. Repro invalid_v2005_reg_bool.sv; "
+        "control control_reg_range.sv parses"),
+    "ivtest/ivltests/for_loop_synth2.v": (
+        "must_reject", "pinned .13e.13: line 12 `for (j = 0 ; j < inputs ; j += 1)` - a COMPOUND assignment as the for step. "
+        "IEEE 1364-2005 A.6.8 loop_statement ::= … | for ( variable_assignment ; expression ; variable_assignment ) statement "
+        "(docs/verilog/2005/md/section-9-behavioral-modeling.md:866-873) and A.6.2 variable_assignment ::= variable_lvalue = expression "
+        "(" + V2005_ANNEX_A + ":527) admit only `=`; `+=` is IEEE 1800's (A.6.2 operator_assignment). iverilog accepts it under -g2005 "
+        "as a leniency. Repro accepts_invalid_v2005_punct_plus_assign.sv (the same operator in an initial, REJECT since .13c.2k's "
+        "punctuation fix); control control_v2005_punct_blocking_assign.sv (`a = 1;`) parses"),
+    "ivtest/ivltests/pr1861212c.v": (
+        "must_reject", "pinned .13e.13: line 2 `wire real vo;` - a REAL NET. IEEE 1364-2005 A.2.1.3 net_declaration ::= net_type [ signed ] "
+        "[ delay3 ] list_of_net_identifiers ; | … (" + V2005_ANNEX_A + ":153-176; docs/verilog/2005/md/section-4-data-types.md:61-80) "
+        "puts nothing between the net_type and the identifiers but `signed`, a strength, `vectored`/`scalared` and a range; real nets "
+        "are iverilog's extension (IEEE 1800 admits them: A.2.1.3 data_type_or_implicit). Repro invalid_v2005_net_real.sv; control "
+        "control_net_real_sv.sv (the same bytes under IEEE 1800) parses"),
+    "ivtest/ivltests/pr2976242.v": (
+        "must_reject", "pinned .13e.13: line 38 `module real_to_real (input wire real in);` - a REAL NET PORT. IEEE 1364-2005 A.2.1.2 "
+        "input_declaration ::= input [ net_type ] [ signed ] [ range ] list_of_port_identifiers (" + V2005_ANNEX_A + ":135) has no real "
+        "port of any kind; `real` is neither a net_type (A.2.2.1 :178-180) nor a range. Repro invalid_v2005_ansi_input_wire_real.sv; "
+        "control control_ansi_input_wire_real_sv.sv (the same bytes under IEEE 1800, A.2.1.2 net_port_type) parses"),
+    "ivtest/ivltests/real8.v": (
+        "must_reject", "pinned .13e.13: line 32 `reg real target;` - `real` after `reg`. IEEE 1364-2005 declares a real variable with "
+        "A.2.1.3 real_declaration ::= real list_of_real_identifiers ; (" + V2005_ANNEX_A + ":170; docs/verilog/2005/md/section-4-data-types.md:171-175) "
+        "and reg_declaration (:172; md :181-185) admits no `real` after `reg`; iverilog's acceptance is its own leniency. Repro "
+        "invalid_v2005_reg_real.sv; control control_real_declaration.sv (`real target;`) parses"),
+    "ivtest/fpga_tests/sqrt.v": (
+        "must_reject", "pinned .13e.13: line 117 `$attribute(clk, \"PAD\", \"39\");` directly inside the module - iverilog's attribute "
+        "pragma as a MODULE ITEM. IEEE 1364-2005 A.1.4 module_or_generate_item (" + V2005_ANNEX_A + ":65; "
+        "docs/verilog/2005/md/section-12-hierarchical-structures.md:83-94) derives declarations, assigns, instantiations, initial/always "
+        "and generate constructs - no system task enable; the description-level twin is .3.51's. Repro "
+        "invalid_v2005_attribute_system_call_as_module_item.sv; control control_system_call_in_initial.sv (`initial $display(\"x\");`) parses"),
     # ---- SV-CORPUS-GRAD.3.66 (PGEN-SV-CORPUS-GRAD-0402) — five ivtest CE rows whose .8c.2 key read `input integer x;` /
     # `output real x;` as BNF-valid; A.2.1.2 derives neither, and release 1.0.234's verilog_2005 port twins refuse them.
     "ivtest/ivltests/module_nonansi_fail5.v": (
@@ -4159,6 +4232,17 @@ class IvtestIndex:
         self._load(ivtest_dir / "regress-sv.list", sv=True)
         self._load(ivtest_dir / "regress-vlg.list", sv=False)
         self._load_vvp(ivtest_dir / "vvp_tests")
+        # .13e.13: the OTHER lists the vendored runners read (see OTHER_LISTS), the two
+        # list-less drivers, every entry's continuation sources, and the `include graph.
+        self.other_entries = {}   # (dir, name) -> entry dict
+        self.sources = {}         # (dir, stem) -> (list, entry name, entry dict)  continuation sources
+        self.included_by = {}     # (dir, stem) -> includer relpath (ivtest-relative)
+        self.list_conflicts = []  # (name, first list/type, later list/type) - a name typed differently twice
+        self._load_other_lists(ivtest_dir)
+        self._load_blif(ivtest_dir)
+        self._load_fpga(ivtest_dir)
+        self._load_sources(ivtest_dir)
+        self._load_includes(ivtest_dir)
 
     # ---- SV-CORPUS-GRAD.13e.3 --------------------------------------------
     # ⛔ `-g` IS TWO FLAG FAMILIES WEARING ONE PREFIX, AND ONLY ONE OF THEM DECIDES
@@ -4449,6 +4533,273 @@ class IvtestIndex:
             else:
                 self.vlg_entries[(dir_field, name)] = (ttype, gold)
 
+    # ---- SV-CORPUS-GRAD.13e.13 --------------------------------------------
+    # ⛔ THE OTHER LISTS THE VENDORED RUNNERS READ ARE ANSWER KEYS OF THE SAME STANDING AS THE
+    # TWO THIS INDEX ALREADY TRUSTED, AND 596 ROWS SAT IN NO VERDICT BECAUSE NOBODY HAD READ THE
+    # RUNNERS. Measured on the tracked manifest (2026-10-08): of the 596 `deferred:no_sv_key`
+    # rows ("no regress-sv.list entry"), 496 are named by another ivtest list and 100 by none.
+    # What each list IS, read from the vendored runner that consumes it — never from its name:
+    #   regress-ivl1 / regress-vhdl / regress-synth   vvp_reg.pl:52-59 — the SAME read_regression_list
+    #       and the SAME type semantics as regress-vlg.list / regress-sv.list (perl-lib/RegressionList.pm);
+    #       `regress-vhdl.list` carries 132 explicit `-g2005-sv` entries. The generation is the ENTRY's
+    #       flag, else the compiler's own default (.13e.1), never the list's name.
+    #   regress-fsv                                    vvp_reg.pl:49-50 — read ONLY under --force-sv, and
+    #       RegressionList.pm:180-182 then forces `-g2023`: every entry runs as SystemVerilog 2023.
+    #   regress-vlog95                                 vlog95_reg.pl:51 — the `-t vlog95` flow. Stage 1
+    #       compiles the ORIGINAL file with the entry's own flags; stage 2 re-compiles the GENERATED
+    #       Verilog-95. So `normal`/`CO`/`EF`/`RE`/`CN` and `TE` (stage 2 failed) all mean the front end
+    #       accepted the file, while a `CE` may be the code generator refusing — never a parser verdict
+    #       by itself (the .13e warning), so it is `negative_stage_triage` unless a golden decides.
+    #   vhdl_regress                                   vhdl_reg.pl:45 — the `-t vhdl` flow, same shape:
+    #       stage 1 compiles the original. Two entries are typed `noraml` (an upstream typo); the Perl
+    #       runners test only the special types, so an unknown type RUNS AS NORMAL.
+    #   vpi_regress                                    vpi_reg.pl:36 — `[ver:]name type[,args] cfile gold`;
+    #       the source is vpi/<name>.v; `PLI1` runs like normal when enabled; `NI` is skipped.
+    #   blif.list                                      blif_reg.py — `iverilog -g2009 -tblif blif/<name>.v`,
+    #       then `iverilog -g2009 blif/<name>_tb.v …`: both files compile under -g2009 by the flow.
+    #   fpga_tests/fpga_reg.list                       fpga_reg.sh:78,105 — `iverilog -tfpga … <test>.v` and
+    #       `iverilog … <tb>.v` with no -g flag: the default generation, by the flow.
+    # Precedence: regress-sv.list / regress-vlg.list keep theirs (unchanged behaviour); the other
+    # lists are consulted only for a row NEITHER names, in the runner's own read order, first
+    # definition wins — exactly RegressionList.pm's `next if exists`. A name typed differently by
+    # two lists is recorded in `list_conflicts` and the first wins. A continuation source
+    # (`./dir/file.v` beside an entry) is compiled in that entry's unit; an `include target of a
+    # listed test is a fragment (the verilator convention: chained_only).
+    OTHER_LISTS = (
+        # (file, runner line, kind, extra types the runner knows)
+        ("regress-ivl1.list", "vvp_reg.pl:52", "vvp", ()),
+        ("regress-vhdl.list", "vvp_reg.pl:55", "vvp", ()),
+        ("regress-synth.list", "vvp_reg.pl:57-59", "vvp", ()),
+        ("regress-fsv.list", "vvp_reg.pl:49-50 (--force-sv; RegressionList.pm:180-182 forces -g2023)", "fsv", ()),
+        ("regress-vlog95.list", "vlog95_reg.pl:51 (-t vlog95; stage 1 compiles the original file)", "vlog95", ("TE", "CN")),
+        ("vhdl_regress.list", "vhdl_reg.pl:45 (-t vhdl; stage 1 compiles the original file)", "vhdl", ()),
+        ("vpi_regress.list", "vpi_reg.pl:36", "vpi", ("PLI1",)),
+    )
+    SPECIAL_TYPES = IVTEST_TYPES | {"TE", "CN", "PLI1"}   # every type a vendored runner tests for
+
+    @staticmethod
+    def _logical_lines(text: str):
+        """The list's logical lines: backslash-continued physical lines joined (RegressionList.pm),
+        comments and blank lines dropped."""
+        logical, buf = [], ""
+        for line in text.splitlines():
+            if line.rstrip().endswith("\\"):
+                buf += line.rstrip()[:-1] + " "
+                continue
+            logical.append(buf + line)
+            buf = ""
+        if buf:
+            logical.append(buf)
+        out = []
+        for line in logical:
+            line = line.split("#", 1)[0].strip()
+            if line:
+                out.append(line)
+        return out
+
+    def _register_other(self, key, entry):
+        """First definition wins (RegressionList.pm `next if exists`); the primary lists outrank."""
+        if key in self.sv_entries or key in self.vlg_entries:
+            return
+        prior = self.other_entries.get(key)
+        if prior is not None:
+            if prior["ttype"] != entry["ttype"]:
+                self.list_conflicts.append((key, f"{prior['list']}:{prior['ttype']}", f"{entry['list']}:{entry['ttype']}"))
+            return
+        self.other_entries[key] = entry
+
+    def _load_other_lists(self, ivtest_dir: Path):
+        for fname, runner, kind, extra in self.OTHER_LISTS:
+            text = read_text(ivtest_dir / fname)
+            if not text:
+                continue
+            for line in self._logical_lines(text):
+                fields = line.split()
+                if len(fields) < 2:
+                    raise SystemExit(f"REFUSE: {fname}: {line!r} has fewer than 2 fields - RegressionList.pm "
+                                     "would die on it; the vendored list moved under this reader")
+                name = fields[0].split(":")[-1]       # `vNN:name` selects a version; the bare name is the key
+                versioned = ":" in fields[0]
+                tf = fields[1].split(",")
+                raw_type, flags = tf[0], [a for a in tf[1:] if a]
+                known = raw_type in self.SPECIAL_TYPES
+                # the Perl runners test only the special types (CE/CO/CN/RE/EF/NI/TE/PLI1); any other
+                # spelling - `normal`, and the upstream typo `noraml` - runs as a normal test
+                ttype = raw_type if (known and raw_type != "normal") else "normal"
+                gold, dir_field, sources = None, None, []
+                if kind == "vpi":
+                    dir_field = "vpi"     # vpi_reg.pl: the source is vpi/<name>.v; fields[2] is the C file
+                else:
+                    for f in fields[2:]:
+                        if f.startswith("gold="):
+                            gold = f[len("gold="):]
+                        elif f.startswith("./"):
+                            sources.append(f)
+                        elif f.startswith(("-", "+", "diff=", "unordered=")):
+                            continue
+                        elif dir_field is None:
+                            dir_field = f
+                    if dir_field is None:
+                        continue   # a continuation-only line (`+img=... ivltests`) the join left bare
+                self._register_other((dir_field, name), dict(
+                    list=fname, runner=runner, kind=kind, ttype=ttype, raw_type=raw_type, flags=flags,
+                    gold=gold, sources=sources, versioned=versioned,
+                    forced_gen="-g2023" if kind == "fsv" else None))
+
+    def _load_blif(self, ivtest_dir: Path):
+        text = read_text(ivtest_dir / "blif.list")
+        for line in self._logical_lines(text or ""):
+            name = line.split()[0]
+            for stem in (name, name + "_tb"):
+                self._register_other(("blif", stem), dict(
+                    list="blif.list", runner="blif_reg.py (iverilog -g2009 -tblif <dut>; iverilog -g2009 <tb>)",
+                    kind="blif", ttype="normal", raw_type="(listed)", flags=[], gold=None, sources=[],
+                    versioned=False, forced_gen="-g2009"))
+
+    def _load_fpga(self, ivtest_dir: Path):
+        text = read_text(ivtest_dir / "fpga_tests" / "fpga_reg.list")
+        for line in self._logical_lines(text or ""):
+            fields = line.split()
+            if len(fields) < 2:
+                continue
+            for stem in (fields[0], fields[1]):
+                self._register_other(("fpga_tests", stem), dict(
+                    list="fpga_tests/fpga_reg.list", runner="fpga_reg.sh:78,105 (iverilog -tfpga <test>; iverilog <tb>; no -g flag)",
+                    kind="fpga", ttype="normal", raw_type="(listed)", flags=[], gold=None, sources=[],
+                    versioned=False, forced_gen=None))
+
+    def _load_sources(self, ivtest_dir: Path):
+        """Continuation sources: `./dir/file.v` fields beside an entry, in every list, first wins."""
+        lists = [("regress-sv.list", "vvp_reg.pl:54"), ("regress-vlg.list", "vvp_reg.pl:53")] + \
+                [(f, r) for f, r, _k, _e in self.OTHER_LISTS]
+        for fname, runner in lists:
+            text = read_text(ivtest_dir / fname)
+            if not text:
+                continue
+            for line in self._logical_lines(text):
+                fields = line.split()
+                if len(fields) < 3:
+                    continue
+                name = fields[0].split(":")[-1]
+                raw_type = fields[1].split(",")[0]
+                ttype = raw_type if (raw_type in self.SPECIAL_TYPES and raw_type != "normal") else "normal"
+                flags = [a for a in fields[1].split(",")[1:] if a]
+                for f in fields[2:]:
+                    if f.startswith("./"):
+                        p = Path(f[2:])
+                        key = (p.parts[0] if len(p.parts) > 1 else "", p.stem)
+                        if key not in self.sources:
+                            self.sources[key] = (fname, name, dict(list=fname, runner=runner, ttype=ttype,
+                                                                   raw_type=raw_type, flags=flags, kind="source",
+                                                                   gold=None, forced_gen=None))
+
+    def _load_includes(self, ivtest_dir: Path):
+        """`include graph over the ivtest tree: (dir, stem) of every included file -> its includer."""
+        inc_re = re.compile(r'^\s*`include\s+"([^"]+)"', re.M)
+        for src in sorted(ivtest_dir.rglob("*")):
+            if src.suffix not in (".v", ".sv", ".vh", ".svh") or not src.is_file():
+                continue
+            try:
+                text = src.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            if "`include" not in text:
+                continue
+            rel = src.relative_to(ivtest_dir)
+            for m in inc_re.finditer(text):
+                target = Path(m.group(1))
+                for cand in (src.parent / target, ivtest_dir / target):
+                    if cand.is_file():
+                        crel = cand.resolve().relative_to(ivtest_dir.resolve())
+                        key = (crel.parts[0] if len(crel.parts) > 1 else "", crel.stem)
+                        self.included_by.setdefault(key, rel.as_posix())
+                        break
+
+    def _other_gen(self, entry):
+        if entry.get("forced_gen"):
+            return entry["forced_gen"], f"forced by the flow ({entry['runner']})"
+        for a in entry["flags"]:
+            if a in self.SV_GENS or a in self.V2005_GENS:
+                return a, "the entry's own flag"
+        return self.default_gen, "the compiler's own default, compiler.h GN_DEFAULT"
+
+    def _other_implied(self, entry, v2005: bool):
+        ttype = entry["ttype"]
+        if ttype == "NI":
+            return "ni"
+        if ttype != "CE":
+            return "accept"     # normal/CO/CN/EF/RE/TE/PLI1: the front end accepted the file
+        if entry.get("gold"):
+            # the primary lists' rule, verbatim: the golden is a file under gold/ (RegressionList.pm
+            # `gold=<file>`), and the v2005-only vocabulary applies only on that lane (.13e.3(b))
+            gtext = read_text(self.gold_dir / entry["gold"])
+            hit = IVTEST_PARSE_STAGE_RE.search(gtext) or (v2005 and IVTEST_PARSE_STAGE_V2005_ONLY_RE.search(gtext))
+            return "reject" if hit else "accept"
+        return "triage"
+
+    def _other_basis(self, entry, gen, src, what):
+        typ = entry["ttype"] if entry["raw_type"] == entry["ttype"] else f"{entry['ttype']} (listed as `{entry['raw_type']}`, which the runner treats as normal)"
+        return (f"ivtest: {entry['list']} type {typ} ({entry['runner']}) - {what} under {gen} ({src})")
+
+    def _expect_other(self, p: Path, want_v2005: bool = False):
+        """(verdict, basis) from the other lists / drivers / continuation sources / `include graph,
+        or None when nothing names the file. .13e.13."""
+        if len(p.parts) < 3:
+            return None
+        key = (p.parts[1], p.stem)
+        entry, via = self.other_entries.get(key), None
+        if entry is None and key in self.sources:
+            _lst, ename, entry = self.sources[key]
+            via = ename
+        if entry is not None:
+            gen, src = self._other_gen(entry)
+            sv_lane = gen in self.SV_GENS
+            if via is not None and entry["ttype"] in ("CE", "NI"):
+                # a continuation source of a CE/NI entry: which source the compile error names is
+                # unresolved, on either lane - decided BEFORE any lane routing
+                if want_v2005:
+                    return None
+                return ("out_of_scope_with_cause:no_sv_key",
+                        self._other_basis(entry, gen, src, f"continuation source of entry {via}")
+                        + " - the entry is CE/NI, so which source the compile error names is unresolved")
+            if want_v2005 and sv_lane:
+                return None
+            if not want_v2005 and not sv_lane:
+                return ("out_of_scope_with_cause:v2005_profile_lane",
+                        self._other_basis(entry, gen, src, "compiles" if via is None else
+                                          f"continuation source of entry {via}, compiled in its unit")
+                        + " - keyed for the verilog_2005 profile lane")
+            implied = self._other_implied(entry, v2005=want_v2005)
+            unit = "compiles" if via is None else f"continuation source of entry {via}, compiled in its unit"
+            if implied == "accept":
+                ext_on = sorted(self.enables_nonstandard({"iverilog-args": entry["flags"]}))
+                if ext_on:
+                    return ("out_of_scope_with_cause:vendor_extension_enabled",
+                            self._other_basis(entry, gen, src, unit)
+                            + f" only with {' '.join(ext_on)} - a NON-STANDARD extension the entry enables itself (.13e.3)")
+                return ("must_accept", self._other_basis(entry, gen, src, unit)
+                        + (", parse-level valid 1364-2005" if want_v2005 else ", parse-level valid"))
+            if implied == "reject":
+                return ("must_reject", self._other_basis(entry, gen, src, "CE")
+                        + f" with golden {entry['gold']} reporting a PARSE-stage refusal - parse-level invalid")
+            if implied == "ni":
+                return ("out_of_scope_with_cause:ni_unimplemented",
+                        self._other_basis(entry, gen, src, "type NI") + " - the upstream runner skips the test, no testimony")
+            caveat = (" - the -t vlog95 flow's stage-1 compile error may be the Verilog-95 code generator's, "
+                      "not the parser's" if entry["kind"] == "vlog95" else " - CE without usable golden output")
+            pinned = (IVTEST_VLG_CE_STAGE_PINNED if want_v2005 else IVTEST_CE_STAGE_PINNED).get("/".join(p.parts[1:]))
+            if pinned:
+                return pinned
+            return (("out_of_scope_with_cause:negative_stage_triage_v2005" if want_v2005
+                     else "out_of_scope_with_cause:negative_stage_triage"),
+                    self._other_basis(entry, gen, src, "CE") + caveat + "; failure stage unresolved")
+        inc = self.included_by.get(key)
+        if inc is not None and not want_v2005:
+            return ("chained_only",
+                    f"ivtest: `include target of {inc} - a fragment, not a standalone unit (the verilator "
+                    "convention); honest adjudication needs chaining")
+        return None
+
     def expect(self, relpath: str):
         p = Path(relpath.replace("\\", "/"))
         if len(p.parts) < 3 or p.parts[0] != "ivtest":
@@ -4491,9 +4842,12 @@ class IvtestIndex:
         vvp = self._expect_vvp(p)
         if vvp is not None:
             return vvp
+        other = self._expect_other(p)
+        if other is not None:
+            return other
         return ("out_of_scope_with_cause:no_sv_key",
-                "ivtest: no regress-sv.list entry (other-target list / "
-                "multi-file companion / unlisted)")
+                "ivtest: named by no list, descriptor, continuation source or `include (unlisted; "
+                ".13e.13 read every list the vendored runners read)")
 
     def _expect_vvp(self, p: Path):
         """Secondary key: vvp_tests JSON descriptors (leaf .8b.1). Sources
@@ -4671,6 +5025,9 @@ class IvtestIndex:
                         f"ivtest: vvp_tests descriptors {names} imply "
                         f"conflicting verdicts "
                         f"({', '.join(sorted(implied))})")
+        other = self._expect_other(p, want_v2005=True)
+        if other is not None:
+            return other
         return ("out_of_scope_with_cause:no_v2005_key",
                 "ivtest: v2005-lane row without a usable vlg-list or "
                 "vvp_tests key")
@@ -6102,6 +6459,126 @@ def _self_test_keywords_region() -> int:
     return 0
 
 
+def _self_test_ivtest_lists(ivtest_dir: Path) -> int:
+    """SV-CORPUS-GRAD.13e.13 RED-FIRST CONTROLS. A scratch ivtest tree (the vendored compiler files
+    linked in, SYNTHETIC lists beside them) drives every rule the other lists add, both lanes, so a
+    verdict is earned by a list entry the arm wrote - never by the real tree agreeing with itself."""
+    import tempfile
+    ok, bad = 0, []
+
+    def check(name, cond):
+        nonlocal ok
+        if cond:
+            ok += 1
+            print(f"  ok   {name}")
+        else:
+            bad.append(name)
+            print(f"  FAIL {name}")
+
+    real = ivtest_dir
+    base = Path(tempfile.mkdtemp(prefix="ivtest_lists_selftest.", dir=str(Path(__file__).resolve().parent.parent.parent / "rust" / "target")))
+    iv = base / "ivtest"
+    for d in ("ivltests", "vpi", "blif", "fpga_tests", "gold", "vvp_tests", "vhdl_tests"):
+        (iv / d).mkdir(parents=True)
+    for f in ("compiler.h", "main.cc", "parse.y", "pform.cc", "lexor.lex"):
+        (base / f).symlink_to(real.parent / f)   # the files the index reads to resolve the default generation + the extension posture
+    for f in ("vvp_reg.py", "Makefile.in"):
+        (iv / f).symlink_to(real / f)
+    (iv / "regress-sv.list").write_text("primary_sv normal,-g2012 ivltests \\\n\t./ivltests/src_of_ce_primary.v\nprim_ce CE ivltests \\\n\t./ivltests/src_of_ce.v\n")
+    (iv / "regress-vlg.list").write_text("primary_vlg normal ivltests\n")
+    (iv / "regress-ivl1.list").write_text(
+        "ivl_plain normal ivltests\nivl_sv normal,-g2009 ivltests\nivl_ce CE ivltests gold=ivl_ce.gold\n"
+        "ivl_ce_post CE ivltests gold=ivl_ce_post.gold\nivl_ce_nogold CE ivltests\nivl_ext normal,-gxtypes ivltests\n"
+        "multi normal ivltests \\\n\t./ivltests/multi_lib.v\nprimary_sv CE ivltests\nboth normal ivltests\n")
+    (iv / "regress-vhdl.list").write_text("vhdl_sv normal,-g2005-sv ivltests\nboth CE ivltests\n")
+    (iv / "regress-synth.list").write_text("synth_plain normal ivltests\n")
+    (iv / "regress-fsv.list").write_text("fsv_norm normal ivltests\nfsv_ni NI ivltests\n")
+    (iv / "regress-vlog95.list").write_text("v95_te TE ivltests\nv95_ce CE ivltests\nv95_norm normal,-g2009 ivltests\nv95_cn CN ivltests\n")
+    (iv / "vhdl_regress.list").write_text("typo noraml ivltests\nco_only CO vhdl_tests\n")
+    (iv / "vpi_regress.list").write_text("vstd:vpi_plain normal vpi_plain.c vpi_plain.log\nv10:vpi_sv normal,-g2009 vpi_sv.c vpi_sv.log\n"
+                                         "vstd:vpi_pli PLI1 vpi_pli.c vpi_pli.log\nvstd:vpi_ni NI vpi_ni.c vpi_ni.log\n")
+    (iv / "blif.list").write_text("blifa\n")
+    (iv / "fpga_tests" / "fpga_reg.list").write_text("fp fp_tb virtex XC2S15 -\n")
+    (iv / "gold" / "ivl_ce.gold").write_text("ivltests/ivl_ce.v:3: syntax error\n")
+    (iv / "gold" / "ivl_ce_post.gold").write_text("ivltests/ivl_ce_post.v:3: error: Unable to bind wire/reg/memory `x'\n")
+    (iv / "ivltests" / "lister.v").write_text('`include "payload.vh"\nmodule t; endmodule\n')
+    (iv / "ivltests" / "payload.vh").write_text("wire w;\n")
+    (iv / "ivltests" / "unlisted.v").write_text("module u; endmodule\n")
+
+    idx = IvtestIndex(iv)
+    E = lambda rel: idx.expect(rel)
+    V = lambda rel: idx.expect_v2005(rel)
+    V2005, SVK, NOKEY = "out_of_scope_with_cause:v2005_profile_lane", "must_accept", "out_of_scope_with_cause:no_sv_key"
+
+    check("ivl1 normal, no flag: sv lane routes to the v2005 lane naming the list",
+          E("ivtest/ivltests/ivl_plain.v")[0] == V2005 and "regress-ivl1.list" in E("ivtest/ivltests/ivl_plain.v")[1])
+    check("ivl1 normal, no flag: the v2005 lane keys must_accept at the compiler's default",
+          V("ivtest/ivltests/ivl_plain.v")[0] == SVK and "GN_DEFAULT" in V("ivtest/ivltests/ivl_plain.v")[1])
+    check("ivl1 normal,-g2009: sv lane must_accept, not the v2005 lane",
+          E("ivtest/ivltests/ivl_sv.v")[0] == SVK and V("ivtest/ivltests/ivl_sv.v") == ("out_of_scope_with_cause:no_v2005_key",
+                                                                                           "ivtest: v2005-lane row without a usable vlg-list or vvp_tests key"))
+    check("vhdl normal,-g2005-sv: sv lane must_accept naming regress-vhdl.list",
+          E("ivtest/ivltests/vhdl_sv.v")[0] == SVK and "regress-vhdl.list" in E("ivtest/ivltests/vhdl_sv.v")[1])
+    check("synth normal: v2005 lane must_accept naming regress-synth.list",
+          E("ivtest/ivltests/synth_plain.v")[0] == V2005 and V("ivtest/ivltests/synth_plain.v")[0] == SVK)
+    check("ivl1 CE with a golden naming a syntax error: v2005 lane must_reject",
+          V("ivtest/ivltests/ivl_ce.v")[0] == "must_reject")
+    check("ivl1 CE whose golden shows only post-parse errors: must_accept",
+          V("ivtest/ivltests/ivl_ce_post.v")[0] == SVK)
+    check("ivl1 CE with no golden: negative_stage_triage_v2005",
+          V("ivtest/ivltests/ivl_ce_nogold.v")[0] == "out_of_scope_with_cause:negative_stage_triage_v2005")
+    check("an entry enabling a NON-STANDARD extension (-gxtypes) cannot key must_accept (.13e.3)",
+          V("ivtest/ivltests/ivl_ext.v")[0] == "out_of_scope_with_cause:vendor_extension_enabled")
+    check("fsv normal: sv lane must_accept, the generation FORCED to -g2023 by the flow",
+          E("ivtest/ivltests/fsv_norm.v")[0] == SVK and "-g2023" in E("ivtest/ivltests/fsv_norm.v")[1] and "forced" in E("ivtest/ivltests/fsv_norm.v")[1])
+    check("fsv NI: ni_unimplemented", E("ivtest/ivltests/fsv_ni.v")[0] == "out_of_scope_with_cause:ni_unimplemented")
+    check("vlog95 TE (stage 2 failed, the original compiled): must_accept on the v2005 lane",
+          E("ivtest/ivltests/v95_te.v")[0] == V2005 and V("ivtest/ivltests/v95_te.v")[0] == SVK)
+    check("vlog95 CN (-t null compile): must_accept", V("ivtest/ivltests/v95_cn.v")[0] == SVK)
+    check("vlog95 normal,-g2009: sv lane must_accept", E("ivtest/ivltests/v95_norm.v")[0] == SVK)
+    check("vlog95 CE, no golden: negative_stage_triage naming the code generator, NEVER must_reject",
+          V("ivtest/ivltests/v95_ce.v")[0] == "out_of_scope_with_cause:negative_stage_triage_v2005"
+          and "code generator" in V("ivtest/ivltests/v95_ce.v")[1])
+    check("vhdl_regress `noraml` (upstream typo) runs as normal: must_accept, the basis says so",
+          V("ivtest/ivltests/typo.v")[0] == SVK and "noraml" in V("ivtest/ivltests/typo.v")[1])
+    check("vhdl_regress CO in vhdl_tests/: must_accept", V("ivtest/vhdl_tests/co_only.v")[0] == SVK)
+    check("vpi vstd:normal: source vpi/<name>.v, v2005 lane must_accept",
+          E("ivtest/vpi/vpi_plain.v")[0] == V2005 and V("ivtest/vpi/vpi_plain.v")[0] == SVK)
+    check("vpi v10:normal,-g2009: sv lane must_accept", E("ivtest/vpi/vpi_sv.v")[0] == SVK)
+    check("vpi PLI1: runs like normal", V("ivtest/vpi/vpi_pli.v")[0] == SVK)
+    check("vpi NI under the default generation: routed to the v2005 lane (the _expect_vvp convention) and NI there",
+          E("ivtest/vpi/vpi_ni.v")[0] == V2005 and V("ivtest/vpi/vpi_ni.v")[0] == "out_of_scope_with_cause:ni_unimplemented")
+    check("a continuation source of a primary-list normal entry is must_accept on that entry's lane",
+          E("ivtest/ivltests/src_of_ce_primary.v")[0] == SVK and "regress-sv.list" in E("ivtest/ivltests/src_of_ce_primary.v")[1])
+    check("blif DUT and its _tb both compile under -g2009 by the flow: sv lane must_accept",
+          E("ivtest/blif/blifa.v")[0] == SVK and E("ivtest/blif/blifa_tb.v")[0] == SVK and "blif_reg.py" in E("ivtest/blif/blifa.v")[1])
+    check("fpga test and testbench: default generation by the flow, v2005 lane must_accept",
+          E("ivtest/fpga_tests/fp.v")[0] == V2005 and V("ivtest/fpga_tests/fp_tb.v")[0] == SVK)
+    check("a continuation source of a normal entry is compiled in its unit: must_accept naming the entry",
+          V("ivtest/ivltests/multi_lib.v")[0] == SVK and "continuation source of entry multi" in V("ivtest/ivltests/multi_lib.v")[1])
+    check("a continuation source of a CE entry stays no_sv_key (which source fails is unresolved)",
+          E("ivtest/ivltests/src_of_ce.v")[0] == NOKEY and "CE/NI" in E("ivtest/ivltests/src_of_ce.v")[1])
+    check("an `include target of a listed test is a fragment: chained_only",
+          E("ivtest/ivltests/payload.v")[0] == "chained_only" and "lister.v" in E("ivtest/ivltests/payload.v")[1])
+    check("PRECEDENCE: a name in regress-sv.list AND regress-ivl1.list keeps the primary key (unchanged behaviour)",
+          E("ivtest/ivltests/primary_sv.v")[0] == SVK and "regress-sv.list" in E("ivtest/ivltests/primary_sv.v")[1])
+    check("PRECEDENCE: a name typed differently by two other lists - the first list wins and the conflict is recorded",
+          E("ivtest/ivltests/both.v")[0] == V2005 and ("ivltests", "both") in [c[0] for c in idx.list_conflicts])
+    check("an unlisted file is no_sv_key with the refined basis",
+          E("ivtest/ivltests/unlisted.v")[0] == NOKEY and "named by no list" in E("ivtest/ivltests/unlisted.v")[1])
+    # RED: a list line the runner would die on REFUSES rather than being skipped
+    (iv / "regress-synth.list").write_text("lonely\n")
+    try:
+        IvtestIndex(iv)
+        check("RED: a 1-field line in an other list REFUSES (RegressionList.pm dies on it)", False)
+    except SystemExit as e:
+        check("RED: a 1-field line in an other list REFUSES (RegressionList.pm dies on it)", "REFUSE" in str(e))
+    import shutil
+    shutil.rmtree(base, ignore_errors=True)
+    print(f"ivtest-lists self-test: {ok} ok, {len(bad)} failed" + (f" - {bad}" if bad else ""))
+    return 1 if bad else 0
+
+
 def _self_test_extension_guard(ivtest_dir: Path) -> int:
     """SV-CORPUS-GRAD.13e.3 RED CONTROL. The vendor-extension guard fires on ZERO rows
     at HEAD, and a guard never observed firing is not known to work
@@ -6695,7 +7172,8 @@ def main():
                 | _self_test_edition_type()
                 | _self_test_edition_net_declaration()
                 | _self_test_edition_empty_call()
-                | _self_test_macro_definition_tell())
+                | _self_test_macro_definition_tell()
+                | _self_test_ivtest_lists(args.subs_root / "iverilog" / "ivtest"))
 
     verify_outcome_identity(args.report, [args.results, args.positions],
                             rerun="stimuli/run_external_corpus.sh sv")

@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `00da7d95a429da7e1158f7aefee1a5dc4bda596ddd1447bfde43ede388dd8267` |
+| parse binary | `rust/target/release/parseability_probe` | `270e50f554e35ea52d0441e83cfe0654c5104cbfe66c5600ae2bf326f7cd5cb1` |
 | grammar | `grammars/systemverilog.ebnf` | `46958d34e693506ba8e16d874eca948a7b927b07161714f009e532bfaf229034` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `315f3a2212a87f1cd155c982b88a8b21239582e3b11861cb4a0feba72969920a` |
 | generated parser | `generated/systemverilog_parser.rs` | `1781b11d85172ede964574de6d58da8b979f24efe57ad0a18f74db421fe6757e` |
-| results (output) | `stimuli/sv/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
-| positions (output) | `stimuli/sv/characterization/positions.tsv` | `2570f719f50b930057e0bfa79e39ba64d104ff8571939837e675a43cb801d0ad` |
+| results (output) | `rust/target/sv_external_corpus_conformance_gate/work/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
+| positions (output) | `rust/target/sv_external_corpus_conformance_gate/work/characterization/positions.tsv` | `2570f719f50b930057e0bfa79e39ba64d104ff8571939837e675a43cb801d0ad` |
 
-Measured at `HEAD` = `4e7acc696+dirty` (2026-10-06).
+Measured at `HEAD` = `909a4c6d6+dirty` (2026-10-08).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -44,9 +44,9 @@ Measured at `HEAD` = `4e7acc696+dirty` (2026-10-06).
 
 | parameter | value | source for this run |
 |---|---|---|
-| per-file timeout | 60 s | caller |
-| parallel jobs | 8 | caller |
-| max files | 0 (no cap) | caller |
+| per-file timeout | 60 s | provenance |
+| parallel jobs | 8 | provenance |
+| max files | 0 (no cap) | provenance |
 | parse binary | `rust/target/release/parseability_probe` | provenance |
 
 ## Deadline proximity and serial re-confirmation
@@ -54,7 +54,7 @@ Measured at `HEAD` = `4e7acc696+dirty` (2026-10-06).
 > A timeout is a statement about the machine as much as about the parser. Every
 > `timeout` row is re-run **alone** at the same deadline before it is recorded, and the
 > population sitting within 2x of the deadline is published so the flip-risk set is a
-> known number. Per-file durations: `stimuli/sv/characterization/durations.tsv`.
+> known number. Per-file durations: `rust/target/sv_external_corpus_conformance_gate/work/characterization/durations.tsv`.
 
 | population | files |
 |---|---|
@@ -65,7 +65,11 @@ Measured at `HEAD` = `4e7acc696+dirty` (2026-10-06).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `6.96` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `8.04` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+
+⚠️ **NON-CANONICAL RUN** — written to `rust/target/sv_external_corpus_conformance_gate/work/characterization` via `PGEN_CORPUS_OUT_DIR`,
+not to the tracked `stimuli/sv/characterization`. Diff it against the tracked artifact
+before promoting anything.
 
 ## Totals
 
@@ -92,7 +96,7 @@ Slowest completing file: `6.96` s — `stimuli/sv/subs/opentitan/hw/top_darjeeli
 | verible | 152 | 121 | 31 | 0 | 0 | 79.6% |
 | verilator | 3263 | 2081 | 1182 | 0 | 0 | 63.8% |
 
-_Raw per-file results: `stimuli/sv/characterization/results.tsv` (3 columns: sub-corpus, status,
+_Raw per-file results: `rust/target/sv_external_corpus_conformance_gate/work/characterization/results.tsv` (3 columns: sub-corpus, status,
 repo-root-relative path — a stable contract three consumers unpack positionally)._
-_Per-file durations: `stimuli/sv/characterization/durations.tsv` (the same rows plus a 4th wall-seconds column)._
+_Per-file durations: `rust/target/sv_external_corpus_conformance_gate/work/characterization/durations.tsv` (the same rows plus a 4th wall-seconds column)._
 _Both are sorted by (sub-corpus, path), so two runs are directly diffable._

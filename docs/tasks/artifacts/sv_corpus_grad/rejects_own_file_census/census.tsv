@@ -239,6 +239,7 @@ Cores-VeeR-EL2	design/include/el2_dec_csr_equ_m.svh	fragment	1622	stimuli/sv/sub
 Cores-VeeR-EL2	design/include/el2_dec_csr_equ_mu.svh	fragment	1939	stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_mu.svh:103:16	assign	other	fail	fail	1	chained:rejects_own_file
 Cores-VeeR-EL2	tools/riscv-dv/riscv_core_setting.sv	fragment	244	stimuli/sv/subs/Cores-VeeR-EL2/tools/riscv-dv/riscv_core_setting.sv:6:22	SATP_MODE	other	fail	fail	1	chained:rejects_own_file
 black-parrot	bp_me/src/include/bp_me_cce_pkgdef.svh	fragment	338	stimuli/sv/subs/black-parrot/bp_me/src/include/bp_me_cce_pkgdef.svh:19:20	state	other	fail	fail	1	chained:rejects_own_file
+iverilog	ivtest/ivltests/line_directive_inc.v	fragment	0	stimuli/sv/subs/iverilog/ivtest/ivltests/line_directive_inc.v:1:1	$display	other	fail	fail	1	chained:rejects_own_file
 opentitan	hw/ip/prim/rtl/prim_util_memload.svh	fragment	1757	stimuli/sv/subs/opentitan/hw/ip/prim/rtl/prim_util_memload.svh:54:14	initial	other	fail	fail	6	chained:rejects_own_file
 opentitan	hw/ip/sram_ctrl/dv/env/sram_ctrl_env_cfg.sv	fragment	255	stimuli/sv/subs/opentitan/hw/ip/sram_ctrl/dv/env/sram_ctrl_env_cfg.sv:6:29	#	a parameter port list `#(`	fail	fail	1	chained:rejects_own_file
 opentitan	hw/ip/sram_ctrl/dv/env/sram_ctrl_env_cov.sv	fragment	454	stimuli/sv/subs/opentitan/hw/ip/sram_ctrl/dv/env/sram_ctrl_env_cov.sv:12:29	#	a parameter port list `#(`	fail	fail	1	chained:rejects_own_file
