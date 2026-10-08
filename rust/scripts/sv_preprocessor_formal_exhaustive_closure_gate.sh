@@ -15,11 +15,19 @@ SYNTAX_CLOSURE_GATE="$RUST_DIR/scripts/sv_preprocessor_syntax_closure_gate.sh"
 AGGREGATE_CONTRACT_GATE="$RUST_DIR/scripts/sv_preprocessor_aggregate_contract_gate.sh"
 REACHABILITY_CLOSURE_GATE="$RUST_DIR/scripts/sv_preprocessor_reachability_closure_gate.sh"
 ZERO_GAP_PROOF_GATE="$RUST_DIR/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh"
+# DONE-BAR.3e (2026-10-08): the family's two differential gates are covering gates of this family and
+# cost seconds — the curated gate compares against CHECKED-IN expected artifacts, the template gate
+# against a deterministic template predictor; neither needs a reference tool — so the umbrella runs
+# them itself rather than leaving them to an operator's campaign (they were "run by nothing").
+CURATED_DIFFERENTIAL_GATE="$RUST_DIR/scripts/sv_preprocessor_curated_differential_gate.sh"
+TEMPLATE_DIFFERENTIAL_GATE="$RUST_DIR/scripts/sv_preprocessor_template_differential_gate.sh"
 
 EXISTING_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_SYNTAX_CLOSURE_STATE_DIR:-}"
 EXISTING_AGGREGATE_CONTRACT_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_AGGREGATE_CONTRACT_STATE_DIR:-}"
 EXISTING_REACHABILITY_CLOSURE_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_REACHABILITY_CLOSURE_STATE_DIR:-}"
 EXISTING_ZERO_GAP_PROOF_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_ZERO_PLAUSIBLE_GAP_PROOF_STATE_DIR:-}"
+EXISTING_CURATED_DIFFERENTIAL_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_CURATED_DIFFERENTIAL_STATE_DIR:-}"
+EXISTING_TEMPLATE_DIFFERENTIAL_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_TEMPLATE_DIFFERENTIAL_STATE_DIR:-}"
 
 require_tool() {
     local tool="$1"
@@ -78,6 +86,18 @@ summary_value_from_txt() {
     printf '%s\n' "${line#${key}: }"
 }
 
+table_value_from_txt() {
+    local key="$1"
+    local path="$2"
+    local value
+    value="$(awk -v key="$key" '$1 == key { print $2; exit }' "$path")"
+    if [[ -z "$value" ]]; then
+        echo "error: missing table key '${key}' in summary '$path'" >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
 run_logged() {
     local label="$1"
     shift
@@ -98,6 +118,8 @@ require_file "$SYNTAX_CLOSURE_GATE"
 require_file "$AGGREGATE_CONTRACT_GATE"
 require_file "$REACHABILITY_CLOSURE_GATE"
 require_file "$ZERO_GAP_PROOF_GATE"
+require_file "$CURATED_DIFFERENTIAL_GATE"
+require_file "$TEMPLATE_DIFFERENTIAL_GATE"
 
 jq -e '
     .family == "systemverilog_preprocessor"
@@ -140,6 +162,26 @@ else
     reachability_state_dir="$(cd "$reachability_state_dir" && pwd)"
 fi
 
+curated_differential_state_dir="${EXISTING_CURATED_DIFFERENTIAL_STATE_DIR:-$WORK_DIR/sv_preprocessor_curated_differential_gate}"
+if [[ -z "$EXISTING_CURATED_DIFFERENTIAL_STATE_DIR" ]]; then
+    run_logged "sv_preprocessor_curated_differential_gate" \
+        env \
+            PGEN_SV_PREPROCESSOR_CURATED_DIFF_STATE_DIR="$curated_differential_state_dir" \
+            "$CURATED_DIFFERENTIAL_GATE"
+else
+    curated_differential_state_dir="$(cd "$curated_differential_state_dir" && pwd)"
+fi
+
+template_differential_state_dir="${EXISTING_TEMPLATE_DIFFERENTIAL_STATE_DIR:-$WORK_DIR/sv_preprocessor_template_differential_gate}"
+if [[ -z "$EXISTING_TEMPLATE_DIFFERENTIAL_STATE_DIR" ]]; then
+    run_logged "sv_preprocessor_template_differential_gate" \
+        env \
+            PGEN_SV_PREPROCESSOR_TEMPLATE_DIFF_STATE_DIR="$template_differential_state_dir" \
+            "$TEMPLATE_DIFFERENTIAL_GATE"
+else
+    template_differential_state_dir="$(cd "$template_differential_state_dir" && pwd)"
+fi
+
 syntax_summary_txt="$syntax_state_dir/summary.txt"
 aggregate_summary_txt="$aggregate_state_dir/summary.txt"
 aggregate_summary_json="$aggregate_state_dir/summary.json"
@@ -158,6 +200,8 @@ else
 fi
 zero_gap_proof_summary_txt="$zero_gap_proof_state_dir/summary.txt"
 zero_gap_proof_summary_json="$zero_gap_proof_state_dir/summary.json"
+curated_differential_summary_txt="$curated_differential_state_dir/summary.txt"
+template_differential_summary_txt="$template_differential_state_dir/summary.txt"
 
 require_nonempty_file "$syntax_summary_txt"
 require_nonempty_file "$aggregate_summary_txt"
@@ -165,6 +209,8 @@ require_nonempty_file "$aggregate_summary_json"
 require_nonempty_file "$reachability_summary_txt"
 require_nonempty_file "$zero_gap_proof_summary_txt"
 require_nonempty_file "$zero_gap_proof_summary_json"
+require_nonempty_file "$curated_differential_summary_txt"
+require_nonempty_file "$template_differential_summary_txt"
 
 contract_version="$(jq -r '.version' "$CONTRACT_FILE")"
 done_rule="$(jq -r '.done_rule' "$CONTRACT_FILE")"
@@ -178,6 +224,10 @@ aggregate_summary_json_from_txt="$(top_level_summary_value_from_txt "summary_jso
 reachability_state_dir_from_txt="$(top_level_summary_value_from_txt "state_dir" "$reachability_summary_txt")"
 zero_gap_proof_state_dir_from_txt="$(top_level_summary_value_from_txt "state_dir" "$zero_gap_proof_summary_txt")"
 zero_gap_proof_summary_json_from_txt="$(top_level_summary_value_from_txt "summary_json" "$zero_gap_proof_summary_txt")"
+curated_differential_state_dir_from_txt="$(top_level_summary_value_from_txt "state_dir" "$curated_differential_summary_txt")"
+curated_differential_report_json="$(top_level_summary_value_from_txt "report_json" "$curated_differential_summary_txt")"
+template_differential_state_dir_from_txt="$(top_level_summary_value_from_txt "state_dir" "$template_differential_summary_txt")"
+template_differential_report_json="$(top_level_summary_value_from_txt "report_json" "$template_differential_summary_txt")"
 
 if [[ "$syntax_state_dir_from_txt" != "$syntax_state_dir" ]]; then
     echo "error: preprocessor syntax-closure state_dir mismatch in summary.txt" >&2
@@ -203,6 +253,16 @@ if [[ "$zero_gap_proof_summary_json_from_txt" != "$zero_gap_proof_summary_json" 
     echo "error: preprocessor zero-gap proof summary_json mismatch in summary.txt" >&2
     exit 1
 fi
+if [[ "$curated_differential_state_dir_from_txt" != "$curated_differential_state_dir" ]]; then
+    echo "error: preprocessor curated-differential state_dir mismatch in summary.txt" >&2
+    exit 1
+fi
+if [[ "$template_differential_state_dir_from_txt" != "$template_differential_state_dir" ]]; then
+    echo "error: preprocessor template-differential state_dir mismatch in summary.txt" >&2
+    exit 1
+fi
+require_nonempty_file "$curated_differential_report_json"
+require_nonempty_file "$template_differential_report_json"
 
 aggregate_gate_name="$(jq -r '.gate' "$aggregate_summary_json")"
 aggregate_gate_version="$(jq -r '.version' "$aggregate_summary_json")"
@@ -292,6 +352,40 @@ zero_gap_primary_unmet_proof_criterion="$(summary_value_from_txt "primary_unmet_
 zero_gap_unmet_proof_criteria_count="$(summary_value_from_txt "unmet_proof_criteria_count" "$zero_gap_proof_summary_txt")"
 zero_gap_unmet_proof_criteria_json="$(summary_value_from_txt "unmet_proof_criteria_json" "$zero_gap_proof_summary_txt")"
 
+# The differential gates' own verdicts. A stage that evaluated nothing (diff mode disabled by
+# configuration) is not a covering gate's green, so the umbrella refuses it rather than counting it.
+curated_differential_mode_effective="$(table_value_from_txt "diff_mode_effective" "$curated_differential_summary_txt")"
+curated_differential_cases_checked="$(table_value_from_txt "diff_cases_checked" "$curated_differential_summary_txt")"
+curated_differential_bug_mismatch_count="$(table_value_from_txt "classification_bug_mismatch" "$curated_differential_summary_txt")"
+template_differential_mode_effective="$(table_value_from_txt "diff_mode_effective" "$template_differential_summary_txt")"
+template_differential_cases_checked="$(table_value_from_txt "cases_checked" "$template_differential_summary_txt")"
+template_differential_bug_mismatch_count="$(table_value_from_txt "classification_bug_mismatch" "$template_differential_summary_txt")"
+template_differential_diagnostics_invariant_fail_count="$(table_value_from_txt "diagnostics_invariant_fail_count" "$template_differential_summary_txt")"
+for v in "$curated_differential_cases_checked" "$curated_differential_bug_mismatch_count" \
+         "$template_differential_cases_checked" "$template_differential_bug_mismatch_count" \
+         "$template_differential_diagnostics_invariant_fail_count"; do
+    if [[ ! "$v" =~ ^[0-9]+$ ]]; then
+        echo "error: differential gate summary carries a non-numeric count: '$v'" >&2
+        exit 1
+    fi
+done
+if [[ "$curated_differential_mode_effective" != "enabled" || "$curated_differential_cases_checked" == "0" ]]; then
+    echo "error: sv_preprocessor_curated_differential_gate evaluated nothing (diff_mode_effective=$curated_differential_mode_effective, cases_checked=$curated_differential_cases_checked) — not a covering gate's green" >&2
+    exit 1
+fi
+if [[ "$template_differential_mode_effective" != "enabled" || "$template_differential_cases_checked" == "0" ]]; then
+    echo "error: sv_preprocessor_template_differential_gate evaluated nothing (diff_mode_effective=$template_differential_mode_effective, cases_checked=$template_differential_cases_checked) — not a covering gate's green" >&2
+    exit 1
+fi
+curated_differential_surface_green=false
+template_differential_surface_green=false
+if [[ "$curated_differential_bug_mismatch_count" == "0" ]]; then
+    curated_differential_surface_green=true
+fi
+if [[ "$template_differential_bug_mismatch_count" == "0" && "$template_differential_diagnostics_invariant_fail_count" == "0" ]]; then
+    template_differential_surface_green=true
+fi
+
 syntax_closure_surface_green=false
 aggregate_contract_surface_green=false
 reachability_closure_surface_green=false
@@ -349,9 +443,17 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "zero_gap_proof_state_dir: $zero_gap_proof_state_dir"
     echo "zero_gap_proof_summary_txt: $zero_gap_proof_summary_txt"
     echo "zero_gap_proof_summary_json: $zero_gap_proof_summary_json"
+    echo "curated_differential_state_dir: $curated_differential_state_dir"
+    echo "curated_differential_summary_txt: $curated_differential_summary_txt"
+    echo "curated_differential_report_json: $curated_differential_report_json"
+    echo "template_differential_state_dir: $template_differential_state_dir"
+    echo "template_differential_summary_txt: $template_differential_summary_txt"
+    echo "template_differential_report_json: $template_differential_report_json"
     echo "syntax_closure_surface_green: $syntax_closure_surface_green"
     echo "aggregate_contract_surface_green: $aggregate_contract_surface_green"
     echo "reachability_closure_surface_green: $reachability_closure_surface_green"
+    echo "curated_differential_surface_green: $curated_differential_surface_green"
+    echo "template_differential_surface_green: $template_differential_surface_green"
     echo "zero_plausible_grammar_level_gap_proof_surface: $zero_plausible_grammar_level_gap_proof_surface"
     echo "systemverilog_preprocessor_formal_exhaustive_closure_surface_green: $systemverilog_preprocessor_formal_exhaustive_closure_surface_green"
     echo "unmet_closure_criteria_count: $unmet_closure_criteria_count"
@@ -381,6 +483,11 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "reachability_stage4_covered_reachable_branches: $reachability_stage4_branches"
     echo "reachability_parseability_rejected: $reachability_parseability_rejected"
     echo "reachability_parser_rejections: $reachability_parser_rejections"
+    echo "curated_differential_cases_checked: $curated_differential_cases_checked"
+    echo "curated_differential_bug_mismatch_count: $curated_differential_bug_mismatch_count"
+    echo "template_differential_cases_checked: $template_differential_cases_checked"
+    echo "template_differential_bug_mismatch_count: $template_differential_bug_mismatch_count"
+    echo "template_differential_diagnostics_invariant_fail_count: $template_differential_diagnostics_invariant_fail_count"
 } >"$SUMMARY_TXT"
 
 jq -n \
@@ -409,6 +516,19 @@ jq -n \
     --arg zero_gap_proof_state_dir "$zero_gap_proof_state_dir" \
     --arg zero_gap_proof_summary_txt "$zero_gap_proof_summary_txt" \
     --arg zero_gap_proof_summary_json "$zero_gap_proof_summary_json" \
+    --arg curated_differential_state_dir "$curated_differential_state_dir" \
+    --arg curated_differential_summary_txt "$curated_differential_summary_txt" \
+    --arg curated_differential_report_json "$curated_differential_report_json" \
+    --arg template_differential_state_dir "$template_differential_state_dir" \
+    --arg template_differential_summary_txt "$template_differential_summary_txt" \
+    --arg template_differential_report_json "$template_differential_report_json" \
+    --argjson curated_differential_cases_checked "$curated_differential_cases_checked" \
+    --argjson curated_differential_bug_mismatch_count "$curated_differential_bug_mismatch_count" \
+    --argjson template_differential_cases_checked "$template_differential_cases_checked" \
+    --argjson template_differential_bug_mismatch_count "$template_differential_bug_mismatch_count" \
+    --argjson template_differential_diagnostics_invariant_fail_count "$template_differential_diagnostics_invariant_fail_count" \
+    --argjson curated_differential_surface_green "$curated_differential_surface_green" \
+    --argjson template_differential_surface_green "$template_differential_surface_green" \
     --arg syntax_status "$syntax_status" \
     --argjson syntax_failure_count "$syntax_failure_count" \
     --argjson syntax_defined_rule_count "$syntax_defined_rule_count" \
@@ -457,6 +577,8 @@ jq -n \
         syntax_closure_surface_green: $syntax_closure_surface_green,
         aggregate_contract_surface_green: $aggregate_contract_surface_green,
         reachability_closure_surface_green: $reachability_closure_surface_green,
+        curated_differential_surface_green: $curated_differential_surface_green,
+        template_differential_surface_green: $template_differential_surface_green,
         zero_plausible_grammar_level_gap_proof_surface: $zero_plausible_grammar_level_gap_proof_surface,
         systemverilog_preprocessor_formal_exhaustive_closure_surface_green: $systemverilog_preprocessor_formal_exhaustive_closure_surface_green,
         unmet_closure_criteria_count: $unmet_closure_criteria_count,
@@ -486,7 +608,12 @@ jq -n \
             reachability_stage3_covered_reachable_branches: $reachability_stage3_covered_reachable_branches,
             reachability_stage4_covered_reachable_branches: $reachability_stage4_covered_reachable_branches,
             reachability_parseability_rejected: $reachability_parseability_rejected,
-            reachability_parser_rejections: $reachability_parser_rejections
+            reachability_parser_rejections: $reachability_parser_rejections,
+            curated_differential_cases_checked: $curated_differential_cases_checked,
+            curated_differential_bug_mismatch_count: $curated_differential_bug_mismatch_count,
+            template_differential_cases_checked: $template_differential_cases_checked,
+            template_differential_bug_mismatch_count: $template_differential_bug_mismatch_count,
+            template_differential_diagnostics_invariant_fail_count: $template_differential_diagnostics_invariant_fail_count
         },
         proof_surfaces: {
             syntax_closure_state_dir: $syntax_closure_state_dir,
@@ -501,7 +628,13 @@ jq -n \
             zero_gap_proof_generated_at_utc: $zero_gap_proof_generated_at_utc,
             zero_gap_proof_state_dir: $zero_gap_proof_state_dir,
             zero_gap_proof_summary_txt: $zero_gap_proof_summary_txt,
-            zero_gap_proof_summary_json: $zero_gap_proof_summary_json
+            zero_gap_proof_summary_json: $zero_gap_proof_summary_json,
+            curated_differential_state_dir: $curated_differential_state_dir,
+            curated_differential_summary_txt: $curated_differential_summary_txt,
+            curated_differential_report_json: $curated_differential_report_json,
+            template_differential_state_dir: $template_differential_state_dir,
+            template_differential_summary_txt: $template_differential_summary_txt,
+            template_differential_report_json: $template_differential_report_json
         }
     }' >"$SUMMARY_JSON"
 

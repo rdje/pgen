@@ -264,8 +264,13 @@ echo "diff_mode: $DIFF_MODE"
 echo "case_count: $CASE_COUNT"
 echo "seed_base: $SEED_BASE"
 
+# DONE-BAR.3e (2026-10-08): the SAME feature set as rust/Makefile's $(RUST_AST_PIPELINE) rule. This
+# gate used `--features generated_parsers` alone, which RELINKED the shared debug ast_pipeline without
+# the .ebnf frontend and broke every later reader of it on disk (--dump-rule-profiles, the semantic
+# digest, the pipeline-vs-raw render) — the ping-pong shape of ENGINE-UNIVERSAL-SERVICES.95, in the
+# breaking direction.
 run_logged_rust "build_ast_pipeline_for_template_preprocessor_diff" \
-    cargo build --features generated_parsers --bin ast_pipeline
+    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after build" >&2

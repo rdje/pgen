@@ -136,16 +136,6 @@
       "reason": "SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit"
     },
     {
-      "target": "sv_preprocessor_curated_differential_gate",
-      "disposition": "accepted-operator-invoked",
-      "reason": "SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit"
-    },
-    {
-      "target": "sv_preprocessor_template_differential_gate",
-      "disposition": "accepted-operator-invoked",
-      "reason": "SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit"
-    },
-    {
       "target": "verilog_2005_conformance_gate",
       "disposition": "accepted-operator-invoked",
       "reason": "README standard command; the strict verilog_2005 (IEEE 1364-2005) profile conformance lane"

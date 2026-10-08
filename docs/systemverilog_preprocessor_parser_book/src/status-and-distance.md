@@ -40,7 +40,7 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 | Leg | State | Why, derived from the tracked tree |
 |---|---|---|
 | 1 — stimuli-generator proof | ⚠️ **UNPROVEN** | rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
-| 2 — gates green and invoked | ⛔ **UNMET** | 9 covering gate targets, 7 invoked, 2 invoked by nothing (sv_preprocessor_curated_differential_gate, sv_preprocessor_template_differential_gate); rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
+| 2 — gates green and invoked | ⚠️ **UNPROVEN** | 9 covering gate targets, 9 invoked, 0 invoked by nothing; rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
 | 3 — external corpus passing | ⛔ **UNMET** | no external corpus is wired, though the language is standardized |
 
 **Corpus.** ⛔ **NOT MEASURED** — the language is standardized, so a corpus exists in the world, but none is wired into this repository. An UNMET leg, never an inapplicable one. Owed by `CORPUS-GRAD-ALL.1`.
