@@ -64,6 +64,25 @@ jobs:
           PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF: "1"
           PGEN_SOTA_REQUIRE_EBNF_DUAL_RUN_STRICT: "0"
         run: make -C rust SHELL=/bin/bash sota_exit_gate
+      # DONE-BAR.3d (2026-10-08): the three combined-telemetry contract gates assert that the
+      # aggregate's OWN state agrees with the family contracts (its proof-surface paths, counts and
+      # status). In their EXISTING_SOTA_EXIT_STATE_DIR mode they read the state this job just wrote
+      # and cost seconds; without that mode each re-runs the whole aggregate, which is why nothing
+      # invoked them and the done-bar audit counted every family one covering gate short
+      # (SystemVerilog: `17 covering gate targets; 16 run, 1 run by nothing`). The local CI mirror
+      # replays the same three steps after its own aggregate run.
+      - name: SV combined telemetry contract (over the aggregate's own state)
+        env:
+          PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR: ${{ github.workspace }}/rust/target/sota_exit_gate
+        run: make -C rust SHELL=/bin/bash sv_combined_telemetry_contract_gate
+      - name: Regex combined telemetry contract (over the aggregate's own state)
+        env:
+          PGEN_REGEX_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR: ${{ github.workspace }}/rust/target/sota_exit_gate
+        run: make -C rust SHELL=/bin/bash regex_combined_telemetry_contract_gate
+      - name: VHDL combined telemetry contract (over the aggregate's own state)
+        env:
+          PGEN_VHDL_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR: ${{ github.workspace }}/rust/target/sota_exit_gate
+        run: make -C rust SHELL=/bin/bash vhdl_combined_telemetry_contract_gate
 
       - name: Upload SOTA gate artifacts
         if: always()

@@ -3733,7 +3733,7 @@ main() {
     "sota-exit-gate" \
     ".github/workflows/sota-exit-gate.yml" \
     "make -C rust SHELL=/bin/bash sota_exit_gate" \
-    "PGEN_STRICT_ANNOTATION_VALIDATION=1 PGEN_SOTA_POLICY_FILE=$EXPORT_DIR/rust/config/sota_exit_policy.env PGEN_SOTA_RUN_EBNF_READINESS=1 PGEN_SOTA_REQUIRE_EBNF_STRICT=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=1 PGEN_SOTA_REQUIRE_EBNF_DUAL_RUN_STRICT=0 make -C rust SHELL=/bin/bash sota_exit_gate"
+    "PGEN_STRICT_ANNOTATION_VALIDATION=1 PGEN_SOTA_POLICY_FILE=$EXPORT_DIR/rust/config/sota_exit_policy.env PGEN_SOTA_RUN_EBNF_READINESS=1 PGEN_SOTA_REQUIRE_EBNF_STRICT=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=1 PGEN_SOTA_REQUIRE_EBNF_DUAL_RUN_STRICT=0 make -C rust SHELL=/bin/bash sota_exit_gate && PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=$EXPORT_DIR/rust/target/sota_exit_gate make -C rust SHELL=/bin/bash sv_combined_telemetry_contract_gate && PGEN_REGEX_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=$EXPORT_DIR/rust/target/sota_exit_gate make -C rust SHELL=/bin/bash regex_combined_telemetry_contract_gate && PGEN_VHDL_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=$EXPORT_DIR/rust/target/sota_exit_gate make -C rust SHELL=/bin/bash vhdl_combined_telemetry_contract_gate"
 
   assert_workflow_selection_was_real
   note "all selected local workflow commands passed ($WORKFLOWS_RUN_COUNT replayed)"

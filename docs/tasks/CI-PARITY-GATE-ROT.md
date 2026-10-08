@@ -3375,6 +3375,7 @@ arm was caused by the fix rather than by something else in the tree
 
 | slice | leaf | commit subject |
 |---|---|---|
+| `PGEN-DONE-BAR-0029` (DONE-BAR.3d, routed here for the record) | `.6`'s *"shrink the 28 by wiring"* | three of the `accepted-operator-invoked` lanes wired: the combined-telemetry contract gates run after the aggregate in `sota-exit-gate.yml` and the mirror, over the aggregate's own state (seconds); orphans 32 → 29; the register's three entries removed |
 | `PGEN-CI-PARITY-GATE-ROT-0011` | `.6` | the four surfaced items adjudicated — and measurement refuted the premise of one: the AUTOMATIC tier over these gate targets is ZERO, so "wire the 28" would have been theatre |
 | `PGEN-CI-PARITY-GATE-ROT-0010` | `.2` (TREE CLOSED) | the reachability inventory nobody had — 123 targets, 30 orphans + 1 policy-only, all dispositioned behind a ratchet as the 11th enforced doctrine; ten orphaned book gates wired |
 | `PGEN-CI-PARITY-GATE-ROT-0009` | `.flip` | PGEN_CI_WORKFLOW_LOCAL_PREPARE defaults to `true` now the hosted side genuinely works — and the guard for that default could not be written as a literal inside the file it guards |

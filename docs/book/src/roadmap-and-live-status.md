@@ -130,9 +130,9 @@ the tree it is derived from.
 | [`rtl_const_expr`](../../rtl_const_expr_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
 | [`rtl_frontend`](../../rtl_frontend_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 0 |
 | [`semantic_annotation`](../../semantic_annotation_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
-| [`systemverilog`](../../systemverilog_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⛔ | ⛔ | 4 |
+| [`systemverilog`](../../systemverilog_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⚠️ | ⛔ | 4 |
 | [`systemverilog_preprocessor`](../../systemverilog_preprocessor_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
-| [`vhdl`](../../vhdl_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⛔ | ⛔ | 0 |
+| [`vhdl`](../../vhdl_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⚠️ | ⛔ | 0 |
 
 Leg 1 is the stimuli-generator proof, leg 2 is *gates green and invoked* — every covering gate green AND actually invoked by something — and leg 3 is an officially-recognized external corpus passing. ✅ met · ⚠️ unproven · ⛔ unmet. **Why** a leg reads as it does is on that family's own page, one click away; this table is the comparison, not the explanation.
 

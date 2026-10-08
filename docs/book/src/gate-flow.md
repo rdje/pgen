@@ -1150,7 +1150,9 @@ workflows, the git hooks and `COMMIT.md` — and sorts targets into three tiers.
 > a lane is cheap enough to ride along with something people already run; it is not
 > a substitute for the automatic tier.
 
-The 32 orphan and policy-only targets each carry a recorded disposition in
+Every orphan and policy-only target — the check prints the count on each run, `29 orphan + 1
+policy-only` since `DONE-BAR.3d` wired the three combined-telemetry contract gates (2026-10-08) —
+carries a recorded disposition in
 `rust/test_data/grammar_quality/gate_reachability_register_v0.json`. This is a
 ratchet, not a report: the orphan set is re-derived every run, an untriaged orphan
 fails the check, and a register entry that no longer names an orphan fails too, so

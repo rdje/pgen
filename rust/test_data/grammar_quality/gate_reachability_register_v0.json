@@ -81,11 +81,6 @@
       "reason": "regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign"
     },
     {
-      "target": "regex_combined_telemetry_contract_gate",
-      "disposition": "accepted-operator-invoked",
-      "reason": "regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign"
-    },
-    {
       "target": "regex_corpus_bundle_contract_gate",
       "disposition": "accepted-operator-invoked",
       "reason": "regex family hardening/telemetry lane (README 'Regex external hardening lanes'); external-corpus and oracle work run per regex campaign"
@@ -131,11 +126,6 @@
       "reason": "README names it the formal Done gate for the tracked return-annotation claim; operator-invoked at closure time"
     },
     {
-      "target": "sv_combined_telemetry_contract_gate",
-      "disposition": "accepted-operator-invoked",
-      "reason": "SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit"
-    },
-    {
       "target": "sv_external_corpus_triage_gate",
       "disposition": "accepted-operator-invoked",
       "reason": "SystemVerilog family closure/telemetry/corpus lane, run per SV campaign rather than on every commit"
@@ -159,11 +149,6 @@
       "target": "verilog_2005_conformance_gate",
       "disposition": "accepted-operator-invoked",
       "reason": "README standard command; the strict verilog_2005 (IEEE 1364-2005) profile conformance lane"
-    },
-    {
-      "target": "vhdl_combined_telemetry_contract_gate",
-      "disposition": "accepted-operator-invoked",
-      "reason": "VHDL family closure/telemetry/corpus lane, run per VHDL campaign"
     },
     {
       "target": "vhdl_external_corpus_triage_gate",

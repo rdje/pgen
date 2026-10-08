@@ -40,7 +40,7 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 | Leg | State | Why, derived from the tracked tree |
 |---|---|---|
 | 1 — stimuli-generator proof | ⚠️ **UNPROVEN** | rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
-| 2 — gates green and invoked | ⛔ **UNMET** | 14 covering gate targets, 7 invoked, 7 invoked by nothing (regex_ast_shape_contract_gate, regex_combined_telemetry_contract_gate, regex_corpus_bundle_contract_gate, regex_embedded_code_block_contract_gate, regex_pcre2_compile_oracle_gate, regex_pcre2_compile_perf_gate, regex_pcre2_textsafe_corpus_gate); rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
+| 2 — gates green and invoked | ⛔ **UNMET** | 14 covering gate targets, 8 invoked, 6 invoked by nothing (regex_ast_shape_contract_gate, regex_corpus_bundle_contract_gate, regex_embedded_code_block_contract_gate, regex_pcre2_compile_oracle_gate, regex_pcre2_compile_perf_gate, regex_pcre2_textsafe_corpus_gate); rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
 | 3 — external corpus passing | ⛔ **UNMET** | the corpus gate reads no declared external corpus root |
 
 **Corpus.** Denominator: every pattern spec pcre2test 10.47 declares in testdata/testinput2 that the normalizer can pair soundly with its recorded verdict — **2 189 cells** out of 2 239 pattern specs detected, counted by `regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py` and held current by `bash scripts/check_corpus_census.sh regex`.

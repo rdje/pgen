@@ -40,7 +40,7 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 | Leg | State | Why, derived from the tracked tree |
 |---|---|---|
 | 1 — stimuli-generator proof | ⚠️ **UNPROVEN** | rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
-| 2 — gates green and invoked | ⛔ **UNMET** | 9 covering gate targets, 8 invoked, 1 invoked by nothing (vhdl_combined_telemetry_contract_gate); rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
+| 2 — gates green and invoked | ⚠️ **UNPROVEN** | 9 covering gate targets, 9 invoked, 0 invoked by nothing; rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
 | 3 — external corpus passing | ⛔ **UNMET** | the only gate reading the external corpus is a TRIAGE gate, and a triage gate is not a conformance gate |
 
 **Corpus.** Denominator: every .vhd / .vhdl file under the ten vendored VHDL corpora in stimuli/vhdl/subs — **13 720 files**, counted by `stimuli/run_external_corpus.sh vhdl`, published in [`stimuli/vhdl/characterization/characterization.md`](../../../stimuli/vhdl/characterization/characterization.md) and held current by `bash scripts/check_corpus_census.sh vhdl`.

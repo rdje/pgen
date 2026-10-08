@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-08 — DONE-BAR.3d (`PGEN-DONE-BAR-0029`): a disposition is not an invocation
+
+- **Price the wiring before ruling on the rule.** The tempting fix was to teach the audit that `accepted-operator-invoked` counts as invoked — a sentence that would have made the count green by definition. Reading the gate instead showed its whole cost was the aggregate it re-ran, and that an existing-state variable already existed: wired after the aggregate, the gate costs seconds. The rule stayed, the count moved honestly.
+- **A gate that pins its state cannot be measured on a copy.** The telemetry gate asserts the paths the aggregate recorded equal the state it reads; a status-patched copy refuses on exactly that, so the only honest measurement of its remaining assertions is a fresh aggregate run — which this slice paid for, and which was owed anyway: the last run on this host had failed six required checks on 2026-09-30 and nothing had re-proved the flagship since.
+- **The register's stored count in the book.** `gate-flow.md` carried *"the 32 orphan and policy-only targets"* as a literal; it now names the count the check prints and the slice that moved it. A derived number in prose is a claim nobody re-derives (the `.3c` lesson, one page over).
+
 ## 2026-10-08 — DONE-BAR.3c (`PGEN-DONE-BAR-0028`): a derived block publishes the first reason it recognises
 
 - **Currency is not correctness.** The SV status block was held equal to its derivation on every commit for 35 days, and the derivation published a sentence that stopped being true the day the conformance gate landed. A currency doctrine proves the page says what the instrument says; only the instrument's own controls prove the instrument says something true — which is why the fix adds eight controls and not a currency check.
