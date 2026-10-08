@@ -40,7 +40,7 @@ context the pipeline takes, and each has the same spelling on both CLIs:
 | predefined macros | `--symbol NAME` / `--symbol NAME=VALUE` (repeatable, ordered; alias `--define`) | seeded into the macro table before the first line is read, exactly as if `` `define NAME TEXT `` stood at the top of the unit; `NAME` alone defines it with **empty** text (the meaning a bare `` `define NAME `` line has). A predefine is an ordinary definition: `` `ifdef ``, `` `undef `` and the redefinition policy treat it as one |
 | the compilation unit | `--unit-file F` (repeatable, ordered) | the files preprocessed **before** the input, under the **same macro table**; the input is the unit's last file |
 | a formal inside a plain `"…"` string | `--stage-opt plain_string_substitution=standard\|paste_delimited\|all` (default `standard`) | what a formal's name inside a plain string literal in MACRO TEXT means: `standard` — the string is opaque, IEEE 1800-2017 §22.5.1's own `` `define H(x) "Hello, x" `` prints `Hello, x`; `paste_delimited` — only a formal marked by paste tokens on both sides (`"…[``i``]…"`, OpenTitan's idiom) is substituted; `all` — every formal substituted and every paste joined (Icarus's reading). The same spelling on `ast_pipeline --preprocess-systemverilog` |
-| a backtick that survives expansion | `--stage-opt undefined_macro_policy=error\|keep` (default `error`) | what the stage does with a backtick left in its OUTPUT outside a comment or string literal — an undefined macro, a function-like macro without its argument list, a stray `` `" `` token, a vendor directive: `error` refuses it with its clause (`SVPP-EXPANSION.6f`: the parser's raw-lane residue would otherwise accept a top-level one), `keep` hands it on as written for a consumer that resolves the rest itself. The SV stimuli quality gate's generated-text stages (the closed loop's two preprocess stages and the per-sample stage) run under `keep` by the contract's `preprocess.generated_text_undefined_macro_policy`, because the raw lane's opaque residue is text the generator may emit and no definition can resolve (`SVPP-EXPANSION.6g`); the hand-written realistic cases and every corpus lane keep `error` |
+| a backtick that survives expansion | `--stage-opt undefined_macro_policy=error\|keep` (default `error`) | what the stage does with a backtick left in its OUTPUT outside a comment or string literal — an undefined macro, a function-like macro without its argument list, a stray `` `" `` token, a vendor directive, and since `SVPP-EXPANSION.6h` a backtick that begins no name at all (before white space, a line end, a digit, punctuation); an escaped identifier is one token the scan steps over, a backtick inside it included: `error` refuses it with its clause (`SVPP-EXPANSION.6f`: the parser's raw-lane residue would otherwise accept a top-level one), `keep` hands it on as written for a consumer that resolves the rest itself. The SV stimuli quality gate's generated-text stages (the closed loop's two preprocess stages and the per-sample stage) run under `keep` by the contract's `preprocess.generated_text_undefined_macro_policy`, because the raw lane's opaque residue is text the generator may emit and no definition can resolve (`SVPP-EXPANSION.6g`); the hand-written realistic cases and every corpus lane keep `error` |
 
 The spellings are the neutral engine's (`ENGINE-UNIVERSAL-SERVICES.113`, 2026-09-29): the family's own
 knobs travel as `--stage-opt KEY=VALUE` — `ast_pipeline INPUT.sv --preprocess systemverilog
@@ -368,6 +368,17 @@ each one a sentence of the standard that a corpus row had been failing on:
   closed loop replays GENERATED raw-lane text under it by contract (`SVPP-EXPANSION.6g`, 2026-10-08): the raw
   lane's residue is what the generator derives, and refusing it there asked the stage to resolve what no
   definition can.
+- **A backtick is a token only before a name** (`SVPP-EXPANSION.6h`, 2026-10-08): §22.2 *"All compiler directives
+  are preceded by the (`) character"* and Syntax 22-3 `text_macro_usage ::= `text_macro_identifier …` give the
+  character meaning before a directive name or a macro name and nowhere else — a backtick before white space,
+  a line end, the end of the text, a digit or a punctuation character is refused, naming what follows it.
+  Through `1.0.251` the scan tested only an identifier or a macro-string successor, so `` ` ``, `` `+ `` and
+  `` `9 `` reached the parser and the raw lane's opaque residue accepted them. Two neighbours landed with it:
+  an escaped identifier (§5.6.1, a backslash to white space, any printable character) is ONE token the scan
+  steps over — `` wire \a`b ; `` had been refused as a usage of `` `b `` — and an escaped usage `` `\name `` is
+  looked up by its name (`\esc` and `esc` are one macro), so an undefined one carries the undefined-name
+  clause rather than the macro-string one. Measured on the corpus by an expanded-text census of every lane
+  row before the change and by the three readings after it: no row moved.
 - **A function-like macro may open its parentheses on the next line** (§22.5.1 requires the parentheses;
   §5.3 lets white space, newlines included, separate the tokens): `` `FOO `` at the end of a line followed by
   `(1, 2)` on the next is one invocation.

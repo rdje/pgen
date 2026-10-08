@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-faabeaf9.js";
+            window.path_to_searchindex_js = "searchindex-0f5ac5db.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -676,7 +676,7 @@ context the pipeline takes, and each has the same spelling on both CLIs:</p>
 <tr><td>predefined macros</td><td><code>--symbol NAME</code> / <code>--symbol NAME=VALUE</code> (repeatable, ordered; alias <code>--define</code>)</td><td>seeded into the macro table before the first line is read, exactly as if <code>`define NAME TEXT</code> stood at the top of the unit; <code>NAME</code> alone defines it with <strong>empty</strong> text (the meaning a bare <code>`define NAME</code> line has). A predefine is an ordinary definition: <code>`ifdef</code>, <code>`undef</code> and the redefinition policy treat it as one</td></tr>
 <tr><td>the compilation unit</td><td><code>--unit-file F</code> (repeatable, ordered)</td><td>the files preprocessed <strong>before</strong> the input, under the <strong>same macro table</strong>; the input is the unit’s last file</td></tr>
 <tr><td>a formal inside a plain <code>"…"</code> string</td><td><code>--stage-opt plain_string_substitution=standard|paste_delimited|all</code> (default <code>standard</code>)</td><td>what a formal’s name inside a plain string literal in MACRO TEXT means: <code>standard</code> — the string is opaque, IEEE 1800-2017 §22.5.1’s own <code>`define H(x) "Hello, x"</code> prints <code>Hello, x</code>; <code>paste_delimited</code> — only a formal marked by paste tokens on both sides (<code>"…[``i``]…"</code>, OpenTitan’s idiom) is substituted; <code>all</code> — every formal substituted and every paste joined (Icarus’s reading). The same spelling on <code>ast_pipeline --preprocess-systemverilog</code></td></tr>
-<tr><td>a backtick that survives expansion</td><td><code>--stage-opt undefined_macro_policy=error|keep</code> (default <code>error</code>)</td><td>what the stage does with a backtick left in its OUTPUT outside a comment or string literal — an undefined macro, a function-like macro without its argument list, a stray <code>`"</code> token, a vendor directive: <code>error</code> refuses it with its clause (<code>SVPP-EXPANSION.6f</code>: the parser’s raw-lane residue would otherwise accept a top-level one), <code>keep</code> hands it on as written for a consumer that resolves the rest itself. The SV stimuli quality gate’s generated-text stages (the closed loop’s two preprocess stages and the per-sample stage) run under <code>keep</code> by the contract’s <code>preprocess.generated_text_undefined_macro_policy</code>, because the raw lane’s opaque residue is text the generator may emit and no definition can resolve (<code>SVPP-EXPANSION.6g</code>); the hand-written realistic cases and every corpus lane keep <code>error</code></td></tr>
+<tr><td>a backtick that survives expansion</td><td><code>--stage-opt undefined_macro_policy=error|keep</code> (default <code>error</code>)</td><td>what the stage does with a backtick left in its OUTPUT outside a comment or string literal — an undefined macro, a function-like macro without its argument list, a stray <code>`"</code> token, a vendor directive, and since <code>SVPP-EXPANSION.6h</code> a backtick that begins no name at all (before white space, a line end, a digit, punctuation); an escaped identifier is one token the scan steps over, a backtick inside it included: <code>error</code> refuses it with its clause (<code>SVPP-EXPANSION.6f</code>: the parser’s raw-lane residue would otherwise accept a top-level one), <code>keep</code> hands it on as written for a consumer that resolves the rest itself. The SV stimuli quality gate’s generated-text stages (the closed loop’s two preprocess stages and the per-sample stage) run under <code>keep</code> by the contract’s <code>preprocess.generated_text_undefined_macro_policy</code>, because the raw lane’s opaque residue is text the generator may emit and no definition can resolve (<code>SVPP-EXPANSION.6g</code>); the hand-written realistic cases and every corpus lane keep <code>error</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -1012,6 +1012,19 @@ the same sentence), a function-like macro used bare or with an argument list the
 <em>“the parentheses are always required in the macro call”</em> and Syntax 22-3, a <code>`"</code> / <code>`\`"</code> / <code> </code> <code>outside macro text as no token of the language, and an</code> <code>end_keywords `` that closes no region under 1364-2005 §19.11 *"must be paired"*. Through </code>1.0.250<code>the stage kept the leftover as written and the SV grammar's</code>compiler_directive<code>residue — the RAW lane's design, an opaque backtick line accepted so an unexpanded file parses around its macro uses — accepted a top-level one: 38 pipeline rows read</code>pass<code>over text the stage never resolved (25 of them riscv-dv instruction files whose macros live in a package the lane refuses), and 318 failing rows carried one too.</code>–stage-opt undefined_macro_policy=keep<code> restores the passthrough — and the closed loop replays GENERATED raw-lane text under it by contract (</code>SVPP-EXPANSION.6g`, 2026-10-08): the raw
 lane’s residue is what the generator derives, and refusing it there asked the stage to resolve what no
 definition can.</p>
+</li>
+<li>
+<p><strong>A backtick is a token only before a name</strong> (<code>SVPP-EXPANSION.6h</code>, 2026-10-08): §22.2 *“All compiler directives
+are preceded by the (<code>) character"* and Syntax 22-3 </code>text_macro_usage ::= <code>text_macro_identifier …</code> give the
+character meaning before a directive name or a macro name and nowhere else — a backtick before white space,
+a line end, the end of the text, a digit or a punctuation character is refused, naming what follows it.
+Through <code>1.0.251</code> the scan tested only an identifier or a macro-string successor, so <code>`</code>, <code>`+</code> and
+<code>`9</code> reached the parser and the raw lane’s opaque residue accepted them. Two neighbours landed with it:
+an escaped identifier (§5.6.1, a backslash to white space, any printable character) is ONE token the scan
+steps over — <code>wire \a`b ;</code> had been refused as a usage of <code>`b</code> — and an escaped usage <code>`\name</code> is
+looked up by its name (<code>\esc</code> and <code>esc</code> are one macro), so an undefined one carries the undefined-name
+clause rather than the macro-string one. Measured on the corpus by an expanded-text census of every lane
+row before the change and by the three readings after it: no row moved.</p>
 </li>
 <li>
 <p><strong>A function-like macro may open its parentheses on the next line</strong> (§22.5.1 requires the parentheses;

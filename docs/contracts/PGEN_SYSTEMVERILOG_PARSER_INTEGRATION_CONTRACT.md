@@ -2089,7 +2089,11 @@ platform book's verdict-coverage anchor carries the raw tuple and the tuple unde
   name (§22.5.1: a usage means substitution; "neither a defined macro nor a compiler directive"), a function-like
   macro used without its argument list or with an unclosed one (§22.5.1 *"the parentheses are always
   required"*, Syntax 22-3), a `` `" `` / `` `\`" `` / `` `` `` outside macro text, and an `` `end_keywords ``
-  closing no region are refused with their clause; `--stage-opt undefined_macro_policy=keep` restores the
+  closing no region are refused with their clause — and since `SVPP-EXPANSION.6h` (2026-10-08) so is a backtick
+  before white space, a line end, the end of the text, a digit or punctuation (§22.2, Syntax 22-3: the character
+  has meaning only before a name), while an escaped identifier (§5.6.1) is one token the scan steps over, a
+  backtick inside it included, and an escaped usage `` `\name `` is looked up by its name; `--stage-opt
+  undefined_macro_policy=keep` restores the
   passthrough for a consumer that resolves the rest itself (the SV stimuli quality gate replays its GENERATED
   raw-lane text under it by contract, `SVPP-EXPANSION.6g`; no corpus lane does). Every event is
   logged (`Define Undef Include Ifdef Ifndef Elsif Else Endif PassthroughLine SkippedLine MacroExpand

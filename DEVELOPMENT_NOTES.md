@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-08 — SVPP-EXPANSION.6h (`PGEN-SVPP-EXPANSION-0048`): a scan's successor cases are enumerated from the token's grammar, not from the defects already seen
+
+- **Enumerate the successor, do not patch it.** `.6f` refused the successors its eleven candidates had shown (three macro-string tokens, an identifier). The backtick's grammar has exactly two legal successors — a directive name or a macro name — and the whole complement is "no token"; reading the rule from the token's own clause (§22.2, Syntax 22-3) gave the complete case set in one line, where the generated batch had shown three members of it.
+- **A raw-file census over-reads what the stage never sees.** 64 / 14 / 2 files by the raw census against 2 / 1 / 0 by the expanded-text one: macro TEXT (`` `, `` after a paste, `` `\`" `` inside a `define`) is consumed by the stage and never reaches its scan, and the two surviving hits were a census artifact (the ``` `` ``` pair's second backtick). The `.6f` shape — expand every lane row under its own context under `keep`, apply the new rule to the output — settles the prediction in a quarter of an hour of machine time; it is the instrument for any post-condition change, and the raw census is a first look at most.
+- **A neighbour rule hides in the same function.** The escaped-identifier step and the escaped-usage lookup were not in the finding; they fell out of asking what else the scan does with a backslash. One was a rejects-valid refusal of legal text that no corpus row exercised (`mangle.v` survived by the accident of a `~`), which is exactly the kind of defect a corpus-only reading leaves in place.
+
 ## 2026-10-08 — SVPP-EXPANSION.6g (`PGEN-SVPP-EXPANSION-0047`): a gate that replays generated text through a stage that gained a strictness, and which side moves
 
 - **Measure the knob before designing around a routed note.** `.6g`'s routing wrote that `undefined_macro_policy=keep` "does not cover this token class — it is an engine refusal, not the policy's" and sketched two designs (a `@generate`-side exclusion, a reconciled stage). One command on the isolated sample showed the policy returns before the scan begins; the designs that would have followed the note were priced against the certificate for nothing. A routed leaf's claim about what a knob does is a claim like any other.

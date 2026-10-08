@@ -859,6 +859,11 @@ impl PreprocessorState {
     /// this the leftover reached the parser, whose raw-lane residue (`compiler_directive` → `opaque`) ACCEPTS
     /// a top-level backtick line: 38 pipeline rows read `pass` over text the stage never resolved. The LRM
     /// directives the parser reads (`` `timescale ``, `` `default_nettype ``, …) are not unresolved usages.
+    /// `SVPP-EXPANSION.6h`: an escaped identifier (§5.6.1, backslash to white space) is ONE token the scan steps
+    /// over, a backtick inside it included; an escaped usage `` `\name `` is looked up by its name like a simple
+    /// one; and a backtick before white space, a line end, the end of the text, a digit or punctuation begins
+    /// neither a directive (§22.2) nor a usage (Syntax 22-3) and is refused — through 1.0.251 it reached the
+    /// parser, which accepted it as the same opaque line.
     fn refuse_unresolved_backticks(&self) -> Result<()> {
         if self.config.undefined_macro_policy == UndefinedMacroPolicy::Keep {
             return Ok(());
@@ -899,12 +904,27 @@ impl PreprocessorState {
                 }
                 continue;
             }
+            if b == b'\\' {
+                // `SVPP-EXPANSION.6h`: an escaped identifier "shall start with the backslash character (\) and
+                // end with white space" and may carry "any of the printable ASCII characters" (IEEE 1800-2017
+                // §5.6.1; the grammar's `escaped_identifier := /\\[!-~]+/`) — a backtick inside it is part of ONE
+                // token of the language, not a usage (iverilog mangle.v `\`~!-_=+\|[]{};:'",./<>?`). A keyword
+                // the `` `begin_keywords `` renderer unreserved arrives here in the same spelling (`\logic `).
+                let mut e = i + 1;
+                while e < bytes.len() && bytes[e] > b' ' && bytes[e] < 0x7f {
+                    e += 1;
+                }
+                i = if e > i + 1 { e } else { i + 1 };
+                continue;
+            }
             if b == b'`' {
                 let (file, line) = self
                     .origin_of_output_offset(i)
                     .unwrap_or_else(|| (PathBuf::from("<expanded>"), 0));
                 let next = bytes.get(i + 1).copied();
-                if matches!(next, Some(b'"') | Some(b'\\') | Some(b'`')) {
+                let macro_string_token = matches!(next, Some(b'"') | Some(b'`'))
+                    || (next == Some(b'\\') && text[i + 1..].starts_with("\\`\""));
+                if macro_string_token {
                     bail!(
                         "a macro-string or paste token (`\", `\\`\", ``) outside macro text at {}:{} — IEEE \
                          1800-2017 §22.5.1 gives these tokens meaning only within the text of a `define; \
@@ -913,13 +933,12 @@ impl PreprocessorState {
                         line
                     );
                 }
-                if next.is_some_and(is_ident_start) {
-                    let mut e = i + 2;
-                    while e < bytes.len() && is_ident_continue(bytes[e]) {
-                        e += 1;
-                    }
-                    let name = &text[i + 1..e];
-                    if is_compiler_directive_name(name, version) {
+                // A usage names its macro by a simple identifier or an escaped one (§22.5.1 Syntax 22-2
+                // `text_macro_identifier ::= identifier`, A.9.3; `SVPP-EXPANSION.5`(q)(ii)) — the same reader the
+                // expander uses, so `` `\esc `` and `` `esc `` are looked up under ONE key.
+                if let Some((name, rest)) = parse_macro_name_token(&text[i + 1..]) {
+                    let e = text.len() - rest.len();
+                    if next != Some(b'\\') && is_compiler_directive_name(name, version) {
                         i = e;
                         continue;
                     }
@@ -951,6 +970,28 @@ impl PreprocessorState {
                         ),
                     }
                 }
+                // `SVPP-EXPANSION.6h`: a backtick before white space, a line end, the end of the text, a digit or
+                // a punctuation character begins neither a compiler directive (§22.2: "All compiler directives are
+                // preceded by the (`) character" — the character introduces a directive NAME) nor a text-macro
+                // usage (§22.5.1 Syntax 22-3 `text_macro_usage ::= `text_macro_identifier [ ( … ) ]`). Through
+                // 1.0.251 the scan tested only an identifier or a macro-string successor and let `` ` ``, `` `+ ``
+                // and `` `9 `` through to the parser, whose raw-lane residue accepted them as an opaque line.
+                let what = match next {
+                    None => "the end of the text".to_string(),
+                    Some(b'\n') | Some(b'\r') => "a line end".to_string(),
+                    Some(b' ') | Some(b'\t') => "white space".to_string(),
+                    Some(b'\\') => "a backslash that begins no escaped identifier".to_string(),
+                    Some(c) => format!("`{}`", c as char),
+                };
+                bail!(
+                    "a backtick that begins no compiler directive and no text-macro usage at {}:{} — IEEE 1800-2017 \
+                     §22.2 (\"All compiler directives are preceded by the (`) character\") and §22.5.1 Syntax 22-3 \
+                     (`text_macro_usage ::= `text_macro_identifier …`) give the character meaning only before a \
+                     name; before {} it is no token of the language",
+                    file.display(),
+                    line,
+                    what
+                );
             }
             i += 1;
         }
@@ -7232,6 +7273,83 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             .expect_err("a macro-string token outside macro text is refused");
         let text = format!("{err:#}");
         assert!(text.contains("outside macro text"), "{text}");
+    }
+
+    #[test]
+    fn a_backtick_that_begins_no_directive_and_no_usage_is_refused() {
+        // `SVPP-EXPANSION.6h`: IEEE 1800-2017 §22.2 "All compiler directives are preceded by the (`) character" and
+        // §22.5.1 Syntax 22-3 `text_macro_usage ::= `text_macro_identifier …` — the character has meaning only before
+        // a NAME. Through 1.0.251 the scan tested only an identifier or a macro-string successor, so `` ` `` before a
+        // line end, `` `+ `` and `` `9 `` reached the parser and the raw lane's opaque residue accepted them
+        // (measured on the closed loop's generated batches: the initial batch carried `` `9\W `` and a bare `` ` ``).
+        for (body, what) in [
+            ("module t; endmodule\n`\n", "a line end"),
+            ("module t; endmodule\n`+\n", "`+`"),
+            ("module t; endmodule\n`9\n", "`9`"),
+            ("module t; endmodule\n` timescale 1ns/1ps\n", "white space"),
+            ("module t; endmodule\n`", "the end of the text"),
+            ("module t; endmodule\n`\\\n", "a backslash that begins no escaped identifier"),
+        ] {
+            let dir = create_repo_scratch_dir("svpp_backtick_no_usage");
+            let input = dir.join("top.sv");
+            fs::write(&input, body).expect("write");
+            let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+                .expect_err("a backtick that begins no directive and no usage is refused");
+            let text = format!("{err:#}");
+            assert!(
+                text.contains("begins no compiler directive and no text-macro usage") && text.contains(what),
+                "{body:?}: {text}"
+            );
+            assert!(text.contains("top.sv:2"), "the refusal names the source origin:\n{text}");
+            let keep = SvPreprocessorConfig { undefined_macro_policy: UndefinedMacroPolicy::Keep, ..SvPreprocessorConfig::default() };
+            let out = preprocess_systemverilog_file(&input, &keep).expect("keep: passthrough");
+            assert!(out.text.contains('`'), "{}", out.text);
+        }
+    }
+
+    #[test]
+    fn an_escaped_identifier_carrying_a_backtick_is_one_token() {
+        // `SVPP-EXPANSION.6h`: IEEE 1800-2017 §5.6.1 "Escaped identifiers shall start with the backslash character (\)
+        // and end with white space … any of the printable ASCII characters" (the grammar: `/\\[!-~]+/`). Through
+        // 1.0.251 the scan read the backtick INSIDE `\a`b` as a usage of `b` and refused a legal identifier
+        // ("`b is neither a defined macro nor a compiler directive"); iverilog mangle.v writes
+        // `\`~!-_=+\|[]{};:'",./<>?` and read `pass` only because `~` is not an identifier start.
+        let dir = create_repo_scratch_dir("svpp_escaped_identifier_backtick");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "module m;\n  wire \\a`b ;\n  wire \\`~!-_=+\\|[]{};:'\",./<>? ;\n  assign \\a`b = \\`~!-_=+\\|[]{};:'\",./<>? ;\nendmodule\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("an escaped identifier carrying a backtick is one token");
+        assert!(out.text.contains("\\a`b ") && out.text.contains("\\`~!-_=+\\|[]{};:'\",./<>? "), "{}", out.text);
+    }
+
+    #[test]
+    fn an_escaped_macro_usage_is_looked_up_by_its_name() {
+        // `SVPP-EXPANSION.6h`: `` `\name `` is a text-macro usage whose name is an escaped identifier
+        // (`SVPP-EXPANSION.5`(q)(ii): §22.5.1 Syntax 22-2 + A.9.3, `\esc` and `esc` one key). Through 1.0.251 an
+        // UNDEFINED one was refused with the macro-string clause (`` `\ `` read as the `` `\`" `` prefix); it is the
+        // undefined-name clause, and `` `\`" `` itself keeps its own. A defined one expands (iverilog
+        // escaped_macro_name.v) and is never seen by the scan.
+        let dir = create_repo_scratch_dir("svpp_escaped_macro_usage");
+        let input = dir.join("top.sv");
+        fs::write(&input, "module t; endmodule\n`\\not_defined\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("an undefined escaped usage is refused");
+        let text = format!("{err:#}");
+        assert!(
+            text.contains("`not_defined is neither a defined macro nor a compiler directive") && !text.contains("outside macro text"),
+            "{text}"
+        );
+        fs::write(&input, "module t; endmodule\n`\\`\"\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("the macro-string token keeps its clause");
+        assert!(format!("{err:#}").contains("outside macro text"), "{err:#}");
+        fs::write(&input, "`define \\esc 1\nmodule t; localparam X = `\\esc ; endmodule\n").expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default()).expect("a defined escaped usage expands");
+        assert!(out.text.contains("localparam X = 1 ;"), "{}", out.text);
     }
 
     #[test]
