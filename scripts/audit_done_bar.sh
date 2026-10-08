@@ -303,13 +303,56 @@ ARTIFACT_ROOTS = [
 ]
 
 
+def nested_artifact_paths(gate, chain, target_dir):
+    """DONE-BAR.3c: where an INVOKED gate writes its summary — nested under each invoker's `work/`,
+    innermost gate last: for the chain [g, p1, p2] (g run by p1, p1 run by p2) the candidates are
+    <target>/p1/work/g and <target>/p2/work/p1/work/g. Pure, so a control can pin the nesting on a
+    literal chain. Measured before this: `sv_formal_exhaustive_closure_gate` had written a fresh
+    `sv_parser_family_status_gate/summary.txt` under its own work dir on 2026-10-08 02:30 and the
+    audit read the SOTA copy of 2026-07-29 — leg 1 STALE on a machine holding a 7-hour-old proof."""
+    out = []
+    invokers = (chain or [gate])[1:]
+    for k in range(1, len(invokers) + 1):
+        parts = []
+        for inv in reversed(invokers[:k]):
+            parts += [inv, "work"]
+        out.append(os.path.join(target_dir, *parts, gate, "summary.txt"))
+    return out
+
+
+def artifact_candidates(gate):
+    """Every place `gate`'s summary.txt may sit: the gate's own state dir, the SOTA aggregate's
+    work dir (the two roots the audit always read), and — DONE-BAR.3c — the work dir of every
+    invoker on the gate's run path, nested as the invokers nest."""
+    paths = [os.path.join(base, gate, "summary.txt") for base in ARTIFACT_ROOTS]
+    # every invoker chain, not run_path's shortest proof: a gate that is reachable by ITSELF (a make
+    # target of its own) has a one-element run path, and its artifact still lands under whichever
+    # invoker ran it last — measured: the family-status gate's fresh copy under the formal umbrella.
+    def chains(g, depth, seen):
+        if depth == 0:
+            return []
+        out = []
+        for c in sorted(script_callers.get(g, ())):
+            if c in seen:
+                continue
+            out.append([g, c])
+            out += [[g] + sub for sub in chains(c, depth - 1, seen | {c})]
+        return out
+    for chain in chains(gate, 3, {gate}):
+        paths += nested_artifact_paths(gate, chain, TARGET_DIR)
+    seen, out = set(), []
+    for p in paths:
+        if p not in seen:
+            seen.add(p); out.append(p)
+    return out
+
+
 def find_artifact(gate):
     """Newest non-empty summary.txt for `gate`, with its provenance. Empty files do not count —
     a 0-byte summary.txt is exactly what a gate that died mid-run leaves behind
     (CI-PARITY-GATE-ROT.14)."""
     best = None
-    for base in ARTIFACT_ROOTS:
-        path = os.path.join(base, gate, "summary.txt")
+    for path in artifact_candidates(gate):
         if os.path.isfile(path) and os.path.getsize(path) > 0:
             mtime = os.path.getmtime(path)
             if best is None or mtime > best[1]:
@@ -369,6 +412,54 @@ def leg3_pass_from_artifact(entry, gate, summary_txt_path):
     if r.returncode == 0:
         return True, f"pass_query `{query}` holds over {os.path.relpath(summary_json, ROOT) if 'ROOT' in globals() else summary_json}"
     return False, f"pass_query `{query}` is FALSE over the artifact — leg 3 UNMET by the surface's own assertion"
+
+
+def leg3_pass_from_tracked(entry, gate, runner=None):
+    """DONE-BAR.3c: (passed, why) for one conformance gate with NO artifact on this machine, when the
+    register declares a `tracked_assertion_command` — a command printing the SAME assertion (the
+    `full_pass` the artifact would carry, with its counts) derived from the TRACKED tree alone. The
+    published book blocks are a tracked-only reading, so without this the leg's reason fell through
+    to the next line — for SystemVerilog, the TRIAGE sentence, false since the conformance gate landed
+    (2026-09-03) — while the assertion it should have published was derivable from the tracked
+    manifests all along. `runner` is the seam the controls use (a stub returning literal JSON)."""
+    surface = entry.get("leg3_surface") or {}
+    if surface.get("gate") != gate:
+        return None, None
+    cmd = surface.get("tracked_assertion_command") or ""
+    query = surface.get("pass_query") or ""
+    if not cmd or not query:
+        return None, None
+    try:
+        text = runner(cmd) if runner else subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=ROOT).stdout
+        data = json.loads(text)
+    except (OSError, ValueError) as e:
+        return False, f"tracked_assertion_command could not be evaluated ({e}) — an assertion that cannot run is not a pass"
+    if "refused" in data:
+        return False, f"tracked_assertion_command REFUSED ({data['refused']}) — a refusal is not a pass"
+    tmp = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, dir=os.path.join(ROOT, "rust", "target") if os.path.isdir(os.path.join(ROOT, "rust", "target")) else None)
+    try:
+        json.dump(data, tmp); tmp.close()
+        r = subprocess.run(["jq", "-e", query, tmp.name], capture_output=True, text=True)
+    except OSError as e:
+        return False, f"pass_query could not be evaluated ({e}) — an assertion that cannot run is not a pass"
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+    counts = ", ".join(f"{k}={data[k]}" for k in ("rows", "adjudicated", "no_verdict", "routed", "unexplained") if k in data)
+    if r.returncode == 0:
+        return True, f"pass_query `{query}` holds over the TRACKED manifests ({counts}) — leg 3 MET by the surface's own assertion (tracked derivation)"
+    return False, f"pass_query `{query}` is FALSE over the TRACKED manifests ({counts}) — leg 3 UNMET by the surface's own assertion (tracked derivation)"
+
+
+def triage_line(has_conformance_sibling):
+    """DONE-BAR.3c: a TRIAGE gate is a reason only when it is the ONLY corpus gate. Beside a
+    CONFORMANCE gate it characterizes and the conformance gate asserts, so its line carries no ⛔ —
+    the published reason is read off the ⛔ lines, and this one had been winning for 35 days."""
+    if has_conformance_sibling:
+        return "    ℹ️ a TRIAGE gate characterizes; the family's CONFORMANCE gate carries the assertion"
+    return "    ⛔ a TRIAGE gate is not a conformance gate"
 
 
 def control(label, got, want):
@@ -433,6 +524,28 @@ control("C7 conformance artifact with full_pass=false is NOT a pass", leg3_pass_
 open(os.path.join(_c7, "summary.json"), "w").write('{"full_pass": true}')
 control("C7 conformance artifact with full_pass=true IS a pass", leg3_pass_from_artifact(_c7_entry, "x_conformance_gate", _c7_txt)[0], True)
 control("C7 an artifact with NO declared surface is not a pass", leg3_pass_from_artifact({"leg3_surface": None}, "x_conformance_gate", _c7_txt)[0], False)
+
+# C8 (DONE-BAR.3c): with NO artifact, a declared tracked_assertion_command is evaluated by the SAME
+# pass_query — on literals through the runner seam: False is not a pass, True is, a refusal is not,
+# and a surface declaring no command is NOT EVALUATED (None), never a verdict.
+_c8_entry = {"leg3_surface": {"gate": "x_conformance_gate", "summary_json": "s", "pass_query": ".full_pass == true",
+                              "tracked_assertion_command": "stub"}}
+control("C8 tracked assertion full_pass=false is NOT a pass",
+        leg3_pass_from_tracked(_c8_entry, "x_conformance_gate", runner=lambda c: '{"full_pass": false, "rows": 4, "no_verdict": 1}')[0], False)
+control("C8 tracked assertion full_pass=true IS a pass",
+        leg3_pass_from_tracked(_c8_entry, "x_conformance_gate", runner=lambda c: '{"full_pass": true, "rows": 4, "no_verdict": 0}')[0], True)
+control("C8 a REFUSED tracked assertion is not a pass",
+        leg3_pass_from_tracked(_c8_entry, "x_conformance_gate", runner=lambda c: '{"refused": "no bucket"}')[0], False)
+control("C8 no tracked_assertion_command declared -> not evaluated (None), never a verdict",
+        leg3_pass_from_tracked(_c7_entry, "x_conformance_gate", runner=lambda c: '{"full_pass": true}')[0], None)
+# C9 (DONE-BAR.3c): a TRIAGE gate is a ⛔ reason only when it is the ONLY corpus gate.
+control("C9 triage beside a conformance gate carries no ⛔", "⛔" in triage_line(True), False)
+control("C9 triage alone is the ⛔ reason", "⛔" in triage_line(False), True)
+# C10 (DONE-BAR.3c): an invoked gate's artifact nests under its invokers' work dirs, innermost last.
+control("C10 nested artifact paths follow the run path",
+        nested_artifact_paths("g", ["g", "p1", "p2"], "/t"),
+        ["/t/p1/work/g/summary.txt", "/t/p2/work/p1/work/g/summary.txt"])
+control("C10 a gate run by nothing nests nowhere", nested_artifact_paths("g", None, "/t"), [])
 import shutil; shutil.rmtree(_c7, ignore_errors=True)
 
 # C7 — and the converse arm, or C6 would pass a graph that says everything runs:
@@ -724,14 +837,18 @@ def leg3(family, report):
         return UNMET
 
     met_any = False
-    for g in sorted(gates):
+    # DONE-BAR.3c: the CONFORMANCE gates lead the listing and a TRIAGE sibling is information, not a
+    # reason — the published reason is read off the ⛔ lines in order, and SystemVerilog's triage
+    # line had been chosen over its conformance gate's assertion since that gate landed.
+    has_conformance = any(corpus_gate_kind(g) == "CONFORMANCE" for g in gates)
+    for g in sorted(gates, key=lambda g: (corpus_gate_kind(g) != "CONFORMANCE", g)):
         kind = corpus_gate_kind(g)
         ext, why = external_backed(g, roots)
         chain = run_path(g)
         runs_str = " <- ".join(chain) if chain else "NOTHING"
         report.append(f"  {g}: kind={kind}, external={'yes' if ext else 'NO'} ({why}), run by {runs_str}")
         if kind == "TRIAGE":
-            report.append("    ⛔ a TRIAGE gate is not a conformance gate")
+            report.append(triage_line(has_conformance))
             continue
         if not ext:
             report.append("    ⛔ not backed by the family's declared external corpus")
@@ -741,7 +858,14 @@ def leg3(family, report):
             continue
         art = find_artifact(g)
         if art is None:
-            report.append("    ⚠️ no artifact on this machine — result UNPROVEN")
+            # DONE-BAR.3c: no artifact, but the register may declare the assertion's TRACKED derivation
+            passed, why = leg3_pass_from_tracked(entry, g)
+            if passed is None:
+                report.append("    ⚠️ no artifact on this machine — result UNPROVEN")
+                continue
+            report.append(f"    {'✅' if passed else '⛔'} {why}")
+            if passed:
+                met_any = True
             continue
         # ⛔ DONE-BAR.3b (2026-09-03): PRESENCE IS NOT A PASS. Until this line the loop set met_any on
         # any artifact, so the first conformance gate ever declared — whose artifact honestly records

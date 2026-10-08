@@ -113,6 +113,17 @@ def compare(tracked, fresh, lane="sv_2017"):
     }
 
 
+def assert_tracked(tracked, lane="sv_2017"):
+    """DONE-BAR.3c: the leg-3 assertion over ONE manifest — `compare(m, m)` restricted to the fields the
+    assertion is made of. `full_pass` is the comparator's own definition (every row adjudicated, zero
+    unexplained divergences), so a TRACKED-ONLY reader and the artifact's reader ask one question."""
+    c = compare(tracked, tracked, lane=lane)
+    if "refused" in c:
+        return {"refused": c["refused"], "lane": lane}
+    return {k: c[k] for k in ("rows", "match", "explained", "unexplained", "routed", "no_verdict",
+                              "adjudicated", "adjudicated_pass_share", "full_pass")} | {"lane": lane, "source": "tracked manifest"}
+
+
 def self_test():
     ok = True
     def arm(label, cond):
@@ -149,6 +160,11 @@ def self_test():
     arm("full_pass is true only with 0 unexplained AND 0 no-verdict rows (explained rows allowed)", compare(full, full)["full_pass"] is True)
     arm("a row-set difference REFUSES the comparison", "refused" in compare(base, {k: v for k, v in base.items() if k != ("s", "d")}))
     arm("presence is not a pass: the same artifact shape can read full_pass False and True", same["full_pass"] is False and compare(full, full)["full_pass"] is True)
+    at = assert_tracked(base)
+    arm("DONE-BAR.3c: --assert-tracked over one manifest is compare(m, m)'s assertion — full_pass False with 1 unexplained + 1 no-verdict, counts carried",
+        at["full_pass"] is False and at["unexplained"] == 1 and at["no_verdict"] == 1 and at["rows"] == 4 and at["adjudicated"] == 3 and at["source"] == "tracked manifest")
+    arm("DONE-BAR.3c: --assert-tracked reads True on an all-adjudicated manifest, and REFUSES (never scores) an unbucketed class",
+        assert_tracked(full)["full_pass"] is True and "refused" in assert_tracked({("s", "a"): r("pass", "deferred:made_up")}))
     print(f"corpus_conformance_compare: self-test {'OK' if ok else 'FAILED'}")
     sys.exit(0 if ok else 1)
 
@@ -159,9 +175,18 @@ def main():
     ap.add_argument("--tracked"); ap.add_argument("--fresh")
     ap.add_argument("--tracked-v2005"); ap.add_argument("--fresh-v2005")
     ap.add_argument("--out")
+    ap.add_argument("--assert-tracked", metavar="MANIFEST",
+                    help="DONE-BAR.3c: print, as JSON on stdout, the leg-3 assertion (`full_pass` and its counts) "
+                         "over ONE tracked manifest alone — the same `compare()` with the manifest as both sides, "
+                         "so the audit's TRACKED-ONLY reading can evaluate the register's pass_query without an artifact")
+    ap.add_argument("--lane", default="sv_2017")
     a = ap.parse_args()
     if a.self_test:
         self_test()
+    if a.assert_tracked:
+        out = assert_tracked(read_manifest(a.assert_tracked), lane=a.lane)
+        json.dump(out, sys.stdout, indent=1); print()
+        sys.exit(2 if "refused" in out else 0)
     if not (a.tracked and a.fresh and a.out):
         ap.error("--tracked, --fresh and --out are required")
     out = {"sv_2017": compare(read_manifest(a.tracked), read_manifest(a.fresh))}

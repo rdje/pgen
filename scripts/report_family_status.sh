@@ -179,6 +179,17 @@ LEG_REASONS = [
      "rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it"),
     ("no family-status gate exists",
      "no family-status gate computes this family's closure at all"),
+    # DONE-BAR.3c: the conformance gate's OWN assertion, evaluated over the tracked manifests when no
+    # artifact is on this machine (the book's reading) or over the artifact (the chat's). Listed BEFORE
+    # the triage sentence: for 35 days SystemVerilog's block published "only a TRIAGE gate" while a
+    # conformance gate existed, because the triage line was the first ⛔ this table recognised.
+    ("UNMET by the surface's own assertion",
+     "the external-corpus CONFORMANCE gate's own assertion is false — `full_pass` needs every row adjudicated and "
+     "zero unexplained divergences, and the tracked manifests still carry no-verdict rows (the corpus table below)"),
+    ("MET by the surface's own assertion",
+     "the external-corpus conformance gate's own assertion holds — every row adjudicated, zero unexplained divergences"),
+    ("holds over rust/target/",
+     "the external-corpus conformance gate's own assertion holds over its artifact"),
     ("a TRIAGE gate is not a conformance gate",
      "the only gate reading the external corpus is a TRIAGE gate, and a triage gate is not a conformance gate"),
     ("not backed by the family's declared external corpus",
@@ -210,6 +221,16 @@ def self_check():
          "no family-status gate computes this family's closure at all"),
         (["  ⛔ a TRIAGE gate is not a conformance gate"],
          "the only gate reading the external corpus is a TRIAGE gate, and a triage gate is not a conformance gate"),
+        # DONE-BAR.3c: the conformance gate's assertion wins over a triage sibling's line, whichever
+        # order the audit prints them in — and the informational triage line alone matches nothing.
+        (["    ℹ️ a TRIAGE gate characterizes; the family's CONFORMANCE gate carries the assertion",
+          "    ⛔ pass_query `.full_pass == true` is FALSE over the TRACKED manifests (rows=16336) — leg 3 UNMET by the surface's own assertion (tracked derivation)"],
+         "the external-corpus CONFORMANCE gate's own assertion is false — `full_pass` needs every row adjudicated and "
+         "zero unexplained divergences, and the tracked manifests still carry no-verdict rows (the corpus table below)"),
+        (["    ⛔ a TRIAGE gate is not a conformance gate",
+          "    ✅ pass_query `.full_pass == true` holds over the TRACKED manifests (rows=4) — leg 3 MET by the surface's own assertion (tracked derivation)"],
+         "the external-corpus conformance gate's own assertion holds — every row adjudicated, zero unexplained divergences"),
+        (["    ℹ️ a TRIAGE gate characterizes; the family's CONFORMANCE gate carries the assertion"], None),
         (["some sentence this table has never seen"], None),
     ]
     for lines, want in cases:

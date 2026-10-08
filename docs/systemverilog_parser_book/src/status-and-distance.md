@@ -41,7 +41,7 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 |---|---|---|
 | 1 — stimuli-generator proof | ⚠️ **UNPROVEN** | rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
 | 2 — gates green and invoked | ⛔ **UNMET** | 17 covering gate targets, 16 invoked, 1 invoked by nothing (sv_combined_telemetry_contract_gate); rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
-| 3 — external corpus passing | ⛔ **UNMET** | the only gate reading the external corpus is a TRIAGE gate, and a triage gate is not a conformance gate |
+| 3 — external corpus passing | ⛔ **UNMET** | the external-corpus CONFORMANCE gate's own assertion is false — `full_pass` needs every row adjudicated and zero unexplained divergences, and the tracked manifests still carry no-verdict rows (the corpus table below) |
 
 **Corpus.** Denominator: every row of the SystemVerilog corpus adjudication manifests over stimuli/sv/subs + stimuli/sv/uvm — **16 336 rows**, counted by `stimuli/sv/corpus_verdict_coverage.py` and held current by `bash scripts/check_sv_corpus_denominator.sh`.
 

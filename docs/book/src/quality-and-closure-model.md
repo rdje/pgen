@@ -329,7 +329,12 @@ one shared helper (`rust/scripts/lib/parser_family_status_bar.sh`):
   (a `*triage*` name is refused outright), it is **external-backed** (its script reads a declared
   corpus root), and it is **actually invoked** (reachable per `scripts/check_gate_reachability.sh`)
   — and its artifact must satisfy the declared pass assertion. While no surface is declared, leg 3
-  is unmet.
+  is unmet. Since `DONE-BAR.3c` (2026-10-08) a surface may also declare `tracked_assertion_command`:
+  the same assertion derived from the **tracked tree alone** (SystemVerilog: `full_pass` over the
+  tracked adjudication manifest, `corpus_conformance_compare.py --assert-tracked`), evaluated by the
+  same `pass_query` when no artifact is on the machine — which is how the book's blocks, a
+  tracked-only reading, state the assertion's own verdict and counts instead of the next sentence the
+  audit happens to print. A triage gate beside a conformance gate is information, not a reason.
 - Consequently **`Done` is unreachable while leg 3 is unmet**: a family whose own closure criteria
   all hold computes `Provisional (…)`, never `Done`. The cap only applies at the top — statuses
   below `Done` pass through unchanged.
