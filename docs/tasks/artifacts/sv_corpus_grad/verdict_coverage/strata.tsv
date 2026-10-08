@@ -6,4 +6,3 @@ deferred:impl_varying	90	6	0	84	0	0
 deferred:no_sv_key	48	40	0	8	0	4
 deferred:verilog_ams_lane	25	5	0	20	0	11
 deferred:ni_unimplemented	14	14	0	0	0	0
-deferred:negative_stage_triage	1	1	0	0	0	0

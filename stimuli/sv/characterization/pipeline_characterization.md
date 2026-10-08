@@ -28,7 +28,7 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 | pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `ecabee184272344a12cd4d7c46961c9e1ac2011dc825ee3a2425f44f6c6e9d51` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
 
-Measured at `HEAD` = `6074a1817+dirty`; the parse binary is a **release** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `694695197+dirty`; the parse binary is a **release** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -146,7 +146,7 @@ Measured at `HEAD` = `6074a1817+dirty`; the parse binary is a **release** build 
 
 | adjudication class | rows | pipeline pass | pipeline fail | pp_fail | timeout | crash |
 |---|---:|---:|---:|---:|---:|---:|
-| `match` | 6265 | 5887 | 375 | 3 | 0 | 0 |
+| `match` | 6266 | 5888 | 375 | 3 | 0 | 0 |
 | `deferred:chained_only` | 4937 | 2379 | 2033 | 525 | 0 | 0 |
 | `deferred:v2005_profile_lane` | 2943 | 2858 | 71 | 14 | 0 | 0 |
 | `divergence:explained_svpp_macro_use` | 1027 | 1004 | 4 | 19 | 0 | 0 |
@@ -161,7 +161,6 @@ Measured at `HEAD` = `6074a1817+dirty`; the parse binary is a **release** build 
 | `deferred:ni_unimplemented` | 14 | 14 | 0 | 0 | 0 | 0 |
 | `divergence:explained_svpp_keywords_region` | 4 | 4 | 0 | 0 | 0 | 0 |
 | `divergence:explained_svpp_protected_envelope` | 4 | 2 | 1 | 1 | 0 | 0 |
-| `deferred:negative_stage_triage` | 1 | 1 | 0 | 0 | 0 | 0 |
 
 ## What sits at the origin — the construct on the rejecting line, bucketed
 

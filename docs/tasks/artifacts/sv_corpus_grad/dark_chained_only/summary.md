@@ -6,7 +6,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `70e83f298fa1a53384bc56a5ee350de583bb80b9a3f7ed4058cf77d0dd436046` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `23c5c14fcc2d8434cf754662f00832a4529ba7d357915f3d9752124f7207d620` |
 | positions | `stimuli/sv/characterization/positions.tsv` | `2570f719f50b930057e0bfa79e39ba64d104ff8571939837e675a43cb801d0ad` |
 | grammar | `grammars/systemverilog.ebnf` | `46958d34e693506ba8e16d874eca948a7b927b07161714f009e532bfaf229034` |
 

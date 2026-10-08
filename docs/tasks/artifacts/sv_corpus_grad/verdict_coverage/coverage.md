@@ -6,20 +6,20 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `70e83f298fa1a53384bc56a5ee350de583bb80b9a3f7ed4058cf77d0dd436046` |
-| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `ca451d11993e198223d3ae3f17dad946f5dbb65626ca2933575469e27b094d14` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `23c5c14fcc2d8434cf754662f00832a4529ba7d357915f3d9752124f7207d620` |
+| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `b00154c7bf86e1edabbd6e722cde9af370e9634fd92b57d61298d0947db5dd73` |
 
 ## The headline
 
-- **ADJUDICATED: 7,683 rows (47.0 %)**
+- **ADJUDICATED: 7,684 rows (47.0 %)**
 - **ROUTED: 2,943 rows (18.0 %)**
-- **NO VERDICT: 5,710 rows (35.0 %)**
+- **NO VERDICT: 5,709 rows (34.9 %)**
 
 ## Every class, bucketed
 
 | bucket | adjudication class | rows | % | why |
 |---|---|---:|---:|---|
-| ADJUDICATED | `match` | 6,265 | 38.4 % | expected and observed agree - the row testifies FOR the parser |
+| ADJUDICATED | `match` | 6,266 | 38.4 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,027 | 6.3 % | parse stops on a macro use - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_conditional` | 196 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_include` | 133 | 0.8 % | parse stops on an `include - positionally gated since .12a |
@@ -34,7 +34,6 @@
 | NO VERDICT | `deferred:no_sv_key` | 48 | 0.3 % | no upstream answer key exists - expectation underivable |
 | NO VERDICT | `deferred:verilog_ams_lane` | 25 | 0.2 % | Verilog-AMS, a different language family |
 | NO VERDICT | `deferred:ni_unimplemented` | 14 | 0.1 % | upstream marks the construct not-implemented |
-| NO VERDICT | `deferred:negative_stage_triage` | 1 | 0.0 % | an ivtest CE whose failure STAGE is unresolved - a regress-vlog95.list CE (the -t vlog95 flow: its compile error may be the Verilog-95 code generator's, not the parser's) or a CE with no usable golden outside the pinned population; a golden log or a pin settles it (SV-CORPUS-GRAD.13e.13) |
 | | **TOTAL** | **16,336** | **100.0 %** | |
 
 ## Inside `ADJUDICATED`, the `explained_svpp_*` rows split again (SV-CORPUS-GRAD.12)
@@ -42,7 +41,7 @@
 - **1,170 corroborated** — the parse stops *on* the preprocessor construct. The label is positively verified.
 - **263 undecidable by position** — the label is neither corroborated nor refuted; only running an expander settles them (`.12b`).
 
-⇒ Rows contributing nothing to the confidence claim, counting these: **5,973 (36.6 %)**.
+⇒ Rows contributing nothing to the confidence claim, counting these: **5,972 (36.6 %)**.
 
 ## `NO VERDICT`, by suite — where the silence actually is
 
@@ -74,14 +73,13 @@
 | Surelog | `deferred:svpp_owned` | 2 |
 | Surelog | `deferred:not_source_text` | 1 |
 | ispras-sv-tests | `deferred:svpp_owned` | 1 |
-| iverilog | `deferred:negative_stage_triage` | 1 |
 | slang | `deferred:svpp_owned` | 1 |
 | sv-tests | `deferred:chained_only` | 1 |
 
 ## Inside `NO VERDICT` — what the parser ALREADY did on the row's own bytes (SV-CORPUS-GRAD.13a)
 
-- **ONE-SIDED POSITIVE — 1,539 rows (9.4 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
-  - 1,385 are compilation-unit-shaped; ⚠️ **154 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
+- **ONE-SIDED POSITIVE — 1,538 rows (9.4 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
+  - 1,384 are compilation-unit-shaped; ⚠️ **154 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
 - ⛔ **DARK — 3,821 rows (23.4 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
 - **NOT SOURCE TEXT — 350 rows (2.1 % of the corpus)** (SV-CORPUS-GRAD.13c.1): the file is a `$readmemh` memory image, a bare string literal or a tool command line, decided from its BYTES by the adjudicator. It never was a parse input, so it is neither testimony nor DARK — it stays in the denominator as a stated fact about the corpus's composition, and the class is PERMANENT and bounded below. ⛔ Before `.13c.1` these rows were counted as DARK `chained_only`, a defect worklist no chaining could ever burn down.
 
@@ -94,8 +92,7 @@
 | `deferred:no_sv_key` | 48 | 40 | 0 | 8 | 0 |
 | `deferred:verilog_ams_lane` | 25 | 5 | 0 | 20 | 0 |
 | `deferred:ni_unimplemented` | 14 | 14 | 0 | 0 | 0 |
-| `deferred:negative_stage_triage` | 1 | 1 | 0 | 0 | 0 |
-| **TOTAL** | **5,710** | **1,385** | **154** | **3,821** | **350** |
+| **TOTAL** | **5,709** | **1,384** | **154** | **3,821** | **350** |
 
 ## Permanent deferrals — by construction, and BOUNDED (SV-CORPUS-GRAD.13f)
 
@@ -125,7 +122,6 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:no_sv_key` | 8 | 4 | information only — the label is the absence of an upstream ANSWER KEY, which no directive could supply |
 | `deferred:verilog_ams_lane` | 20 | 11 | information only — the label is about the DIALECT (Verilog-AMS), not directives |
 | `deferred:ni_unimplemented` | 0 | 0 | information only — upstream marks the construct not-implemented |
-| `deferred:negative_stage_triage` | 0 | 0 | information only — the label is an unresolved failure STAGE (the parser, or a later stage / the vlog95 code generator); a backtick-free file says the reject is not expansion's, and still not which stage refused — a golden log or a pin settles it (SV-CORPUS-GRAD.13e.13) |
 
 ## Every `NO VERDICT` class, by per-row REASON — what a disposition must attach to
 
@@ -264,21 +260,20 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:ni_unimplemented` | 1 | ivtest: vvp_tests descriptor(s) sv_interface.json - type NI (Not Implemented): the upstream runner skips the test, so it carrie… |
 | `deferred:ni_unimplemented` | 1 | ivtest: vvp_tests descriptor(s) sv_mixed_assign1.json - type NI (Not Implemented): the upstream runner skips the test, so it ca… |
 | `deferred:ni_unimplemented` | 1 | ivtest: vvp_tests descriptor(s) sv_mixed_assign2.json - type NI (Not Implemented): the upstream runner skips the test, so it ca… |
-| `deferred:negative_stage_triage` | 1 | ivtest: regress-ivl1.list type CE (vvp_reg.pl:52) - CE under -g2009 (the entry's own flag) - CE without usable golden output; f… |
 
 ## Under the PIPELINE — the same rows re-read through preprocess→parse (SVPP-EXPANSION.6c.1)
 
 > Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`f7dcd0380671fed3d148e6812d15abf310a8984d1015dea4dc54e22e51bc10a3`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
 
-**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11456/2943/1937/1253/0`** (raw: `7683/2943/5710/3821/0`).
+**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11457/2943/1936/1253/0`** (raw: `7684/2943/5709/3821/0`).
 
-- **ADJUDICATED: 11,456 rows (70.1 %)** (raw 7,683, +3,773)
+- **ADJUDICATED: 11,457 rows (70.1 %)** (raw 7,684, +3,773)
 - **ROUTED: 2,943 rows (18.0 %)** (raw 2,943, +0)
-- **NO VERDICT: 1,937 rows (11.9 %)** (raw 5,710, -3,773)
+- **NO VERDICT: 1,936 rows (11.9 %)** (raw 5,709, -3,773)
 
 | bucket | class under the pipeline | rows | % | why |
 |---|---|---:|---:|---|
-| ADJUDICATED | `match` | 5,890 | 36.1 % | expected and observed agree - the row testifies FOR the parser |
+| ADJUDICATED | `match` | 5,891 | 36.1 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `pipeline:corroborated` | 1,332 | 8.2 % | a must-accept row the raw lane explained away by preprocessing PASSES once preprocessed — the explanation held; the row testifies FOR the parser |
 | ADJUDICATED | `pipeline:must_reject:match_under_expansion` | 450 | 2.8 % | a row the key expects rejected IS rejected in its own text under the pipeline — the raw lane could not reach the construct |
 | ADJUDICATED | `pipeline:svpp_owned:corroborated` | 94 | 0.6 % | a svpp-owned row whose own header says must_accept (sv-tests :type: preprocessing, no :should_fail_because:) PASSES under the pipeline — the preprocessor lane answering the question the raw key deferred to it by design (SVPP-EXPANSION.6c.3) |
@@ -305,7 +300,6 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | NO VERDICT | `pipeline:refused_engine` | 4 | 0.0 % | the preprocessor refused the row (E_SVPP_* / a malformed directive) |
 | NO VERDICT | `pipeline:svpp_owned:accepted_under_expansion` | 2 | 0.0 % | conformance owned by the preprocessor lane; accepted — and no expectation derived yet for this suite (.6c.3 derives sv-tests'; the rest keep NO VERDICT) |
 | NO VERDICT | `pipeline:svpp_owned:refuted:key_question` | 2 | 0.0 % | the stage or the parser is right to refuse; the svpp-owned row's expectation (its suite's own convention) is what needs a ruling (.6c.4) |
-| NO VERDICT | `deferred:negative_stage_triage` | 1 | 0.0 % | an ivtest CE whose failure STAGE is unresolved - a regress-vlog95.list CE (the -t vlog95 flow: its compile error may be the Verilog-95 code generator's, not the parser's) or a CE with no usable golden outside the pinned population; a golden log or a pin settles it (SV-CORPUS-GRAD.13e.13) |
 | NO VERDICT | `pipeline:refuted:preprocessor_item` | 1 | 0.0 % | an expansion-stage rule not yet implemented (named per row) |
 | NO VERDICT | `pipeline:must_reject:hollow` | 1 | 0.0 % | the rejection lands in an included file |
 | ADJUDICATED | `pipeline:chained:accepted_under_expansion` (design corpora) | 2,113 | 12.9 % | a design-corpus file ACCEPTED under its derived context — must-accept by the suite convention (a shipping design's file is valid as part of its unit); outside DESIGN_SUITES the row keeps NO VERDICT (no per-file expectation) |

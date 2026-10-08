@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-08 — SV-CORPUS-GRAD.13e.14 (`PGEN-SV-CORPUS-GRAD-0435`): a CE without a golden is judged by running the tool and recording what it said
+
+- **A list's `CE` is a claim about a flow, not about the parser.** Six of the forty-one rows compile cleanly on iverilog 13.0 — their CE belongs to the `-S` synthesis flow or an older compiler — and eighteen fail only at elaboration. Pinning them by the type alone would have manufactured 24 must_rejects; running the tool and reading the stage from its message is the `.8c.2` discipline, and recording the message verbatim is what keeps the pin checkable without the tool.
+- **A dialect gate decides nothing; the clause does.** `requires SystemVerilog` is iverilog reporting the distance to its own `-g`, excluded from the stage vocabulary since `.13e.3(b)`. Reading those three rows through the clause instead found PGEN accepting text IEEE 1364-2005 does not derive — the second over-acceptance the v2005 lane has surfaced this way, and the one `.48` now owns.
+- **File an over-acceptance where the oracle can see it.** The three rows sit on the bar as `unexplained_accepts_invalid` and their reproducers carry `accepts_invalid` (ACCEPT today): the runner flips RED the day the fix lands, so the fix cannot land silently and the rows cannot be forgotten.
+- promotion: declined — the lesson is `.8c.2` / `.8b.3`'s mechanism, applied; the grammar finding is `.48`'s. Filed here.
+
 ## 2026-10-08 — SV-CORPUS-GRAD.13e.13 (`PGEN-SV-CORPUS-GRAD-0434`): a list's meaning is in the runner that reads it
 
 - **A file named `other-target` is a hypothesis about a dependency.** The answer key filed nine of ivtest's eleven lists by their names; three are read by the same runner as the two it trusted, with the same reader and types. The fix was cheap and the evidence was two greps away for 46 days; the lesson is the one `.3e` recorded one tree over — read the script, not the name — applied to answer keys.

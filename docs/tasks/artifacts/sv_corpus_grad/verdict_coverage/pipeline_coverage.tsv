@@ -1,5 +1,5 @@
 bucket	class	rows	pct
-ADJUDICATED	match	5890	36.06
+ADJUDICATED	match	5891	36.06
 ROUTED	deferred:v2005_profile_lane	2943	18.02
 ADJUDICATED	pipeline:chained:accepted_under_expansion	1501	9.19
 ADJUDICATED	pipeline:chained:accepted_in_unit	1501	9.19
@@ -28,7 +28,6 @@ NO VERDICT	pipeline:svpp_owned:preprocess_only_output	5	0.03
 NO VERDICT	pipeline:refused_engine	4	0.02
 NO VERDICT	pipeline:svpp_owned:accepted_under_expansion	2	0.01
 NO VERDICT	pipeline:svpp_owned:refuted:key_question	2	0.01
-NO VERDICT	deferred:negative_stage_triage	1	0.01
 NO VERDICT	pipeline:refuted:preprocessor_item	1	0.01
 NO VERDICT	pipeline:must_reject:hollow	1	0.01
-TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	11456/2943/1937/1253/0	
+TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	11457/2943/1936/1253/0	

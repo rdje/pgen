@@ -3079,6 +3079,61 @@ def expect_ispras_v2005(relpath: str, text: str):
 V2005_ANNEX_A = "docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt"
 
 V2005_LRM_PINNED = {
+    # ---- SV-CORPUS-GRAD.13e.14 ------------------------------------------------------------------
+    # Eight of the forty stage-unresolved CE rows the other ivtest lists keyed (.13e.13): run through the vendored
+    # iverilog 13.0 on this host with the entry's generation, each row's own message is a LATER-stage error (or an
+    # assertion) while PGEN's furthest position sits on text IEEE 1364-2005 does not derive — pinned by the clause.
+    "ivtest/ivltests/real_concat_invalid1.v": (
+        "must_reject", "pinned .13e.14: line 3 `wire real wrcon3, wrcon4, wrcon5, wrcon6;` - a REAL NET. IEEE 1364-2005 A.2.1.3 "
+        "net_declaration (" + V2005_ANNEX_A + ":153-176) puts nothing between the net_type and the identifiers but `signed`, a "
+        "strength, `vectored`/`scalared` and a range; real nets are iverilog's extension - its own error on the row is a LATER "
+        "semantic one (`error: Concatenation operand can not be real: 2.00000`, line 5) because its parser accepted the net. Repro "
+        "invalid_v2005_net_real.sv; control control_net_real_sv.sv parses"),
+    "ivtest/ivltests/real_op_fail.v": (
+        "must_reject", "pinned .13e.14: line 4 `wire real rdand, rdnand, rdor, rdnor, rdxor, rdxnor,` - a REAL NET. IEEE 1364-2005 "
+        "A.2.1.3 net_declaration (" + V2005_ANNEX_A + ":153-176) admits no `real`; iverilog's own error is a later semantic one "
+        "(`error: & operator may not have a REAL operand.`, line 10). Repro invalid_v2005_net_real.sv; control control_net_real_sv.sv parses"),
+    "ivtest/ivltests/real_select_invalid.v": (
+        "must_reject", "pinned .13e.14: line 6 `wire real wrarr [1:0];` - a REAL NET (and an array of them). IEEE 1364-2005 A.2.1.3 "
+        "net_declaration (" + V2005_ANNEX_A + ":153-176) admits no `real`; iverilog's own error is a later semantic one "
+        "(`error: Port `arg1` of module `submod3` is declared as a real inout port.`, line 88). Repro invalid_v2005_net_real.sv; "
+        "control control_net_real_sv.sv parses"),
+    "ivtest/ivltests/udp_ansi_initial_nonreg_fail.v": (
+        "must_reject", "pinned .13e.14: line 3 `primitive udp_ansi_initial_nonreg_fail (output o = 1'b0, input i);` - an ANSI UDP output "
+        "INITIALIZER without `reg`. IEEE 1364-2005 A.5.1 udp_output_declaration ::= { attribute_instance } output port_identifier | "
+        "{ attribute_instance } output reg port_identifier [ = constant_expression ] (" + V2005_ANNEX_A + ":476-478): only the `reg` form "
+        "carries an initializer. iverilog 13.0 ASSERTS on the row (`pform.cc:2089: failed assertion pins[0]->get_wire_type() == "
+        "NetNet::REG`) rather than refusing it, so the suite's CE carries no message. Repro invalid_udp_ansi_output_initializer_without_reg.sv; "
+        "control control_udp_ansi_reg_output_initializer.sv parses"),
+    "ivtest/ivltests/udp_initial_nonreg_fail.v": (
+        "must_reject", "pinned .13e.14: line 5 `initial o = 1'b0;` on a non-reg output, then line 7 `0 : 0;` - the initial statement makes "
+        "the body a sequential_body whose entries take THREE fields: IEEE 1364-2005 A.5.3 sequential_body ::= [ udp_initial_statement ] "
+        "table sequential_entry { sequential_entry } endtable, sequential_entry ::= seq_input_list : current_state : next_state ; "
+        "(" + V2005_ANNEX_A + ":482-494) - PGEN stops on the two-field row. iverilog 13.0 ASSERTS (`pform.cc:2008`) rather than "
+        "refusing. Repro invalid_udp_initial_statement_on_nonreg_output.sv; control control_udp_ansi_reg_output_initializer.sv parses"),
+    "ivtest/ivltests/parameter_omit1.v": (
+        "must_reject", "pinned .13e.14: line 4 `module a #(A = 1);` - a parameter port declaration WITHOUT `parameter`. IEEE 1364-2005 "
+        "A.1.3 module_parameter_port_list ::= # ( parameter_declaration { , parameter_declaration } ) (" + V2005_ANNEX_A + ":38) and "
+        "A.2.1.1 parameter_declaration ::= parameter [ signed ] [ range ] list_of_param_assignments | parameter parameter_type "
+        "list_of_param_assignments (:126-128): every declaration begins with `parameter`; IEEE 1800-2017 A.1.3 admits the omission. "
+        "The file's own header: `In Verilog this is not allowed and should result in an error`; iverilog -g2005: `error: Omitting "
+        "initial `parameter` in parameter port list requires SystemVerilog.` (a dialect gate the .13e.3(b) vocabulary excludes by "
+        "design - the CLAUSE decides). ⛔ PGEN ACCEPTS this under verilog_2005: an over-acceptance, watched by "
+        "accepts_invalid_v2005_parameter_port_no_keyword.sv and owned by SV-CORPUS-GRAD.48; control control_v2005_parameter_port_list.sv"),
+    "ivtest/ivltests/parameter_omit2.v": (
+        "must_reject", "pinned .13e.14: line 4 `module a #(integer A = 1);` - a TYPED parameter port declaration without `parameter`. "
+        "IEEE 1364-2005 A.1.3 / A.2.1.1 (" + V2005_ANNEX_A + ":38, :126-128): `parameter integer A = 1` is the only spelling; IEEE "
+        "1800-2017 A.1.3 parameter_port_declaration ::= … | data_type list_of_param_assignments admits this one. iverilog -g2005: "
+        "`error: Omitting initial `parameter` in parameter port list requires SystemVerilog.` ⛔ PGEN ACCEPTS this under verilog_2005: "
+        "watched by accepts_invalid_v2005_parameter_port_type_no_keyword.sv, owned by SV-CORPUS-GRAD.48; control "
+        "control_v2005_parameter_port_list.sv"),
+    "ivtest/ivltests/parameter_omit3.v": (
+        "must_reject", "pinned .13e.14: line 4 `module a #(parameter real A = 1.0, integer B = 2);` - the SECOND declaration omits "
+        "`parameter` before its type. IEEE 1364-2005 A.1.3 module_parameter_port_list (" + V2005_ANNEX_A + ":38): each comma-separated "
+        "declaration is a parameter_declaration (:126-128). iverilog -g2005: `error: Omitting `parameter`/`localparam` before data "
+        "type in parameter port list requires SystemVerilog.` ⛔ PGEN ACCEPTS this under verilog_2005: watched by "
+        "accepts_invalid_v2005_parameter_port_second_decl_no_keyword.sv, owned by SV-CORPUS-GRAD.48; control "
+        "control_v2005_parameter_port_list.sv"),
     # ---- SV-CORPUS-GRAD.13e.13 ------------------------------------------------------------------
     # Ten rows the other ivtest lists (regress-ivl1 / regress-synth / fpga_reg) keyed must_accept under the compiler's
     # default generation, each rejecting on text IEEE 1364-2005 does not derive - every one an iverilog extension or
@@ -3775,6 +3830,61 @@ IVTEST_VLG_CE_STAGE_CLUSTERS = [
      ["no_timescale_in_module"]),
 ]
 
+# SV-CORPUS-GRAD.13e.14 — the CE entries the OTHER ivtest lists key (.13e.13: regress-ivl1 / regress-synth /
+# regress-vlog95) without a golden, judged the way .8c.2's were: the vendored iverilog (13.0, this host) RUN on
+# the row with the entry's own generation (-g2005, the compiler's default, every one) and its message read through
+# the .13e.3(b) stage vocabulary. A post-parse message (elaboration, binding, a code-generator `sorry`, a lint
+# policy) or a clean compile (rc 0: the list's CE is the `-S` synthesis flow's or an older iverilog's) means the
+# front end accepted the file - must_accept; `syntax error` means it did not. A DIALECT-GATE message (`requires
+# SystemVerilog`) decides nothing here (.13e.3(b)); those rows are pinned by the clause in V2005_LRM_PINNED.
+# The message is recorded VERBATIM per cluster so the ruling is checkable without the tool.
+IVTEST_VLG_CE_STAGE_CLUSTERS_13E14 = [
+    ("must_accept",
+     "iverilog 13.0 -g2005 compiles the file CLEANLY (rc 0) - the list's CE is the synthesis-flow (-S) outcome or "
+     "an older compiler's; the front end accepts the text, parse-level valid 1364-2005",
+     ["br995", "br_gh306a", "br_gh306b", "case5-syn-fail", "casesynth8", "func_nested_block_nb_fail"]),
+    ("must_accept",
+     "iverilog 13.0 -g2005 refuses only at ELABORATION - name binding (`error: Unable to bind wire/reg/memory "
+     "`does_not_exist' in `test'`, `… `missing' in `bug'`), a port count (`error: Wrong number of ports. Expecting "
+     "at most 2, got 3.`), an event edge (`error: posedge/negedge can not be used with a named event (e).`), a "
+     "driver rule (`error: Variable 'x' cannot be driven by a continuous assignment/module.`), a part-select order "
+     "(`error: part select x[0:1] is reversed.` / `… is out of order.`), a repeat count (`error: Concatenation repeat "
+     "may not be zero in this context.`), an automatic-task limitation (`sorry, complex event expressions are not yet "
+     "supported in automatic tasks.`) - each a prose or implementation rule on text the BNF derives; parse-level valid",
+     ["partsel_invalid_idx1", "partsel_invalid_idx2", "partsel_invalid_idx3", "partsel_invalid_idx4",
+      "partsel_invalid_idx5", "partsel_invalid_idx6", "pr3270320_ams", "module_ordered_list2",
+      "named_event_negedge_fail", "named_event_posedge_fail", "partsel_reversed_idx1", "partsel_reversed_idx2",
+      "partsel_reversed_idx3", "partsel_reversed_idx4", "partsel_reversed_idx5", "partsel_reversed_idx6",
+      "pr1916261a", "automatic_error4"]),
+    ("must_accept",
+     "iverilog 13.0 -g2005 fails in its CODE GENERATOR, after the parse (`vvp.tgt sorry: cannot %cassign/vec4 to the "
+     "word of a variable array (array1[1]).`) - the raw lane then stops on the file's `ifndef VLOG95 region, which "
+     "the positional gate explains by preprocessing; parse-level valid",
+     ["array_lval_select3a"]),
+    ("must_accept",
+     "iverilog 13.0 -g2005 refuses by a LEXER POLICY, not the grammar (`error: Possible nested comment.`): "
+     "`/* (* /* *) */` is ONE block comment ending at its first `*/` - IEEE 1364-2005 3.4 says comments do not "
+     "nest, so the inner `/*` is comment text; parse-level valid",
+     ["comment1"]),
+    ("must_accept",
+     "iverilog 13.0 -g2005 CRASHES on the row (`assert: pform.cc:1884: failed assertion rc` on `output o; input o;` - "
+     "a duplicate port declaration, 1364-2005 8.1 prose; `Assertion failed: (ivl_signal_data_type(sig) == IVL_VT_DARRAY "
+     "…` on `a[r] = 2'b10;` with a real index - A.8.4 derives any expression as an index, the real restriction is "
+     "4.2.1 prose) - no usable testimony, and the BNF derives both texts; parse-level valid",
+     ["udp_port_decl_conflict_fail", "array_index_real_fail"]),
+    ("must_reject",
+     "iverilog 13.0 -g2005: `syntax error` (line 4) - a parameter port list whose declaration is a bare `[7:0] A = 1`, "
+     "`signed A = 1` or `signed B = 2`: IEEE 1364-2005 A.1.3 / A.2.1.1 (" + V2005_ANNEX_A + ":38, :126-128) derive "
+     "neither a range nor `signed` without `parameter` before them, and IEEE 1800-2017 A.1.3 parameter_port_declaration "
+     "admits only a data_type there; parse-level invalid",
+     ["parameter_omit_invalid1", "parameter_omit_invalid2", "parameter_omit_invalid3"]),
+    ("out_of_scope_with_cause:svpp_owned_v2005",
+     "iverilog 13.0 -g2005: `Preprocessor failed with 1 errors.` - the file is one line, `include \"non-existant.v\", "
+     "and its intended failure is the PREPROCESSOR's (a missing include); the raw parser reads the directive as "
+     "opaque and passes, which is not the test's claim - a preprocessor-stage question, the svpp lane's",
+     ["br_gh1104_src2"]),
+]
+
 IVTEST_VLG_CE_STAGE_PINNED = {}
 for _cls, _basis, _names in IVTEST_VLG_CE_STAGE_CLUSTERS:
     for _n in _names:
@@ -3787,6 +3897,18 @@ if len(IVTEST_VLG_CE_STAGE_PINNED) != 176:
     raise SystemExit(
         f".8c.2 vlg stage-pin table holds {len(IVTEST_VLG_CE_STAGE_PINNED)} "
         "entries, expected exactly the 176-row CE-without-gold population")
+for _cls, _basis, _names in IVTEST_VLG_CE_STAGE_CLUSTERS_13E14:
+    for _n in _names:
+        _key = f"ivltests/{_n}.v"
+        if _key in IVTEST_VLG_CE_STAGE_PINNED:
+            raise SystemExit(f"duplicate .13e.14 vlg stage pin: {_key}")
+        IVTEST_VLG_CE_STAGE_PINNED[_key] = (
+            _cls, "ivtest vlg CE pinned .13e.14 (the vendored iverilog 13.0 run on the row with the entry's generation; "
+                  "its own message decides the stage): " + _basis)
+if len(IVTEST_VLG_CE_STAGE_PINNED) != 176 + 32:
+    raise SystemExit(
+        f"the vlg stage-pin table holds {len(IVTEST_VLG_CE_STAGE_PINNED)} entries, expected exactly 176 (.8c.2) + 32 "
+        "(.13e.14: the other lists' CE-without-golden rows, minus the eight pinned by the clause)")
 
 
 IVTEST_TYPES = {"normal", "CE", "CO", "EF", "RE", "NI"}
@@ -4171,6 +4293,15 @@ IVTEST_CE_STAGE_CLUSTERS = [
      ["task_return_fail1", "task_return_fail2"]),
 ]
 
+# SV-CORPUS-GRAD.13e.14 — the one sv-lane CE row the other lists key without a golden (regress-ivl1, -g2009).
+IVTEST_CE_STAGE_CLUSTERS_13E14 = [
+    ("must_accept",
+     "iverilog 13.0 -g2009 refuses by its own LIMITATION (`sorry: Unpacked structs not supported.`, line 7) - an "
+     "unpacked struct is IEEE 1800-2017 A.2.2.1 data_type (struct_union { struct_union_member } { packed_dimension }); "
+     "parse-level valid",
+     ["br_ml20150315b"]),
+]
+
 IVTEST_CE_STAGE_PINNED = {}
 for _cls, _basis, _names in IVTEST_CE_STAGE_CLUSTERS:
     for _n in _names:
@@ -4183,6 +4314,17 @@ if len(IVTEST_CE_STAGE_PINNED) != 283:
     raise SystemExit(
         f".8b.3 stage-pin table holds {len(IVTEST_CE_STAGE_PINNED)} entries, "
         "expected exactly the 283-row CE-without-gold population")
+for _cls, _basis, _names in IVTEST_CE_STAGE_CLUSTERS_13E14:
+    for _n in _names:
+        _key = f"ivltests/{_n}.v"
+        if _key in IVTEST_CE_STAGE_PINNED:
+            raise SystemExit(f"duplicate .13e.14 stage pin: {_key}")
+        IVTEST_CE_STAGE_PINNED[_key] = (
+            _cls, "ivtest CE pinned .13e.14 (the vendored iverilog 13.0 run on the row with the entry's generation; "
+                  "its own message decides the stage): " + _basis)
+if len(IVTEST_CE_STAGE_PINNED) != 283 + 1:
+    raise SystemExit(
+        f"the stage-pin table holds {len(IVTEST_CE_STAGE_PINNED)} entries, expected exactly 283 (.8b.3) + 1 (.13e.14)")
 
 
 class IvtestIndex:
