@@ -472,6 +472,8 @@ and only the second one was true here.
       derivation (`check_family_status.sh` green).
 - promotion: declined (the durable half is recorded where the director's directive lives — docs/decisions/feedback_verify_a_claim_three_ways_before_publishing_it.md gained a dated section carrying this exact table of what the re-audit found, which is the retrievable home for a lesson about how I publish rather than about the parser)
 
+- ⚠️ **ROUTED 2026-10-09 by `SV-CORPUS-GRAD.49` — the index reader splits a row on EVERY pipe, escaped or not, so the status it reads is the prefix up to the cell's first `\|`.** `scripts/report_family_status.sh:374` (`cells = ln.split("|")`) and `:556-557` (the same shape); the `SV-CORPUS-GRAD` index row carries 50 escaped pipes, and when a `.49` draft placed a regex with `\|` before the cell's first status word, `polarity()` read the truncated prefix, returned `UNREADABLE`, and the SV page's block flipped to *⚠️ the index row carries no status word; counted OPEN* while the cross-family view's unreadable count rose 6 → 7 — the ratchet `TABLE-ARITY-RATCHET` reads the same row GFM-aware (an escaped pipe is NOT a separator) and passed it. The verdict today is right by accident of token order, not by construction. Fix when this tree resumes: split with `re.split(r'(?<!\\)\|', ln)` at both sites and add a RED arm whose row carries `\|` before its status word. Not SV-blocking (the row was rewritten without the regex); parked here with the mechanism named.
+
 ### `.3` — why every family without a corpus count has no count, derived and owned
 
 Shipped in `PGEN-DONE-BAR-VISIBILITY-0005`.

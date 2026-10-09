@@ -9,8 +9,14 @@
 #                  FAMILY-STATUS-CURRENCY; docs/systemverilog_parser_book/src/status-and-distance.md)
 #     bar_rows     `divergence:unexplained_*` rows in the three adjudication manifests (the axis-2 bar the
 #                  director's directive names: rows the parser must clear on sv_2017 / sv_2023 / verilog_2005)
-#     open_leaves  `##### ⛔|⏳` leaves in docs/tasks/SV-CORPUS-GRAD.md plus `### ⛔` leaves in
-#                  docs/tasks/ENGINE-UNIVERSAL-SERVICES.md opened by SV-CORPUS-GRAD (engine work SV owes)
+#     open_leaves  the `todo` / `active` leaves of docs/tasks/SV-CORPUS-GRAD.md, read at the `#####` leaf level by
+#                  their STATUS WORD — a heading that is not ✅-headed and carries `todo` or `active` — plus the `todo`
+#                  leaves of docs/tasks/ENGINE-UNIVERSAL-SERVICES.md that SV-CORPUS-GRAD opened (engine work SV owes).
+#                  ⛔ SV-CORPUS-GRAD.49 (2026-10-09): the first form counted a heading only when it BEGAN with exactly
+#                  one ⛔ / ⏳, so a leaf opened with ⛔⛔, with ⚠️, or with the mark after its id was invisible — the
+#                  tree read 3 where 10 were open by status word; and the engine matcher demanded `opened <date> by`,
+#                  so a heading carrying `session #N` between them (`.41`) was missed. The mark is a decoration; the
+#                  word is the status. Umbrella and parked headings at `###` / `####` are NOT read here (SV-CORPUS-GRAD.51).
 #   corpus_pass_pct / known_defects  the sv_2017 manifest: `match` rows over all rows; unexplained rows
 #   ETA          over the last <=5 history rows: rate = items closed per release; ETA = items / rate releases,
 #                and days at the observed releases-per-day of the same window. ESTIMATE: it assumes the trailing
@@ -22,6 +28,7 @@
 #        report_sv_release_distance.sh --check <page>  re-derive and refuse if the page's block differs (rc 2)
 #        report_sv_release_distance.sh --record        append this tree's row to the history (idempotent per commit)
 #        report_sv_release_distance.sh --record-at <commit> <release>  back-fill one row from git history
+#        report_sv_release_distance.sh --self-test     the two censuses and the record refusal on scratch trees (rc 1 on any failure)
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT"
 HIST="docs/tasks/artifacts/sv_corpus_grad/release_distance/history.tsv"
@@ -31,6 +38,12 @@ END='<!-- END DERIVED: scripts/report_sv_release_distance.sh -->'
 
 # read a tracked file at HEAD (working tree) or at a commit
 rd() { local at="$1" path="$2"; if [ "$at" = "tree" ]; then cat "$path"; else git show "$at:$path"; fi; }
+
+# SV-CORPUS-GRAD.49: the census reads the STATUS WORD, never the decoration. A ✅-headed line is excluded even when it
+# quotes the word (a done heading may say "was `todo`"); this tree's convention is that a done heading is ✅-headed.
+sv_open_leaves()     { grep -cE '^##### [^✅]*`(todo|active)`' || true; }
+engine_open_leaves() { grep -E '^### [^✅]*`todo`' | grep -cE 'opened [0-9-]+( session #[0-9]+)? by `SV-CORPUS-GRAD' || true; }
+shipped_release()    { awk -F'\t' '$5=="RELEASE"{r=$6} END{print r}' docs/contracts/PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv; }
 
 derive() {  # $1 = tree | <commit>; prints key=value lines
   local at="$1"
@@ -42,8 +55,8 @@ derive() {  # $1 = tree | <commit>; prints key=value lines
   b23="$(rd "$at" stimuli/sv/characterization/adjudication_manifest_sv2023.tsv | grep -c 'divergence:unexplained' || true)"
   b05="$(rd "$at" stimuli/sv/characterization/adjudication_manifest_v2005.tsv | grep -c 'divergence:unexplained' || true)"
   local sv_leaves eng_leaves
-  sv_leaves="$(rd "$at" docs/tasks/SV-CORPUS-GRAD.md | grep -cE '^##### (⛔|⏳) `' || true)"
-  eng_leaves="$(rd "$at" docs/tasks/ENGINE-UNIVERSAL-SERVICES.md | grep -E '^### ⛔ `' | grep -cE 'opened [0-9-]+ by `SV-CORPUS-GRAD' || true)"
+  sv_leaves="$(rd "$at" docs/tasks/SV-CORPUS-GRAD.md | sv_open_leaves)"
+  eng_leaves="$(rd "$at" docs/tasks/ENGINE-UNIVERSAL-SERVICES.md | engine_open_leaves)"
   local rows match
   rows="$(rd "$at" stimuli/sv/characterization/adjudication_manifest.tsv | awk -F'\t' 'NR>1 && NF>=5' | wc -l | tr -d ' ')"
   match="$(rd "$at" stimuli/sv/characterization/adjudication_manifest.tsv | awk -F'\t' 'NR>1 && $5=="match"' | wc -l | tr -d ' ')"
@@ -102,14 +115,48 @@ markdown_block() {
   echo "$END"
 }
 
-record() {  # $1 = tree|<commit>, $2 = release label, $3 = iso date (optional; defaults to commit date)
-  local at="$1" release="$2" when="${3:-}" commit
+record() {  # $1 = tree|<commit>, $2 = release label (REQUIRED), $3 = iso date (optional; defaults to commit date)
+  local at="$1" release="${2:-}" when="${3:-}" commit
+  # SV-CORPUS-GRAD.49 (2026-10-09): a row with an EMPTY label was recorded once (694695197, a commit whose subject named
+  # no release) and eta()'s distinct-label count read the empty string as a release of its own. The label is required;
+  # --record derives it from the register's last RELEASE row when the subject is silent, and refuses when neither says.
+  [ -n "$release" ] || { echo "error: --record needs the shipped release label — the subject names none; pass it, or let --record read the register's last RELEASE row" >&2; return 2; }
   if [ "$at" = "tree" ]; then commit="$(git rev-parse --short=9 HEAD)"; when="${when:-$(date +%Y-%m-%dT%H:%M:%S)}"; else commit="$(git rev-parse --short=9 "$at")"; when="${when:-$(git show -s --format=%cI "$at" | cut -c1-19)}"; fi
   local -A v; while IFS='=' read -r k val; do v[$k]="$val"; done < <(derive "$at")
   [ -f "$HIST" ] || printf 'date\tcommit\trelease\titems\tlegs_unmet\tbar_rows\tbar_sv_2017\tbar_sv_2023\tbar_verilog_2005\topen_leaves\topen_sv_leaves\topen_engine_leaves\tcorpus_pass_pct\tknown_defects\n' > "$HIST"
   if grep -q "	$commit	" "$HIST"; then echo "history: row for $commit already recorded"; return 0; fi
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$when" "$commit" "$release" "${v[items]}" "${v[legs_unmet]}" "${v[bar_rows]}" "${v[bar_sv_2017]}" "${v[bar_sv_2023]}" "${v[bar_verilog_2005]}" "${v[open_leaves]}" "${v[open_sv_leaves]}" "${v[open_engine_leaves]}" "${v[corpus_pass_pct]}" "${v[known_defects]}" >> "$HIST"
   echo "history: recorded $release at $commit — items=${v[items]}"
+}
+
+self_test() {  # SV-CORPUS-GRAD.49: the census is a claim about headings, so it is driven on scratch trees here
+  local t pass=0 fail=0; t="$(mktemp -d "$ROOT/rust/target/sv_release_distance_self_test.XXXXXX")"
+  arm() { if [ "$2" = "$3" ]; then pass=$((pass+1)); echo "  ok   $1 ($3)"; else fail=$((fail+1)); echo "  FAIL $1: want $2 got $3"; fi; }
+  printf '%s\n' \
+    '##### ⛔ `.a` `todo` — one mark, the only shape the retired form read' \
+    '##### ⛔⛔ `.b` `todo` — two marks (the `.48` shape)' \
+    '##### `.c` NEW `todo` — ⛔⛔ the mark after the id (the `.3.28` shape)' \
+    '##### ⚠️ `.d` NEW `todo` — a warning sign, no ⛔ (the `.13c.2v.1` shape)' \
+    '##### `.e` — **`active`** (an umbrella whose sub-leaves are open)' \
+    '##### ✅✅ `.f` — **`done`** 2026-10-09 (was `todo`; a done heading quoting the word)' \
+    '##### `.g` — WHAT LANDED: a slice record with no status word' \
+    '#### ⚠️ `.h` NEW `todo` — a #### heading, not read at this level (SV-CORPUS-GRAD.51)' \
+    > "$t/sv.md"
+  arm "sv: status word at ##### level, any decoration, ✅-headed excluded" 5 "$(sv_open_leaves < "$t/sv.md")"
+  arm "sv: the retired form (^##### (⛔|⏳) \`) read ONE of those five — the defect" 1 "$(grep -cE '^##### (⛔|⏳) `' "$t/sv.md" || true)"
+  printf '%s\n' \
+    '### ⛔ `.1` — `todo` (ROUTED + PARKED — opened 2026-09-04 by `SV-CORPUS-GRAD.3.29`)' \
+    '### ⚠️ `.2` NEW `todo` — (opened 2026-08-20 session #251 by `SV-CORPUS-GRAD.13c.2x.1`)' \
+    '### ⚠️ `.3` — `todo` (opened 2026-08-25 by `.46` slice 3; not SV-opened)' \
+    '### ✅ `.4` — done (opened 2026-09-04 by `SV-CORPUS-GRAD.3`, was `todo`)' \
+    > "$t/eng.md"
+  arm "engine: todo + SV-opened, the session token tolerated, ✅-headed excluded" 2 "$(engine_open_leaves < "$t/eng.md")"
+  arm "engine: the retired matcher missed the session-token heading" 1 "$(grep -E '^### ⛔ `' "$t/eng.md" | grep -cE 'opened [0-9-]+ by `SV-CORPUS-GRAD' || true)"
+  local rc=0; ( HIST="$t/hist.tsv"; record tree "" >/dev/null 2>&1 ) || rc=$?
+  arm "record: an empty release label is refused (rc 2)" 2 "$rc"
+  arm "record: the refusal wrote no row" 0 "$(ls "$t"/hist.tsv 2>/dev/null | wc -l | tr -d ' ')"
+  rm -rf "$t"
+  echo "SV-RELEASE-DISTANCE-SELF-TEST: pass=$pass fail=$fail"; [ "$fail" -eq 0 ]
 }
 
 case "${1:-}" in
@@ -126,8 +173,12 @@ case "${1:-}" in
       [ "$last_items" = "$now_items" ] || { echo "SV-RELEASE-DISTANCE: ✗ the history's last row says items=$last_items but the tree derives $now_items — run --record for this release" >&2; exit 2; }
     fi
     echo "SV-RELEASE-DISTANCE: OK ($(derive tree | grep -oE '^items=[0-9]+'); the published block equals a fresh derivation; the history's last row matches the tree)" ;;
-  --record) record tree "${2:-$(git log -1 --format=%s | grep -oE 'release [0-9.]+' | head -1 | cut -d' ' -f2)}" ;;
+  --record)
+    label="${2:-$(git log -1 --format=%s | grep -oE 'release [0-9.]+' | head -1 | cut -d' ' -f2)}"
+    [ -n "$label" ] || label="$(shipped_release)"
+    record tree "$label" ;;
+  --self-test) self_test ;;
   --record-at) record "$2" "$3" ;;
   "") summary_line ;;
-  *) echo "usage: $0 [--markdown | --check <page> | --record [release] | --record-at <commit> <release>]" >&2; exit 2 ;;
+  *) echo "usage: $0 [--markdown | --check <page> | --record [release] | --record-at <commit> <release> | --self-test]" >&2; exit 2 ;;
 esac

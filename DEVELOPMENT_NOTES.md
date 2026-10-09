@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-09 — SV-CORPUS-GRAD.49 (`PGEN-SV-CORPUS-GRAD-0437`): the mark is the author's mood; the word is the status
+
+- **A census keyed on a decoration drifts the moment the decoration is chosen freely.** `^##### (⛔|⏳) \`` agreed with the book's `todo` / `active` definition on the day it shipped and read 3 of 10 three weeks later — authors doubled the mark, moved it after the id, or opened with `⚠️`. The engine matcher had the same defect in a different coat (`opened <date> by`, refusing a `session #N` token). The fix keys on the word, excludes the ✅-headed line even when it quotes the word, declares the heading level it reads, and keeps the retired expression as a self-test arm so the old number stays explicable from the script.
+- **Adjudicate before the number moves.** Implementing the definition moved the count by +5 at once and two of the headings were the done-under-open class (`.13c.2x.4` for fifty days, `.13c.2x.9` for forty-eight). Each heading was read and measured first — the runner's line order, the probe on seven directives, a register's `deferred` rows, a comment-line probe against the identity gate, a tuple census — so every unit of the published jump names a leaf and none is stale prose.
+- **The record had the same class of hole.** One history row carried an empty release label and `eta()` counted the empty string as a release; the label is required now, read from the register's last RELEASE row when the subject is silent, refused when neither says — and the self-test proves the refusal writes no row.
+- **The level is a scope, not a detail.** Eight `###` / `####` headings carry a status word too; folding them in silently would double-count umbrellas, leaving them out silently would be the defect restated one level up. The instrument and the book now say which level is read, and `.51` owns the rule.
+
 ## 2026-10-09 — SV-CORPUS-GRAD.48 (`PGEN-SV-CORPUS-GRAD-0436`, release `1.0.252`): the rows found the defect; the clause bounded the fix
 
 - **Three rows, five refusals.** The `parameter_omit*.v` rows showed a declaration without `parameter`; IEEE 1364-2005 A.1.3 also excludes an empty list and a `localparam` inside it — both accepted by `1.0.251`, both refused by iverilog `-g2005`, on no corpus row. The twin was written to the production, and both bounds were pinned as edition pairs (the same text REJECT under `verilog_2005`, ACCEPT under `sv_2017` / `sv_2023`); the upper bound is every legal A.2.1.1 form in one list with its typed AST byte-identical.
