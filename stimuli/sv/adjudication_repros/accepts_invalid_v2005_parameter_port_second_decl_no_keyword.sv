@@ -1,4 +1,4 @@
-// SV-CORPUS-GRAD.13e.14 — ILLEGAL under IEEE 1364-2005, ACCEPTED by PGEN today (class accepts_invalid; WATCHED).
+// SV-CORPUS-GRAD.13e.14 — ILLEGAL under IEEE 1364-2005, REFUSED from release 1.0.252 (class invalid; SV-CORPUS-GRAD.48).
 // `module a #(parameter real A = 1.0, integer B = 2);` — the SECOND declaration omits `parameter` before its type.
 // IEEE 1364-2005 A.1.3 module_parameter_port_list ::= # ( parameter_declaration { , parameter_declaration } )
 // (docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:38): each comma-separated

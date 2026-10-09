@@ -9,17 +9,17 @@ describes your tree** and the honest act is to re-measure, not to quote.
 
 | input | sha256 |
 | --- | --- |
-| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `315f3a2212a87f1cd155c982b88a8b21239582e3b11861cb4a0feba72969920a` |
+| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `1aa05dcbdbb9a0077e7e98365a8d25a0ee47c315961f41f4c326b779205237f4` |
 | `docs/verilog/2005/md/section-Annex_B-normative-list-of-keywords.md` | `08ba9745b0f0791ad48b786284b733414ab26ce7b2b9373d95174d094218025d` |
 | `docs/tasks/artifacts/sv_corpus_grad/v2005_keyword_faithfulness/witnesses/MANIFEST.tsv` | `c79c632c8088cdba3db69012ab9a94f3c541c2167222e9fe28f056da57a9e627` |
 
 ## Population
 
-- rules in the source grammar: **1714**
-- of those, SATISFIABLE under `verilog_2005`: **1230** (the bottom-up half — *can this rule derive a string here*)
-- of those, REACHABLE under `verilog_2005` from the 4 declared entry roots: **875** (the top-down half — *can a parse get here*)
+- rules in the source grammar: **1717**
+- of those, SATISFIABLE under `verilog_2005`: **1232** (the bottom-up half — *can this rule derive a string here*)
+- of those, REACHABLE under `verilog_2005` from the 4 declared entry roots: **877** (the top-down half — *can a parse get here*)
 - **satisfiable but UNREACHABLE: 355** — rules the profile admits that no `verilog_2005` input can arrive at. `kw_void_e9cede9b` is the worked example: the terminal is ungated and trivially satisfiable, while both rules that reference it are `_sv_only`. ⭐ **This is NOT a gap in the certificate accounting, and an earlier version of this report said it was.** The engine already crosses the two directions: `gather_verified_profile_proof_covered_rules` (`VERILOG-2005-PROFILE.6.7`) classifies the WHOLE active rule set, and every profile-entry-unreachable rule gets an explicitly RE-VERIFIED `ProfileEntryUnreachable` certificate — a re-verify failure is reported as a linter bug, never silently covered. Measured: all of these rules appear in the cert pass's `proof` category, exactly. The number below is useful for understanding the profile's live surface; it is not a defect.
-- not adjudicated here: **15** `_lr_*` rules the indirect-left-recursion eliminator synthesises, which exist in no `.ebnf` file and so have no source-graph edges. The certificate denominator counts them too, which is why it reads 1245 where this row reads 1230.
+- not adjudicated here: **15** `_lr_*` rules the indirect-left-recursion eliminator synthesises, which exist in no `.ebnf` file and so have no source-graph edges. The certificate denominator counts them too, which is why it reads 1247 where this row reads 1232.
 - keyword literals reachable under `verilog_2005`: **139**
 - of those, reserved by IEEE 1364-2005 Annex B: **124**
 - of those, NOT reserved by Annex B: **15** (**13** word-shaped, **2** single-letter / symbol terminals used by the UDP tables, edge descriptors and `PATHPULSE$`, which are 1364-2005 terminals rather than keywords)

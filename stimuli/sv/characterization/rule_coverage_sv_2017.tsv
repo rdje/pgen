@@ -1208,7 +1208,10 @@ parameter_override	covered	54	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
 parameter_port_declaration	covered	847	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
 parameter_port_declaration_sv_2017	covered	847	sv_2017,verilog_2005
 parameter_port_declaration_sv_2023	na_profile	0	sv_2023,sv_2023_tolerant
+parameter_port_declaration_v2005	na_profile	0	verilog_2005
 parameter_port_list	covered	883	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
+parameter_port_list_sv_only	covered	883	sv_2017,sv_2023,sv_2023_tolerant
+parameter_port_list_v2005	na_profile	0	verilog_2005
 parameter_value_assignment	covered	930	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
 parameter_value_assignment_sv_2017	covered	930	sv_2017,verilog_2005
 parameter_value_assignment_sv_2023	na_profile	0	sv_2023,sv_2023_tolerant

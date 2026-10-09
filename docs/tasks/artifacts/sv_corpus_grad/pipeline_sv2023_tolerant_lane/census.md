@@ -10,15 +10,15 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/debug/parseability_probe` | `7a570cb104064f08ca8915474b7452e9e8680d6887d84424c5f022e6a5cd8c6c` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `315f3a2212a87f1cd155c982b88a8b21239582e3b11861cb4a0feba72969920a` |
-| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `a7741d84cad1b28c3cbd8e7e4ea0a360d6a15be7cbc016d94028f7f9f4546812` |
-| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `a24525a586ac37ec9ef2cea95567103eff5ee9ff49eb0630372471ddad09cf47` |
-| sv_2023_tolerant pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `69ae4e9dd35564ae0b91c3a578bb9c0ef19d31b665ae6add195f135d63c59e49` |
-| sv_2023_tolerant library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023_tolerant.tsv` | `46960f60de607b6a31a4f7be333e1652a5b5ef8ba105ff1c461d1ac31b24e165` |
+| parse binary | `rust/target/debug/parseability_probe` | `5a60442e02c671cc2e44816c7cf808f5c7ffe016657d1540b60c927af911cd5d` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `1aa05dcbdbb9a0077e7e98365a8d25a0ee47c315961f41f4c326b779205237f4` |
+| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `19f73459025860d7aceaca43e98a9a1bd9a76cd8a52dfcb8275d7338d13ccbce` |
+| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `9d6898c9f5a19013b5847b87bfcfcf64b2a9e758582d07bf803171d1a78e7bad` |
+| sv_2023_tolerant pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `944a564cf0fda43fb0b7f46c666e8192d358a4658522dc173b9a8229ef08bf09` |
+| sv_2023_tolerant library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023_tolerant.tsv` | `36ab0040ab6b3e0822212d16bf901bf33c0ace6b0ea186e4d607ecf0d53d97aa` |
 | unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023_tolerant.tsv` | `acac7a118b3cfe26a207b0d1bf64e5758093b730c825a75122d3c7fb1b6c3c6c` |
-| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `1103138dce422f9de09c1471262bf7dbeab98b46e5f32583d88b2f693050c485` |
-| sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `c196f707a1fdc43a664113eb663e99de004a82c4ac72754fb8929f2c1a7b91fe` |
+| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `f7dcd0380671fed3d148e6812d15abf310a8984d1015dea4dc54e22e51bc10a3` |
+| sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `cd2483d608c185a3b517010665dc10f9812605f5a7e608b395bcc01b3c44a861` |
 
 The tolerant run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6` `files=16336`.
 

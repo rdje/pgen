@@ -6325,18 +6325,43 @@ mixed_string_parameter_port_list := kw_type_d0a3e7f8 type_assignment ( !( comma 
 mixed_parameter_port_list := kw_type_d0a3e7f8 list_of_type_assignments comma parameter_port_declaration ( comma parameter_port_declaration )*
                           -> {types: $2, first_decl: $4, decl_tail: $5}
 
-parameter_port_list := hash lparen mixed_string_parameter_port_list rparen
-                              -> {kind: "mixed_string",      body: $3}
-                     | hash lparen mixed_parameter_port_list rparen
-                              -> {kind: "mixed",             body: $3}
-                     | hash lparen kw_type_d0a3e7f8 type_assignment ( comma kw_type_d0a3e7f8 type_assignment )* rparen
-                              -> {kind: "type_only",         items: [$4, $5::3*]}
-                     | hash lparen parameter_port_declaration ( comma parameter_port_declaration )* rparen
+# SV-CORPUS-GRAD.48 (release 1.0.252): IEEE 1364-2005 A.1.3 `module_parameter_port_list ::= # ( parameter_declaration
+# { , parameter_declaration } )` (docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:38) and
+# A.2.1.1 `parameter_declaration ::= parameter [ signed ] [ range ] list_of_param_assignments | parameter parameter_type
+# list_of_param_assignments` (:126-128): every declaration BEGINS with `parameter`, there is at least one, and nothing
+# else is derived — no bare `A = 1`, no `integer A = 1`, no `localparam` (1364-2005 derives local_parameter_declaration
+# only as a module / generate item, :67 and :319), no `#()` — against IEEE 1800-2017 A.1.3 `parameter_port_list ::=
+# # ( list_of_param_assignments { , parameter_port_declaration } ) | # ( parameter_port_declaration { ,
+# parameter_port_declaration } ) | #( )` with `parameter_port_declaration ::= … | data_type list_of_param_assignments`
+# (docs/systemverilog/2017/md/section-41-data-read-api.md:231-243). Through 1.0.251 ONE rule served every profile with
+# the 1800 shape, so `module a #(A = 1);`, `#(integer A = 1)` and `#(parameter real A = 1.0, integer B = 2)` (ivtest
+# parameter_omit1/2/3.v, each headed "In Verilog this is not allowed and should result in an error") parsed under
+# verilog_2005. Profile twins behind a pass-through dispatcher (the .3.66 shape): the verilog_2005 twin renders the
+# SAME `declarations` kind and the same items — each declaration admitted only behind a `parameter` lookahead, its
+# tree the shared `parameter_port_declaration` node — so a legal 1364-2005 tree does not move.
+parameter_port_list := parameter_port_list_sv_only -> $1
+                     | parameter_port_list_v2005   -> $1
+
+@profiles: ["sv_2017", "sv_2023", "sv_2023_tolerant"]
+parameter_port_list_sv_only := hash lparen mixed_string_parameter_port_list rparen
+                                      -> {kind: "mixed_string",      body: $3}
+                             | hash lparen mixed_parameter_port_list rparen
+                                      -> {kind: "mixed",             body: $3}
+                             | hash lparen kw_type_d0a3e7f8 type_assignment ( comma kw_type_d0a3e7f8 type_assignment )* rparen
+                                      -> {kind: "type_only",         items: [$4, $5::3*]}
+                             | hash lparen parameter_port_declaration ( comma parameter_port_declaration )* rparen
+                                      -> {kind: "declarations",      items: [$3, $4::2*]}
+                             | hash lparen list_of_param_assignments ( comma parameter_port_declaration )* rparen
+                                      -> {kind: "list_then_decls",   first_list: $3, decls: $4}
+                             | hash lparen rparen
+                                      -> {kind: "empty"}
+
+@profiles: ["verilog_2005"]
+parameter_port_list_v2005 := hash lparen parameter_port_declaration_v2005 ( comma parameter_port_declaration_v2005 )* rparen
                               -> {kind: "declarations",      items: [$3, $4::2*]}
-                     | hash lparen list_of_param_assignments ( comma parameter_port_declaration )* rparen
-                              -> {kind: "list_then_decls",   first_list: $3, decls: $4}
-                     | hash lparen rparen
-                              -> {kind: "empty"}
+
+@profiles: ["verilog_2005"]
+parameter_port_declaration_v2005 := &( kw_parameter_b75381f0 ) parameter_port_declaration -> $2
 
 @profiles: ["sv_2017", "verilog_2005"]
 parameter_value_assignment_sv_2017 := hash lparen ( list_of_parameter_assignments )? rparen

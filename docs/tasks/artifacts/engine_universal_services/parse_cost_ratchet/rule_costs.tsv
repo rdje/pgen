@@ -882,7 +882,8 @@ parameter_identifier	1325956	43408	0
 parameter_override	72873	1	0
 parameter_port_declaration	1503	696	0
 parameter_port_declaration_sv_2017	1503	696	0
-parameter_port_list	441	23	173
+parameter_port_list	441	23	0
+parameter_port_list_sv_only	441	23	173
 parameter_value_assignment	575075	502	329106
 parameter_value_assignment_sv_2017	245969	502	0
 paren_operator_assignment_operand	921486	0	501432

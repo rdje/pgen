@@ -3,11 +3,11 @@
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1245/397/834/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=369/0_mismatches aliases=2",
-    "verified_at_commit": "4e7acc696ff1f2165c07437bfd2c78508c48658f",
+    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1247/397/836/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=369/0_mismatches aliases=2",
+    "verified_at_commit": "c800d337a76edce63ce19157222c384d8df6e230",
     "inputs": {
-      "generated/systemverilog_parser.rs": "1781b11d85172ede964574de6d58da8b979f24efe57ad0a18f74db421fe6757e",
-      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "315f3a2212a87f1cd155c982b88a8b21239582e3b11861cb4a0feba72969920a" },
+      "generated/systemverilog_parser.rs": "2c074083736e6cb1c4b79e6899aa351938b776c2b46010225d39539e833d5907",
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "1aa05dcbdbb9a0077e7e98365a8d25a0ee47c315961f41f4c326b779205237f4" },
       "rust/src/ast_pipeline/grammar_wellformedness.rs": "1b14e5f8517737d9b75fc3340d771c8053741cc1f78aa6f7f442a8432182bc65",
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "ebfafdd38fda2371dbcd7211b98bb5b13bfa7f9666678cd5e7d82ca7c1bc48b6",
       "rust/src/ast_pipeline/stimuli_generator.rs": "1ac33ccdf0ef48eb5f9eea113b2c7ec3511797c4077ec11326bb21cd24d843a2"
@@ -55,13 +55,13 @@
       "library_text:verilog_2005",
       "systemverilog_parseable_file:verilog_2005"
     ],
-    "expected_total": 1245,
+    "expected_total": 1247,
     "expected_proof": 397,
-    "expected_witness": 834,
+    "expected_witness": 836,
     "expected_unknown": 14,
     "expected_sample_parse_failures": 0,
     "expected_proof_reverify_failures": 0,
-    "baseline_note": "SV-CORPUS-GRAD.32 (2026-09-23, PGEN-SV-CORPUS-GRAD-0414, GRAMMAR tier, the permissive block-site class-type arm provisional_unscoped_block_class_type deleted, ledger SV-0130, release 1.0.245, schema 34 unchanged): -1 total (1246 -> 1245), proof 398 -> 397, witness 833 -> 833, unknown 15 -> 15 -- the deleted rule provisional_unscoped_block_class_type (declared under every profile) leaves the verilog_2005 population || ENGINE-UNIVERSAL-SERVICES.109 (2026-09-29, PGEN-ENGINE-UNIVERSAL-SERVICES-0171, ENGINE (stimuli generator) tier, ZERO grammar bytes, release unchanged at 1.0.246): total 1245 -> 1245, proof 397 -> 397, witness 833 -> 834, unknown 15 -> 14 -- ansi_port_default_governed_v2005 is WITNESSED at seeds 0/7/42: the witness planner now matches a producer for a latest_fact_attribute_equals gate on ANY attribute key (it matched declaration_family alone), arms an ORDERING prelude that injects the `output reg` / `output integer|time` header item -- the alternative whose branch-start @emit_fact says defaults: yes -- immediately before the header-less defaulted item, and generation refuses the gated shape wherever no such header precedes it (the mandatory first port item, forced by the plan's occurrence-blind directive, falls back to a plain header). The union certificate is unchanged (canonical UNKNOWN=14, union UNKNOWN=0, witness 1517); sample_parse_failures=0 at every seed."
+    "baseline_note": "SV-CORPUS-GRAD.48 (2026-10-09, PGEN-SV-CORPUS-GRAD-0436, GRAMMAR + PINS tier, a profile twin, ledger SV-0137, release 1.0.252, schema 34 unchanged): +2 total (1245 -> 1247), proof 397 unchanged, witness 834 -> 836, unknown 14 unchanged -- the verilog_2005 twin parameter_port_list_v2005 and its per-declaration helper parameter_port_declaration_v2005 (a `parameter` lookahead over the shared parameter_port_declaration) enter this population and are WITNESSED by every generated 1364-2005 parameter port list; the sv_only twin is gated out of the profile and OUTSIDE it; sample_parse_failures 0. Adopted BY NAME from the gate's printed line (post chain A1 ran the gate first on the 1.0.251 counts and it printed these at seeds 0 / 7 / 42). Earlier: SV-CORPUS-GRAD.32 (2026-09-23, PGEN-SV-CORPUS-GRAD-0414, GRAMMAR tier, the permissive block-site class-type arm provisional_unscoped_block_class_type deleted, ledger SV-0130, release 1.0.245, schema 34 unchanged): -1 total (1246 -> 1245), proof 398 -> 397, witness 833 -> 833, unknown 15 -> 15 -- the deleted rule provisional_unscoped_block_class_type (declared under every profile) leaves the verilog_2005 population || ENGINE-UNIVERSAL-SERVICES.109 (2026-09-29, PGEN-ENGINE-UNIVERSAL-SERVICES-0171, ENGINE (stimuli generator) tier, ZERO grammar bytes, release unchanged at 1.0.246): total 1245 -> 1245, proof 397 -> 397, witness 833 -> 834, unknown 15 -> 14 -- ansi_port_default_governed_v2005 is WITNESSED at seeds 0/7/42: the witness planner now matches a producer for a latest_fact_attribute_equals gate on ANY attribute key (it matched declaration_family alone), arms an ORDERING prelude that injects the `output reg` / `output integer|time` header item -- the alternative whose branch-start @emit_fact says defaults: yes -- immediately before the header-less defaulted item, and generation refuses the gated shape wherever no such header precedes it (the mandatory first port item, forced by the plan's occurrence-blind directive, falls back to a plain header). The union certificate is unchanged (canonical UNKNOWN=14, union UNKNOWN=0, witness 1517); sample_parse_failures=0 at every seed."
   },
   "cases": [
     {
