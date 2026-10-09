@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-09 — SV-CORPUS-GRAD.54 (`PGEN-SV-CORPUS-GRAD-0441`): the pair that lagged is the red control
+
+- **A check between two artifacts belongs in the producer of the one that is read, and its red control is the real lag.** The agreement arm lives in the parity script because that is where the derivation is; the doctrine replays the exact commit that lagged (`git show b9084e85c:…`) through it and requires the refusal — a control that fires on a synthetic shape only proves the shape, not the defect.
+- **An artifact that records its producer's digest refuses the producer's own edit, and that refusal is correct.** The self-test's A3 arm went red the moment the parity script changed, because `parity.md` carries the script's sha; `--write` moved exactly that row. Read the arm before reading the count.
+
 ## 2026-10-09 — SV-CORPUS-GRAD.53 (`PGEN-SV-CORPUS-GRAD-0440`): a measured binary is kept, not re-derived
 
 - **The published path is the only path a tracked artifact may name, so the copy serves the path — not the other way round.** The first design (the `.52` note and the book's item 2 as written then) was to point every measuring tool at `rust/target/svNN/bin/…`; the lane runner records the probe path it measured with and adopts it on its next run, and the two censuses hash the binary at the report's path. A tracked report naming a scratch path is a report that sends the next ceremony to a deleted file. The rule became: copy aside, RESTORE the published path before measuring and last, verify the whole set at the end.

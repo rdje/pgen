@@ -3017,7 +3017,12 @@ population to name a class for.
 
 `CORPUS-KEY-INTEGRITY` tier A4 holds this artifact current and pins the unmatched residual under a
 ceiling. A *rise* is the signal that matters: it means the manifests gained a basis shape nobody
-classified, so the published bound silently stopped covering the whole population.
+classified, so the published bound silently stopped covering the whole population. Tier A5
+(`SV-CORPUS-GRAD.54`) holds the sv_2023 lane's carry-over to the production-parity artifact it reads —
+every `IDENTICAL` row carries over, no `re-read is owed` row is `IDENTICAL` — because the adjudicator
+reads the artifact that reads the manifest the adjudicator wrote: a new 2017 clause pin needs two passes,
+and release `1.0.252`'s answer-key commit stopped after one, publishing three rows as owed beside an
+artifact saying identical.
 
 #### The denominator — what fraction of the corpus was asked a question it could answer?
 

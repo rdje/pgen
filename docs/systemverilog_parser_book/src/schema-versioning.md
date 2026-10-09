@@ -370,7 +370,8 @@ each under the memory guard, sequentially.
    (`docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/production_parity.py --write`), then the adjudicator
    AGAIN: the sv_2023 lane's carry-over of a NEW 2017 clause pin reads the parity artifact, and the parity
    artifact reads the manifest's new citation — one pass leaves the row `re-read is owed` for a commit
-   (`.53` found three such rows from `.52`; `.54` owns the check that the pair agrees);
+   (`.53` found three such rows from `.52`; `CORPUS-KEY-INTEGRITY` tier A5 holds the pair to agree on
+   every commit, `.54`);
    the sv_2017 × sv_2023 verdict census (`docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.py`,
    an identity carrier — `2017_only_pass` must stay 0: nothing legal under 2017 may be lost under 2023).
    And the PIPELINE lane, both readings, whenever the parser or the preprocessor moved:

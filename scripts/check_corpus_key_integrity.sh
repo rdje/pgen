@@ -39,6 +39,16 @@
 #     population. The fix is to ENUMERATE the new shapes — never to widen a rule until the number
 #     falls, which is exactly how the first cut turned 623 tool-testimony rows into clause cites.
 #
+#   A5 PARITY AGREEMENT (corpus-INDEPENDENT, 0.1 s — SV-CORPUS-GRAD.54) — the sv_2023 lane's carry-over must
+#     AGREE with the production-parity artifact it reads: `production_parity.py --check` re-derives the
+#     artifact from the tracked sv_2017 manifest and the two in-repo Annex A texts, holds parity.tsv /
+#     parity.md to it, and then requires every row it decides IDENTICAL to read `CARRIES OVER` in the
+#     tracked sv_2023 manifest (no `re-read is owed` row may be IDENTICAL). ⛔ WHY: the adjudicator reads
+#     the artifact that reads the manifest the adjudicator wrote, so a NEW 2017 clause pin needs two
+#     passes (adjudicate → parity → adjudicate); PGEN-SV-CORPUS-GRAD-0439 stopped after one and published
+#     three rows as owed beside an artifact saying IDENTICAL — nothing compared the pair. The red control
+#     replays exactly that pair from git history (`b9084e85c`), so the refusal is observed, not assumed.
+#
 #   A2/A3 KEY CLEAN + PUBLISHED ARTIFACT CURRENT (corpus-DEPENDENT, 0.24 s) — the census must report
 #     zero contradictory message classes and zero key-integrity findings, AND the tracked
 #     `census.md` must be byte-identical to a fresh derivation. ⭐ A3 exists because a derived
@@ -64,6 +74,8 @@ CENSUS="docs/tasks/artifacts/corpus_key_audit/key_contradiction_census.py"
 ARTIFACT="docs/tasks/artifacts/corpus_key_audit/census.md"
 PROV="docs/tasks/artifacts/corpus_key_audit/key_provenance_census.py"
 PROV_ARTIFACT="docs/tasks/artifacts/corpus_key_audit/provenance.md"
+PARITY="docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/production_parity.py"   # A5 (SV-CORPUS-GRAD.54)
+PARITY_LAG_COMMIT="b9084e85c"   # the pair that lagged one pass (PGEN-SV-CORPUS-GRAD-0439): A5's end-to-end red control
 MIN_ARMS=5        # the contradiction arm set at adoption
 MIN_PROV_ARMS=16  # the provenance arm set at adoption
 # ⛔ A CEILING, NOT A TARGET. The provenance classifier leaves 4 rows unmatched and prints all four
@@ -158,6 +170,29 @@ verdict_from_census() {  # <summary line> -> 0 holds / 1 breach
   return $rc
 }
 
+# A5: the parity agreement line. REFUSES an unparsable line, a zero-IDENTICAL derivation (a control that cannot
+# fail), and any IDENTICAL row the sv_2023 manifest does not carry over.
+verdict_from_parity() {
+  local line="$1" ident carried owed notc missing
+  ident="$(field identical "$line")"; carried="$(field carried_over "$line")"; owed="$(field owed_but_identical "$line")"
+  notc="$(field not_carried "$line")"; missing="$(field missing_in_sv2023 "$line")"
+  if [ -z "$ident" ] || [ -z "$carried" ] || [ -z "$owed" ] || [ -z "$notc" ] || [ -z "$missing" ]; then
+    say "✗ (A5) the parity agreement printed no parsable summary (identical= / carried_over= / owed_but_identical= /"
+    say "       not_carried= / missing_in_sv2023=): ${line:-<empty>}"; return 1
+  fi
+  if [ "$ident" -eq 0 ]; then
+    say "✗ (A5) the parity derivation decided ZERO rows IDENTICAL — an agreement over an empty population is a control"
+    say "       that cannot fail; the derivation lost its inputs (the sv_2017 manifest or the Annex A texts)"; return 1
+  fi
+  if [ "$notc" -ne 0 ] || [ "$missing" -ne 0 ] || [ "$owed" -ne 0 ] || [ "$carried" -ne "$ident" ]; then
+    say "✗ (A5) $notc IDENTICAL row(s) the sv_2023 manifest does not carry over ($owed still read 're-read is owed',"
+    say "       $missing absent from the manifest; $carried of $ident carried). The sv_2023 lane was adjudicated BEFORE the"
+    say "       parity artifact learnt its citations — run the adjudicator again (adjudicate -> parity --write -> adjudicate)."
+    return 1
+  fi
+  say "  (A5) parity agreement: $ident IDENTICAL rows, every one carried over in the sv_2023 manifest"
+}
+
 run_doctrine() {
   local rc=0 out line tmp
 
@@ -166,6 +201,21 @@ run_doctrine() {
   out="$(python3 "$CENSUS" --self-test 2>&1)"
   line="$(printf '%s\n' "$out" | grep -E 'SELF-TEST: .*arms=' | tail -1)"
   verdict_from_selftest "$line" || { printf '%s\n' "$out" >&2; rc=1; }
+
+  # ---- A5 PARITY AGREEMENT (corpus-independent: the tracked manifests + the two in-repo Annex A texts; binds on
+  # every commit). The parity script prints BOTH its lines whatever the first says, so a stale artifact and a
+  # lagging manifest are named in one run.
+  [ -f "$PARITY" ] || { say "✗ the parity derivation is missing: $PARITY"; return 1; }
+  out="$(python3 "$PARITY" --check 2>&1)"; local parity_rc=$?
+  if [ "$parity_rc" -eq 2 ]; then
+    say "✗ (A5) the parity derivation REFUSED:"; printf '%s\n' "$out" >&2; rc=1
+  else
+    if ! printf '%s\n' "$out" | grep -q '^production-parity: current'; then
+      say "✗ (A5) parity.tsv / parity.md are NOT a fresh derivation — re-run: python3 $PARITY --write"; rc=1
+    fi
+    line="$(printf '%s\n' "$out" | grep -E '^PARITY-MANIFEST-AGREEMENT: ' | tail -1)"
+    verdict_from_parity "$line" || { printf '%s\n' "$out" | grep -E '^  STALE' | head -10 >&2; rc=1; }
+  fi
 
   # ---- A2/A3 (corpus-dependent). The census REFUSES with exit 2 when the submodules are absent.
   # ⛔ Scratch is REPO-DERIVED, never $TMPDIR: project-owned data stays on the repository's own
@@ -277,6 +327,35 @@ self_test() {
   arm "A4 RED: an unparsable summary REFUSES, never passes" 1 verdict_from_provenance \
       "KEY-PROVENANCE-CENSUS: all good"
 
+  arm "A5 GREEN: every IDENTICAL row carried over" 0 verdict_from_parity \
+      "PARITY-MANIFEST-AGREEMENT: identical=97 carried_over=97 owed_but_identical=0 not_carried=0 missing_in_sv2023=0 OK"
+  arm "A5 RED: three IDENTICAL rows still read re-read-is-owed (the -0439 shape)" 1 verdict_from_parity \
+      "PARITY-MANIFEST-AGREEMENT: identical=97 carried_over=94 owed_but_identical=3 not_carried=3 missing_in_sv2023=0 STALE"
+  arm "A5 RED: a row the sv_2023 manifest lacks" 1 verdict_from_parity \
+      "PARITY-MANIFEST-AGREEMENT: identical=97 carried_over=96 owed_but_identical=0 not_carried=0 missing_in_sv2023=1 STALE"
+  arm "A5 RED: zero IDENTICAL rows is a control that cannot fail" 1 verdict_from_parity \
+      "PARITY-MANIFEST-AGREEMENT: identical=0 carried_over=0 owed_but_identical=0 not_carried=0 missing_in_sv2023=0 OK"
+  arm "A5 RED: an unparsable summary REFUSES, never passes" 1 verdict_from_parity \
+      "PARITY-MANIFEST-AGREEMENT: fine"
+
+  # A5 end-to-end: the pair that lagged at PGEN-SV-CORPUS-GRAD-0439, replayed from git history through the real
+  # derivation — the three rows the artifact decides IDENTICAL while the manifest still reads owed.
+  local pdir prc pline
+  pdir="$(mktemp -d "$ROOT/rust/target/corpus_key_parity.XXXXXX")" || return 2
+  if git show "$PARITY_LAG_COMMIT:stimuli/sv/characterization/adjudication_manifest.tsv" > "$pdir/m17.tsv" 2>/dev/null \
+     && git show "$PARITY_LAG_COMMIT:stimuli/sv/characterization/adjudication_manifest_sv2023.tsv" > "$pdir/m23.tsv" 2>/dev/null; then
+    pline="$(PGEN_PARITY_MANIFEST="$pdir/m17.tsv" PGEN_PARITY_SV2023_MANIFEST="$pdir/m23.tsv" python3 "$PARITY" --check 2>/dev/null | grep -E '^PARITY-MANIFEST-AGREEMENT: ' | tail -1)"
+    PGEN_PARITY_MANIFEST="$pdir/m17.tsv" PGEN_PARITY_SV2023_MANIFEST="$pdir/m23.tsv" python3 "$PARITY" --check >/dev/null 2>&1; prc=$?
+    if [ "$prc" -eq 1 ] && printf '%s' "$pline" | grep -q ' owed_but_identical=3 not_carried=3 missing_in_sv2023=0 STALE$'; then
+      printf '  ✅ A5 RED end-to-end: the -0439 pair replayed from git reads rc 1, %s\n' "$pline"; pass=$((pass+1))
+    else
+      printf '  ❌ A5 end-to-end: the -0439 pair scored rc %d, line: %s\n' "$prc" "${pline:-<none>}"; fail=$((fail+1))
+    fi
+  else
+    printf '  ⚠️ A5 end-to-end SKIPPED — %s is not in this clone\x27s history (a shallow clone). Not a pass.\n' "$PARITY_LAG_COMMIT"
+  fi
+  rm -rf "$pdir"
+
   # A3 end-to-end: a corrupted published artifact must be caught by the real doctrine path.
   local rc saved
   mkdir -p rust/target || return 2
@@ -320,7 +399,7 @@ self_test() {
 case "${1:-}" in
   --self-test) self_test; exit $? ;;
   "") run_doctrine || exit 1
-      echo "corpus-key-integrity: OK (both censuses self-test alive; key clean; provenance residual within ceiling; both published artifacts current)"
+      echo "corpus-key-integrity: OK (both censuses self-test alive; key clean; provenance residual within ceiling; both published artifacts current; the sv_2023 carry-over agrees with the parity artifact)"
       exit 0 ;;
   *)  say "unknown argument: $1"; exit 2 ;;
 esac

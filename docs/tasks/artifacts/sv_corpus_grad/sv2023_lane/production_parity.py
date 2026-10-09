@@ -9,14 +9,26 @@ the in-repo LRM texts, normalises them (footnote digits, whitespace, code fences
 IDENTICAL or DIFFERS per production — the mechanical half of `.14b.3`; a DIFFERS is read by hand.
 
 Usage: python3 docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/production_parity.py [--self-test]
+       … --write    re-derive parity.tsv / parity.md
+       … --check    (1) the two artifacts equal a fresh derivation AND (2) the sv_2023 manifest AGREES with it —
+                    every IDENTICAL row carries over, no `re-read is owed` row is IDENTICAL (SV-CORPUS-GRAD.54;
+                    run by CORPUS-KEY-INTEGRITY tier A5 on every commit). rc 0 both hold, 1 either fails, 2 refused.
+       PGEN_PARITY_MANIFEST / PGEN_PARITY_SV2023_MANIFEST  override the two manifests (the doctrine's red control
+                    replays the pair that lagged at PGEN-SV-CORPUS-GRAD-0439 from git history)
 """
 from __future__ import annotations
-import csv, re, sys
+import csv, os, re, sys
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[5]
 A17 = ROOT / "docs/systemverilog/2017/md/section-41-data-read-api.md"
 A23 = ROOT / "docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md"
-MANIFEST = ROOT / "stimuli/sv/characterization/adjudication_manifest.tsv"
+MANIFEST = Path(os.environ.get("PGEN_PARITY_MANIFEST") or ROOT / "stimuli/sv/characterization/adjudication_manifest.tsv")
+SV2023_MANIFEST = Path(os.environ.get("PGEN_PARITY_SV2023_MANIFEST") or ROOT / "stimuli/sv/characterization/adjudication_manifest_sv2023.tsv")
+# SV-CORPUS-GRAD.54: the two markers the adjudicator writes into an sv_2023 basis (adjudicate_external_corpus.py,
+# the .14b.3 carry-over): a row this artifact decides IDENTICAL must read CARRY_MARK; a row still reading OWED_MARK
+# while IDENTICAL here was adjudicated BEFORE this artifact learnt its citation — the one-pass lag.
+CARRY_MARK = "CARRIES OVER"
+OWED_MARK = "its 1800-2023 re-read is owed (.14b.3)"
 HEAD_RE = re.compile(r"^([a-z_][a-z_0-9]*)\s*::=\s*(.*)$")
 
 
@@ -83,6 +95,26 @@ def cited_names(basis: str, heads17: list[tuple[int, str]] | None = None) -> lis
     return out
 
 
+def manifest_agreement(verdicts, sv2023_rows):
+    """SV-CORPUS-GRAD.54 — does the sv_2023 manifest AGREE with this derivation? The adjudicator reads parity.tsv to
+    carry a 2017 ruling over, and parity.tsv reads the sv_2017 manifest's citations, so a NEW pin needs two passes
+    (adjudicate -> parity -> adjudicate); PGEN-SV-CORPUS-GRAD-0439 stopped after one and published three rows as
+    `re-read is owed` beside an artifact saying IDENTICAL. Returns (ok, summary line, detail lines): every row
+    decided IDENTICAL must exist in the sv_2023 manifest and carry CARRY_MARK in its basis."""
+    basis = {(r["suite"], r["relpath"]): r["basis"] for r in sv2023_rows}
+    identical = [(s_, rel) for s_, rel, v in verdicts if v and all(x.endswith(":IDENTICAL") for x in v)]
+    missing = [k for k in identical if k not in basis]
+    not_carried = [k for k in identical if k in basis and CARRY_MARK not in basis[k]]
+    owed = [k for k in not_carried if OWED_MARK in basis[k]]
+    ok = not missing and not not_carried
+    summary = (f"PARITY-MANIFEST-AGREEMENT: identical={len(identical)} carried_over={len(identical) - len(not_carried) - len(missing)} "
+               f"owed_but_identical={len(owed)} not_carried={len(not_carried)} missing_in_sv2023={len(missing)} {'OK' if ok else 'STALE'}")
+    details = [f"  STALE {s_} {rel}: parity says IDENTICAL, the sv_2023 row reads {'re-read is owed' if (s_, rel) in owed else 'neither marker'} "
+               "- run the adjudicator again (the fixed point is adjudicate -> parity --write -> adjudicate)" for s_, rel in not_carried]
+    details += [f"  STALE {s_} {rel}: parity decides it, the sv_2023 manifest has no such row - the manifests are out of step" for s_, rel in missing]
+    return ok, summary, details
+
+
 def main() -> int:
     if "--self-test" in sys.argv:
         p, heads = productions("x ::=\n```\n\na | b3\n```ebnf\nAuthorized licensed use limited to: nobody\ny22 ::= c ( d )\n")
@@ -92,6 +124,20 @@ def main() -> int:
               and normalise("@@( e )15") == normalise("@@ ( e )")
               and productions("z ::= q\n1176\nA.8.8 Strings\n| r\n")[0]["z"] == "q | r"
               and normalise("{ packed_dimension }13") == normalise("{ packed_dimension }17"))
+        # SV-CORPUS-GRAD.54: the agreement arm on literals — GREEN when every IDENTICAL row carries over; RED on an
+        # owed row, on a row with neither marker, on a row the sv_2023 manifest lacks; a DIFFERS row is never asked.
+        vs = [("s", "a", ["p:IDENTICAL"]), ("s", "b", ["q:DIFFERS"]), ("s", "c", ["r:IDENTICAL"]), ("s", "d", ["t:IDENTICAL"]), ("s", "e", ["u:IDENTICAL", "v:IDENTICAL"])]
+        rows = [{"suite": "s", "relpath": "a", "basis": "sv_2023 lane (.14b.3): the 2017 ruling CARRIES OVER mechanically"},
+                {"suite": "s", "relpath": "b", "basis": "sv_2023 lane (.14b.2): INHERITED ... " + OWED_MARK},
+                {"suite": "s", "relpath": "c", "basis": "sv_2023 lane (.14b.2): INHERITED ... " + OWED_MARK},
+                {"suite": "s", "relpath": "e", "basis": "the lane's own ruling, neither marker"}]
+        ok1, line1, det1 = manifest_agreement(vs, rows)
+        rows_green = rows[:2] + [{"suite": "s", "relpath": "c", "basis": "CARRIES OVER, re-read by hand"}, {"suite": "s", "relpath": "d", "basis": "CARRIES OVER mechanically"}, {"suite": "s", "relpath": "e", "basis": "CARRIES OVER mechanically"}]
+        ok2, line2, det2 = manifest_agreement(vs, rows_green)
+        ok = ok and (not ok1 and line1 == "PARITY-MANIFEST-AGREEMENT: identical=4 carried_over=1 owed_but_identical=1 not_carried=2 missing_in_sv2023=1 STALE"
+                     and len(det1) == 3 and any("s c: parity says IDENTICAL, the sv_2023 row reads re-read is owed" in d for d in det1)
+                     and any("s e: parity says IDENTICAL, the sv_2023 row reads neither marker" in d for d in det1) and any("s d: parity decides it" in d for d in det1)
+                     and ok2 and line2 == "PARITY-MANIFEST-AGREEMENT: identical=4 carried_over=4 owed_but_identical=0 not_carried=0 missing_in_sv2023=0 OK" and not det2)
         if not ok: print(p, heads)
         print(f"PRODUCTION-PARITY-SELFTEST: {'PASS' if ok else 'FAIL'}"); return 0 if ok else 1
     (p17, heads17), (p23, _h23) = productions(A17.read_text(encoding="utf-8")), productions(A23.read_text(encoding="utf-8"))
@@ -142,9 +188,20 @@ def main() -> int:
         new_tsv, new_md = "\n".join(tsv) + "\n", "\n".join(md)
         if "--check" in sys.argv:
             cur = (out_tsv.read_text() if out_tsv.is_file() else "", out_md.read_text() if out_md.is_file() else "")
-            if cur != (new_tsv, new_md):
-                print("production-parity: STALE — parity.tsv / parity.md differ from a fresh derivation; re-run with --write", file=sys.stderr); return 1
-            print("production-parity: current"); return 0
+            stale = cur != (new_tsv, new_md)
+            if stale:
+                print("production-parity: STALE — parity.tsv / parity.md differ from a fresh derivation; re-run with --write", file=sys.stderr)
+            else:
+                print("production-parity: current")
+            # SV-CORPUS-GRAD.54: the manifest-side arm — evaluated whether or not the artifact is current, so a stale
+            # artifact and a lagging manifest are both named in one run
+            if not SV2023_MANIFEST.is_file():
+                print(f"production-parity: REFUSED - no sv_2023 manifest at {SV2023_MANIFEST}", file=sys.stderr); return 2
+            ok, line, details = manifest_agreement(verdicts, list(csv.DictReader(SV2023_MANIFEST.open(encoding="utf-8"), delimiter="\t")))
+            print(line)
+            for d in details:
+                print(d, file=sys.stderr)
+            return 1 if (stale or not ok) else 0
         out_tsv.write_text(new_tsv); out_md.write_text(new_md); print(f"wrote {out_tsv.relative_to(ROOT)} and {out_md.relative_to(ROOT)}")
     if "--show" in sys.argv:
         for name, v in per_name.items():
