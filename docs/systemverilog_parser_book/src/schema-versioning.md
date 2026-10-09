@@ -345,20 +345,32 @@ each under the memory guard, sequentially.
    `--report-sample-parity` `defects=0`; the interpreter on every reproducer pin (defect pins flip,
    controls do not); typed AST byte-identity on the controls where the change is shape-neutral.
 2. **Regenerate and build**: `make focus_systemverilog`, the debug `ast_pipeline`, the release
-   `parseability_probe` (≈20 min, peak ≈12 GB — in the background, under the guard). ⛔ Copy the
-   four binaries into the scratch directory (`rust/target/svNN/bin/`) the moment they are built and point
-   every later MEASURING step — the lanes, the adjudication, the store-gate, the pipeline re-render — at
-   the copies, never at `rust/target/{debug,release}/parseability_probe`: a gate run later in the chain
-   rebuilds those paths over the published binaries, a rebuild is not byte-reproducible on this host, and a
-   tracked report then names a binary that no longer exists (`SV-CORPUS-GRAD.52`, 2026-10-09: the debug
-   probe the three pipeline readings named was gone and the readings had to be re-run; the lowmem copy saved
-   the release identity; `.53` owns the chain change).
+   `parseability_probe` (≈20 min, peak ≈12 GB — in the background, under the guard). ⛔ Then, the moment
+   they are built, `bash scripts/sv_ceremony_binaries.sh snapshot rust/target/svNN`: the three binaries are
+   copied into the scratch directory with their digests and parser fingerprints (`bin/identity.tsv`,
+   `sha_final.txt`). Later items REBUILD the published paths — `verilog_2005_conformance_gate` the release
+   probe, the parity / equivalence gates and the lib suite the debug pair — and a rebuild is not
+   byte-reproducible on this host, so a tracked report would name a binary that no longer exists
+   (`SV-CORPUS-GRAD.52`, 2026-10-09: the debug probe the three pipeline readings named was gone and the
+   readings had to be re-run; the lowmem copy saved the release identity). The chain therefore runs
+   `… restore rust/target/svNN` before every measuring step that follows such a gate and as its LAST step,
+   and `… verify rust/target/svNN` at the end — the RED arm: the copies, the published paths, every tracked
+   report's `parse binary` row and the store-gate memo must all name the ceremony's bytes (`.53`). ⛔ The
+   published paths stay the ONLY paths a tracked artifact may name: the lane runner adopts the recorded
+   probe path on its next run, and a scratch path is gone within a week.
 3. **Pins**: `python3 stimuli/sv/run_adjudication_repros.py` → `failures=0`, with every
    `class=defect` row flipped to `fixed` the day it parses.
 4. **Corpus, all three lanes, per path and two-sided**: `stimuli/run_external_corpus.sh sv 60 8 0`,
    `sv2005 60 8 0` and `sv2023 60 8 0` — `pass → fail` 0, every moved row named; the adjudicator's
    manifests for all three lanes (`adjudication_manifest{,_v2005,_sv2023}.tsv`), their summaries and the
-   store-gate memo (its key: file sha, binary sha, instrument digest);
+   store-gate memo (its key: file sha, binary sha, instrument digest — its binary column is held to the
+   lane report by `store_gate_explanations.py --check-identity`, the store-gate bank's A13 arm on every
+   commit, and a run that publishes anything but the tracked manifest writes its memo beside its own
+   manifest, never the tracked one, `.53`). ⛔ Run the adjudicator, then the parity derivation
+   (`docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/production_parity.py --write`), then the adjudicator
+   AGAIN: the sv_2023 lane's carry-over of a NEW 2017 clause pin reads the parity artifact, and the parity
+   artifact reads the manifest's new citation — one pass leaves the row `re-read is owed` for a commit
+   (`.53` found three such rows from `.52`; `.54` owns the check that the pair agrees);
    the sv_2017 × sv_2023 verdict census (`docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.py`,
    an identity carrier — `2017_only_pass` must stay 0: nothing legal under 2017 may be lost under 2023).
    And the PIPELINE lane, both readings, whenever the parser or the preprocessor moved:
@@ -379,6 +391,7 @@ each under the memory guard, sequentially.
    `accepted_rises.tsv`, and the LR-family share's anchors move with the share.
 9. **Downstream derivations**: dark audit + dark worklist, verdict coverage, key provenance, the two
    keyword censuses (`--write`), `check_corpus_key_integrity.sh`, `check_identity_carriers.sh`,
+   `sv_ceremony_binaries.sh verify rust/target/svNN` (item 2's RED arm, after the last `restore`),
    `check_sv_corpus_denominator.sh`, `report_family_status.sh --check-all` (re-splice the derived
    blocks), `report_grammar_certification.sh --markdown` (re-splice the per-grammar certification table —
    `GRAMMAR-CERT-CURRENCY` refuses when its inputs lead the table by more than ten commits, which is how

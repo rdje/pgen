@@ -304,6 +304,14 @@ OPEN_WORDS = ("active", "proposed", "pending", "blocked", "paused", "todo")
 CLOSED_WORDS = ("done", "complete", "completed", "superseded", "closed")
 
 
+def split_cells(line):
+    """A table row's cells, with an escaped `\\|` kept as CONTENT — the rule `check_table_arity.sh` already
+    applies. SV-CORPUS-GRAD.53 (2026-10-09): the SV-CORPUS-GRAD index row gained a code span spelling
+    `snapshot\\|restore\\|verify`, the arity ratchet accepted the row, and this reader split it at the first
+    escaped pipe — the status cell lost its `active` and the row was published as *carries no status word*."""
+    return [c.replace("\x01", "\\|") for c in line.replace("\\|", "\x01").split("|")]
+
+
 def polarity(cell):
     """OPEN / CLOSED / UNREADABLE from a prose status cell — the FIRST status word wins.
 
@@ -371,7 +379,7 @@ def index_rows():
             m = INDEX_ROW_RE.match(ln)
             if not m:
                 continue
-            cells = ln.split("|")
+            cells = split_cells(ln)
             if len(cells) < 6:
                 continue
             # ⛔ The tree-file link is searched over the WHOLE ROW, not over cells[5]. A row whose
@@ -554,7 +562,7 @@ def derive(FAMILY):
                         break
                     continue
                 s = line.strip().strip("|")
-                cells = [c.strip() for c in s.split("|")]
+                cells = [c.strip() for c in split_cells(s)]
                 if all(re.fullmatch(r":?-{2,}:?", c) for c in cells):
                     seen_sep = True
                     continue

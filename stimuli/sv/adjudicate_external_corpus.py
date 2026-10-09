@@ -70,6 +70,7 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -5703,14 +5704,34 @@ def _sg():
 
 
 def report_parse_binary_sha(report: Path) -> str:
-    """The `parse binary` digest the TRACKED lane report names; "" when the report is absent."""
-    if not report.is_file():
-        return ""
-    for line in report.read_text(encoding="utf-8").splitlines():
-        m = IDENTITY_ROW_RE.match(line)
-        if m and m.group(1).strip() == "parse binary":
-            return m.group(3)
-    return ""
+    """The `parse binary` digest the TRACKED lane report names; "" when the report is absent.
+    ONE definition — the memo module's (SV-CORPUS-GRAD.53 gave it a reader-side check that uses the same one)."""
+    return _sg().report_parse_binary_sha(Path(report))
+
+
+def resolve_store_gate_cache(explicit, out_manifest, tracked_cache, tracked_manifest, log=print) -> Path:
+    """SV-CORPUS-GRAD.53. The memo a run WRITES follows the manifest it PUBLISHES: an explicit --store-gate-cache
+    wins; a run publishing the TRACKED manifest writes the TRACKED memo; any other run (the conformance gate's
+    scratch re-measure, an experiment under --out-manifest) writes a memo BESIDE its manifest, seeded from the
+    tracked one so agreeing rows stay hits — and never touches the tracked file. Release 1.0.252 committed 54
+    tracked sv_2017 rows that `sv_external_corpus_conformance_gate.sh` had measured against a rebuilt probe the
+    tracked report does not name (the gate passed scratch --report/--out-manifest paths and the memo path
+    defaulted to the tracked file). This is the writer-side half of the fix; the memo module's
+    `check_identity` (the store-gate bank's A13 arm) is the reader-side half."""
+    if explicit is not None:
+        return Path(explicit)
+    out_manifest, tracked_cache, tracked_manifest = Path(out_manifest), Path(tracked_cache), Path(tracked_manifest)
+    if out_manifest.resolve() == tracked_manifest.resolve():
+        return tracked_cache
+    sibling = out_manifest.parent / tracked_cache.name
+    seeded = ""
+    if not sibling.exists() and tracked_cache.is_file():
+        sibling.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(tracked_cache, sibling)
+        seeded = ", seeded from the tracked memo"
+    log(f"store-gate: a run publishing {out_manifest} is not the tracked adjudication - its memo is {sibling}"
+        f"{seeded}; the tracked memo is not written (SV-CORPUS-GRAD.53)")
+    return sibling
 
 
 def resolve_corpus_path(args):
@@ -6588,6 +6609,23 @@ def _self_test_store_gate() -> int:
               by[("s", "b.sv")][4] == "divergence:unexplained_rejects_valid" and "residual:not_parsed_with_declarations" in by[("s", "b.sv")][5] and "`U`" in by[("s", "b.sv")][5])
         check("match and accepts-invalid rows are byte-identical", by[("s", "c.sv")] == manifest[2] and by[("s", "r.sv")] == manifest[3])
         check("the cache holds exactly the candidate population", sorted(k[2] for k in cache) == ["a.sv", "b.sv"])
+        # SV-CORPUS-GRAD.53: the memo a run writes follows the manifest it publishes
+        (d / "tracked").mkdir()
+        tracked_cache = d / "tracked" / "store_gate_cache.tsv"; tracked_manifest = d / "tracked" / "adjudication_manifest.tsv"
+        sg.save_cache(tracked_cache, {("sv_2017", "s", "a.sv"): dict(zip(sg.CACHE_COLUMNS, ["sv_2017", "s", "a.sv", "1" * 64, "2" * 64, "3" * 64, sg.EXPLAINED, "T", "class"]))})
+        msgs = []
+        check(".53: an explicit --store-gate-cache wins, silently",
+              resolve_store_gate_cache(d / "x.tsv", d / "w" / "m.tsv", tracked_cache, tracked_manifest, log=msgs.append) == d / "x.tsv" and not msgs)
+        check(".53: a run publishing the tracked manifest writes the tracked memo, silently",
+              resolve_store_gate_cache(None, tracked_manifest, tracked_cache, tracked_manifest, log=msgs.append) == tracked_cache and not msgs)
+        before = tracked_cache.read_bytes()
+        got = resolve_store_gate_cache(None, d / "w" / "adjudication_manifest.tsv", tracked_cache, tracked_manifest, log=msgs.append)
+        check(".53: any other run writes BESIDE its manifest, seeded from the tracked memo, and says so",
+              got == d / "w" / "store_gate_cache.tsv" and got.read_bytes() == before and len(msgs) == 1
+              and "seeded" in msgs[0] and "the tracked memo is not written" in msgs[0])
+        check(".53: the tracked memo is untouched by that resolution", tracked_cache.read_bytes() == before)
+        got2 = resolve_store_gate_cache(None, d / "w" / "adjudication_manifest.tsv", tracked_cache, tracked_manifest, log=msgs.append)
+        check(".53: an existing sibling memo is reused, never re-seeded over", got2 == got and len(msgs) == 2 and "seeded" not in msgs[1])
     print(f"store-gate self-test: {'PASS' if not fails else 'FAIL'} ({len(fails)} failing)")
     return 1 if fails else 0
 
@@ -7382,10 +7420,12 @@ def main():
                     type=Path,
                     help="the TRACKED sv-lane report whose instrument identity names the raw "
                          "dumps this run may read (SV-CORPUS-GRAD.13e.6)")
-    ap.add_argument("--store-gate-cache", type=Path,
-                    default=root / "stimuli/sv/characterization/store_gate_cache.tsv",
-                    help="SV-CORPUS-GRAD.13w: the tracked memo of store-gate measurements "
-                         "(re-measured per row when its bytes or the parser change)")
+    ap.add_argument("--store-gate-cache", type=Path, default=None,
+                    help="SV-CORPUS-GRAD.13w: the memo of store-gate measurements (re-measured per row when its "
+                         "bytes or the parser change). Default (SV-CORPUS-GRAD.53): the TRACKED memo "
+                         "stimuli/sv/characterization/store_gate_cache.tsv when --out-manifest is the tracked "
+                         "manifest, otherwise a memo BESIDE --out-manifest seeded from the tracked one - a scratch "
+                         "run never writes the tracked memo")
     ap.add_argument("--store-gate-jobs", type=int, default=8)
     ap.add_argument("--report-v2005",
                     default=root / "stimuli/sv/characterization/characterization_v2005.md",
@@ -7419,6 +7459,11 @@ def main():
                 | _self_test_macro_definition_tell()
                 | _self_test_ivtest_lists(args.subs_root / "iverilog" / "ivtest"))
 
+    args.store_gate_cache = resolve_store_gate_cache(
+        args.store_gate_cache, args.out_manifest,
+        root / "stimuli/sv/characterization/store_gate_cache.tsv",
+        root / "stimuli/sv/characterization/adjudication_manifest.tsv",
+        log=lambda msg: print(msg, file=sys.stderr))
     verify_outcome_identity(args.report, [args.results, args.positions],
                             rerun="stimuli/run_external_corpus.sh sv")
 

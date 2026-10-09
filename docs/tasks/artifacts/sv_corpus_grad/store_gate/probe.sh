@@ -8,7 +8,7 @@
 # commit and in CI; before it, this bank was run by nothing and sat RED for six commits.
 set -u
 cd "$(dirname "$0")/../../../../.." || exit 2
-DECLARED=12
+DECLARED=13
 pass=0; fail=0
 arm() { # arm <name> <rc>  (rc 0 = PASS)
   if [ "$2" -eq 0 ]; then pass=$((pass+1)); echo "  PASS  $1"; else fail=$((fail+1)); echo "  FAIL  $1"; fi
@@ -192,6 +192,23 @@ print(("ORACLE-AGREES " if ok else "ORACLE-DISAGREES ")
       + f"decl={decl} linted={linted} uses_before={before} uses_after={len(after)} declared_before_use_lints={clean}")
 PY
 ); grep -q '^ORACLE-AGREES ' <<<"$out"; arm "A12 .17: Surelog's own golden log lints scalar_t at EXACTLY its pre-declaration uses ($out)" $?
+
+# A13 (SV-CORPUS-GRAD.53) IDENTITY: every memo row names the parse binary its lane's TRACKED report names, lane by
+# lane — and a flipped row is REFUSED. Release 1.0.252 committed 54 sv_2017 rows naming `b7ce38c4…` (a gate's scratch
+# re-measure against a rebuilt probe, memoised into the TRACKED cache) beside a report naming `6af036ea…`; nothing read
+# the column. The GREEN half runs the check on the tracked pair; the RED half flips one row's digest in a scratch copy.
+out=$(python3 "$SG" --check-identity 2>&1); rc=$?
+red=$(python3 - <<'PY'
+import importlib.util, shutil, tempfile
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("sg", "stimuli/sv/store_gate_explanations.py"); sg = importlib.util.module_from_spec(spec); spec.loader.exec_module(sg)
+with tempfile.TemporaryDirectory(dir="rust/target") as td:
+    c = Path(td) / "cache.tsv"; shutil.copyfile(sg.DEFAULT_CACHE, c)
+    cache = sg.load_cache(c); cache[sorted(cache)[0]]["binary_sha256"] = "f" * 64; sg.save_cache(c, cache)
+    rc, summary, det = sg.check_identity(c, sg.DEFAULT_CHARACTERIZATION_DIR)
+    print("RED-OK" if (rc == 1 and summary.startswith("STORE-GATE-IDENTITY: MISMATCH (") and len(det) == 1) else "RED-MISSED " + summary)
+PY
+); [ "$rc" -eq 0 ] && grep -q '^STORE-GATE-IDENTITY: OK (' <<<"$out" && [ "$red" = "RED-OK" ]; arm "A13 .53 identity: the memo's binary column equals each lane report's parse-binary digest ($(grep -o '^STORE-GATE-IDENTITY: [A-Z]*' <<<"$out" | head -1)); a flipped row is refused ($red)" $?
 
 echo "store_gate bank: ${pass}/${DECLARED} as declared (fail=${fail})"
 [ "$pass" -eq "$DECLARED" ] && [ "$fail" -eq 0 ]

@@ -83,6 +83,8 @@ different parser than the results would be a number about nothing.
 CLI:
     python3 stimuli/sv/store_gate_explanations.py --self-test
     python3 stimuli/sv/store_gate_explanations.py --report          # the cache, summarised
+    python3 stimuli/sv/store_gate_explanations.py --check-identity  # SV-CORPUS-GRAD.53: every memo row names the
+                                                                    # binary its lane's TRACKED report names (rc 1 on a split)
 """
 from __future__ import annotations
 
@@ -100,6 +102,16 @@ CLASS = "divergence:explained_store_gate"
 LEAF = "SV-CORPUS-GRAD.13w"
 DEFAULT_CACHE = ROOT / "stimuli/sv/characterization/store_gate_cache.tsv"
 CACHE_COLUMNS = ["lane", "suite", "relpath", "file_sha256", "binary_sha256", "instrument_sha256", "verdict", "names", "forms"]
+# SV-CORPUS-GRAD.53: the memo's `binary_sha256` is COPIED from the lane report's `parse binary` row at measurement
+# time, so the two can only disagree when a row was measured against a report other than the tracked one. That
+# happened: `sv_external_corpus_conformance_gate.sh` re-measures the sv lane into a SCRATCH report (whatever binary
+# sits at the release path when it runs) and then ran the adjudicator, whose memo path defaulted to the TRACKED
+# cache — release 1.0.252 committed 54 sv_2017 rows naming `b7ce38c4…` beside a report naming `6af036ea…`.
+# `check_identity` holds the column to the report, lane by lane; the bank's A13 arm runs it on every commit.
+DEFAULT_CHARACTERIZATION_DIR = ROOT / "stimuli/sv/characterization"
+LANE_REPORTS = {"sv_2017": "characterization.md", "verilog_2005": "characterization_v2005.md",
+                "sv_2023": "characterization_sv2023.md"}
+IDENTITY_ROW_RE = re.compile(r"^\|\s*([^|]+?)\s*\|\s*`([^`]+)`\s*\|\s*`([0-9a-f]{64})`\s*\|\s*$")
 # SV-CORPUS-GRAD.15: the INSTRUMENT is part of the memo key. A verdict is a function of the file's bytes,
 # the parser binary AND the search that produced it (this module plus the dark-worklist machinery it
 # imports by path). `.13x.e` changed the search and the memo did not notice until a hand prune; a key
@@ -443,6 +455,54 @@ def explain_rows(lane: str, candidates, report_binary_sha: str, binary_path: Pat
     return wanted
 
 
+def report_parse_binary_sha(report: Path) -> str:
+    """The `parse binary` digest a lane report names in its instrument-identity table; "" when the report
+    is absent or carries no such row. ONE definition — the adjudicator reads it from here."""
+    if not Path(report).is_file():
+        return ""
+    for line in Path(report).read_text(encoding="utf-8").splitlines():
+        m = IDENTITY_ROW_RE.match(line)
+        if m and m.group(1).strip() == "parse binary":
+            return m.group(3)
+    return ""
+
+
+def check_identity(cache_path: Path, char_dir: Path):
+    """SV-CORPUS-GRAD.53. For every lane the memo holds rows for, the set of `binary_sha256` values is exactly
+    {the digest the lane's TRACKED report names}. Returns (rc, summary_line, detail_lines): rc 0 holds, 1 a
+    lane whose rows name another binary (or two) or a lane no report is defined for, 2 REFUSED — the cache or
+    a report the memo needs is absent, so the subject cannot be inspected and the check says so."""
+    cache_path, char_dir = Path(cache_path), Path(char_dir)
+    if not cache_path.is_file():
+        return 2, f"STORE-GATE-IDENTITY: REFUSED — no memo at {cache_path}", []
+    cache = load_cache(cache_path)
+    rc, parts, details = 0, [], []
+    for lane in sorted(set(LANE_REPORTS) | {k[0] for k in cache}):
+        rows = [r for k, r in cache.items() if k[0] == lane]
+        if lane not in LANE_REPORTS:
+            rc = max(rc, 1); parts.append(f"{lane}: rows={len(rows)} UNKNOWN LANE (no tracked report is defined for it)")
+            continue
+        if not rows:
+            parts.append(f"{lane}: rows=0")
+            continue
+        report = char_dir / LANE_REPORTS[lane]
+        named = report_parse_binary_sha(report)
+        if not named:
+            rc = 2; parts.append(f"{lane}: rows={len(rows)} REFUSED ({report} names no `parse binary` digest)")
+            continue
+        shas = sorted({r["binary_sha256"] for r in rows})
+        if shas == [named]:
+            parts.append(f"{lane}: rows={len(rows)} binary={named[:12]}… = the report's")
+        else:
+            rc = max(rc, 1)
+            parts.append(f"{lane}: rows={len(rows)} MISMATCH memo={'/'.join(x[:12] + '…' for x in shas)} report={named[:12]}…")
+            for r in rows:
+                if r["binary_sha256"] != named:
+                    details.append(f"  {lane}\t{r['suite']}\t{r['relpath']}\tmemo={r['binary_sha256'][:12]}…\treport={named[:12]}…")
+    verdict = {0: "OK", 1: "MISMATCH", 2: "REFUSED"}[rc]
+    return rc, f"STORE-GATE-IDENTITY: {verdict} (" + "; ".join(parts) + ")", details
+
+
 def basis_suffix(row: dict) -> str:
     forms_list = str(row["forms"]).split("+")
     # ⛔ `startswith`, never `in`: `declared_as:` is a SUBSTRING of `redeclared_as:`, so a
@@ -573,6 +633,36 @@ def _self_test() -> int:
             check("a binary that is not the report's REFUSES to measure", False)
         except SystemExit as e:
             check("a binary that is not the report's REFUSES to measure", "REFUSED" in str(e))
+    # SV-CORPUS-GRAD.53 — the identity check: GREEN on an agreeing pair, RED on a split lane, RED on an unknown
+    # lane, REFUSED on a report that names nothing; then the tracked pair itself must read OK.
+    with tempfile.TemporaryDirectory(dir=str(ROOT / "rust/target")) as td:
+        d = Path(td); (d / "char").mkdir()
+        a, b = "a" * 64, "b" * 64
+        (d / "char" / "characterization.md").write_text("| parse binary | `rust/target/release/parseability_probe` | `" + a + "` |\n")
+        (d / "char" / "characterization_sv2023.md").write_text("| parse binary | `rust/target/release/parseability_probe` | `" + b + "` |\n")
+        rows = {("sv_2017", "s", "x.sv"): {"lane": "sv_2017", "suite": "s", "relpath": "x.sv", "file_sha256": "1" * 64, "binary_sha256": a, "instrument_sha256": "2" * 64, "verdict": EXPLAINED, "names": "T", "forms": "class"},
+                ("sv_2017", "s", "y.sv"): {"lane": "sv_2017", "suite": "s", "relpath": "y.sv", "file_sha256": "3" * 64, "binary_sha256": a, "instrument_sha256": "2" * 64, "verdict": "residual:parses_bare", "names": "", "forms": ""},
+                ("sv_2023", "s", "x.sv"): {"lane": "sv_2023", "suite": "s", "relpath": "x.sv", "file_sha256": "1" * 64, "binary_sha256": b, "instrument_sha256": "2" * 64, "verdict": EXPLAINED, "names": "T", "forms": "class"}}
+        cp = d / "cache.tsv"; save_cache(cp, rows)
+        rc, summary, det = check_identity(cp, d / "char")
+        check(".53: a memo whose rows name each lane report's binary reads OK", rc == 0 and summary.startswith("STORE-GATE-IDENTITY: OK (") and "verilog_2005: rows=0" in summary and not det)
+        rows[("sv_2017", "s", "y.sv")]["binary_sha256"] = "c" * 64; save_cache(cp, rows)
+        rc, summary, det = check_identity(cp, d / "char")
+        check(".53 RED: one sv_2017 row naming another binary is a MISMATCH that names the lane, both digests and the row",
+              rc == 1 and "MISMATCH" in summary and "sv_2017: rows=2 MISMATCH memo=aaaaaaaaaaaa…/cccccccccccc… report=aaaaaaaaaaaa…" in summary
+              and len(det) == 1 and "y.sv" in det[0] and "sv_2023: rows=1 binary=bbbbbbbbbbbb… = the report's" in summary)
+        rows[("sv_2017", "s", "y.sv")]["binary_sha256"] = a
+        rows[("sv_2099", "s", "z.sv")] = dict(rows[("sv_2023", "s", "x.sv")], lane="sv_2099", relpath="z.sv"); save_cache(cp, rows)
+        rc, summary, _ = check_identity(cp, d / "char")
+        check(".53 RED: a lane no tracked report is defined for is a breach, never silently skipped", rc == 1 and "sv_2099: rows=1 UNKNOWN LANE" in summary)
+        del rows[("sv_2099", "s", "z.sv")]; save_cache(cp, rows)
+        (d / "char" / "characterization_sv2023.md").write_text("no identity table here\n")
+        rc, summary, _ = check_identity(cp, d / "char")
+        check(".53 REFUSED: a report that names no `parse binary` digest cannot be compared, and the check says so (rc 2)", rc == 2 and "sv_2023: rows=1 REFUSED" in summary)
+        rc, summary, _ = check_identity(d / "absent.tsv", d / "char")
+        check(".53 REFUSED: an absent memo is rc 2", rc == 2 and "no memo" in summary)
+    rc, summary, det = check_identity(DEFAULT_CACHE, DEFAULT_CHARACTERIZATION_DIR)
+    check(f".53 LIVE: the tracked memo names each lane report's binary ({summary})", rc == 0 and not det)
     # live: the parser itself, if built
     if m.PROBE.is_file():
         m.PROFILE = PROFILES["sv_2017"]
@@ -633,13 +723,24 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--report", action="store_true", help="summarise the tracked cache")
+    ap.add_argument("--check-identity", action="store_true",
+                    help="SV-CORPUS-GRAD.53: every memo row's binary_sha256 is the digest its lane's tracked report "
+                         "names (rc 0 holds, 1 a split lane, 2 the subject cannot be inspected)")
     ap.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
+    ap.add_argument("--characterization-dir", type=Path, default=DEFAULT_CHARACTERIZATION_DIR,
+                    help="where the three lane reports live (a seam for the self-tests and the ceremony helper)")
     a = ap.parse_args()
     if a.self_test:
         raise SystemExit(_self_test())
     if a.report:
         print(report(a.cache))
         return
+    if a.check_identity:
+        rc, summary, details = check_identity(a.cache, a.characterization_dir)
+        print(summary)
+        for line in details:
+            print(line, file=sys.stderr)
+        raise SystemExit(rc)
     ap.print_help()
 
 

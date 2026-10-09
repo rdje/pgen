@@ -46,6 +46,12 @@ for root in $CORPUS_ROOTS; do
 done
 
 rm -rf "$WORK_DIR"; mkdir -p "$WORK_DIR/characterization" "$LOG_DIR"
+# SV-CORPUS-GRAD.53: this gate re-measures the lanes with whatever binary sits at the release path WHEN IT RUNS, so
+# its adjudication memo lives BESIDE its scratch manifest - seeded from the tracked memo so agreeing rows stay hits -
+# and never the tracked file: release 1.0.252 committed 54 tracked sv_2017 rows this gate had measured against a
+# rebuilt probe (`b7ce38c4...`) the tracked report does not name (`6af036ea...`). The adjudicator resolves the same
+# sibling path on its own when --store-gate-cache is omitted; it is passed here so the gate's intent is explicit.
+cp "$TRACKED_DIR/store_gate_cache.tsv" "$WORK_DIR/store_gate_cache.tsv"
 : >"$SUMMARY_TXT"
 run_logged() {
     local label="$1"; shift; local log_file="$LOG_DIR/${label}.log"
@@ -63,7 +69,8 @@ run_logged "adjudicate" python3 "$ADJUDICATOR" \
     --results-v2005 "$C/results_v2005.tsv" --positions-v2005 "$C/positions_v2005.tsv" --report-v2005 "$C/characterization_v2005.md" \
     --out-manifest "$WORK_DIR/adjudication_manifest.tsv" --out-manifest-v2005 "$WORK_DIR/adjudication_manifest_v2005.tsv" \
     --out-summary "$WORK_DIR/adjudication_summary.md" --out-summary-v2005 "$WORK_DIR/adjudication_summary_v2005.md" \
-    --out-lane-list "$WORK_DIR/v2005_lane_files.tsv"
+    --out-lane-list "$WORK_DIR/v2005_lane_files.tsv" \
+    --store-gate-cache "$WORK_DIR/store_gate_cache.tsv"
 # 3. compare with the tracked adjudication — the exit code is the regression bit
 set +e
 python3 "$COMPARE" --tracked "$TRACKED_MANIFEST" --fresh "$WORK_DIR/adjudication_manifest.tsv" \

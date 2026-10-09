@@ -3363,7 +3363,11 @@ observation was simply unused.
 > binary sha256 the lane's report names **and** (since `SV-CORPUS-GRAD.15`) the digest of the two
 > producers' own bytes, so an instrument edit re-measures by construction — a measurement is REFUSED when the binary on disk is not
 > that one, because a verdict measured against a different parser than the results would describe
-> nothing. `adjudicated` is unchanged at 7 556 and `match` at 5 851: nothing was promoted, and the
+> nothing. Since `SV-CORPUS-GRAD.53` the memo's binary column is also held to the lane report on every
+> commit (`store_gate_explanations.py --check-identity`, the store-gate bank's A13 arm), and a scratch
+> adjudication — the conformance gate's re-measure — writes its memo beside its own manifest, never the
+> tracked one: release `1.0.252` had committed 54 rows naming a rebuilt probe beside a report naming the
+> lane's. `adjudicated` is unchanged at 7 556 and `match` at 5 851: nothing was promoted, and the
 > 46 that moved were never testimony against the parser.
 
 > ⭐ **Four of the no-verdict classes are PERMANENT by construction and BOUNDED** (`SV-CORPUS-GRAD.13f`, 2026-09-03): `deferred:svpp_owned` (186 — conformance owned by the preprocessor lane), `deferred:impl_varying` (90 — the suite contract marks the verdict implementation-dependent), `deferred:verilog_ams_lane` (20 — a different language) and `deferred:ni_unimplemented` (6 — upstream skips the construct): **302 rows, 1.8 %**, unchanged since `.13a` measured them on 2026-08-11. Each has a recorded ceiling in `permanent_deferral_ceilings.json` that `corpus_verdict_coverage.py` **refuses to exceed** — a new row joins a class only by naming its argument and raising the ceiling in the same commit — so a permanent deferral can no longer grow silently or be mistaken for a to-do. ⭐ **A fifth class joined on 2026-09-03 (`.13c.1`, `PGEN-SV-CORPUS-GRAD-0345`): `deferred:not_source_text` (350 — the bytes are not source text in any language this grammar describes: a `$readmemh` memory image, a bare string literal, a tool command line), decided from the bytes by the adjudicator and bounded at exactly its count — 652 permanent rows, 4.0 %.** The fragment-shaped one-sided positives (`.13g`) are ruled unadjudicable as whole files and never counted as testimony.
