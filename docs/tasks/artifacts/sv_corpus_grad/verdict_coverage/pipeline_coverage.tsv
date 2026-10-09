@@ -1,18 +1,17 @@
 bucket	class	rows	pct
-ADJUDICATED	match	5891	36.06
+ADJUDICATED	match	5931	36.31
 ROUTED	deferred:v2005_profile_lane	2943	18.02
 ADJUDICATED	pipeline:chained:accepted_under_expansion	1501	9.19
 ADJUDICATED	pipeline:chained:accepted_in_unit	1501	9.19
-ADJUDICATED	pipeline:corroborated	1332	8.15
-ADJUDICATED	pipeline:must_reject:match_under_expansion	450	2.75
-NO VERDICT	pipeline:chained:refused_context	382	2.34
+ADJUDICATED	pipeline:corroborated	1334	8.17
+ADJUDICATED	pipeline:must_reject:match_under_expansion	454	2.78
+NO VERDICT	pipeline:chained:refused_context	384	2.35
 NO VERDICT	deferred:not_source_text	350	2.14
 NO VERDICT	pipeline:chained:unreached_in_unit	337	2.06
 NO VERDICT	pipeline:chained:rejects_own_file	305	1.87
 ADJUDICATED	pipeline:svpp_owned:corroborated	94	0.58
 NO VERDICT	deferred:impl_varying	90	0.55
 ADJUDICATED	divergence:explained_store_gate	54	0.33
-NO VERDICT	deferred:no_sv_key	48	0.29
 NO VERDICT	deferred:verilog_ams_lane	25	0.15
 NO VERDICT	pipeline:svpp_owned:refused_engine	24	0.15
 NO VERDICT	pipeline:refused_context	22	0.13
@@ -30,4 +29,4 @@ NO VERDICT	pipeline:svpp_owned:accepted_under_expansion	2	0.01
 NO VERDICT	pipeline:svpp_owned:refuted:key_question	2	0.01
 NO VERDICT	pipeline:refuted:preprocessor_item	1	0.01
 NO VERDICT	pipeline:must_reject:hollow	1	0.01
-TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	11457/2943/1936/1253/0	
+TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	11503/2943/1890/1247/0	

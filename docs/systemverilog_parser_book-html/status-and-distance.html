@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a1eb7a94.js";
+            window.path_to_searchindex_js = "searchindex-d7a80868.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -231,16 +231,16 @@ inapplicable one.</li>
 <tr><th>Outcome</th><th style="text-align: right">Rows</th><th style="text-align: right">Share of the corpus</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">6 266</td><td style="text-align: right">38.4 %</td></tr>
-<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 418</td><td style="text-align: right">8.7 %</td></tr>
+<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">6 310</td><td style="text-align: right">38.6 %</td></tr>
+<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 420</td><td style="text-align: right">8.7 %</td></tr>
 <tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">0</td><td style="text-align: right">0.0 %</td></tr>
 <tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 943</td><td style="text-align: right">18.0 %</td></tr>
-<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">5 709</td><td style="text-align: right">34.9 %</td></tr>
+<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">5 663</td><td style="text-align: right">34.7 %</td></tr>
 <tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
 </tbody>
 </table>
 </div>
-<p>Only <strong>7 684 rows (47.0 %)</strong> were asked a question they could answer, and <strong>3 821</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6266/7684 would quietly drop the 34.9 % carrying no verdict at all and the 18.0 % answered in another lane’s manifest.</p>
+<p>Only <strong>7 730 rows (47.3 %)</strong> were asked a question they could answer, and <strong>3 815</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6310/7730 would quietly drop the 34.7 % carrying no verdict at all and the 18.0 % answered in another lane’s manifest.</p>
 <p><strong>Under the reading leg 3 asserts</strong> (<code>DONE-BAR.3f</code>): the table above is the RAW lane; the bar reads a row the raw lane defers to the preprocess→parse pipeline under that pipeline’s re-adjudication, and names — never demands — the permanently unadjudicable classes, each held under a recorded ceiling. Derived by the register’s tracked assertion (<code>python3 stimuli/sv/corpus_conformance_compare.py --assert-tracked stimuli/sv/characterization/adjudication_manifest.tsv --assert-tracked-v2005 stimuli/sv/characterization/adjudication_manifest_v2005.tsv</code>), its sv_2017 reading cross-checked against the tuple under the pipeline that <code>bash scripts/check_sv_corpus_denominator.sh</code> prints.</p>
 <div class="table-wrapper">
 <table>
@@ -248,13 +248,13 @@ inapplicable one.</li>
 <tr><th>Lane</th><th style="text-align: right">Rows</th><th style="text-align: right">Adjudicated</th><th style="text-align: right">Permanently unadjudicable (named, bounded)</th><th style="text-align: right"><strong>Still awaiting a verdict</strong></th><th style="text-align: right">Unexplained</th><th style="text-align: right">Bar rows</th><th><code>full_pass</code></th></tr>
 </thead>
 <tbody>
-<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 457</td><td style="text-align: right">479</td><td style="text-align: right"><strong>1 457</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 503</td><td style="text-align: right">479</td><td style="text-align: right"><strong>1 411</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
 <tr><td><code>verilog_2005</code> — the routed rows, read raw under IEEE 1364-2005</td><td style="text-align: right">2 943</td><td style="text-align: right">2 897</td><td style="text-align: right">33</td><td style="text-align: right"><strong>13</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
-<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">14 354</td><td style="text-align: right">512</td><td style="text-align: right"><strong>1 470</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">14 400</td><td style="text-align: right">512</td><td style="text-align: right"><strong>1 424</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>The three row counts sum to the denominator (14 354 + 512 + 1 470 = 16 336). <strong>1 470 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
+<p>The three row counts sum to the denominator (14 400 + 512 + 1 424 = 16 336). <strong>1 424 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -337,7 +337,7 @@ refuses a commit whose published block or whose history’s last row disagrees w
 ESTIMATE over the last five recorded releases; a structural leg (a corpus conformance gate, the generator proof) is one item that costs more than a bar row;
 the 38 % of corpus rows with no verdict are an answer-key gap outside <code>items</code>; and an item can be opened by a release as well as closed — the history shows both.</p>
 <!-- BEGIN DERIVED: scripts/report_sv_release_distance.sh --markdown -->
-<p><strong>SV release distance: 20 items</strong> (<code>legs_unmet + bar_rows + open_leaves</code>).</p>
+<p><strong>SV release distance: 21 items</strong> (<code>legs_unmet + bar_rows + open_leaves</code>).</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -346,13 +346,13 @@ the 38 % of corpus rows with no verdict are an answer-key gap outside <code>item
 <tbody>
 <tr><td>Done-bar legs unmet</td><td style="text-align: right">3 of 3</td><td>the derived block above (<code>report_family_status.sh</code>)</td></tr>
 <tr><td>Corpus bar rows (unexplained divergences)</td><td style="text-align: right">0 (sv_2017 0, sv_2023 0, verilog_2005 0)</td><td><code>stimuli/sv/characterization/adjudication_manifest*.tsv</code></td></tr>
-<tr><td>Open leaves owning SV work</td><td style="text-align: right">17 (SV-CORPUS-GRAD 10, engine leaves SV opened 7)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
-<tr><td>Corpus passing (sv_2017, <code>match</code> rows)</td><td style="text-align: right">6266 of 16336 (38.4 %)</td><td>the sv_2017 manifest</td></tr>
+<tr><td>Open leaves owning SV work</td><td style="text-align: right">18 (SV-CORPUS-GRAD 11, engine leaves SV opened 7)</td><td><code>docs/tasks/SV-CORPUS-GRAD.md</code>, <code>docs/tasks/ENGINE-UNIVERSAL-SERVICES.md</code></td></tr>
+<tr><td>Corpus passing (sv_2017, <code>match</code> rows)</td><td style="text-align: right">6310 of 16336 (38.6 %)</td><td>the sv_2017 manifest</td></tr>
 <tr><td>Known defects (unexplained, sv_2017)</td><td style="text-align: right">0</td><td>the sv_2017 manifest</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>Trailing closure rate:</strong> -10.00 items per release over the last 5 recorded release(s); <strong>ETA ≈ n/a (no net closure over the window) releases ≈ n/a days</strong> — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.</p>
+<p><strong>Trailing closure rate:</strong> -6.00 items per release over the last 5 recorded release(s); <strong>ETA ≈ n/a (no net closure over the window) releases ≈ n/a days</strong> — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.</p>
 <p>History: <a href="../../tasks/artifacts/sv_corpus_grad/release_distance/history.tsv"><code>release_distance/history.tsv</code></a> (one row per release, appended by <code>--record</code> — and one more, under the shipped release’s label, when a commit outside a release moves the distance; the rate above divides by distinct releases; the last row must equal this tree, checked by <code>--check</code>).</p>
 <!-- END DERIVED: scripts/report_sv_release_distance.sh -->
 

@@ -10,14 +10,14 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `23c5c14fcc2d8434cf754662f00832a4529ba7d357915f3d9752124f7207d620` |
+| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `85fe3813599b7e0466aa526964d3740f127444f50a2220bfbb62d8d27dd58b99` |
 | IEEE 1800-2017 Annex A | `docs/systemverilog/2017/md/section-41-data-read-api.md` | `249ab571c2ef3237790a6bd9743f07a7595bdded337ca2cbb6d5e189b3b40d22` |
 | IEEE 1800-2023 Annex A | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md` | `0b4f7fe935e9c499a56ccde8dc769ed626bf53d154f8a9585bd1daf371a9d4aa` |
 | instrument | `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/production_parity.py` | `26506e3786c05f76f116bd25b9b59a8fa3ff55eb0f044d988d7956b01fd93045` |
 
 ## The census
 
-`PRODUCTION-PARITY: rows=146 all_cited_identical=94 some_differs=26 some_missing=9 no_production_named=20 productions=136`
+`PRODUCTION-PARITY: rows=149 all_cited_identical=97 some_differs=26 some_missing=9 no_production_named=20 productions=138`
 
 | production | verdict |
 |---|---|
@@ -69,8 +69,11 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 | `iverilog` | `ivtest/ivltests/br_gh390a.v` | DIFFERS | `class_constructor_declaration:DIFFERS` |
 | `iverilog` | `ivtest/ivltests/display_bug.v` | MISSING | `data_type:IDENTICAL packed_dimension:IDENTICAL range:MISSING-2017 dynamic_array_new:IDENTICAL unpacked_dimension:IDENTICAL` |
 | `iverilog` | `ivtest/ivltests/module_output_port_sv_var2.v` | IDENTICAL | `module_declaration:IDENTICAL module_nonansi_header:IDENTICAL module_ansi_header:IDENTICAL non_port_module_item:IDENTICAL module_item:IDENTICAL` |
+| `iverilog` | `ivtest/ivltests/pr1787423b_std.v` | IDENTICAL | `pull_gate_instance:IDENTICAL` |
+| `iverilog` | `ivtest/ivltests/pr1861212d.v` | IDENTICAL | `data_type:IDENTICAL` |
 | `iverilog` | `ivtest/ivltests/pr3366217d.v` | IDENTICAL | `enum_name_declaration:IDENTICAL integral_number:IDENTICAL` |
 | `iverilog` | `ivtest/ivltests/pr3515542.v` | IDENTICAL | `unbased_unsized_literal:IDENTICAL decimal_number:IDENTICAL` |
+| `iverilog` | `ivtest/ivltests/pr904.v` | IDENTICAL | `concatenation:IDENTICAL` |
 | `iverilog` | `ivtest/ivltests/sf1289.v` | IDENTICAL | `statement:IDENTICAL loop_statement:IDENTICAL statement_or_null:IDENTICAL` |
 | `iverilog` | `ivtest/ivltests/sv_new_array_error.v` | IDENTICAL | `variable_decl_assignment:IDENTICAL` |
 | `iverilog` | `ivtest/ivltests/sv_type_identifier_attribute_target.v` | IDENTICAL | `description:IDENTICAL` |

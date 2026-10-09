@@ -345,7 +345,14 @@ each under the memory guard, sequentially.
    `--report-sample-parity` `defects=0`; the interpreter on every reproducer pin (defect pins flip,
    controls do not); typed AST byte-identity on the controls where the change is shape-neutral.
 2. **Regenerate and build**: `make focus_systemverilog`, the debug `ast_pipeline`, the release
-   `parseability_probe` (≈20 min, peak ≈12 GB — in the background, under the guard).
+   `parseability_probe` (≈20 min, peak ≈12 GB — in the background, under the guard). ⛔ Copy the
+   four binaries into the scratch directory (`rust/target/svNN/bin/`) the moment they are built and point
+   every later MEASURING step — the lanes, the adjudication, the store-gate, the pipeline re-render — at
+   the copies, never at `rust/target/{debug,release}/parseability_probe`: a gate run later in the chain
+   rebuilds those paths over the published binaries, a rebuild is not byte-reproducible on this host, and a
+   tracked report then names a binary that no longer exists (`SV-CORPUS-GRAD.52`, 2026-10-09: the debug
+   probe the three pipeline readings named was gone and the readings had to be re-run; the lowmem copy saved
+   the release identity; `.53` owns the chain change).
 3. **Pins**: `python3 stimuli/sv/run_adjudication_repros.py` → `failures=0`, with every
    `class=defect` row flipped to `fixed` the day it parses.
 4. **Corpus, all three lanes, per path and two-sided**: `stimuli/run_external_corpus.sh sv 60 8 0`,

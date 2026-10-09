@@ -19,8 +19,11 @@ iverilog	ivtest/blif/blif02b_tb.v	IDENTICAL	binary_operator:IDENTICAL
 iverilog	ivtest/ivltests/br_gh390a.v	DIFFERS	class_constructor_declaration:DIFFERS
 iverilog	ivtest/ivltests/display_bug.v	MISSING	data_type:IDENTICAL packed_dimension:IDENTICAL range:MISSING-2017 dynamic_array_new:IDENTICAL unpacked_dimension:IDENTICAL
 iverilog	ivtest/ivltests/module_output_port_sv_var2.v	IDENTICAL	module_declaration:IDENTICAL module_nonansi_header:IDENTICAL module_ansi_header:IDENTICAL non_port_module_item:IDENTICAL module_item:IDENTICAL
+iverilog	ivtest/ivltests/pr1787423b_std.v	IDENTICAL	pull_gate_instance:IDENTICAL
+iverilog	ivtest/ivltests/pr1861212d.v	IDENTICAL	data_type:IDENTICAL
 iverilog	ivtest/ivltests/pr3366217d.v	IDENTICAL	enum_name_declaration:IDENTICAL integral_number:IDENTICAL
 iverilog	ivtest/ivltests/pr3515542.v	IDENTICAL	unbased_unsized_literal:IDENTICAL decimal_number:IDENTICAL
+iverilog	ivtest/ivltests/pr904.v	IDENTICAL	concatenation:IDENTICAL
 iverilog	ivtest/ivltests/sf1289.v	IDENTICAL	statement:IDENTICAL loop_statement:IDENTICAL statement_or_null:IDENTICAL
 iverilog	ivtest/ivltests/sv_new_array_error.v	IDENTICAL	variable_decl_assignment:IDENTICAL
 iverilog	ivtest/ivltests/sv_type_identifier_attribute_target.v	IDENTICAL	description:IDENTICAL

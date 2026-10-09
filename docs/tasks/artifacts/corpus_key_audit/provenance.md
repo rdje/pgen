@@ -7,16 +7,16 @@
 > `SV-CORPUS-GRAD.13e.3` measured twice*, which a `clause-cited` one is not. The number
 > below says how much of the published bar rests on evidence outside the standard.
 
-## `sv_2017` — 7684 keyed rows
+## `sv_2017` — 7730 keyed rows
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **612** | 8.0% | 290 | 322 |
-| `tool-testimony` | **1719** | 22.4% | 1670 | 49 |
-| `suite-convention` | **5352** | 69.7% | 5349 | 3 |
+| `clause-cited` | **636** | 8.2% | 310 | 326 |
+| `tool-testimony` | **1741** | 22.5% | 1692 | 49 |
+| `suite-convention` | **5352** | 69.2% | 5349 | 3 |
 | `UNCLASSIFIED` | **1** | 0.0% | 0 | 1 |
 
-⇒ **trust bound: 7072 of 7684 (92.0%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 7094 of 7730 (91.8%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
 ## `verilog_2005` — 2897 keyed rows
 
@@ -33,7 +33,7 @@
 
 | suite | rows | `clause-cited` | `tool-testimony` | `suite-convention` | `UNCLASSIFIED` |
 |---|---|---|---|---|---|
-| `iverilog` | 3696 | 466 | 542 | 2688 | 0 |
+| `iverilog` | 3742 | 490 | 564 | 2688 | 0 |
 | `verilator` | 3067 | 124 | 717 | 2226 | 0 |
 | `ispras-sv-tests` | 1146 | 38 | 0 | 1106 | ⛔ 2 |
 | `sv-tests` | 933 | 18 | 0 | 915 | 0 |
@@ -59,7 +59,7 @@ nothing else. That the partition is EXHAUSTIVE is why the split is trustworthy.
 
 ## ⛔ The residual, VERBATIM — a census that hides its leftovers is a census you cannot check
 
-**2 of 10581 rows** (0.02%) match no rule. Every one is printed here rather than folded into a class, because a
+**2 of 10627 rows** (0.02%) match no rule. Every one is printed here rather than folded into a class, because a
 residual absorbed into the nearest bucket is exactly how a classifier stops being
 checkable. The first cut left **4 961** unclassified (49 %) and the vocabulary was
 extended by ENUMERATING those shapes, not by widening a rule until the number fell.

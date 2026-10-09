@@ -6,7 +6,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `23c5c14fcc2d8434cf754662f00832a4529ba7d357915f3d9752124f7207d620` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `85fe3813599b7e0466aa526964d3740f127444f50a2220bfbb62d8d27dd58b99` |
 | positions | `stimuli/sv/characterization/positions.tsv` | `2570f719f50b930057e0bfa79e39ba64d104ff8571939837e675a43cb801d0ad` |
 | grammar | `grammars/systemverilog.ebnf` | `c65270d8e9a13cca838bcfbf0d7734a7ec9ba145025831cb87f971bfd9938169` |
 
@@ -15,12 +15,12 @@
 | verdict | rows | % | reading |
 |---|---:|---:|---|
 | `PRE-TICK` | 2,005 | 56.1 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
-| `IN-WINDOW` | 1,484 | 41.6 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
+| `IN-WINDOW` | 1,486 | 41.6 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
 | `NO-ALTERABLE-TICK` | 73 | 2.0 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
 | `PAST-LAST-TICK` | 9 | 0.3 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
-| **TOTAL** | **3,571** | **100.0 %** | |
+| **TOTAL** | **3,573** | **100.0 %** | |
 
-⇒ **2,078 of 3,571 rows (58.2 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
+⇒ **2,078 of 3,573 rows (58.2 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
 
 ## Then the FACT channel — is a cross-file *name* the live explanation?
 

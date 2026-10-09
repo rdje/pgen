@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a1eb7a94.js";
+            window.path_to_searchindex_js = "searchindex-d7a80868.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -521,7 +521,14 @@ each under the memory guard, sequentially.</p>
 <code>--report-sample-parity</code> <code>defects=0</code>; the interpreter on every reproducer pin (defect pins flip,
 controls do not); typed AST byte-identity on the controls where the change is shape-neutral.</li>
 <li><strong>Regenerate and build</strong>: <code>make focus_systemverilog</code>, the debug <code>ast_pipeline</code>, the release
-<code>parseability_probe</code> (≈20 min, peak ≈12 GB — in the background, under the guard).</li>
+<code>parseability_probe</code> (≈20 min, peak ≈12 GB — in the background, under the guard). ⛔ Copy the
+four binaries into the scratch directory (<code>rust/target/svNN/bin/</code>) the moment they are built and point
+every later MEASURING step — the lanes, the adjudication, the store-gate, the pipeline re-render — at
+the copies, never at <code>rust/target/{debug,release}/parseability_probe</code>: a gate run later in the chain
+rebuilds those paths over the published binaries, a rebuild is not byte-reproducible on this host, and a
+tracked report then names a binary that no longer exists (<code>SV-CORPUS-GRAD.52</code>, 2026-10-09: the debug
+probe the three pipeline readings named was gone and the readings had to be re-run; the lowmem copy saved
+the release identity; <code>.53</code> owns the chain change).</li>
 <li><strong>Pins</strong>: <code>python3 stimuli/sv/run_adjudication_repros.py</code> → <code>failures=0</code>, with every
 <code>class=defect</code> row flipped to <code>fixed</code> the day it parses.</li>
 <li><strong>Corpus, all three lanes, per path and two-sided</strong>: <code>stimuli/run_external_corpus.sh sv 60 8 0</code>,
