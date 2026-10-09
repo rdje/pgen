@@ -3,9 +3,9 @@
 # file is written when the published block equals the fresh derivation). Tier 1 reads it on every commit: an
 # input whose sha256 still equals its row has not moved since that derivation; one that differs is counted
 # against the staleness budget. The `block` row ties the attestation to the block it was made for.
-block	docs/book/src/grammar-certification-status.md	138229ffd04b843f6c2d32b9254292ee58d97814038e199c96f9cfbe48742cb9
+block	docs/book/src/grammar-certification-status.md	36bd4a8bbe483fe50d01aa98e48c4bb753cca1cf7a10e895fd6c3f0cf1c0919a
 input	scripts/report_grammar_certification.sh	6a4eb44490b64b1401df9bdc78ecea9bf2f0693e6f0ed4df5e67f783ea5da8f5
-input	rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json	5b4356a550d10a7dc4b8a3d6d613bce581d190885b718dfa07b99c57b740290d
+input	rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json	345822973b68de322a9da2a5344c71fc69658c7ba9315e00c3a4f2f01994bdfb
 input	grammars/json.ebnf	bf1ac3ee547fab914fca383efc1c946fc59600a17df10b8a8483fe13a6f53b04
 input	grammars/regex.ebnf	fd1fde31f624f18a903c8bd439e25e4659bf6bc609bba49a91e0bb139fc20a27
 input	grammars/return_annotation.ebnf	2bc4b8cf7ca8cb51d7f9056d58b769cde26b7c59afff38636238128a93c61652
@@ -14,4 +14,4 @@ input	grammars/rtl_frontend.ebnf	d732d894999344a4039f1b7902fa09750b38f604e2d1d7d
 input	grammars/semantic_annotation.ebnf	3a2bfbca35bc785e3565bfaddb7ed5e6fbbb9ea4ac22111029b819a8d2081b7d
 input	grammars/systemverilog_preprocessor.ebnf	81fa7630a28d1921d342e46e4e32ff12b0d763a5324d0637c415c8a24cbb8fdc
 input	grammars/vhdl.ebnf	5bd5a096926703ee6033b3cea352212860df38379e9c2ac06200cbcce998081b
-input	grammars/systemverilog.ebnf	46958d34e693506ba8e16d874eca948a7b927b07161714f009e532bfaf229034
+input	grammars/systemverilog.ebnf	c65270d8e9a13cca838bcfbf0d7734a7ec9ba145025831cb87f971bfd9938169
