@@ -9290,8 +9290,9 @@ record per fact. ⇒ **`LESSON-RETRIEVAL.6`** (opened here), with the measured i
 fails-open direction to avoid (any added line under `docs/decisions/` must NOT count — a typo fix
 is not a promotion), and the probe arm it needs.
 
-### `.12b` — the 263 rows POSITION cannot decide (`todo`, opened 2026-08-10 by `.12`, SIZED AND PARKED)
+### ✅ `.12b` — **`closed`** 2026-10-09 by `.51` (superseded by the pipeline lane: `SVPP-EXPANSION.6a` re-read every position-undecidable row under expansion, `.6b.1`–`.6b.4` dispositioned every refuted row, `.6c.2` pinned the 28 key questions, `.12b.1` adjudicated the 21 parser questions) — the 263 rows POSITION cannot decide (was `todo`, opened 2026-08-10 by `.12`, SIZED AND PARKED)
 
+- ⭐ **Closed on measurement 2026-10-09 by `.51`.** The leaf's own re-open trigger fired (*`SVPP-EXPANSION.2` lands an expander — then this is a mechanical re-run and should be its first customer*) and the re-run happened: `SVPP-EXPANSION.6a` (2026-09-09) read every position-undecidable row under the pipeline, `.6b.1`–`.6b.4` took the refuted rows to zero awaiting disposition, `.6c.2` pinned the 28 key-question rows and `.12b.1` (2026-09-09) adjudicated the 21 parser questions routed here. The `.48` ceremony's pipeline re-adjudication reads `refuted_awaiting_disposition=0`; position is no longer the instrument. The heading said `todo` for a month after its last clause closed.
 - **Status: `todo`, parked on evidence with a named re-open trigger — not a silent deferral.**
 - **WHAT THEY ARE.** 259 `IN-WINDOW` (the parse chokes on ordinary syntax *between* the first and
   last alterable backtick) + 4 `PAST-LAST-TICK` (it chokes past every one of them). Concentrated in
@@ -9412,6 +9413,7 @@ is not a promotion), and the probe arm it needs.
 
 ### `.13` — ⭐⭐ THE DENOMINATOR: 38.7 % of the corpus carries NO VERDICT AT ALL (`todo`, opened 2026-08-10; director ruled "100 % confidence" 2026-08-10)
 
+- 2026-10-09 (`.51`): this heading is an UMBRELLA — its section holds the open `#####` leaves (`.13c.2v.1`, `.13c.2x.2`, `.13c.2x.5`, `.13c.2x.8`, …) and the open `####` leaves (`.13c.2n`, `.13c.2p`, `.13d`); the release distance counts it THROUGH them, never beside them. It stays `todo` until its last child closes.
 - **Status: `todo`. This is the leaf the "ship with 100 % confidence" bar actually turns on**, and it
   was invisible because every published number so far has been a NUMERATOR.
 - ⭐ **STATUS 2026-09-03 (`PGEN-SV-CORPUS-GRAD-0345`) — residue named, umbrella stays open.** Every
@@ -10219,8 +10221,9 @@ the Annex A transcription, [[annex-a-footnotes-license-derivations-the-productio
 ⛔ That makes this an **accept-widening** change: it needs the full ceremony (SV regeneration, corpus
 re-measure with the accepts-invalid set held, release + schema + ledger), not a drive-by edit.
 
-#### ⚠️ `.13c.2f` NEW `todo` — the sweep found THREE more sites of the same class, one of them with EIGHT usages (opened 2026-08-17 session #244 by `.13c.2d`'s own sweep, `PGEN-SV-CORPUS-GRAD-0217`)
+#### ✅ `.13c.2f` — **`done`** 2026-08-17 ((a)+(b) `-0218`, slice 2 `-0219`, slice 3 `-0220`, slice 4 `-0221`, (d) `-0222`; heading corrected 2026-10-09 by `.51`, closed on measurement) — the sweep found THREE more sites of the same class, one of them with EIGHT usages (opened 2026-08-17 session #244 by `.13c.2d`'s own sweep, `PGEN-SV-CORPUS-GRAD-0217`)
 
+- ⭐ **Closed on measurement 2026-10-09 by `.51`.** Every clause is discharged below and in the commit log: (a)+(b) by slice 1 (`-0218`), re-verified under director challenge by slice 2 (`-0219`), (c) by slices 3 and 4 (`-0220`, `-0221`: the two sites with a demonstrated REJECT fixed, the two without ruled not to be fixed), (d) by `-0222` (*leaves `.13c.2f`(d) + `.13c.2g` DISCHARGED*). The heading said `NEW todo` for fifty-three days over a body whose Acceptance line says ✅ on every clause.
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
 - **The population is derived, not hand-listed**, by
@@ -10910,8 +10913,9 @@ ceiling that fails in both directions.
 - [x] **NO REGRESSION** — the tracked sibling's envelope differential is byte-for-byte unmoved (`tokens_compared` 8 981, `token_matches` 8 663, `divergence_total` **317**, before and after), so its two-sided ratchet is untouched; `git status --porcelain grammars/` is EMPTY after the probe's real-path arms; the shipped grammar still carries **0** `_dollar` terminals (probe A12); the sweep re-runs deterministically (2 runs, one sha) and reports **2 defects / 9 sites** unchanged; `bash scripts/check_doctrines.sh` **21/21 PASS**. ⛔ `ebnf_frontend_dual_run_gate` is RED on `systemverilog` (151 > ceiling 150) — **measured PRE-EXISTING**: the pre- and post-PATHPULSE grammars both give 151 over an identical 13 933 tokens, and the ceiling's founding commit measured 150 over 13 880. Opened as `.13c.2i`.
 - [x] **LOCKSTEP** — `tools/extract_systemverilog_lrm_profiles.py`, `grammars/systemverilog_lrm_profiled_generated.ebnf` (header only), the new probe bank, `docs/tasks/artifacts/sv_corpus_grad/nonterminal_as_literal_sweep.py` + `.txt` (its cross-family paragraph asserted the refuted premise and the old banner text), this leaf, `.13c.2i` NEW, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
 
-#### ⚠️ `.13c.2i` NEW `todo` — `ebnf_frontend_dual_run_gate` is RED on `systemverilog` (151 > ceiling 150) and has been for weeks, and the instrument cannot NAME the extra divergence (opened 2026-08-17 session #244 by `.13c.2f`(d)'s lockstep run)
+#### ✅ `.13c.2i` — **`done`** 2026-08-18 ((a)+(b)+(c) `-0223`, (d) `-0224` *leaf CLOSED*; heading corrected 2026-10-09 by `.51`, closed on measurement) — `ebnf_frontend_dual_run_gate` is RED on `systemverilog` (151 > ceiling 150) and has been for weeks, and the instrument cannot NAME the extra divergence (opened 2026-08-17 session #244 by `.13c.2f`(d)'s lockstep run)
 
+- ⭐ **Closed on measurement 2026-10-09 by `.51`.** `-0223` discharged (a)+(b)+(c) (the engine diagnostic that names a divergence; `LANG-CAPABILITY-AUDIT.10.16` opened) and `-0224` discharged (d) with the words *leaf CLOSED* in its subject (`CI-PARITY-GATE-ROT.39` opened); the gate's ceiling has since been re-attributed through 203 by name (the `.47` release's two rows) and reads green on `1.0.252`. The heading said `NEW todo` for fifty-two days after its own closing commit.
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
 - **The breach, measured**: `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate` →
@@ -12415,6 +12419,7 @@ generated bytes are committed.**
 
 #### ⚠️ `.13c.2n` NEW `todo` — the four renderings of A.8.4's scope prefix should be ONE, and the lift is an AST-shape change that needs a contract bump (opened 2026-08-18 session #246 by `.13c.2j`, `PGEN-SV-CORPUS-GRAD-0229`)
 
+- ⭐ **Re-measured 2026-10-09 by `.51` — STILL OPEN, and now COUNTED.** `python3 docs/tasks/artifacts/sv_corpus_grad/scope_prefix_rendering_drift/sweep_scope_prefix_renderings.py` → `SCOPE-PREFIX-RENDERING-DRIFT: sites=4 drift=0 pinned=2 members=2 attribution_broken=0 attribution_rederived=yes` — four renderings, no drift between them, and the unification this leaf owns not done; no commit names the leaf. A `####` leaf the `#####`-only census never read.
 - **WHAT IS LEFT AFTER `.13c.2j`.** The accept-set defect is fixed and the drift is now *detected*
   (`sweep_scope_prefix_renderings.py`), but four hand-maintained renderings of one Annex A
   production still exist. Detection is weaker than impossibility.
@@ -12508,6 +12513,7 @@ generated bytes are committed.**
 
 #### ⚠️ `.13c.2p` NEW `todo` — the footnote-marker census is a HAND count, and a hand count of a class is the shape that rots (opened 2026-08-18 session #246 by `.13c.2o`, `PGEN-SV-CORPUS-GRAD-0232`)
 
+- ⭐ **Re-measured 2026-10-09 by `.51` — STILL OPEN, and now COUNTED.** No tracked census derives the `kw_n_<digits>_<hash>` adjudication (`ls docs/tasks/artifacts/sv_corpus_grad | grep -i 'foot\|marker'` → nothing); the 5-legitimate / 3-marker reading above is still the hand count this leaf exists to replace; no commit names the leaf. A `####` leaf the `#####`-only census never read.
 - **WHAT IT IS.** `.13c.2o` decided, by reading, which of the grammar's `kw_n_<digits>_<hash>` tokens
   are legitimate LRM literals and which are footnote markers the extractor mistook for syntax. The
   answer today is **5 legitimate** — `0`/`1`/`2` (`finish_number`, `level_symbol`, `assert #0`) and
@@ -13183,8 +13189,9 @@ generated bytes are committed.**
   fired and were satisfied); two `make` targets; `stimuli/sv/rule_fire_probes/`; `CHANGES.md`;
   `DEVELOPMENT_NOTES.md`; `MEMORY.md`; `docs/TASK_TREE.md`; this leaf and `.13c.2u.1` NEW.
 
-#### ⚠️ `.13c.2u.1` NEW `todo` — the CORPUS is a better witness generator than the certificate pass for 7 rules, and that is a reusable source of witnesses (opened 2026-08-19 session #248 by `.13c.2u`, `PGEN-SV-CORPUS-GRAD-0239`)
+#### ✅ `.13c.2u.1` — **`closed`** 2026-10-09 by `.51` (the premise dissolved: all seven rules are witnessed in today's certificate) — the CORPUS is a better witness generator than the certificate pass for 7 rules, and that is a reusable source of witnesses (was `NEW todo`, opened 2026-08-19 session #248 by `.13c.2u`, `PGEN-SV-CORPUS-GRAD-0239`)
 
+- ⭐ **Closed on measurement 2026-10-09 by `.51`.** The seven rules this leaf named as corpus-`covered` but certificate-`UNKNOWN` are all witnessed now: the `1.0.252` release's `sv_2017` certificate reads `UNKNOWN rules (3 of 3 shown): ["dpi_open_packed_dimension", "cross_predefined_type_identifier", "cross_predefined_type_name"]` (`rust/target/cert_sv2017.out`, the ceremony's own run) — none of the seven; `known_unscoped_property_identifier` by `.13c.2x.9`(c1), the six `kw_*` property-operator rules by the profile-aware reach passes that followed; the union certificate reads `union UNKNOWN=0`. Clauses (b)–(d) asked how to mine the corpus for witnesses of THESE rules, so nothing is owed. The idea — the corpus as a seed source for a stuck witness — is recorded here, not scheduled; re-open with the rule's name if a corpus-covered rule is ever `UNKNOWN` again.
 - **MEASURED, and it fell out of the join for free.** Seven rules are corpus-`covered` — real
   third-party SystemVerilog exercises them — while the certificate pass reports them `UNKNOWN`,
   i.e. its generator could not route to them: `known_unscoped_property_identifier`,
@@ -16774,6 +16781,7 @@ states *"`intersect` is a keyword, so it forces the real alternative"*. It does 
 
 #### `.13d` — the DARK `chained_only` rows expansion really does own: **1 527**, not 3 628 (`todo`, opened 2026-08-11 by `.13a`, re-sized by `.13c`)
 
+- 2026-10-09 (`.51`): still `todo`, measured — this leaf waits on `SVPP-EXPANSION.6c` (*expected verdicts for `chained_only` from the suite convention*), whose index row reads `pending` while `.6c.1`–`.6c.4` are `done`; the accepted-under-expansion rows have a reading but not yet every verdict. A `####` leaf the `#####`-only census never read; now COUNTED.
 - `.13c` measured it: **1 477 `IN-WINDOW` + 50 `PAST-LAST-TICK` = 1 527 rows** where the failure sits
   inside the region an alterable directive can reach, so the deferral is not refutable from the text
   and expansion is the only instrument that settles it. ⛔ `.13a`'s 3 628 was a subtraction of the
@@ -17099,10 +17107,37 @@ codegen / generated bytes; ZERO adjudicator bytes.
   `docs/book/src/grammar-wellformedness.md` + the three verdict-coverage artifacts +
   `MEMORY.md` / `CHANGES.md` / `DEVELOPMENT_NOTES.md`, this commit.
 
-##### ⛔ `.51` `todo` — **THE OPEN HEADINGS THE CENSUS DOES NOT READ: eight `###` / `####` headings of this tree carry `todo` — two parked leaves, one umbrella, five `NEW todo` sub-leaves of `.13c.2` — and the level rule is declared, not yet implemented** (opened 2026-10-09 by `.49`, `PGEN-SV-CORPUS-GRAD-0437`; INSTRUMENT + TRACKER tier)
+##### ✅✅ `.51` — **`done`** 2026-10-09 (`PGEN-SV-CORPUS-GRAD-0438`; opened the same day by `.49`, `PGEN-SV-CORPUS-GRAD-0437`; INSTRUMENT + TRACKER tier — `scripts/report_sv_release_distance.sh` (the SV census reads every heading level 3–6 and counts each open leaf ONCE, an umbrella through its children; three self-test arms on the level rule), eight `###` / `####` headings adjudicated (four closed on measurement, three re-measured open, the umbrella noted); ZERO Rust / grammar / generated bytes) — **THE OPEN HEADINGS THE CENSUS DID NOT READ ARE READ, EACH ONCE: the published number moves 18 → 20 (SV leaves 8 → 10, engine 7 unchanged), every unit named** (as opened: *eight `###` / `####` headings of this tree carry `todo` — two parked leaves, one umbrella, five `NEW todo` sub-leaves of `.13c.2` — and the level rule is declared, not yet implemented*)
 
 - **Measured.** `grep -nE '^#{3,4} [^✅]*`(todo|active)`' docs/tasks/SV-CORPUS-GRAD.md` → **8**: `.12b` (`###`, `todo` — the 263 rows position cannot decide, SIZED AND PARKED), `.13` (`###`, `todo` — the DENOMINATOR umbrella, whose open children are the `#####` leaves the census already reads), `.13c.2f` (`####`, `NEW todo` — three more sites of one class; `.49`'s opening note says its two slices are done), `.13c.2i` (`####`, `NEW todo` — the dual-run gate RED at 151 > ceiling 150; the ceiling has since been attributed to 203 and the gate is green on `1.0.252`), `.13c.2n` (`####`, `NEW todo` — A.8.4's scope prefix as ONE rendering, an AST-shape change behind a contract bump), `.13c.2p` (`####`, `NEW todo` — the footnote-marker census is a hand count), `.13c.2u.1` (`####`, `NEW todo` — the corpus as a witness generator for 7 rules), `.13d` (`####`, `todo` — the dark `chained_only` rows expansion owns, 1 527). The `#####` census reads none of them; the script's header and the book's definition say so since `.49`.
 - **The ask.** (a) read each of the eight the `.49` way and set its true status with the evidence (`.13c.2f` and `.13c.2i` look done-under-open; `.12b` and `.13d` are parked by decision and stay `todo`); (b) decide and implement the level rule with a RED-first `--self-test` arm — count a heading of ANY level under `## Leaves` that carries the status word and is not ✅-headed, EXCEPT a heading whose own section contains such a heading (an umbrella is counted through its children, never beside them), so the published number reads every open leaf exactly once; (c) re-record the history row under the shipped release, republish, name the jump.
+- **(a) THE ADJUDICATION, heading by heading — read before the number moved.**
+
+  | leaf (level) | the heading said | the body / today's measurement says | true status | counted before → after |
+  |---|---|---|---|---|
+  | `.12b` (`###`) | `todo`, SIZED AND PARKED | its own re-open trigger fired and the re-run happened: `SVPP-EXPANSION.6a` re-read every position-undecidable row under expansion, `.6b.1`–`.6b.4` dispositioned the refuted rows, `.6c.2` pinned the 28 key questions, `.12b.1` adjudicated the 21 parser questions; the `.48` ceremony reads `refuted_awaiting_disposition=0` | ✅ `closed`, on measurement | 0 → 0 |
+  | `.13` (`###`) | `todo` | the DENOMINATOR umbrella; its section holds the open `####` and `#####` leaves | `todo`, counted THROUGH its children | 0 → 0 |
+  | `.13c.2f` (`####`) | `NEW todo` | (a)+(b) `-0218`, slice 2 `-0219`, (c) `-0220` / `-0221`, (d) `-0222` — every clause discharged the day it opened | ✅ `done`, on measurement | 0 → 0 |
+  | `.13c.2i` (`####`) | `NEW todo` | (a)+(b)+(c) `-0223`, (d) `-0224` whose subject says *leaf CLOSED*; the ceiling re-attributed through 203 and green on `1.0.252` | ✅ `done`, on measurement | 0 → 0 |
+  | `.13c.2n` (`####`) | `NEW todo` | `SCOPE-PREFIX-RENDERING-DRIFT: sites=4 drift=0 pinned=2 members=2 attribution_broken=0 attribution_rederived=yes` — four renderings remain, the unification not done | `todo` | 0 → 1 |
+  | `.13c.2p` (`####`) | `NEW todo` | no tracked census derives the `kw_n_<digits>_<hash>` adjudication; the hand count stands | `todo` | 0 → 1 |
+  | `.13c.2u.1` (`####`) | `NEW todo` | the seven rules are witnessed: the `1.0.252` `sv_2017` certificate's `UNKNOWN rules (3 of 3 shown)` holds none of them; `union UNKNOWN=0` | ✅ `closed` (premise dissolved) | 0 → 0 |
+  | `.13d` (`####`) | `todo` | waits on `SVPP-EXPANSION.6c` (index row `pending`; `.6c.1`–`.6c.4` `done`) | `todo` | 0 → 1 |
+  | `.51` (`#####`) | `todo` | this leaf | `done` | 1 → 0 |
+
+  The jump, named: SV +3 −1 = +2 (`.13c.2n`, `.13c.2p`, `.13d` join; `.51` leaves) → 8 → 10; engine 7 unchanged; items 18 → 20. The four headings closed on measurement contribute nothing — never counted, now ✅-headed.
+- **(b) THE LEVEL RULE, implemented.** `sv_open_leaves()` is an awk pass over every heading of level 3–6: a heading is OPEN when it carries `todo` or `active` with no ✅ before the word, and an open heading is COUNTED only when no open heading lies in its own section (the lines up to the next heading of its level or shallower) — so `.13` is counted through `.13c.2n` and its siblings, never beside them, and a `####` leaf whose only child is ✅-headed is counted as the leaf it is. Level 2 (`## …`) is never a leaf. `--self-test` now drives seven arms: on a scratch tree carrying every real shape (a `###` umbrella over open `#####` children, the `.49` decoration shapes, an `active` leaf, a ✅ heading quoting `todo`, a slice record with no word, a `####` leaf with a ✅ child, a `####` umbrella over an open `#####` child, a `##` line carrying the word) the census reads **7**, the retired decoration form reads **1** (the `.49` defect, kept), the `.49` `#####`-only status-word form reads **6** (the two `####` leaves it could not see — the `.51` defect, kept); `SV-RELEASE-DISTANCE-SELF-TEST: pass=7 fail=0`.
+- **(c) THE RECORD.** The row for this tree recorded under `1.0.252`, the page's definition sentence and derived block republished, `--check` OK.
+- **Routed.** Nothing. `.13c.2n`, `.13c.2p` and `.13d` are now in the number, each named; the umbrella rule means no leaf is counted twice.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **REPRODUCE / ISSUE** — on `2b8ba6796`, `grep -nE '^#{3,4} [^✅]*`(todo|active)`' docs/tasks/SV-CORPUS-GRAD.md` → 8 headings carrying a status word that `bash scripts/report_sv_release_distance.sh` (`open_leaves=15 [sv=8 engine=7]`) read none of.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `sv_open_leaves()` in `scripts/report_sv_release_distance.sh`, the `^##### …` form `.49` shipped (`git log -S'^##### [^✅]' -- scripts/report_sv_release_distance.sh` → `PGEN-SV-CORPUS-GRAD-0437`). WHY: this tree files leaves at `###`, `####` and `#####`, so a level-pinned census is a scope choice the book's definition never made; reading every level without the umbrella rule would count `.13` beside its own children, which is why the rule and the level widening land together. `bash -n` clean.
+  - [x] **ADDRESSED (verified)** — `bash scripts/report_sv_release_distance.sh --self-test` → `SV-RELEASE-DISTANCE-SELF-TEST: pass=7 fail=0`; the summary on the adjudicated tree reads `open_leaves=17 [sv=10 engine=7]`, `items=20`, every SV unit a heading named in the table above (`.3.28`, `.14`, `.13c.2v.1`, `.13c.2x.2`, `.13c.2x.5`, `.13c.2x.8`, `.50`, `.13c.2n`, `.13c.2p`, `.13d`).
+  - [x] **NO REGRESSION** — `bash scripts/report_sv_release_distance.sh --check docs/systemverilog_parser_book/src/status-and-distance.md` → `SV-RELEASE-DISTANCE: OK (items=20; the published block equals a fresh derivation; the history's last row matches the tree)`; the history's earlier rows untouched; the engine census unchanged (its two arms green); `git ls-files` names no new tracked path under `rust/target`; `bash scripts/check_doctrines.sh` on the staged set → `doctrines: ALL 46 enforced doctrines PASS.`
+  - [x] **LOCKSTEP** — the script, the history, the SV parser book's status page (the definition sentence + the derived block) + tracked HTML, this tree (eight headings, `.51`), `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, the `.49` knowledge card's addendum + `KNOWLEDGE_MAP.md`.
+  - [x] **NEUTRALITY TIER** — N/A: an instrument over task-tree headings; no language named.
 
 ##### ⛔ `.50` `todo` — **PGEN ACCEPTS AN EMPTY PARAMETER VALUE ASSIGNMENT ON A MODULE INSTANCE (`mod #() m1(…)`) UNDER THE `verilog_2005` PROFILE — an over-acceptance of the `.48` class on a sibling rule** (opened 2026-10-09 by `.48`, `PGEN-SV-CORPUS-GRAD-0436`; GRAMMAR tier, a release — the `.3.66` twin pattern)
 

@@ -10,10 +10,11 @@ answers:
   - "the trailing closure rate divided by the wrong number of releases — what was in the history"
   - "I am writing a census over task-tree headings — what should it key on"
   - "a published number jumps after an instrument fix — what has to happen before it is republished"
+  - "the task tree files leaves at several heading levels — how does the distance census avoid counting an umbrella beside its children"
 tags: [instrument, task-tree, release-distance, census, self-test, derived-state, status-word]
 date: 2026-10-09
-provenance: SV-CORPUS-GRAD.49 (PGEN-SV-CORPUS-GRAD-0437); SV-CORPUS-GRAD.25 (the instrument, PGEN-SV-CORPUS-GRAD-0406); SV-CORPUS-GRAD.46 (close-on-measurement)
-reverify: "bash scripts/report_sv_release_distance.sh --self-test   # SV-RELEASE-DISTANCE-SELF-TEST: pass=6 fail=0; the retired expression reads 1 of the same five open lines"
+provenance: SV-CORPUS-GRAD.49 (PGEN-SV-CORPUS-GRAD-0437); SV-CORPUS-GRAD.51 (PGEN-SV-CORPUS-GRAD-0438, the level rule); SV-CORPUS-GRAD.25 (the instrument, PGEN-SV-CORPUS-GRAD-0406); SV-CORPUS-GRAD.46 (close-on-measurement)
+reverify: "bash scripts/report_sv_release_distance.sh --self-test   # SV-RELEASE-DISTANCE-SELF-TEST: pass=7 fail=0; the retired decoration form reads 1 and the #####-only form 6 of the same seven open lines"
 ---
 
 # A census keyed on a decoration reads the author's mood, not the status
@@ -41,9 +42,10 @@ keys on the decoration measures how worried the author was, not whether the work
 2. **Count the word.** `grep -cE '^##### [^✅]*\`(todo|active)\`'` — any decoration before the id, and a ✅-headed
    line excluded even when it quotes the word (a done heading may say *was `todo`*). The convention that makes the
    exclusion sound: a done heading is ✅-headed.
-3. **Declare the level.** The census reads `#####`, the level this tree files its leaves at; the eight `###` /
-   `####` headings that also carry a status word are named in a leaf that owns the level rule (`.51`) rather than
-   silently folded in or silently left out.
+3. **Declare the level — then read every level, each leaf once.** `.49` read `#####` and named the eight `###` /
+   `####` headings it did not read; `.51` (the same day) reads every level 3–6 with the umbrella rule: an open
+   heading is counted only when no open heading lies in its own section, so `.13` is counted through its children
+   and never beside them. Four of those eight were done-under-open; three joined the number (18 → 20).
 4. **Keep the retired expression as an arm.** `--self-test` drives both censuses on scratch trees whose lines are
    the real shapes, and one arm runs the OLD expression on the same five open lines and asserts it reads **1**.
    The number the instrument used to publish stays explicable from the script itself.

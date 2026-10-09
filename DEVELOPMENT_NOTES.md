@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-09 — SV-CORPUS-GRAD.51 (`PGEN-SV-CORPUS-GRAD-0438`): a level-pinned census is a scope choice; count every open leaf once
+
+- **The level is not a detail of the regex, it is the population.** `.49` keyed the census on the status word but kept it at `#####`; this tree files leaves at three levels, and the eight `###` / `####` headings carrying `todo` were simply outside the number. Widening the level alone would have counted the `.13` umbrella beside the children that are its whole content — so the widening ships with the umbrella rule: an open heading is counted only when no open heading lies in its own section. The self-test keeps both earlier forms as arms (the decoration form reads 1 of 7, the `#####`-only form 6 of 7), so every number the instrument has ever published is re-derivable from the script.
+- **Half the open-looking headings were closed work.** Four of the eight were done-under-open — `.12b` by its own re-open trigger having fired and the re-run having happened, `.13c.2f` and `.13c.2i` by their own closing commits, `.13c.2u.1` by a premise that dissolved (the seven rules it named are all witnessed now). Adjudicating first kept +3 honest where +7 would have been stale prose.
+
 ## 2026-10-09 — SV-CORPUS-GRAD.49 (`PGEN-SV-CORPUS-GRAD-0437`): the mark is the author's mood; the word is the status
 
 - **A census keyed on a decoration drifts the moment the decoration is chosen freely.** `^##### (⛔|⏳) \`` agreed with the book's `todo` / `active` definition on the day it shipped and read 3 of 10 three weeks later — authors doubled the mark, moved it after the id, or opened with `⚠️`. The engine matcher had the same defect in a different coat (`opened <date> by`, refusing a `session #N` token). The fix keys on the word, excludes the ✅-headed line even when it quotes the word, declares the heading level it reads, and keeps the retired expression as a self-test arm so the old number stays explicable from the script.

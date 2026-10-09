@@ -16,7 +16,11 @@
 #                  one ⛔ / ⏳, so a leaf opened with ⛔⛔, with ⚠️, or with the mark after its id was invisible — the
 #                  tree read 3 where 10 were open by status word; and the engine matcher demanded `opened <date> by`,
 #                  so a heading carrying `session #N` between them (`.41`) was missed. The mark is a decoration; the
-#                  word is the status. Umbrella and parked headings at `###` / `####` are NOT read here (SV-CORPUS-GRAD.51).
+#                  word is the status. ⛔ SV-CORPUS-GRAD.51 (2026-10-09): the SV census reads EVERY heading level 3–6
+#                  and counts each open leaf ONCE — a heading whose own section holds an open heading is an umbrella
+#                  and is counted through its children, never beside them (the tree files leaves at `###`, `####` and
+#                  `#####`; the `#####`-only form read 8 where 11 were open, and reading every level without the
+#                  umbrella rule would have counted `.13` beside its own children).
 #   corpus_pass_pct / known_defects  the sv_2017 manifest: `match` rows over all rows; unexplained rows
 #   ETA          over the last <=5 history rows: rate = items closed per release; ETA = items / rate releases,
 #                and days at the observed releases-per-day of the same window. ESTIMATE: it assumes the trailing
@@ -41,7 +45,29 @@ rd() { local at="$1" path="$2"; if [ "$at" = "tree" ]; then cat "$path"; else gi
 
 # SV-CORPUS-GRAD.49: the census reads the STATUS WORD, never the decoration. A ✅-headed line is excluded even when it
 # quotes the word (a done heading may say "was `todo`"); this tree's convention is that a done heading is ✅-headed.
-sv_open_leaves()     { grep -cE '^##### [^✅]*`(todo|active)`' || true; }
+# SV-CORPUS-GRAD.51: every heading level 3–6 is read, and an open heading is counted only when NO open heading lies in
+# its own section (the lines up to the next heading of its level or shallower) — an umbrella is counted through its
+# children. "Open" = carries `todo` or `active` with no ✅ before the word. Level 2 (`## …`) is never a leaf.
+sv_open_leaves() {
+  awk -v q='`' '
+    /^###/ {
+      lvl = index($0, " ") - 1
+      if (lvl < 3 || lvl > 6 || substr($0, 1, lvl) !~ /^#+$/) next
+      n++; L[n] = lvl
+      p1 = index($0, q "todo" q); p2 = index($0, q "active" q)
+      p = (p1 && p2) ? (p1 < p2 ? p1 : p2) : (p1 ? p1 : p2)
+      O[n] = (p && index(substr($0, 1, p), "\xe2\x9c\x85") == 0) ? 1 : 0
+    }
+    END {
+      c = 0
+      for (i = 1; i <= n; i++) if (O[i]) {
+        leaf = 1
+        for (j = i + 1; j <= n && L[j] > L[i]; j++) if (O[j]) { leaf = 0; break }
+        c += leaf
+      }
+      print c + 0
+    }'
+}
 engine_open_leaves() { grep -E '^### [^✅]*`todo`' | grep -cE 'opened [0-9-]+( session #[0-9]+)? by `SV-CORPUS-GRAD' || true; }
 shipped_release()    { awk -F'\t' '$5=="RELEASE"{r=$6} END{print r}' docs/contracts/PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv; }
 
@@ -133,17 +159,23 @@ self_test() {  # SV-CORPUS-GRAD.49: the census is a claim about headings, so it 
   local t pass=0 fail=0; t="$(mktemp -d "$ROOT/rust/target/sv_release_distance_self_test.XXXXXX")"
   arm() { if [ "$2" = "$3" ]; then pass=$((pass+1)); echo "  ok   $1 ($3)"; else fail=$((fail+1)); echo "  FAIL $1: want $2 got $3"; fi; }
   printf '%s\n' \
+    '### `.u` — `todo` (an umbrella: the open leaves below are its children, so it is counted through them)' \
     '##### ⛔ `.a` `todo` — one mark, the only shape the retired form read' \
     '##### ⛔⛔ `.b` `todo` — two marks (the `.48` shape)' \
     '##### `.c` NEW `todo` — ⛔⛔ the mark after the id (the `.3.28` shape)' \
     '##### ⚠️ `.d` NEW `todo` — a warning sign, no ⛔ (the `.13c.2v.1` shape)' \
-    '##### `.e` — **`active`** (an umbrella whose sub-leaves are open)' \
+    '##### `.e` — **`active`** (an active leaf)' \
     '##### ✅✅ `.f` — **`done`** 2026-10-09 (was `todo`; a done heading quoting the word)' \
     '##### `.g` — WHAT LANDED: a slice record with no status word' \
-    '#### ⚠️ `.h` NEW `todo` — a #### heading, not read at this level (SV-CORPUS-GRAD.51)' \
+    '#### ⚠️ `.h` NEW `todo` — a #### leaf (read since SV-CORPUS-GRAD.51)' \
+    '##### ✅ `.h1` — **`done`** (a closed child does not make `.h` an umbrella)' \
+    '#### `.i` — `todo` (an umbrella at ####: its ##### child below is open)' \
+    '##### ⛔⛔ `.i1` `todo` — the child, counted' \
+    '## Not a leaf — `todo` in a level-2 heading is never read' \
     > "$t/sv.md"
-  arm "sv: status word at ##### level, any decoration, ✅-headed excluded" 5 "$(sv_open_leaves < "$t/sv.md")"
-  arm "sv: the retired form (^##### (⛔|⏳) \`) read ONE of those five — the defect" 1 "$(grep -cE '^##### (⛔|⏳) `' "$t/sv.md" || true)"
+  arm "sv: every open leaf once — levels 3-6, umbrellas through their children, ✅-headed excluded" 7 "$(sv_open_leaves < "$t/sv.md")"
+  arm "sv: the retired decoration form (^##### (⛔|⏳) \`) read ONE of those seven — the .49 defect" 1 "$(grep -cE '^##### (⛔|⏳) `' "$t/sv.md" || true)"
+  arm "sv: the .49 #####-only status-word form read SIX — the two #### leaves it did not read (.51)" 6 "$(grep -cE '^##### [^✅]*`(todo|active)`' "$t/sv.md" || true)"
   printf '%s\n' \
     '### ⛔ `.1` — `todo` (ROUTED + PARKED — opened 2026-09-04 by `SV-CORPUS-GRAD.3.29`)' \
     '### ⚠️ `.2` NEW `todo` — (opened 2026-08-20 session #251 by `SV-CORPUS-GRAD.13c.2x.1`)' \

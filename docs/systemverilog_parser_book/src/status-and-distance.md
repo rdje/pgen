@@ -139,11 +139,11 @@ history says how fast the count has been falling. `items = legs_unmet + bar_rows
 - **bar rows** — `divergence:unexplained_*` rows in the three adjudication manifests: the rows the parser must clear on `sv_2017`, `sv_2023` and `verilog_2005`
   (the bar the director's directive names — "the SV parser shall cleanly pass all of them").
 - **open leaves** — `todo` / `active` leaves of `docs/tasks/SV-CORPUS-GRAD.md` plus the `todo` leaves of `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` that SV-CORPUS-GRAD
-  opened (engine work the SV parser owes). Read by the STATUS WORD at the `#####` leaf level — a heading that is not ✅-headed and carries `todo` or
-  `active` — never by its decoration (`SV-CORPUS-GRAD.49`, 2026-10-09: the first census counted a heading only when it began with exactly one ⛔ / ⏳ and
-  read 3 where 10 were open; the engine matcher now tolerates the opener's `session #N` token; `--self-test` drives both on the real heading shapes). The
-  `###` / `####` headings of the SV tree that carry a status word — two parked leaves, one umbrella, five sub-leaves — are not read; `SV-CORPUS-GRAD.51` owns
-  them and the level rule.
+  opened (engine work the SV parser owes). Read by the STATUS WORD — a heading that is not ✅-headed and carries `todo` or `active` — never by its
+  decoration (`SV-CORPUS-GRAD.49`, 2026-10-09: the first census counted a heading only when it began with exactly one ⛔ / ⏳ and read 3 where 10 were
+  open; the engine matcher now tolerates the opener's `session #N` token), at every heading level from `###` to `######`, counting each open leaf ONCE: a
+  heading whose own section holds an open heading is an umbrella and is counted through its children, never beside them (`SV-CORPUS-GRAD.51`, 2026-10-09:
+  the `#####`-only form read 8 where 11 were open). `--self-test` drives both censuses on the real heading shapes.
 
 Every figure is derived from the tracked tree by [`scripts/report_sv_release_distance.sh`](../../../scripts/report_sv_release_distance.sh); nothing here runs a gate,
 so a fresh clone re-derives the same block. Each parser release appends one row to the history (`--record`) — and so does a commit outside a release that moves the distance (a leaf closed or opened), under the shipped release's label, so rows can share a label and the trailing rate divides by distinct releases (`SV-CORPUS-GRAD.23`, 2026-09-24) — and the doctrine `SV-RELEASE-DISTANCE-CURRENCY`
@@ -152,17 +152,17 @@ ESTIMATE over the last five recorded releases; a structural leg (a corpus confor
 the 38 % of corpus rows with no verdict are an answer-key gap outside `items`; and an item can be opened by a release as well as closed — the history shows both.
 
 <!-- BEGIN DERIVED: scripts/report_sv_release_distance.sh --markdown -->
-**SV release distance: 18 items** (`legs_unmet + bar_rows + open_leaves`).
+**SV release distance: 20 items** (`legs_unmet + bar_rows + open_leaves`).
 
 | Component | Count | Derived from |
 |---|---:|---|
 | Done-bar legs unmet | 3 of 3 | the derived block above (`report_family_status.sh`) |
 | Corpus bar rows (unexplained divergences) | 0 (sv_2017 0, sv_2023 0, verilog_2005 0) | `stimuli/sv/characterization/adjudication_manifest*.tsv` |
-| Open leaves owning SV work | 15 (SV-CORPUS-GRAD 8, engine leaves SV opened 7) | `docs/tasks/SV-CORPUS-GRAD.md`, `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` |
+| Open leaves owning SV work | 17 (SV-CORPUS-GRAD 10, engine leaves SV opened 7) | `docs/tasks/SV-CORPUS-GRAD.md`, `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` |
 | Corpus passing (sv_2017, `match` rows) | 6266 of 16336 (38.4 %) | the sv_2017 manifest |
 | Known defects (unexplained, sv_2017) | 0 | the sv_2017 manifest |
 
-**Trailing closure rate:** -3.50 items per release over the last 5 recorded release(s); **ETA ≈ n/a (no net closure over the window) releases ≈ n/a days** — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.
+**Trailing closure rate:** -10.00 items per release over the last 5 recorded release(s); **ETA ≈ n/a (no net closure over the window) releases ≈ n/a days** — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.
 
 History: [`release_distance/history.tsv`](../../tasks/artifacts/sv_corpus_grad/release_distance/history.tsv) (one row per release, appended by `--record` — and one more, under the shipped release's label, when a commit outside a release moves the distance; the rate above divides by distinct releases; the last row must equal this tree, checked by `--check`).
 <!-- END DERIVED: scripts/report_sv_release_distance.sh -->
