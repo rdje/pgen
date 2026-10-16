@@ -47,24 +47,24 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 
 | Outcome | Rows | Share of the corpus |
 |---|---:|---:|
-| **Passing** — the parser's verdict matches the answer key | 6 310 | 38.6 % |
+| **Passing** — the parser's verdict matches the answer key | 6 312 | 38.6 % |
 | Divergence with a recorded explanation | 1 420 | 8.7 % |
 | **Known defects** — divergence with no explanation | 0 | 0.0 % |
 | Routed to another lane's manifest | 2 943 | 18.0 % |
-| **No verdict** — nothing is known about these rows | 5 663 | 34.7 % |
+| **No verdict** — nothing is known about these rows | 5 661 | 34.7 % |
 | Total | 16 336 | 100.0 % |
 
-Only **7 730 rows (47.3 %)** were asked a question they could answer, and **3 815** of the no-verdict rows are *dark* — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6310/7730 would quietly drop the 34.7 % carrying no verdict at all and the 18.0 % answered in another lane's manifest.
+Only **7 732 rows (47.3 %)** were asked a question they could answer, and **3 813** of the no-verdict rows are *dark* — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6312/7732 would quietly drop the 34.7 % carrying no verdict at all and the 18.0 % answered in another lane's manifest.
 
 **Under the reading leg 3 asserts** (`DONE-BAR.3f`): the table above is the RAW lane; the bar reads a row the raw lane defers to the preprocess→parse pipeline under that pipeline's re-adjudication, and names — never demands — the permanently unadjudicable classes, each held under a recorded ceiling. Derived by the register's tracked assertion (`python3 stimuli/sv/corpus_conformance_compare.py --assert-tracked stimuli/sv/characterization/adjudication_manifest.tsv --assert-tracked-v2005 stimuli/sv/characterization/adjudication_manifest_v2005.tsv`), its sv_2017 reading cross-checked against the tuple under the pipeline that `bash scripts/check_sv_corpus_denominator.sh` prints.
 
 | Lane | Rows | Adjudicated | Permanently unadjudicable (named, bounded) | **Still awaiting a verdict** | Unexplained | Bar rows | `full_pass` |
 |---|---:|---:|---:|---:|---:|---:|---|
-| `sv_2017` — the corpus, raw rows read under the pipeline where it re-read them | 16 336 | 11 582 | 479 | **1 332** | 0 | 0 | `false` |
+| `sv_2017` — the corpus, raw rows read under the pipeline where it re-read them | 16 336 | 11 585 | 479 | **1 329** | 0 | 0 | `false` |
 | `verilog_2005` — the routed rows, read raw under IEEE 1364-2005 | 2 943 | 2 896 | 33 | **14** | 0 | 0 | `false` |
-| **Both lanes — the corpus** | 16 336 | 14 478 | 512 | **1 346** | 0 | 0 | `false` |
+| **Both lanes — the corpus** | 16 336 | 14 481 | 512 | **1 343** | 0 | 0 | `false` |
 
-The three row counts sum to the denominator (14 478 + 512 + 1 346 = 16 336). **1 346 rows still stand between this corpus and leg 3** — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-`.3f` bit (`no_verdict == 0` on the raw lane, unreachable by construction) reads `false` and is kept by name as `full_pass_raw_lane`.
+The three row counts sum to the denominator (14 481 + 512 + 1 343 = 16 336). **1 343 rows still stand between this corpus and leg 3** — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-`.3f` bit (`no_verdict == 0` on the raw lane, unreachable by construction) reads `false` and is kept by name as `full_pass_raw_lane`.
 
 **What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. **4 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 

@@ -287,11 +287,8 @@ opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/riscv_dv_extension/riscv_core_
 verilator	test_regress/t/t_sv_cpu_code/pads.sv	undeclared_type	946	stimuli/sv/subs/verilator/test_regress/t/t_sv_cpu_code/pads.sv:51:27	p_type	other	fail	fail	0	chained:rejects_own_file
 verilator	test_regress/t/t_sv_cpu_code/pinout_h.sv	undeclared_type	513	stimuli/sv/subs/verilator/test_regress/t/t_sv_cpu_code/pinout_h.sv:21:9	id	other	fail	fail	0	chained:rejects_own_file
 Surelog	tests/ElabSysCall/dut.sv	residue	42	stimuli/sv/subs/Surelog/tests/ElabSysCall/dut.sv:3:10	"	other	fail	fail	0	chained:rejects_own_file
-Surelog	tests/GenerateAssigns/top.v	residue	799	stimuli/sv/subs/Surelog/tests/GenerateAssigns/top.v:25:21	~	other	fail	fail	0	chained:rejects_own_file
-Surelog	tests/SimpleInterface/simple_if.sv	residue	113606	stimuli/sv/subs/Surelog/tests/SimpleInterface/simple_if.sv:15:46	modport	other	fail	fail	0	chained:rejects_own_file
 Surelog	tests/TestMacros/macros.v	residue	0	stimuli/sv/subs/Surelog/tests/TestMacros/macros.v:6:1	begin	other	fail	fail	0	chained:rejects_own_file
 Surelog	tests/UnitForeach/top2.v	residue	66	stimuli/sv/subs/Surelog/tests/UnitForeach/top2.v:5:45	(	a `::`-scoped name	fail	fail	0	chained:rejects_own_file
-Surelog	tests/UnitTest/top.v	residue	729	stimuli/sv/subs/Surelog/tests/UnitTest/top.v:34:22	~	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv	residue	1299	stimuli/sv/subs/opentitan/hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv:46:18	;	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv	residue	1430	stimuli/sv/subs/opentitan/hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv:52:33	)	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	residue	6554	stimuli/sv/subs/opentitan/hw/ip/otbn/dv/verilator/otbn_top_sim.sv:168:48	,	a parameter port list `#(`	fail	fail	0	chained:rejects_own_file

@@ -7,13 +7,13 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 
 | input | path | sha256 |
 |---|---|---|
-| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `37a04a0ac8e63c93f827422bacaa3702ccee3d7e5b87b956ac5f482f65f83fe9` |
+| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `cee66d3c2c119aab4d8e3bec7f6ac26e221edbb8c4aeeedf3f27e62defb5aa51` |
 | sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `1e41c369424835cf7914ab7d01b0baf03c4fb766adae1470e73f34e280c6f581` |
 | sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `b924962463aedfdfe7336f9bdfe155a5cf7f16da794d8a414ad4f7f66fa73ed7` |
 | sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `7235d426907a14490bbcfae63d618b29b7b863b53bd7153839cff679a1b7c755` |
 | expansion binary | `rust/target/debug/ast_pipeline` | `9382dff7f4f2a60f0e0f74aa9b61d563fce05064f7becf9fffed6a6e93cd3614` |
 
-## The classes — 312 rows
+## The classes — 309 rows
 
 | class | rows | what it means |
 |---|---:|---|
@@ -28,7 +28,7 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `declared_fragment` | 5 | the file declares itself a module body (`verilog_syntax: parse-as-…`) — the suite's own convention |
 | `fragment` | 40 | the file is the `include` target of another corpus file — its standalone reading is not the parser's claim |
 | `undeclared_type` | 11 | a declaration whose type is an identifier the parser has not seen declared — the cross-file barrier in data position |
-| `residue` | 25 | none of the above — adjudicated one by one below |
+| `residue` | 22 | none of the above — adjudicated one by one below |
 
 ## `raw_backtick` — 0 rows, by the macro the context did not define
 
@@ -115,16 +115,13 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 |---|---:|
 | `verible` | 5 |
 
-## `residue` — 25 rows, one by one
+## `residue` — 22 rows, one by one
 
 | suite | file | origin | token at the stop | source construct | sv_2023 | tolerant |
 |---|---|---|---|---|---|---|
 | `Surelog` | `tests/ElabSysCall/dut.sv` | `Surelog/tests/ElabSysCall/dut.sv:3:10` | `"` | other | `fail` | `fail` |
-| `Surelog` | `tests/GenerateAssigns/top.v` | `Surelog/tests/GenerateAssigns/top.v:25:21` | `~` | other | `fail` | `fail` |
-| `Surelog` | `tests/SimpleInterface/simple_if.sv` | `Surelog/tests/SimpleInterface/simple_if.sv:15:46` | `modport` | other | `fail` | `fail` |
 | `Surelog` | `tests/TestMacros/macros.v` | `Surelog/tests/TestMacros/macros.v:6:1` | `begin` | other | `fail` | `fail` |
 | `Surelog` | `tests/UnitForeach/top2.v` | `Surelog/tests/UnitForeach/top2.v:5:45` | `(` | a `::`-scoped name | `fail` | `fail` |
-| `Surelog` | `tests/UnitTest/top.v` | `Surelog/tests/UnitTest/top.v:34:22` | `~` | other | `fail` | `fail` |
 | `opentitan` | `hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv` | `opentitan/hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv:46:18` | `;` | other | `fail` | `fail` |
 | `opentitan` | `hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv` | `opentitan/hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv:52:33` | `)` | other | `fail` | `fail` |
 | `opentitan` | `hw/ip/otbn/dv/verilator/otbn_top_sim.sv` | `opentitan/hw/ip/otbn/dv/verilator/otbn_top_sim.sv:168:48` | `,` | a parameter port list `#(` | `fail` | `fail` |

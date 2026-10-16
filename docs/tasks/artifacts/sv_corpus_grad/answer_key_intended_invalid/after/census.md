@@ -30,7 +30,7 @@ describes your tree** and the honest act is to re-measure, not to quote.
 
 | input | sha256 |
 | --- | --- |
-| `stimuli/sv/characterization/adjudication_manifest.tsv` | `6ed1ddf8986bb9be5c1a2e640d09bed850884397a853ad05710366561bdab182` |
+| `stimuli/sv/characterization/adjudication_manifest.tsv` | `8d76f9076f2668a67362af35ad3028df84a3fc225f5eeb3e6e6750c94afbf64a` |
 | `stimuli/sv/characterization/positions.tsv` | `2570f719f50b930057e0bfa79e39ba64d104ff8571939837e675a43cb801d0ad` |
 | `docs/tasks/artifacts/sv_corpus_grad/answer_key_intended_invalid/census.py` | `67f272648621ca328e0559d3d8087bf7fb8d3e4314036c092e50d44d091ad567` |
 | `rust/target/release/parseability_probe` (parse binary) | `fba24b751bc01efe3bd29ec6ea9cd9ffef769d4097483b28bf618a0772519807` |

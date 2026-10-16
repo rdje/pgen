@@ -2,6 +2,7 @@ suite	relpath	verdict	productions
 Surelog	tests/ClassTypeParamAlias/dut.sv	UNCITED	
 Surelog	tests/EnumParenType/dut.sv	DIFFERS	data_declaration:DIFFERS data_type:IDENTICAL data_type_or_implicit:IDENTICAL
 Surelog	tests/ForeachSquare/dut.sv	IDENTICAL	loop_statement:IDENTICAL loop_variables:IDENTICAL struct_union_member:IDENTICAL
+Surelog	tests/GenerateAssigns/top.v	IDENTICAL	binary_operator:IDENTICAL
 Surelog	tests/HierPathModule/dut.sv	UNCITED	
 Surelog	tests/IndexedSelect/dut.sv	DIFFERS	generate_item:IDENTICAL module_common_item:DIFFERS
 Surelog	tests/InvalidTypeParam/dut.sv	UNCITED	
@@ -9,6 +10,7 @@ Surelog	tests/MaskNeg/dut.sv	UNCITED
 Surelog	tests/ParamNoDefault/dut.sv	UNCITED	
 Surelog	tests/SynthForeach/dut.sv	IDENTICAL	loop_statement:IDENTICAL loop_variables:IDENTICAL struct_union_member:IDENTICAL
 Surelog	tests/TranslateOff/dut.sv	IDENTICAL	module_item:IDENTICAL
+Surelog	tests/UnitTest/top.v	IDENTICAL	binary_operator:IDENTICAL
 Surelog	tests/UnsizedPacked/dut.sv	IDENTICAL	packed_dimension:IDENTICAL variable_dimension:IDENTICAL
 ispras-sv-tests	ieee-1800-2012/06/06.07.01_02.sv	IDENTICAL	module_declaration:IDENTICAL module_nonansi_header:IDENTICAL module_ansi_header:IDENTICAL non_port_module_item:IDENTICAL
 ispras-sv-tests	ieee-1800-2012/08/08.26.04_01.sv	IDENTICAL	class_method:IDENTICAL

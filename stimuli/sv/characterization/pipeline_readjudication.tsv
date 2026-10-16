@@ -157,7 +157,7 @@ Surelog	tests/FileList/pack.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-
 Surelog	tests/ForeachSquare/dut.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/Surelog/tests/ForeachSquare/dut.sv:7:32
 Surelog	tests/FuncDef2/dut.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 Surelog	tests/FuncStructVal/dut.sv	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-Surelog	tests/GenerateAssigns/top.v	deferred:chained_only	NO-ALTERABLE-TICK/FACT-GATED-CROSS-FILE	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/GenerateAssigns/top.v:25:21
+Surelog	tests/GenerateAssigns/top.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/Surelog/tests/GenerateAssigns/top.v:25:21
 Surelog	tests/GenerateBlock/dut.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/Surelog/tests/GenerateBlock/dut.sv:3:17
 Surelog	tests/GenerateRegion/dut.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/Surelog/tests/GenerateRegion/dut.sv:48:17
 Surelog	tests/GenerateUnnamed/top.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
@@ -270,7 +270,7 @@ Surelog	tests/SimpleIncludeAndMacros/top_2.v	deferred:chained_only	IN-WINDOW	pp_
 Surelog	tests/SimpleIncludeAndMacros/top_3.v	deferred:chained_only	IN-WINDOW	pp_fail	engine		-	chained:refused_engine	E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/mode.vh:36: `D invoked with 1 of 2 arguments and formal 'y' has no default — 
 Surelog	tests/SimpleIncludeAndMacros/top_4.v	deferred:chained_only	IN-WINDOW	pp_fail	engine		-	chained:refused_engine	E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/mode.vh:36: `D invoked with 1 of 2 arguments and formal 'y' has no default — 
 Surelog	tests/SimpleInterface/if.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
-Surelog	tests/SimpleInterface/simple_if.sv	deferred:chained_only	PAST-LAST-TICK	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/SimpleInterface/simple_if.sv:15:46
+Surelog	tests/SimpleInterface/simple_if.sv	deferred:chained_only	deferred:chained_only	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/Surelog/tests/SimpleInterface/simple_if.sv:15:46
 Surelog	tests/SimpleTask/top.v	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/SimpleTask/top_1.v	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/SimpleTask/top_2.v	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
@@ -337,7 +337,7 @@ Surelog	tests/UnitLibrary/top.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	
 Surelog	tests/UnitPython/mod.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/UnitPython/top.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/UnitQueue/top.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
-Surelog	tests/UnitTest/top.v	deferred:chained_only	NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/UnitTest/top.v:34:22
+Surelog	tests/UnitTest/top.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/Surelog/tests/UnitTest/top.v:34:22
 Surelog	tests/UnsizedPacked/dut.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/Surelog/tests/UnsizedPacked/dut.sv:5:7
 black-parrot	bp_be/src/include/bp_be_ctl_pkgdef.svh	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 black-parrot	bp_be/src/include/bp_be_dcache_defines.svh	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	

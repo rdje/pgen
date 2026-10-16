@@ -5,7 +5,7 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | suite | rows | match | UNEXPLAINED div | explained div | deferred |
 |---|---|---|---|---|---|
 | Cores-VeeR-EL2 | 102 | 0 | 0 | 0 | 102 |
-| Surelog | 828 | 584 | 0 | 43 | 201 |
+| Surelog | 828 | 586 | 0 | 43 | 199 |
 | black-parrot | 205 | 0 | 0 | 0 | 205 |
 | friscv | 441 | 0 | 0 | 0 | 441 |
 | ispras-sv-tests | 1266 | 802 | 0 | 17 | 447 |
@@ -18,13 +18,13 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 120 | 0 | 8 | 24 |
 | verilator | 3263 | 2156 | 0 | 911 | 196 |
-| **total** | **16336** | **6310** | **0** | **1420** | **8606** |
+| **total** | **16336** | **6312** | **0** | **1420** | **8604** |
 
 ## Verdict-class detail
 
 | class | count |
 |---|---|
-| deferred:chained_only | 4939 |
+| deferred:chained_only | 4937 |
 | deferred:impl_varying | 90 |
 | deferred:ni_unimplemented | 14 |
 | deferred:not_source_text | 350 |
@@ -37,7 +37,7 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | divergence:explained_svpp_keywords_region | 4 |
 | divergence:explained_svpp_macro_use | 1029 |
 | divergence:explained_svpp_protected_envelope | 4 |
-| match | 6310 |
+| match | 6312 |
 
 **The graduation burn-down baseline = the UNEXPLAINED divergence count** (**0**: rejects-valid 0, accepts-invalid 0). Explained divergences are svpp/chaining/timeout-owned or store-gate-owned (`.13w`: the row parses once its undeclared type is declared) with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
 

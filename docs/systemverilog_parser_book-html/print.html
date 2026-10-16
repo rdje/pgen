@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6a08efcd.js";
+            window.path_to_searchindex_js = "searchindex-01fd1d20.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -258,16 +258,16 @@ inapplicable one.</li>
 <tr><th>Outcome</th><th style="text-align: right">Rows</th><th style="text-align: right">Share of the corpus</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">6 310</td><td style="text-align: right">38.6 %</td></tr>
+<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">6 312</td><td style="text-align: right">38.6 %</td></tr>
 <tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 420</td><td style="text-align: right">8.7 %</td></tr>
 <tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">0</td><td style="text-align: right">0.0 %</td></tr>
 <tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 943</td><td style="text-align: right">18.0 %</td></tr>
-<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">5 663</td><td style="text-align: right">34.7 %</td></tr>
+<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">5 661</td><td style="text-align: right">34.7 %</td></tr>
 <tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
 </tbody>
 </table>
 </div>
-<p>Only <strong>7 730 rows (47.3 %)</strong> were asked a question they could answer, and <strong>3 815</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6310/7730 would quietly drop the 34.7 % carrying no verdict at all and the 18.0 % answered in another lane’s manifest.</p>
+<p>Only <strong>7 732 rows (47.3 %)</strong> were asked a question they could answer, and <strong>3 813</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6312/7732 would quietly drop the 34.7 % carrying no verdict at all and the 18.0 % answered in another lane’s manifest.</p>
 <p><strong>Under the reading leg 3 asserts</strong> (<code>DONE-BAR.3f</code>): the table above is the RAW lane; the bar reads a row the raw lane defers to the preprocess→parse pipeline under that pipeline’s re-adjudication, and names — never demands — the permanently unadjudicable classes, each held under a recorded ceiling. Derived by the register’s tracked assertion (<code>python3 stimuli/sv/corpus_conformance_compare.py --assert-tracked stimuli/sv/characterization/adjudication_manifest.tsv --assert-tracked-v2005 stimuli/sv/characterization/adjudication_manifest_v2005.tsv</code>), its sv_2017 reading cross-checked against the tuple under the pipeline that <code>bash scripts/check_sv_corpus_denominator.sh</code> prints.</p>
 <div class="table-wrapper">
 <table>
@@ -275,13 +275,13 @@ inapplicable one.</li>
 <tr><th>Lane</th><th style="text-align: right">Rows</th><th style="text-align: right">Adjudicated</th><th style="text-align: right">Permanently unadjudicable (named, bounded)</th><th style="text-align: right"><strong>Still awaiting a verdict</strong></th><th style="text-align: right">Unexplained</th><th style="text-align: right">Bar rows</th><th><code>full_pass</code></th></tr>
 </thead>
 <tbody>
-<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 582</td><td style="text-align: right">479</td><td style="text-align: right"><strong>1 332</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 585</td><td style="text-align: right">479</td><td style="text-align: right"><strong>1 329</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
 <tr><td><code>verilog_2005</code> — the routed rows, read raw under IEEE 1364-2005</td><td style="text-align: right">2 943</td><td style="text-align: right">2 896</td><td style="text-align: right">33</td><td style="text-align: right"><strong>14</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
-<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">14 478</td><td style="text-align: right">512</td><td style="text-align: right"><strong>1 346</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">14 481</td><td style="text-align: right">512</td><td style="text-align: right"><strong>1 343</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>The three row counts sum to the denominator (14 478 + 512 + 1 346 = 16 336). <strong>1 346 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
+<p>The three row counts sum to the denominator (14 481 + 512 + 1 343 = 16 336). <strong>1 343 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>

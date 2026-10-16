@@ -7,21 +7,21 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `217bf5f5107bb2a55bcc610dc14c2ac3d36f69f1583c1559a5e4bfc0df6ced91` |
+| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `ee89f1f61d794bf44e6c3fb465c9dd324e29200b44c0cb6725509b71cc6fc412` |
 | grammar | `grammars/systemverilog.ebnf` | `782a81ac7348d479dcd36ad4719d5c2e8b4a5df38cee78ff09232f0d8b2e1bf6` |
-| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `7a2d1170aeb634603ac9e43c8be50fa220fba985fd781c553aec511eff035b03` |
+| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `f4f8f0d26bd796f1c176dfe1e31da4c67759e5f617717311a628f3e1e476acf0` |
 
 ## Verdicts
 
 | verdict | rows | what it means |
 |---|---:|---|
 | `MACRO-BLOCKED` | 28 | the RESIDUAL failure sits on an undefined macro invocation ⇒ expansion owns what is left (`.13d`), NOT a parser defect |
-| `INVALID-SV` | 13 | the text is NOT legal SV; the rejection is CORRECT and accepting it would be an over-acceptance defect (pinned as a negative reproducer) |
+| `INVALID-SV` | 12 | the text is NOT legal SV; the rejection is CORRECT and accepting it would be an over-acceptance defect (pinned as a negative reproducer) |
 | `CROSS-FILE-FACTS` | 5 | declaring the cross-file names the parser demanded makes the file PARSE ⇒ blocked by cross-file FACT continuity (`.4`), NOT a parser defect |
 | `FRAGMENT-MODULE` | 2 | parses only inside a `module` ⇒ an include payload, not a legal standalone compilation unit |
 | `FRAGMENT-ENUM-BODY` | 1 | an enum-member list included INSIDE an `enum { … }` — no compilation-unit wrapper can shape it |
 | `FRAGMENT-STATEMENT` | 1 | parses only inside a `statement` ⇒ an include payload, not a legal standalone compilation unit |
-| **TOTAL** | **50** | |
+| **TOTAL** | **49** | |
 
 ## Per row
 
@@ -41,7 +41,6 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `FRAGMENT-MODULE` | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_mu.svh` | 104 | module |  |
 | `FRAGMENT-STATEMENT` | iverilog | `ivtest/ivltests/line_directive_inc.v` | 1 | — | the whole file is one bare statement, `$display("file %s line %0d", `__FILE__, `__LINE__);` — the `include payload of ivltests/line_directive.v (SV-CORPUS-GRAD.13e.13 keyed it chained_only by the `include graph). No wrapper in the ladder can shape a bare statement (a statement needs a procedural block), and inside an `initial` it still rejects on the raw lane because `__FILE__ / `__LINE__ are IEEE 1800-2017 22.13 directives the expansion stage, not the parser, resolves; its includer's row carries the verdict under the pipeline |
 | `INVALID-SV` | Surelog | `tests/ElabSysCall/dut.sv` | 3 | — | `invalid_fatal_without_finish_number.sv` |
-| `INVALID-SV` | Surelog | `tests/UnitTest/top.v` | 34 | — | `invalid_binary_reduction_nand.sv` |
 | `INVALID-SV` | black-parrot | `bp_top/test/common/bp_nonsynth_core_profiler.sv` | 3 | — | the file's first token is the bare marker `ERROR_CURRENTLY_UNSUPPORTED`, followed by a typedef — a deliberate upstream "do not compile" sentinel, not SV |
 | `INVALID-SV` | opentitan | `hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv` | 53 | — | `invalid_param_trailing_comma.sv` |
 | `INVALID-SV` | opentitan | `hw/ip/otbn/dv/verilator/otbn_top_sim.sv` | 168 | — | `invalid_implicit_named_param.sv` |

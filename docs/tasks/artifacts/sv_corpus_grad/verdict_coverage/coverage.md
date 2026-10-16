@@ -6,20 +6,20 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `6ed1ddf8986bb9be5c1a2e640d09bed850884397a853ad05710366561bdab182` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `8d76f9076f2668a67362af35ad3028df84a3fc225f5eeb3e6e6750c94afbf64a` |
 | v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `e6eef5b48a81b6a36ce80da012d27e8b8afbc683ce454682331eabe8a24b680c` |
 
 ## The headline
 
-- **ADJUDICATED: 7,730 rows (47.3 %)**
+- **ADJUDICATED: 7,732 rows (47.3 %)**
 - **ROUTED: 2,943 rows (18.0 %)**
-- **NO VERDICT: 5,663 rows (34.7 %)**
+- **NO VERDICT: 5,661 rows (34.7 %)**
 
 ## Every class, bucketed
 
 | bucket | adjudication class | rows | % | why |
 |---|---|---:|---:|---|
-| ADJUDICATED | `match` | 6,310 | 38.6 % | expected and observed agree - the row testifies FOR the parser |
+| ADJUDICATED | `match` | 6,312 | 38.6 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,029 | 6.3 % | parse stops on a macro use - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_conditional` | 196 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_include` | 133 | 0.8 % | parse stops on an `include - positionally gated since .12a |
@@ -27,7 +27,7 @@
 | ADJUDICATED | `divergence:explained_svpp_keywords_region` | 4 | 0.0 % | parse stops ON a word a begin_keywords region unreserves - IEEE 1800-2017 §22.14, applied by the expansion stage (SVPP-EXPANSION.8); token-exact tell (SV-CORPUS-GRAD.18) |
 | ADJUDICATED | `divergence:explained_svpp_protected_envelope` | 4 | 0.0 % | IEEE 1800-2017 §34 encrypted envelope - not source text yet |
 | ROUTED | `deferred:v2005_profile_lane` | 2,943 | 18.0 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
-| NO VERDICT | `deferred:chained_only` | 4,939 | 30.2 % | multi-file design: needs `include/`define chaining to parse honestly - the MOST realistic RTL in the corpus, contributing nothing to the claim |
+| NO VERDICT | `deferred:chained_only` | 4,937 | 30.2 % | multi-file design: needs `include/`define chaining to parse honestly - the MOST realistic RTL in the corpus, contributing nothing to the claim |
 | NO VERDICT | `deferred:not_source_text` | 350 | 2.1 % | the file is not SystemVerilog source text at all (a $readmemh memory image, a bare string literal, a tool command line) - it testifies to nothing about the parser; a CORPUS-COMPOSITION fact, stated per row (SV-CORPUS-GRAD.13c.1) |
 | NO VERDICT | `deferred:svpp_owned` | 245 | 1.5 % | conformance owned by the preprocessor lane, by design |
 | NO VERDICT | `deferred:impl_varying` | 90 | 0.6 % | LRM leaves the behaviour implementation-defined |
@@ -40,7 +40,7 @@
 - **1,170 corroborated** — the parse stops *on* the preprocessor construct. The label is positively verified.
 - **263 undecidable by position** — the label is neither corroborated nor refuted; only running an expander settles them (`.12b`).
 
-⇒ Rows contributing nothing to the confidence claim, counting these: **5,926 (36.3 %)**.
+⇒ Rows contributing nothing to the confidence claim, counting these: **5,924 (36.3 %)**.
 
 ## `NO VERDICT`, by suite — where the silence actually is
 
@@ -49,7 +49,7 @@
 | opentitan | `deferred:chained_only` | 3,983 |
 | friscv | `deferred:not_source_text` | 346 |
 | black-parrot | `deferred:chained_only` | 205 |
-| Surelog | `deferred:chained_only` | 198 |
+| Surelog | `deferred:chained_only` | 196 |
 | uvm-core | `deferred:chained_only` | 174 |
 | verilator | `deferred:svpp_owned` | 111 |
 | Cores-VeeR-EL2 | `deferred:chained_only` | 102 |
@@ -78,18 +78,18 @@
 
 - **ONE-SIDED POSITIVE — 1,498 rows (9.2 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
   - 1,344 are compilation-unit-shaped; ⚠️ **154 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
-- ⛔ **DARK — 3,815 rows (23.4 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
+- ⛔ **DARK — 3,813 rows (23.3 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
 - **NOT SOURCE TEXT — 350 rows (2.1 % of the corpus)** (SV-CORPUS-GRAD.13c.1): the file is a `$readmemh` memory image, a bare string literal or a tool command line, decided from its BYTES by the adjudicator. It never was a parse input, so it is neither testimony nor DARK — it stays in the denominator as a stated fact about the corpus's composition, and the class is PERMANENT and bounded below. ⛔ Before `.13c.1` these rows were counted as DARK `chained_only`, a defect worklist no chaining could ever burn down.
 
 | class | rows | one-sided (unit) | ⚠️ one-sided (fragment) | DARK | not source |
 |---|---:|---:|---:|---:|---:|
-| `deferred:chained_only` | 4,939 | 1,212 | 154 | 3,573 | 0 |
+| `deferred:chained_only` | 4,937 | 1,212 | 154 | 3,571 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 0 | 0 | 350 |
 | `deferred:svpp_owned` | 245 | 107 | 0 | 138 | 0 |
 | `deferred:impl_varying` | 90 | 6 | 0 | 84 | 0 |
 | `deferred:verilog_ams_lane` | 25 | 5 | 0 | 20 | 0 |
 | `deferred:ni_unimplemented` | 14 | 14 | 0 | 0 | 0 |
-| **TOTAL** | **5,663** | **1,344** | **154** | **3,815** | **350** |
+| **TOTAL** | **5,661** | **1,344** | **154** | **3,813** | **350** |
 
 ## Permanent deferrals — by construction, and BOUNDED (SV-CORPUS-GRAD.13f)
 
@@ -108,11 +108,11 @@ A permanent deferral is a CLAIM: no future work on the parser, the answer key or
 
 ## The DARK half — can the row's own deferral reason even REACH the failure?
 
-A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 3,815 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).
+A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 3,813 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).
 
 | class | DARK rows | of which NO `` ` `` anywhere | what that means |
 |---|---:|---:|---|
-| `deferred:chained_only` | 3,573 | 54 | ⭐ **REFUTES the TEXTUAL half of the deferral** — no chaining can alter one byte of these files, so the parse fails identically expanded. What remains is the cross-file FACT channel (a `type_name` a sibling file declares), which is narrower, is not expansion, and is separately testable → `.13c` |
+| `deferred:chained_only` | 3,571 | 52 | ⭐ **REFUTES the TEXTUAL half of the deferral** — no chaining can alter one byte of these files, so the parse fails identically expanded. What remains is the cross-file FACT channel (a `type_name` a sibling file declares), which is narrower, is not expansion, and is separately testable → `.13c` |
 | `deferred:not_source_text` | 0 | 0 | ⛔ **NOT MEASURED, and saying so is the point** — the census asks whether expansion could alter a failing PARSE of source text; these rows are not source text, so there is no parse for a directive to reach. They are excluded from DARK by construction (`.13c.1`) and appear here only so the class table is total |
 | `deferred:svpp_owned` | 138 | 10 | ⛔ refutes NOTHING — read them: verible excerpt-mode fragments and verilator `t_preproc_*_bad` EOF/string cases. Preprocessor relevance is the test's PURPOSE, not a directive in its text |
 | `deferred:impl_varying` | 84 | 0 | information only — the LRM leaves the verdict implementation-defined regardless of directives |
@@ -182,7 +182,6 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:chained_only` | 1 | Surelog: golden log PreprocLine.log reports [SNT:] syntax errors - upstream keys this single-source unit parse-level invalid - … |
 | `deferred:chained_only` | 1 | Surelog: multi-file test unit (2 sources); golden log LowMemLib.log completes with no [SNT:]/[FTL:] and the driver names this f… |
 | `deferred:chained_only` | 1 | Surelog: multi-file test unit (2 sources); golden log PreprocUhdmCov.log completes with no [SNT:]/[FTL:] and the driver names t… |
-| `deferred:chained_only` | 1 | Surelog: multi-file test unit (2 sources); golden log SimpleInterface.log completes with no [SNT:]/[FTL:] and the driver names … |
 | `deferred:chained_only` | 1 | Surelog: multi-file test unit (2 sources); golden log UnitPython.log completes with no [SNT:]/[FTL:] and the driver names this … |
 | `deferred:chained_only` | 1 | Surelog: multi-file test unit (3 sources); golden log NonSynthUnusedMod.log completes with no [SNT:]/[FTL:] and the driver name… |
 | `deferred:chained_only` | 1 | Surelog: multi-file test unit (3 sources); golden log OneNet.log completes with no [SNT:]/[FTL:] and the driver names this file… |
@@ -197,7 +196,6 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log BeginKeywords.log completes with no [SNT… |
 | `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log ClassCons.log completes with no [SNT:]/[… |
 | `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log ClassFuncProto.log completes with no [SN… |
-| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log GenerateAssigns.log completes with no [S… |
 | `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log GenerateUnnamed.log completes with no [S… |
 | `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log InterfaceModPort.log completes with no [… |
 | `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log ModPortTest.log completes with no [SNT:]… |
@@ -206,7 +204,6 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log UnitEnum.log completes with no [SNT:]/[F… |
 | `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log UnitForLoop.log completes with no [SNT:]… |
 | `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log UnitQueue.log completes with no [SNT:]/[… |
-| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log UnitTest.log completes with no [SNT:]/[F… |
 | `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; its driver is config-driven (-map/-cfg/-batch decid… |
 | `deferred:chained_only` | 1 | ivtest: 'include target of ivltests/line_directive.v - a fragment, not a standalone unit (the verilator convention); honest adj… |
 | `deferred:chained_only` | 1 | ivtest: 'include target of ivltests/pr2215342.v - a fragment, not a standalone unit (the verilator convention); honest adjudica… |
@@ -215,6 +212,7 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:chained_only` | 1 | ivtest: a '-y' LIBRARY companion (.52) - regress-vlg.list entry macro_args (type CO, '-yivltests'): macro_args.v instantiates m… |
 | `deferred:chained_only` | 1 | ivtest: a '-y' LIBRARY companion (.52) - vvp_tests/br_gh1323.json runs br_gh1323_top.v with '-yivltests', the top instantiates … |
 | `deferred:chained_only` | 1 | pinned .3.56: lines 11-12 'example line 10;' 'example line 11;' at the top level - placeholder text the driver's +pipe-filter r… |
+| `deferred:chained_only` | 1 | pinned .57a: line 15 'modport tb (clocking cb, input clk);' inside 'for (genvar i = 0; i < 2; i++) begin : mod_gen' of a genera… |
 | `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: line 9 'wire do;' - 'do' is a reserved keyword in every SystemVerilog edition (IEEE 1800-2017 Table… |
 | `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: origin line 35 'string s = 'FOO;' expands to a legal string literal ('FOO -> 'BAR -> '__FILE__, dat… |
 | `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: the same body - a bare 'begin end' at module-item level after 'string s = 'FOO;' (A.1.4; the .3.56 … |
@@ -316,19 +314,19 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 ## Under the PIPELINE — the same rows re-read through preprocess→parse (SVPP-EXPANSION.6c.1)
 
-> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`37a04a0ac8e63c93f827422bacaa3702ccee3d7e5b87b956ac5f482f65f83fe9`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
+> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`cee66d3c2c119aab4d8e3bec7f6ac26e221edbb8c4aeeedf3f27e62defb5aa51`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
 
-**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11582/2943/1811/1247/0`** (raw: `7730/2943/5663/3815/0`).
+**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11585/2943/1808/1244/0`** (raw: `7732/2943/5661/3813/0`).
 
-- **ADJUDICATED: 11,582 rows (70.9 %)** (raw 7,730, +3,852)
+- **ADJUDICATED: 11,585 rows (70.9 %)** (raw 7,732, +3,853)
 - **ROUTED: 2,943 rows (18.0 %)** (raw 2,943, +0)
-- **NO VERDICT: 1,811 rows (11.1 %)** (raw 5,663, -3,852)
+- **NO VERDICT: 1,808 rows (11.1 %)** (raw 5,661, -3,853)
 
 | bucket | class under the pipeline | rows | % | why |
 |---|---|---:|---:|---|
 | ADJUDICATED | `match` | 5,931 | 36.3 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `pipeline:corroborated` | 1,334 | 8.2 % | a must-accept row the raw lane explained away by preprocessing PASSES once preprocessed — the explanation held; the row testifies FOR the parser |
-| ADJUDICATED | `pipeline:must_reject:match_under_expansion` | 454 | 2.8 % | a row the key expects rejected IS rejected in its own text under the pipeline — the raw lane could not reach the construct |
+| ADJUDICATED | `pipeline:must_reject:match_under_expansion` | 457 | 2.8 % | a row the key expects rejected IS rejected in its own text under the pipeline — the raw lane could not reach the construct |
 | ADJUDICATED | `pipeline:svpp_owned:corroborated` | 94 | 0.6 % | a svpp-owned row whose own header says must_accept (sv-tests :type: preprocessing, no :should_fail_because:) PASSES under the pipeline — the preprocessor lane answering the question the raw key deferred to it by design (SVPP-EXPANSION.6c.3) |
 | ADJUDICATED | `divergence:explained_store_gate` | 54 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
 | ADJUDICATED | `pipeline:must_reject:refused_engine` | 22 | 0.1 % | a must-reject row the PREPROCESSOR refuses by a rule of its own (E_SVPP_* / an invalid directive, each naming its clause) — the rejection the key expects, at the expansion stage (SVPP-EXPANSION.6c.3) |
@@ -336,7 +334,7 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | NO VERDICT | `pipeline:chained:refused_context` | 384 | 2.4 % | an include the derived context cannot supply |
 | NO VERDICT | `deferred:not_source_text` | 350 | 2.1 % | the file is not SystemVerilog source text at all (a $readmemh memory image, a bare string literal, a tool command line) - it testifies to nothing about the parser; a CORPUS-COMPOSITION fact, stated per row (SV-CORPUS-GRAD.13c.1) |
 | NO VERDICT | `pipeline:chained:unreached_in_unit` | 337 | 2.1 % | DARK UNDER THE PIPELINE: a member whose every including unit rejects elsewhere (.6d.2) — the unit's own origin row carries the verdict |
-| NO VERDICT | `pipeline:chained:rejects_own_file` | 305 | 1.9 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |
+| NO VERDICT | `pipeline:chained:rejects_own_file` | 302 | 1.8 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |
 | NO VERDICT | `deferred:impl_varying` | 90 | 0.6 % | LRM leaves the behaviour implementation-defined |
 | NO VERDICT | `deferred:verilog_ams_lane` | 25 | 0.2 % | Verilog-AMS, a different language family |
 | NO VERDICT | `pipeline:svpp_owned:refused_engine` | 24 | 0.1 % | conformance owned by the preprocessor lane |

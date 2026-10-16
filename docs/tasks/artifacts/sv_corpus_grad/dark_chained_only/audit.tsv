@@ -1490,7 +1490,6 @@ NO-ALTERABLE-TICK	CROSS-LIBRARY	Surelog	tests/SimpleClass/top_1.sv	797	798		51	1
 NO-ALTERABLE-TICK	CROSS-LIBRARY	opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/tests/core_ibex_report_server.sv	214	214		5	764	uvm_default_report_server @ stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_root.svh	efault_report_server; function new(string name = ""); super.new(name);
 NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	Surelog	tests/AllBinding/dut.sv	40	56		1	140	type_scr1_mem_resp_e @ stimuli/sv/subs/Surelog/tests/AllBinding/enum.sv	sp_e dmem2exu_resp_i); type_scr1_mem_resp_e dmem2
 NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	Surelog	tests/ClassFuncProto/top.v	289	290		30	708	REQ @ stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv	ity; function REQ get_current_item(); REQ t; endfunction function v
-NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	Surelog	tests/GenerateAssigns/top.v	799	800		25	1167	a @ stimuli/sv/subs/Surelog/tests/HierPathVarArray/dut.sv	assign y = a ~& b; end else begin : u2 case (q)
 NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	Surelog	tests/SimpleClass1/top_1.v	100	100		8	259	uvm_void @ stimuli/sv/subs/Surelog/tests/ClassVirtual/dut.sv	r #(type IF=uvm_void) extends IF; endclass typedef uvm_sequencer #(uvm_sequ
 NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	Surelog	tests/SimpleClass2/top.v	148	149		13	743	uvm_component @ stimuli/sv/subs/Surelog/tests/SimpleClass1/top.v	name, uvm_component parent); function foo(string name = ""); endfunct
 NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	Surelog	tests/UnitForeach/top2.v	66	67		5	410	uvm_sequencer_base @ stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv	ncer_base::do_print (uvm_printer printer); super.do_print(printer); prin
@@ -1549,7 +1548,6 @@ NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/syn/r
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	verilator	test_regress/t/t_langext_order_sub.v	335	336		11	351		ext_order_sub(input do); endmodule
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/ModPortTest/top.v	220	220		14	739	id_t1	id_t1 aw_id; modport Master ( output aw_id ); id_t
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/UnitClass/top.v	460	461		24	868	DD	ass B b; DD d; covergroup memory @ (posedge ce); address : co
-NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/UnitTest/top.v	729	730		34	1144	result,shifter	shifter = shifter ~& result; shifter = shifter ~| result; end endmodu
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	6554	6554		168	19497	DmemAddrWidth,ImemAddrWidth,otbn_core	_if #(.ImemAddrWidth, .DmemAddrWidth) i_otbn_trace_if (.*); bind otbn_core otb
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/otbn/pre_sca/rtl/otbn_mask_accelerator_sca_wrapper.sv	1983	1990		51	3338	ctr_q	ne_q <= 1'b1; else ctr_q <= ctr_q + 1'b1; end end // Hold
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/spi_device/pre_dv/program/prog_passthrough_host.sv	2614	2615		117	13084	clk,wait_trans	); end static task automatic wait_trans(); repeat(10) @(negedge clk);

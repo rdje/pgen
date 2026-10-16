@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.57a (`PGEN-SV-CORPUS-GRAD-0445`): a unit's golden is the tool's reading, and the LRM outranks it per row
+
+- **A clean golden keys the unit, not the standard.** Two of the eleven `chained_must_accept` rejects were `a ~& b` — a spelling Surelog takes and A.8.6 does not list. The unit key is testimony that the tool parsed the file; the row-level pin is where the standard speaks. Keep both, and let the pin win.
+- **Read the eight you do not pin with the same instrument.** The interpreter on four synthetic carriers (declared / undeclared twins) sorted context barriers from boundary refusals in minutes; without it every one of them would have been "dark" prose.
+- **An artifact that records another artifact's digest must be rendered after it.** The chain rendered the re-adjudication before the dark audit it hashes and skipped the pipeline-vs-raw render; both carriers read stale on the first pass. Order a chain by the identity rows, not by habit.
+
 ## 2026-10-17 — SV-CORPUS-GRAD.57 (`PGEN-SV-CORPUS-GRAD-0444`): an expectation is a column in the key, never a suite set in a reader
 
 - **A clean golden testifies for the files the driver NAMES, not for the directory.** Surelog reads a `-y` member on demand and an unnamed sibling never, so a per-unit key would have blessed files no tool parsed; the pre-screen's 146 became 79 the moment the driver was read. Read the driver before the log.

@@ -1,6 +1,5 @@
 suite	relpath	final_verdict	repro	note
 Surelog	tests/ElabSysCall/dut.sv	INVALID-SV	invalid_fatal_without_finish_number.sv	"$fatal(""…"") carries no finish_number; $error/$warning/$info in the same file are fine"
-Surelog	tests/UnitTest/top.v	INVALID-SV	invalid_binary_reduction_nand.sv	`shifter ~& result` uses the unary reduction operator as a binary one
 black-parrot	bp_top/test/common/bp_nonsynth_core_profiler.sv	INVALID-SV		"the file's first token is the bare marker `ERROR_CURRENTLY_UNSUPPORTED`, followed by a typedef — a deliberate upstream ""do not compile"" sentinel, not SV"
 opentitan	hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv	INVALID-SV	invalid_param_trailing_comma.sv	`.EntropyWidth(EntropyWidth),` is followed directly by `)`
 opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	INVALID-SV	invalid_implicit_named_param.sv	`bind otbn_core otbn_trace_if #(.ImemAddrWidth, .DmemAddrWidth)` — parameter shorthand without parens
