@@ -33,12 +33,15 @@
 #                            short form the recovery procedure reads)
 #   restore  <scratch-dir>   put every copy back at its published path when the path holds other bytes (or nothing);
 #                            REFUSES when a copy itself no longer matches identity.tsv
-#   verify   <scratch-dir>   the RED arm — (1) every copy matches identity.tsv; (2) every published path holds its copy;
+#   verify   <scratch-dir>   the RED arm — (1) every copy matches identity.tsv; (2) every published path a tracked row
+#                            names holds its copy — except the UPLIFTED debug ast_pipeline, a NOTE when it differs: cargo
+#                            re-uplifts it on every build of its feature set (every doctrines run, the pre-commit hook) after
+#                            the chain's last restore, so it cannot be held at commit time; SV-CORPUS-GRAD.56);
 #                            (3) every tracked lane report's `parse binary` row names the published path of its role and
 #                            the copy's digest (raw lanes → release, pipeline readings → debug); (4) the store-gate memo
 #                            names each lane report's binary (`store_gate_explanations.py --check-identity`); (5) the
 #                            generated parser on disk is the recorded one (NOT EVALUATED when absent)
-#   --self-test              seven arms on a scratch tree (rc 1 on any miss)
+#   --self-test              nine arms on a scratch tree (rc 1 on any miss)
 #
 # CONTRACT: exit 0 holds, 1 a breach (named on stderr), 2 refused (a subject is missing); deterministic; `snapshot` and
 # `restore` write only under <scratch-dir> and the three published paths; `verify` writes nothing. Repo-relative paths.
@@ -56,14 +59,21 @@ ROOT = Path(os.environ.get("PGEN_SV_CEREMONY_ROOT") or REPO).resolve()  # the tr
 WARM = os.environ.get("PGEN_SV_CEREMONY_NO_WARM") != "1"
 MEMO_MODULE = "stimuli/sv/store_gate_explanations.py"
 CHAR = "stimuli/sv/characterization"
-# role -> (published path, the tracked reports whose `parse binary` row must name that path and the copy's digest)
+# role -> (published path, the tracked reports whose identity row of the given LABEL must name that path and the copy's digest)
+# SV-CORPUS-GRAD.56: the debug ast_pipeline IS named by a tracked row — the rejects-own-file census's `expansion binary` —
+# so arm (3) holds that row to the ceremony's copy; arm (2) reports the published path's drift as a NOTE for this role only,
+# because cargo re-uplifts the binary on every build of its feature set (every doctrines run, the pre-commit hook) AFTER
+# the chain's last restore, so the path cannot be held to the ceremony's bytes at commit time (measured on 1.0.253).
 ROLES = {
     "release": ("rust/target/release/parseability_probe",
-                [f"{CHAR}/characterization.md", f"{CHAR}/characterization_v2005.md", f"{CHAR}/characterization_sv2023.md"]),
+                [(f"{CHAR}/characterization.md", "parse binary"), (f"{CHAR}/characterization_v2005.md", "parse binary"),
+                 (f"{CHAR}/characterization_sv2023.md", "parse binary")]),
     "debug": ("rust/target/debug/parseability_probe",
-              [f"{CHAR}/pipeline_characterization.md", f"{CHAR}/pipeline_readjudication.md"]),
-    "pipeline": ("rust/target/debug/ast_pipeline", []),
+              [(f"{CHAR}/pipeline_characterization.md", "parse binary"), (f"{CHAR}/pipeline_readjudication.md", "parse binary")]),
+    "pipeline": ("rust/target/debug/ast_pipeline",
+                 [("docs/tasks/artifacts/sv_corpus_grad/rejects_own_file_census/census.md", "expansion binary")]),
 }
+UPLIFTED = {"pipeline"}   # roles whose published path cargo re-uplifts on every build of its feature set: arm (2) notes, never breaches
 RECORDED = ["generated/systemverilog_parser.rs", "grammars/systemverilog.ebnf"]   # digested at snapshot time, not copied
 PROBES = ("release", "debug")                                                     # the two that answer --parser-fingerprint
 
@@ -102,8 +112,8 @@ def read_identity(scratch: Path) -> dict:
     return rows
 
 
-def report_row(report: Path):
-    """(path cell, digest) of the report's `parse binary` identity row, or None."""
+def report_row(report: Path, label: str = "parse binary"):
+    """(path cell, digest) of the report's identity row carrying `label`, or None."""
     sys.path.insert(0, str(REPO / "stimuli/sv"))
     import importlib.util
     spec = importlib.util.spec_from_file_location("sg", REPO / MEMO_MODULE)
@@ -112,7 +122,7 @@ def report_row(report: Path):
         return None
     for line in report.read_text(encoding="utf-8").splitlines():
         m = sg.IDENTITY_ROW_RE.match(line)
-        if m and m.group(1).strip() == "parse binary":
+        if m and m.group(1).strip() == label:
             return m.group(2).strip(), m.group(3)
     return None
 
@@ -186,23 +196,30 @@ def verify(scratch: Path) -> int:
             breaches.append(f"(1) the copy {cp} is ABSENT")
         elif sha(cp) != ident[role]["sha256"]:
             breaches.append(f"(1) the copy {cp} hashes {sha(cp)[:12]}…, identity.tsv records {ident[role]['sha256'][:12]}… — the copy MOVED")
-    # (2) the published paths
+    # (2) the published paths — a breach, except for an UPLIFTED role (SV-CORPUS-GRAD.56): cargo re-uplifts the debug
+    # ast_pipeline on every build of its feature set — every doctrines run, the pre-commit hook — after the chain's last
+    # restore, so that path cannot be held to the ceremony's bytes at commit time; the tracked row that names it is held
+    # by arm (3) to the ceremony's copy, and `restore` still puts the bytes back before any measuring step that needs them
     for role, (published, _) in ROLES.items():
         p = ROOT / published
         have = sha(p) if p.is_file() else ""
         if have != ident[role]["sha256"]:
-            breaches.append(f"(2) {published} holds {(have[:12] + '…') if have else 'NOTHING'}, the ceremony measured with "
-                            f"{ident[role]['sha256'][:12]}… — run `restore`")
+            msg = (f"(2) {published} holds {(have[:12] + '…') if have else 'NOTHING'}, the ceremony measured with "
+                   f"{ident[role]['sha256'][:12]}… — run `restore`")
+            if role in UPLIFTED:
+                notes.append(msg + " (an uplifted path: cargo re-uplifts it on every build of its feature set after the last restore — a note, not a breach; the tracked row naming it is held by arm (3))")
+            else:
+                breaches.append(msg)
     # (3) the tracked reports
     reports = 0
     for role, (published, report_list) in ROLES.items():
-        for rel in report_list:
+        for rel, label in report_list:
             rp = ROOT / rel
             if not rp.is_file():
                 breaches.append(f"(3) the tracked report {rel} is ABSENT"); continue
-            row = report_row(rp); reports += 1
+            row = report_row(rp, label); reports += 1
             if row is None:
-                breaches.append(f"(3) {rel} carries no `parse binary` identity row"); continue
+                breaches.append(f"(3) {rel} carries no `{label}` identity row"); continue
             path_cell, digest = row
             if path_cell != published:
                 breaches.append(f"(3) {rel} names `{path_cell}`, not the {role} probe's published path `{published}`")
@@ -264,14 +281,15 @@ def self_test() -> int:
         # the tracked reports and the memo, agreeing
         (root / CHAR).mkdir(parents=True)
         for role, (published, reports) in ROLES.items():
-            for rel in reports:
-                (root / rel).write_text(f"| parse binary | `{published}` | `{ident[role]['sha256']}` |\n")
+            for rel, label in reports:
+                (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                (root / rel).write_text(f"| {label} | `{published}` | `{ident[role]['sha256']}` |\n")
         memo_rows = ["lane\tsuite\trelpath\tfile_sha256\tbinary_sha256\tinstrument_sha256\tverdict\tnames\tforms",
                      f"sv_2017\ts\tx.sv\t{'1' * 64}\t{ident['release']['sha256']}\t{'2' * 64}\texplained\tT\tclass"]
         (root / CHAR / "store_gate_cache.tsv").write_text("\n".join(memo_rows) + "\n")
         rc, out = run("verify", str(scratch), root=root)
         check(f"verify is GREEN when copies, published paths, every report and the memo agree ({out.strip().splitlines()[-1]})",
-              rc == 0 and "OK verify copies=3 published=3 reports=5 memo=OK" in out and "note (5) grammars/systemverilog.ebnf: NOT EVALUATED" in out)
+              rc == 0 and "OK verify copies=3 published=3 reports=6 memo=OK" in out and "note (5) grammars/systemverilog.ebnf: NOT EVALUATED" in out)
         # a rebuilt published path: RED, then restore, then GREEN
         (root / ROLES["release"][0]).write_bytes(b"rebuilt by a later gate\n")
         rc1, out1 = run("verify", str(scratch), root=root)
@@ -279,6 +297,18 @@ def self_test() -> int:
         rc3, out3 = run("verify", str(scratch), root=root)
         check("a published path rebuilt over is a (2) breach, `restore` puts the copy back (restored=1 unchanged=2), verify is GREEN again",
               rc1 == 1 and "(2) rust/target/release/parseability_probe holds" in out1 and rc2 == 0 and "restored=1 unchanged=2" in out2 and rc3 == 0)
+        # a role no tracked row names (the debug ast_pipeline) rebuilt over: GREEN with a note, restored on demand
+        (root / ROLES["pipeline"][0]).write_bytes(b"rebuilt by a doctrines run\n")
+        rc1, out1 = run("verify", str(scratch), root=root)
+        rc2, out2 = run("restore", str(scratch), root=root)
+        check("a re-uplifted debug ast_pipeline is a NOTE (its tracked row still holds under arm (3)), verify stays GREEN, and `restore` still puts it back (restored=1)",
+              rc1 == 0 and "note (2) rust/target/debug/ast_pipeline holds" in out1 and "an uplifted path" in out1 and rc2 == 0 and "restored=1 unchanged=2" in out2)
+        # the census row naming other bytes for the uplifted role IS a (3) breach
+        cens = root / ROLES["pipeline"][1][0][0]; keep_c = cens.read_text()
+        cens.write_text(f"| expansion binary | `{ROLES['pipeline'][0]}` | `{'8' * 64}` |\n")
+        rc1, out1 = run("verify", str(scratch), root=root)
+        check("the rejects-own-file census naming other bytes for the debug ast_pipeline is a (3) breach", rc1 == 1 and "(3) docs/tasks/artifacts/sv_corpus_grad/rejects_own_file_census/census.md names 888888888888…" in out1)
+        cens.write_text(keep_c)
         # a copy that moved: verify RED on (1), restore REFUSES
         cp = copy_path(scratch, "debug"); keep = cp.read_bytes(); cp.write_bytes(b"the copy moved\n")
         rc1, out1 = run("verify", str(scratch), root=root)
@@ -287,7 +317,7 @@ def self_test() -> int:
               rc1 == 1 and "(1) the copy" in out1 and "MOVED" in out1 and rc2 == 2 and "REFUSED" in out2)
         cp.write_bytes(keep)
         # a report naming other bytes / another path
-        rel = ROLES["debug"][1][0]
+        rel = ROLES["debug"][1][0][0]
         (root / rel).write_text(f"| parse binary | `rust/target/release/parseability_probe` | `{'9' * 64}` |\n")
         rc, out = run("verify", str(scratch), root=root)
         check("a tracked report naming another path and other bytes is named twice under (3)",
@@ -302,7 +332,7 @@ def self_test() -> int:
         # a tree with nothing built
         rc, out = run("snapshot", str(Path(td) / "svXX"), root=Path(td) / "empty")
         check("snapshot on a tree with nothing built REFUSES (rc 2) and names the first missing binary", rc == 2 and "is not built" in out)
-    print(f"{TAG}-SELF-TEST: pass={7 - len(fails)} fail={len(fails)}")
+    print(f"{TAG}-SELF-TEST: pass={9 - len(fails)} fail={len(fails)}")
     return 1 if fails else 0
 
 

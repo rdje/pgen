@@ -46,8 +46,9 @@ contradicts.
    RECORDS the probe path it measured with and adopts it on its next run; a tracked report naming
    `rust/target/svNN/bin/…` would send the next ceremony to a path the §8 cleanup deletes within a week. The
    published paths are the only paths a tracked artifact may name; the copies guarantee what they hold.
-3. **Verify at the end** — `… verify rust/target/svNN`: the copies against `identity.tsv`, the published
-   paths against the copies, every tracked lane report's `parse binary` row against the copy of its role (raw
+3. **Verify at the end** — `… verify rust/target/svNN`: the copies against `identity.tsv`, the two probes'
+   published paths against the copies (the debug `ast_pipeline` a note: cargo re-uplifts it on every build of its
+   feature set after the chain's last restore — `.56`), every tracked identity row that names a binary against the copy of its role (raw
    lanes → release, pipeline readings → debug), and the store-gate memo against the lane reports
    (`store_gate_explanations.py --check-identity`, also the store-gate bank's A13 arm on every commit, with a
    flipped-row RED control).

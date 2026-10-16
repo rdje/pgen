@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-532a1f8e.js";
+            window.path_to_searchindex_js = "searchindex-e0220394.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -530,8 +530,11 @@ byte-reproducible on this host, so a tracked report would name a binary that no 
 (<code>SV-CORPUS-GRAD.52</code>, 2026-10-09: the debug probe the three pipeline readings named was gone and the
 readings had to be re-run; the lowmem copy saved the release identity). The chain therefore runs
 <code>… restore rust/target/svNN</code> before every measuring step that follows such a gate and as its LAST step,
-and <code>… verify rust/target/svNN</code> at the end — the RED arm: the copies, the published paths, every tracked
-report’s <code>parse binary</code> row and the store-gate memo must all name the ceremony’s bytes (<code>.53</code>). ⛔ The
+and <code>… verify rust/target/svNN</code> at the end — the RED arm: the copies, the two probes’ published paths, every
+tracked identity row that names a binary (the lane reports’ <code>parse binary</code>, the rejects-own-file census’s
+<code>expansion binary</code>) and the store-gate memo must all name the ceremony’s bytes (<code>.53</code>); the published debug
+<code>ast_pipeline</code> is a NOTE, because cargo re-uplifts it on every build of its feature set — every doctrines run
+and the pre-commit hook, after the chain’s last restore — so no chain can hold it at commit time (<code>.56</code>). ⛔ The
 published paths stay the ONLY paths a tracked artifact may name: the lane runner adopts the recorded
 probe path on its next run, and a scratch path is gone within a week.</li>
 <li><strong>Pins</strong>: <code>python3 stimuli/sv/run_adjudication_repros.py</code> → <code>failures=0</code>, with every

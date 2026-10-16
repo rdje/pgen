@@ -354,8 +354,11 @@ each under the memory guard, sequentially.
    (`SV-CORPUS-GRAD.52`, 2026-10-09: the debug probe the three pipeline readings named was gone and the
    readings had to be re-run; the lowmem copy saved the release identity). The chain therefore runs
    `… restore rust/target/svNN` before every measuring step that follows such a gate and as its LAST step,
-   and `… verify rust/target/svNN` at the end — the RED arm: the copies, the published paths, every tracked
-   report's `parse binary` row and the store-gate memo must all name the ceremony's bytes (`.53`). ⛔ The
+   and `… verify rust/target/svNN` at the end — the RED arm: the copies, the two probes' published paths, every
+   tracked identity row that names a binary (the lane reports' `parse binary`, the rejects-own-file census's
+   `expansion binary`) and the store-gate memo must all name the ceremony's bytes (`.53`); the published debug
+   `ast_pipeline` is a NOTE, because cargo re-uplifts it on every build of its feature set — every doctrines run
+   and the pre-commit hook, after the chain's last restore — so no chain can hold it at commit time (`.56`). ⛔ The
    published paths stay the ONLY paths a tracked artifact may name: the lane runner adopts the recorded
    probe path on its next run, and a scratch path is gone within a week.
 3. **Pins**: `python3 stimuli/sv/run_adjudication_repros.py` → `failures=0`, with every

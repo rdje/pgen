@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-16 — SV-CORPUS-GRAD.56 (`PGEN-SV-CORPUS-GRAD-0443`): a published path cargo uplifts cannot be a RED arm
+
+- **`restore` is undone by a no-op build.** cargo copies the cached deps artifact over the published binary on every build of that feature set, even when nothing recompiles; the file that replaced the ceremony's bytes was six days older than the restore it replaced. A chain's "last" step is never last while a pre-commit hook builds.
+- **Check the premise against the tree before writing the fix.** "Named by no tracked row" was one `git grep` away from false; the census that names the row never re-hashes it, which is the real reason nothing had ever held the path. The honest arm holds the row, notes the path, and names the mechanism.
+
 ## 2026-10-16 — SV-CORPUS-GRAD.50 (`PGEN-SV-CORPUS-GRAD-0442`, release `1.0.253`): probe every sibling site before the design, settle the shape on the carrier, let the clause re-key the lenient tool's rows
 
 - **One pin, six sites.** The watched `reg [7:0][3:0]` pin named `data_type` alternative 1; probing the siblings with the release probe before designing found the same acceptance at the named-block reg, the function range, the ANSI port, the output reg port and the task port — and the net site already closed by `.3.66`. Three rules carry all six; one list helper split by edition closes them at once. A twin written against the pin alone would have left five doors open.
