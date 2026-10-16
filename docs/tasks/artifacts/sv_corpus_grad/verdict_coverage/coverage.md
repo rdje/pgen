@@ -6,7 +6,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `8d76f9076f2668a67362af35ad3028df84a3fc225f5eeb3e6e6750c94afbf64a` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `5700b61a03622ed56df921f16124bdb89f3c7ce76b62971e4deac7d6e941a9a6` |
 | v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `e6eef5b48a81b6a36ce80da012d27e8b8afbc683ce454682331eabe8a24b680c` |
 
 ## The headline
@@ -77,19 +77,19 @@
 ## Inside `NO VERDICT` — what the parser ALREADY did on the row's own bytes (SV-CORPUS-GRAD.13a)
 
 - **ONE-SIDED POSITIVE — 1,498 rows (9.2 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
-  - 1,344 are compilation-unit-shaped; ⚠️ **154 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
+  - 1,364 are compilation-unit-shaped; ⚠️ **134 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
 - ⛔ **DARK — 3,813 rows (23.3 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
 - **NOT SOURCE TEXT — 350 rows (2.1 % of the corpus)** (SV-CORPUS-GRAD.13c.1): the file is a `$readmemh` memory image, a bare string literal or a tool command line, decided from its BYTES by the adjudicator. It never was a parse input, so it is neither testimony nor DARK — it stays in the denominator as a stated fact about the corpus's composition, and the class is PERMANENT and bounded below. ⛔ Before `.13c.1` these rows were counted as DARK `chained_only`, a defect worklist no chaining could ever burn down.
 
 | class | rows | one-sided (unit) | ⚠️ one-sided (fragment) | DARK | not source |
 |---|---:|---:|---:|---:|---:|
-| `deferred:chained_only` | 4,937 | 1,212 | 154 | 3,571 | 0 |
+| `deferred:chained_only` | 4,937 | 1,232 | 134 | 3,571 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 0 | 0 | 350 |
 | `deferred:svpp_owned` | 245 | 107 | 0 | 138 | 0 |
 | `deferred:impl_varying` | 90 | 6 | 0 | 84 | 0 |
 | `deferred:verilog_ams_lane` | 25 | 5 | 0 | 20 | 0 |
 | `deferred:ni_unimplemented` | 14 | 14 | 0 | 0 | 0 |
-| **TOTAL** | **5,661** | **1,344** | **154** | **3,813** | **350** |
+| **TOTAL** | **5,661** | **1,364** | **134** | **3,813** | **350** |
 
 ## Permanent deferrals — by construction, and BOUNDED (SV-CORPUS-GRAD.13f)
 
@@ -126,10 +126,8 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | class | rows | reason (the row's own `basis`) |
 |---|---:|---|
 | `deferred:chained_only` | 4,609 | design corpus: a shipping design's file is valid as part of its unit (the DESIGN_SUITES convention; cashed by the pipeline read… |
-| `deferred:chained_only` | 36 | verilator: multi-file test payload outside flat test_regress/t/ |
-| `deferred:chained_only` | 29 | verilator: no same-stem driver and never a top_filename - include/companion fragment |
+| `deferred:chained_only` | 18 | verilator: compiled as part of test t_sv_cpu (driver t_sv_cpu.py expects success) - flag-list source; test_regress/driver.py:77… |
 | `deferred:chained_only` | 17 | Surelog: multi-file test unit (3 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
-| `deferred:chained_only` | 13 | verilator: .svh include payload, not a standalone unit |
 | `deferred:chained_only` | 11 | Surelog: multi-file test unit (4 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
 | `deferred:chained_only` | 11 | verible: kythe multi-file/include fixture directory |
 | `deferred:chained_only` | 10 | Surelog: multi-file test unit (10 sources); its driver is config-driven (-map/-cfg/-batch decide the compiled set) - dir-level … |
@@ -143,8 +141,13 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:chained_only` | 7 | Surelog: multi-file test unit (8 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
 | `deferred:chained_only` | 6 | Surelog: multi-file test unit (6 sources); golden log SimpleTask.log completes with no [SNT:]/[FTL:] and the driver names this … |
 | `deferred:chained_only` | 6 | verible: .svh include payload, not a standalone unit |
+| `deferred:chained_only` | 5 | verilator: compiled as part of test t_config_libmap (driver t_config_libmap.py expects success) - flag-list source; test_regres… |
+| `deferred:chained_only` | 5 | verilator: no same-stem driver and never a top_filename - include/companion fragment |
 | `deferred:chained_only` | 4 | Surelog: multi-file test unit (6 sources); golden log FSMBsp13.log completes with no [SNT:]/[FTL:] and the driver names this fi… |
 | `deferred:chained_only` | 4 | Surelog: no per-test .sl driver unit owns this file's directory - unkeyed (chain-level only) |
+| `deferred:chained_only` | 4 | verilator: compiled as part of test t_case_huge (driver t_case_huge.py expects success) - module-name resolution (-y) of t/t_ca… |
+| `deferred:chained_only` | 4 | verilator: compiled as part of test t_sv_bus_mux_demux (driver t_sv_bus_mux_demux.py expects success) - include of t/t_sv_bus_m… |
+| `deferred:chained_only` | 4 | verilator: compiled as part of test t_uvm_dpi_v2020_3_1 (driver t_uvm_dpi_v2020_3_1.py expects success) - include of t/uvm/v202… |
 | `deferred:chained_only` | 3 | Surelog: multi-file test unit (3 sources); golden log AssertDelayError.log completes with no [SNT:]/[FTL:] and the driver names… |
 | `deferred:chained_only` | 3 | Surelog: multi-file test unit (3 sources); golden log Kmac.log completes with no [SNT:]/[FTL:] and the driver names this file -… |
 | `deferred:chained_only` | 3 | Surelog: multi-file test unit (3 sources); golden log TestMacros.log reports [SNT:] syntax errors - the error's carrier is not … |
@@ -152,6 +155,9 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:chained_only` | 3 | Surelog: multi-file test unit (3 sources); its driver is config-driven (-map/-cfg/-batch decide the compiled set) - dir-level c… |
 | `deferred:chained_only` | 3 | Surelog: multi-file test unit (5 sources); golden log SplitFile.log completes with no [SNT:]/[FTL:] and the driver names this f… |
 | `deferred:chained_only` | 3 | sv2v: .svh include payload, not a standalone unit |
+| `deferred:chained_only` | 3 | verilator: compiled as part of test t_hier_block_import (driver t_hier_block_import.py expects success) - -f command file t/t_h… |
+| `deferred:chained_only` | 3 | verilator: compiled as part of test t_uvm_dpi_v2017_1_0 (driver t_uvm_dpi_v2017_1_0.py expects success) - include of t/uvm/v201… |
+| `deferred:chained_only` | 3 | verilator: multi-file test payload outside flat test_regress/t/ |
 | `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log AllBinding.log completes with no [SNT:]/[FTL:] and the driver names this … |
 | `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log AssertTempError.log completes with no [SNT:]/[FTL:] and the driver names … |
 | `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log Attributes.log completes with no [SNT:]/[FTL:] and the driver names this … |
@@ -175,6 +181,10 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:chained_only` | 2 | Surelog: multi-file test unit (3 sources); golden log TimeUnit.log completes with no [SNT:]/[FTL:] and the driver names this fi… |
 | `deferred:chained_only` | 2 | Surelog: multi-file test unit (4 sources); golden log OneAnd.log completes with no [SNT:]/[FTL:] and the driver names this file… |
 | `deferred:chained_only` | 2 | Surelog: multi-file test unit (6 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
+| `deferred:chained_only` | 2 | verilator: compiled as part of test t_embed1 (driver t_embed1.py expects success) - module-name resolution (-y) of t/t_embed1.v… |
+| `deferred:chained_only` | 2 | verilator: compiled as part of test t_inst_first (driver t_inst_first.py expects success) - module-name resolution (-y) of t/t_… |
+| `deferred:chained_only` | 2 | verilator: compiled as part of test t_order (driver t_order.py expects success) - module-name resolution (-y) of t/t_order.v; t… |
+| `deferred:chained_only` | 2 | verilator: compiled by a test whose driver fails=True (t_config_inst_missing.py) - the intended error may live in this companio… |
 | `deferred:chained_only` | 1 | Surelog: .svh include payload, not a standalone unit |
 | `deferred:chained_only` | 1 | Surelog: golden log ElabSysCall.log aborted with [FTL:] - no usable parse testimony |
 | `deferred:chained_only` | 1 | Surelog: golden log ExprEvalPartial.log aborted with [FTL:] - no usable parse testimony |
@@ -220,6 +230,27 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: the same body as dep-files.sv - a bare 'begin end' at module-item level (A.1.4; the .3.56 ruling); … |
 | `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: the same body as dep-files.sv - a bare 'begin end' at module-item level after 'string s = 'FOO;' (A… |
 | `deferred:chained_only` | 1 | sv-tests: .svh include payload, not a standalone unit |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_case_write1 (driver t_case_write1.py expects success) - module-name resolution (-y) of t/… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_case_write2 (driver t_case_write2.py expects success) - module-name resolution (-y) of t/… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_debug_inputs (driver t_debug_inputs.py expects success) - include of t/t_debug_inputs.v; … |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_flag_f (driver t_flag_f.py expects success) - -f command file t/t_flag_f.vc; test_regress… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_flag_incdir (driver t_flag_incdir.py expects success) - include of t/t_flag_incdir.v; tes… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_flag_lib (driver t_flag_lib.py expects success) - flag-list source; test_regress/driver.p… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_interface_find (driver t_interface_find.py expects success) - module-name resolution (-y)… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_langext_order (driver t_langext_order.py expects success) - module-name resolution (-y) o… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_math_synmul (driver t_math_synmul.py expects success) - module-name resolution (-y) of t/… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_math_wallace (driver t_math_wallace.py expects success) - module-name resolution (-y) of … |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_multitop1 (driver t_multitop1.py expects success) - module-name resolution (-y) of t/t_mu… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_param_first (driver t_param_first.py expects success) - module-name resolution (-y) of t/… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_param_first (driver t_param_first.py expects success) - module-name resolution (-y) of t/… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_preproc_resolve (driver t_preproc_resolve.py expects success) - module-name resolution (-… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_sv_cpu (driver t_sv_cpu.py expects success) - include of t/t_sv_cpu_code/program_h.sv; te… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_uvm_dpi_v2017_1_0 (driver t_uvm_dpi_v2017_1_0.py expects success) - include of t/t_uvm_dp… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_uvm_dpi_v2020_3_1 (driver t_uvm_dpi_v2020_3_1.py expects success) - include of t/t_uvm_dp… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_uvm_hello_all_v2017_1_0_dpi (driver t_uvm_hello_all_v2017_1_0_dpi.py expects success) - f… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_uvm_hello_all_v2017_1_0_nodpi (driver t_uvm_hello_all_v2017_1_0_nodpi.py expects success)… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_uvm_hello_all_v2020_3_1_dpi (driver t_uvm_hello_all_v2020_3_1_dpi.py expects success) - f… |
+| `deferred:chained_only` | 1 | verilator: compiled as part of test t_uvm_hello_all_v2020_3_1_nodpi (driver t_uvm_hello_all_v2020_3_1_nodpi.py expects success)… |
 | `deferred:chained_only` | 1 | verilator: driver t_lint_in_inc_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax erro… |
 | `deferred:not_source_text` | 346 | not SystemVerilog source text: a $readmemh memory image - only white space, comments and hexadecimal numbers, with optional @hh… |
 | `deferred:not_source_text` | 3 | not SystemVerilog source text: a bare string literal - nothing outside string literals and comments, so no description (IEEE 18… |
@@ -316,11 +347,11 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 > Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`cee66d3c2c119aab4d8e3bec7f6ac26e221edbb8c4aeeedf3f27e62defb5aa51`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
 
-**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11585/2943/1808/1244/0`** (raw: `7732/2943/5661/3813/0`).
+**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11644/2943/1749/1244/0`** (raw: `7732/2943/5661/3813/0`).
 
-- **ADJUDICATED: 11,585 rows (70.9 %)** (raw 7,732, +3,853)
+- **ADJUDICATED: 11,644 rows (71.3 %)** (raw 7,732, +3,912)
 - **ROUTED: 2,943 rows (18.0 %)** (raw 2,943, +0)
-- **NO VERDICT: 1,808 rows (11.1 %)** (raw 5,661, -3,853)
+- **NO VERDICT: 1,749 rows (10.7 %)** (raw 5,661, -3,912)
 
 | bucket | class under the pipeline | rows | % | why |
 |---|---|---:|---:|---|
@@ -352,8 +383,8 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | NO VERDICT | `pipeline:svpp_owned:refuted:key_question` | 2 | 0.0 % | the stage or the parser is right to refuse; the svpp-owned row's expectation (its suite's own convention) is what needs a ruling (.6c.4) |
 | NO VERDICT | `pipeline:refuted:preprocessor_item` | 1 | 0.0 % | an expansion-stage rule not yet implemented (named per row) |
 | NO VERDICT | `pipeline:must_reject:hollow` | 1 | 0.0 % | the rejection lands in an included file |
-| ADJUDICATED | `pipeline:chained:accepted_under_expansion` (key: must-accept as part of its unit) | 2,192 | 13.4 % | a file ACCEPTED under its derived context that the key expects must-accept AS PART OF ITS UNIT (`chained_must_accept`: a shipping design's file, or a Surelog multi-source unit whose golden log completes clean and whose driver names the file — .57); with no per-file expectation the row keeps NO VERDICT |
-| NO VERDICT | `pipeline:chained:accepted_under_expansion` (no per-file expectation) | 187 | 1.1 % | accepted under its context, but the suite gives no per-file expectation |
+| ADJUDICATED | `pipeline:chained:accepted_under_expansion` (key: must-accept as part of its unit) | 2,251 | 13.8 % | a file ACCEPTED under its derived context that the key expects must-accept AS PART OF ITS UNIT (`chained_must_accept`: a shipping design's file, or a Surelog multi-source unit whose golden log completes clean and whose driver names the file — .57); with no per-file expectation the row keeps NO VERDICT |
+| NO VERDICT | `pipeline:chained:accepted_under_expansion` (no per-file expectation) | 128 | 0.8 % | accepted under its context, but the suite gives no per-file expectation |
 | ADJUDICATED | `pipeline:chained:accepted_in_unit` (key: must-accept as part of its unit) | 1,501 | 9.2 % | a file ACCEPTED as a MEMBER of its package unit under the library (.6d.2) that the key expects must-accept as part of its unit (`chained_must_accept`); with no per-file expectation the row keeps NO VERDICT |
 | | **TOTAL** | **16,336** | **100.0 %** | |
 

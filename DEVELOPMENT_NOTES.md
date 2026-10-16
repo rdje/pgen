@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.58 (`PGEN-SV-CORPUS-GRAD-0446`): read the suite's driver, not the directory
+
+- **Ownership has four spellings in one suite.** A verilator test names its companions in a flag list, in a `-f` file (with `${TEST_REGRESS}` and a doubled slash), by `include`, or by instantiating a module whose file the suite's own `-y t` resolves. The last is the one no grep for the file name finds; the driver line that makes it provable is `test_regress/driver.py:771`.
+- **Pre-register the tuple, then let the gate read it.** The anchor was written with the predicted `11644/2943/1749/1244/0` before the chain derived it; the denominator doctrine is the check, not the author.
+
 ## 2026-10-17 — SV-CORPUS-GRAD.57a (`PGEN-SV-CORPUS-GRAD-0445`): a unit's golden is the tool's reading, and the LRM outranks it per row
 
 - **A clean golden keys the unit, not the standard.** Two of the eleven `chained_must_accept` rejects were `a ~& b` — a spelling Surelog takes and A.8.6 does not list. The unit key is testimony that the tool parsed the file; the row-level pin is where the standard speaks. Keep both, and let the pin win.

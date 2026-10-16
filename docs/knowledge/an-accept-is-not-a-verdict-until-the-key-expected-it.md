@@ -67,3 +67,9 @@ which is exactly the drift it exists to stop.
 name, 13 config-driven, 6 under incomplete or aborted logs, 4 outside any `.sl` unit, …), verilator 68 (the
 companion files of passing tests — a driver reading like `.6c.4`'s is the next convention), verible 17,
 slang 14, iverilog 3, sv2v 2, sv-tests 1.
+
+**The verilator reading (`SV-CORPUS-GRAD.58`).** The same rule, a different spelling of ownership: a
+companion is compiled by the test whose driver names it (an SV flag list, a `-f` command file with
+`${TEST_REGRESS}`), whose source `include`s it, or whose source instantiates a module of its name — resolvable
+because the suite's own driver passes `+incdir+t -y t` to every test (`test_regress/driver.py:771`). 68 rows
+keyed, 59 adjudicated; a `fails=True` co-owner keys nothing, and an orphan no test references keeps no verdict.

@@ -846,9 +846,12 @@ test unit that its committed golden log testifies for — the log completed with
 the `.sl` driver names the file (on the line, as `-v`'s argument, or in an in-unit `-f` list). A `-y`
 library member or an unnamed sibling is not provably among the compiled sources, a config-driven driver
 (`-map`/`-cfg`/`-batch`) decides the set elsewhere, and a log with `[SNT:]` names no file — those stay
-`chained_only`, as does every other suite's chained row until a convention of its own is read. The
-coverage instrument and the done-bar assertion read that column and nothing else, so a Surelog row and
-an OpenTitan row are adjudicated by the same rule.
+`chained_only`, as does every other suite's chained row until a convention of its own is read. Since `.58`
+verilator's is: a companion file is keyed by the test that compiles it — named by the driver's flag list or
+`-f` command file, `include`d by a source of the test, or instantiated by name under the `+incdir+t -y t` the
+suite's own driver passes to every test (`test_regress/driver.py:771`) — with that driver's expectation, and a
+`fails=True` owner keys nothing. The coverage instrument and the done-bar assertion read that column and
+nothing else, so a Surelog row, a verilator companion and an OpenTitan row are adjudicated by the same rule.
 
 ⛔ **A note on the host, not the engine.** The reading above was taken on the debug probe because no
 release build of the crate could be completed on the development host that day: a per-process

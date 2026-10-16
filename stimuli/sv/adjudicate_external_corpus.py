@@ -31,7 +31,9 @@ Expected-verdict taxonomy (leaf .1 design):
                            that the unit is valid: a shipping design compiles (DESIGN_SUITES),
                            or a Surelog multi-source unit whose committed golden log
                            completes with no [SNT:]/[FTL:] and whose driver names the file
-                           (SV-CORPUS-GRAD.57). The RAW lane still cannot judge the file
+                           (SV-CORPUS-GRAD.57), or a verilator companion a passing test
+                           compiles - named by its driver, `include`d or instantiated by
+                           name under the suite's own +incdir+t -y t (SV-CORPUS-GRAD.58). The RAW lane still cannot judge the file
                            alone (deferred:chained_only); the pipeline reading cashes it on
                            a chained:accepted_under_expansion / accepted_in_unit verdict.
   not_source_text          the file's BYTES are not SystemVerilog source text at all - a
@@ -2814,6 +2816,136 @@ class VerilatorIndex:
                 self.syntax_out_stems.add(out.stem)
             if VERILATOR_PREPROCESS_STAGE_RE.search(text):
                 self.preprocess_out_stems.add(out.stem)
+        self.owners = self._owner_map(t_dir)     # SV-CORPUS-GRAD.58
+
+    # ---- SV-CORPUS-GRAD.58: which test COMPILES a companion file ----------------------------------
+    # A file with no same-stem driver and never a top_filename is still parsed by verilator when a
+    # test's driver names it (an SV flag-list source or an entry of its `-f` command file), when a
+    # source of that test `include`s it (the suite's driver passes `+incdir+t` to every test:
+    # test_regress/driver.py:771), or when a source of that test instantiates a module of its name
+    # (the same line passes `-y t`; a driver's own `-y <dir>` counts the same way). The owning
+    # test's driver then carries the expectation: expects success -> the companion is valid as part
+    # of that test (`chained_must_accept`); fails=True -> the intended error may live in the
+    # companion, so nothing is keyed. The channels reuse pipeline_context's driver regexes (ONE
+    # definition of what a flag list is); the walk is per driver, transitive over includes.
+    INSTANCE_RE = re.compile(r"(?<![\w.$`])([A-Za-z_]\w*)\s*(?:#\s*\((?:[^()]|\([^()]*\))*\)\s*)?"
+                             r"[A-Za-z_]\w*\s*(?:\[[^\]]*\]\s*)?\(")
+    INCLUDE_RE = re.compile(r'`include\s+"([^"\n]+)"')
+    INCDIR_RE = re.compile(r"\+incdir\+([^\s\"']+)")
+    YDIR_RE = re.compile(r"""(?<![A-Za-z0-9_])-y\s+([^\s"']+)""")
+    LIBEXTS = (".v", ".sv")
+
+    def _owner_map(self, t_dir: Path):
+        """{rel under test_regress ('t/...') -> [(driver stem, channel, via)]} — every file a driver's test
+        provably compiles besides its top; the top itself keeps the same-stem / top_filename key."""
+        try:
+            from pipeline_context import FLAG_LIST, SRC_ARG, F_LIST, SRC_TOKEN, CXX_SPANS
+        except ImportError:                                   # pragma: no cover — the module sits beside this one
+            return {}
+        regress = t_dir.parent
+        owners: dict = {}
+
+        def note(rel: str, driver: str, channel: str, via: str):
+            owners.setdefault(rel, []).append((driver, channel, via))
+
+        def rel_of(p: Path):
+            try:
+                return p.resolve().relative_to(regress.resolve()).as_posix()
+            except ValueError:
+                return None
+
+        def subst(tok: str, test_root: str) -> str:
+            tok = tok.replace("${TEST_REGRESS}/", "").replace("$TEST_REGRESS/", "")
+            tok = tok.replace("$TEST_ROOT/", test_root + "/").replace("${TEST_ROOT}/", test_root + "/")
+            while "//" in tok:
+                tok = tok.replace("//", "/")
+            return tok[2:] if tok.startswith("./") else tok
+
+        for py in sorted(t_dir.glob("t_*.py")):
+            driver = py.stem
+            text = CXX_SPANS.sub(" ", read_text(py))
+            test_root = f"t/{driver}" if (t_dir / driver).is_dir() else "t"
+            m = TOP_FILENAME_RE.search(text)
+            top = m.group(1) if m and not m.group(1).startswith("+") else f"t/{driver}.v"
+            sources, incdirs, ydirs = [], ["t"], ["t"]
+            f_lists = []
+            for span in FLAG_LIST.findall(text):
+                for src in SRC_ARG.findall(span):
+                    sources.append((subst(src, test_root), "flag-list source"))
+                for inc in self.INCDIR_RE.findall(span):
+                    incdirs += [subst(d, test_root) for d in inc.split("+") if d]
+                for y in self.YDIR_RE.findall(span):
+                    ydirs.append(subst(y, test_root))
+                for f in F_LIST.findall(span):
+                    f_lists.append(subst(f.split(None, 1)[1], test_root))
+            for lst in f_lists:
+                lp = regress / lst
+                if not lp.is_file():
+                    continue
+                toks = read_text(lp).split()
+                i = 0
+                while i < len(toks):
+                    tok = subst(toks[i], test_root)
+                    if tok in ("-y",) and i + 1 < len(toks):
+                        ydirs.append(subst(toks[i + 1], test_root)); i += 2; continue
+                    if tok.startswith("+incdir+"):
+                        incdirs += [d for d in tok[len("+incdir+"):].split("+") if d]
+                    elif not tok.startswith(("-", "+")) and SRC_TOKEN.match(tok):
+                        sources.append((tok, f"-f command file {lst}"))
+                    i += 1
+            # the unit: the top, then what the driver names; then what those include / instantiate
+            unit = [(top, "top")] + sources
+            seen = set()
+            queue = []
+            for rel, how in unit:
+                p = regress / rel
+                if p.is_file() and rel not in seen:
+                    seen.add(rel); queue.append(rel)
+                    if how != "top":
+                        note(rel, driver, how, "")
+            while queue:
+                rel = queue.pop(0)
+                body = blank_comments_and_strings(read_text(regress / rel))
+                raw = read_text(regress / rel)
+                here = (regress / rel).parent
+                for inc in self.INCLUDE_RE.findall(raw):
+                    cands = [here / inc, regress / inc] + [regress / d / inc for d in incdirs]
+                    hit = next((c for c in cands if c.is_file()), None)
+                    r2 = rel_of(hit) if hit else None
+                    if r2 and r2 not in seen:
+                        seen.add(r2); queue.append(r2); note(r2, driver, "include", rel)
+                for name in set(self.INSTANCE_RE.findall(body)):
+                    for ydir in ydirs:
+                        for ext in self.LIBEXTS:
+                            cand = regress / ydir / (name + ext)
+                            if cand.is_file():
+                                r2 = rel_of(cand)
+                                if r2 and r2 not in seen:
+                                    seen.add(r2); queue.append(r2)
+                                    note(r2, driver, "module-name resolution (-y)", rel)
+        return owners
+
+    def _expect_companion(self, rel_t: str):
+        """SV-CORPUS-GRAD.58: a file no driver names as its test's top — keyed by the test that compiles it."""
+        owners = self.owners.get(rel_t, [])
+        if not owners:
+            if rel_t.endswith(".svh"):
+                return ("chained_only", "verilator: .svh include payload, not a standalone unit")
+            if rel_t.count("/") > 1:
+                return ("chained_only", "verilator: multi-file test payload outside flat test_regress/t/")
+            return ("chained_only", "verilator: no same-stem driver and never a top_filename - "
+                                    "include/companion fragment")
+        failing = sorted({d for d, _c, _v in owners if d in self.fail_stems})
+        if failing:
+            return ("chained_only", f"verilator: compiled by a test whose driver fails=True ({failing[0]}.py) - "
+                                    "the intended error may live in this companion; chain-level only "
+                                    "(SV-CORPUS-GRAD.58)")
+        driver, channel, via = owners[0]
+        how = channel + (f" of {via}" if via else "")
+        return ("chained_must_accept",
+                f"verilator: compiled as part of test {driver} (driver {driver}.py expects success) - "
+                f"{how}; test_regress/driver.py:771 passes +incdir+t -y t to every test - valid as part "
+                "of its test, the raw lane cannot judge it alone (SV-CORPUS-GRAD.58)")
 
     def expect(self, relpath: str, lane: str = "raw"):
         """The driver convention. `lane="raw"` (the answer key) defers a preprocessor-target test
@@ -2829,9 +2961,12 @@ class VerilatorIndex:
         if pinned:
             return pinned
         parts = Path(relpath).parts
-        if len(parts) != 3 or parts[0] != "test_regress" or parts[1] != "t":
+        if len(parts) < 3 or parts[0] != "test_regress" or parts[1] != "t":
             return ("chained_only",
                     "verilator: multi-file test payload outside flat test_regress/t/")
+        rel_t = "/".join(parts[1:])
+        if len(parts) != 3:
+            return self._expect_companion(rel_t)          # SV-CORPUS-GRAD.58: t/<dir>/... payloads
         stem = Path(parts[2]).stem
         if stem.startswith(("t_pp_", "t_preproc_")) and lane != "pipeline":
             # The test's target is the PREPROCESSOR (mirrors the sv-tests
@@ -2847,8 +2982,7 @@ class VerilatorIndex:
             elif stem in self.top_ref:
                 driver = self.top_ref[stem]
             if driver is None:
-                return ("chained_only", "verilator: no same-stem driver and never a top_filename - "
-                                        "include/companion fragment")
+                return self._expect_companion(rel_t)      # SV-CORPUS-GRAD.58
             pp_only = driver in self.preprocess_only_stems
             if driver in self.fail_stems:
                 if driver in self.syntax_out_stems or stem in self.syntax_out_stems:
@@ -2870,9 +3004,7 @@ class VerilatorIndex:
         elif stem in self.top_ref:
             driver = self.top_ref[stem]
         if driver is None:
-            return ("chained_only",
-                    "verilator: no same-stem driver and never a top_filename - "
-                    "include/companion fragment")
+            return self._expect_companion(rel_t)          # SV-CORPUS-GRAD.58
         if driver in self.fail_stems:
             if driver in self.syntax_out_stems or stem in self.syntax_out_stems:
                 return ("must_reject",
@@ -7121,6 +7253,67 @@ def _self_test_surelog_units() -> int:
     return 1 if bad else 0
 
 
+def _self_test_verilator_owners() -> int:
+    """SV-CORPUS-GRAD.58: the verilator owner map, on a synthetic test_regress/ tree."""
+    import tempfile
+    checks = []
+
+    def check(label, cond):
+        checks.append((label, bool(cond)))
+
+    # DATA-LOCALITY: scratch stays on the repository volume
+    with tempfile.TemporaryDirectory(dir=str(Path(__file__).resolve().parent.parent.parent / "rust/target")) as td:
+        t = Path(td) / "test_regress" / "t"
+        (t / "t_a_dir").mkdir(parents=True)
+        (t / "t_b").mkdir()
+        w = lambda rel, body: (t / rel).write_text(body, encoding="utf-8")  # noqa: E731
+        w("t_a.py", 'test.compile(v_flags2=["t/t_a_sub.v", "-f t/t_a.vc", "+incdir+t/t_a_dir"])\n')
+        w("t_a.v", '`include "t_a_inc.vh"\nmodule t_a; t_a_mod #(.W(2)) u0 (.x(1)); t_a_dead u1 (); endmodule\n')
+        w("t_a_sub.v", "module t_a_sub; endmodule\n")
+        w("t_a.vc", "${TEST_REGRESS}/t//t_a_f.v\n-y t/t_b\n")
+        w("t_a_f.v", "module t_a_f; endmodule\n")
+        w("t_a_mod.sv", "module t_a_mod #(W=1) (input x); endmodule\n")
+        w("t_a_inc.vh", '`include "x.svh"\n')
+        w("t_a_dir/x.svh", "// payload\n")
+        w("t_b/t_a_dead.v", "module t_a_dead; endmodule\n")   # found through the -f file's -y t/t_b
+        w("t_c.py", 'test.compile(fails=True, v_flags2=["t/t_c_sub.v"])\n')
+        w("t_c.v", "module t_c; endmodule\n")
+        w("t_c_sub.v", "module t_c_sub; endmodule\n")
+        w("t_orphan_sub.v", "module t_orphan_sub; endmodule\n")
+        w("t_orphan.svh", "// nobody includes this\n")
+        w("t_d.py", 'test.top_filename = "t/t_d_top.v"\ntest.compile()\n')
+        w("t_d_top.v", "module t_d_top; t_d_leaf u (); endmodule\n")
+        w("t_d_leaf.v", "module t_d_leaf; endmodule\n")
+        idx = VerilatorIndex(t)
+        E = lambda rel: idx.expect(rel)  # noqa: E731
+        check("the top keeps its same-stem key (must_accept, unmoved)", E("test_regress/t/t_a.v")[0] == "must_accept")
+        check("a flag-list source of a passing test is chained_must_accept, the basis names the driver and the channel",
+              E("test_regress/t/t_a_sub.v")[0] == "chained_must_accept" and "flag-list source" in E("test_regress/t/t_a_sub.v")[1]
+              and "t_a.py" in E("test_regress/t/t_a_sub.v")[1])
+        check("an entry of the driver's -f command file (${TEST_REGRESS}, a doubled slash) is keyed",
+              E("test_regress/t/t_a_f.v")[0] == "chained_must_accept" and "-f command file" in E("test_regress/t/t_a_f.v")[1])
+        check("a module the top instantiates (#(…) parameter list) is resolved as t/<name>.sv (-y t)",
+              E("test_regress/t/t_a_mod.sv")[0] == "chained_must_accept" and "module-name" in E("test_regress/t/t_a_mod.sv")[1])
+        check("a -y dir named in the -f file resolves a payload under t/<dir>/",
+              E("test_regress/t/t_b/t_a_dead.v")[0] == "chained_must_accept")
+        check("an included file is keyed, transitively through +incdir+ (x.svh via t_a_inc.vh)",
+              E("test_regress/t/t_a_inc.vh")[0] == "chained_must_accept" and E("test_regress/t/t_a_dir/x.svh")[0] == "chained_must_accept"
+              and "include of t/t_a_inc.vh" in E("test_regress/t/t_a_dir/x.svh")[1])
+        check("a top_filename test owns what its top instantiates", E("test_regress/t/t_d_leaf.v")[0] == "chained_must_accept")
+        check("RED: a companion of a fails=True test keys nothing (the error may live in it)",
+              E("test_regress/t/t_c_sub.v")[0] == "chained_only" and "fails=True" in E("test_regress/t/t_c_sub.v")[1])
+        check("RED: an orphan companion keeps the old basis", E("test_regress/t/t_orphan_sub.v") == (
+            "chained_only", "verilator: no same-stem driver and never a top_filename - include/companion fragment"))
+        check("RED: an orphan .svh keeps the payload basis", E("test_regress/t/t_orphan.svh") == (
+            "chained_only", "verilator: .svh include payload, not a standalone unit"))
+        check("RED: a file outside test_regress/t keeps the old basis", E("other/x.v")[0] == "chained_only")
+    bad = [label for label, ok in checks if not ok]
+    for label, ok in checks:
+        print(("  ok   " if ok else "  FAIL ") + label)
+    print(f"verilator-owners self-test: {len(checks) - len(bad)} ok, {len(bad)} failed" + (f" - {bad}" if bad else ""))
+    return 1 if bad else 0
+
+
 def _self_test_ivtest_lists(ivtest_dir: Path) -> int:
     """SV-CORPUS-GRAD.13e.13 RED-FIRST CONTROLS. A scratch ivtest tree (the vendored compiler files
     linked in, SYNTHETIC lists beside them) drives every rule the other lists add, both lanes, so a
@@ -7381,7 +7574,9 @@ def key_2017(suite, rel, text, vidx, ividx, sidx):
                 "(docs/systemverilog/2017/md/section-22-compiler-directives.md:851-862; 'It shall be an error if an "
                 "implementation does not recognize the version_specifier', :869-870) - Verilog-AMS surface, outside "
                 "the IEEE 1800 scope (VERILOG-AMS tree parked); since 1.0.217 the parser refuses the directive itself")
-    if rel.endswith(".svh") and suite not in DESIGN_SUITES:
+    if rel.endswith(".svh") and suite not in DESIGN_SUITES and suite != "verilator":
+        # (verilator's .svh rows reach VerilatorIndex.expect, whose owner map keys an included
+        #  member of a passing test — SV-CORPUS-GRAD.58 — and keeps this basis otherwise)
         # Generic across the test suites: .svh files are `include payloads,
         # not standalone compilation units (may be bare fragments).
         return ("chained_only", f"{suite}: .svh include payload, not a standalone unit")
@@ -7842,6 +8037,7 @@ def main():
                 | _self_test_edition_empty_call()
                 | _self_test_macro_definition_tell()
                 | _self_test_surelog_units()
+                | _self_test_verilator_owners()
                 | _self_test_ivtest_lists(args.subs_root / "iverilog" / "ivtest"))
 
     args.store_gate_cache = resolve_store_gate_cache(

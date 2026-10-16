@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-01fd1d20.js";
+            window.path_to_searchindex_js = "searchindex-395bf90f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -997,9 +997,12 @@ test unit that its committed golden log testifies for — the log completed with
 the <code>.sl</code> driver names the file (on the line, as <code>-v</code>’s argument, or in an in-unit <code>-f</code> list). A <code>-y</code>
 library member or an unnamed sibling is not provably among the compiled sources, a config-driven driver
 (<code>-map</code>/<code>-cfg</code>/<code>-batch</code>) decides the set elsewhere, and a log with <code>[SNT:]</code> names no file — those stay
-<code>chained_only</code>, as does every other suite’s chained row until a convention of its own is read. The
-coverage instrument and the done-bar assertion read that column and nothing else, so a Surelog row and
-an OpenTitan row are adjudicated by the same rule.</p>
+<code>chained_only</code>, as does every other suite’s chained row until a convention of its own is read. Since <code>.58</code>
+verilator’s is: a companion file is keyed by the test that compiles it — named by the driver’s flag list or
+<code>-f</code> command file, <code>include</code>d by a source of the test, or instantiated by name under the <code>+incdir+t -y t</code> the
+suite’s own driver passes to every test (<code>test_regress/driver.py:771</code>) — with that driver’s expectation, and a
+<code>fails=True</code> owner keys nothing. The coverage instrument and the done-bar assertion read that column and
+nothing else, so a Surelog row, a verilator companion and an OpenTitan row are adjudicated by the same rule.</p>
 <p>⛔ <strong>A note on the host, not the engine.</strong> The reading above was taken on the debug probe because no
 release build of the crate could be completed on the development host that day: a per-process
 memory watchdog independent of the repository’s own guard kills any process above 14 GB, and the
