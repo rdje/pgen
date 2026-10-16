@@ -27,6 +27,13 @@ Expected-verdict taxonomy (leaf .1 design):
                            outranks the upstream tool. "Intentional" is the common case,
                            never the test: the test is the missing derivation.
   chained_only             adjudicable only with include/library chaining (leaf .4)
+  chained_must_accept      must-accept AS PART OF ITS UNIT, by the suite's own testimony
+                           that the unit is valid: a shipping design compiles (DESIGN_SUITES),
+                           or a Surelog multi-source unit whose committed golden log
+                           completes with no [SNT:]/[FTL:] and whose driver names the file
+                           (SV-CORPUS-GRAD.57). The RAW lane still cannot judge the file
+                           alone (deferred:chained_only); the pipeline reading cashes it on
+                           a chained:accepted_under_expansion / accepted_in_unit verdict.
   not_source_text          the file's BYTES are not SystemVerilog source text at all - a
                            $readmemh memory image (IEEE 1800-2017 §21.4), a bare string
                            literal, a tool command line. Decided by `not_source_text()`
@@ -52,7 +59,8 @@ Adjudication classes:
                                              §22.13 predefined `__FILE__/`__LINE__)
   divergence:explained_svpp_conditional  ... file relies on `ifdef conditionals
   divergence:explained_timeout           the tracked pathological-input population
-  deferred:<cause>                       chained_only / out_of_scope rows (no verdict here)
+  deferred:<cause>                       chained_only / chained_must_accept / out_of_scope rows
+                                         (no verdict here)
   deferred:not_source_text               the row is a fact about the CORPUS, not the parser
                                          (PERMANENT and ceiling-bounded in the instrument)
 
@@ -5614,18 +5622,29 @@ def expect_sv2v(relpath: str, lane: str = "raw"):
 
 class SurelogIndex:
     """Answer key from Surelog per-test drivers + committed golden logs
-    (leaf .8b.1). A test unit = a directory under tests/ directly containing
-    >= 1 `.sl` driver. A unit is keyable only when it is single-source
-    (exactly one .sv/.v/.svh under the unit dir, recursively) AND no driver
-    references out-of-unit sources/libraries/file-lists; then the committed
-    golden log(s) carry the upstream parse testimony:
+    (leaf .8b.1; the multi-source arm is SV-CORPUS-GRAD.57). A test unit = a
+    directory under tests/ directly containing >= 1 `.sl` driver. The committed
+    golden log(s) carry the upstream parse testimony ONLY when they COMPLETE
+    (the `[ SYNTAX] :` summary block is present - an aborted log testifies to
+    nothing):
       [SNT:...] syntax-error codes -> parse-level reject intent;
-      a completed log with no [SNT:]/[FTL:] -> the exact file text parses
-      under Surelog's IEEE 1800-2017 grammar (accept);
-      [FTL:...] fatal -> the run aborted, no usable testimony."""
+      a completed log with no [SNT:]/[FTL:] -> every file Surelog compiled
+      parses under its IEEE 1800-2017 grammar (accept);
+      [FTL:...] fatal -> the run aborted, no usable testimony.
+    A SINGLE-source unit keys the file itself (must_accept / must_reject) when
+    no driver references out-of-unit sources/libraries/file-lists. A MULTI-source
+    unit keys each source the driver PROVABLY compiled - named on a driver line,
+    the argument of `-v`, or an entry of an in-unit `-f` file list - as
+    `chained_must_accept` (valid as part of its unit; the raw lane cannot judge
+    it alone). A `-y` library member or an unnamed sibling is not provably
+    compiled and stays `chained_only`; so does a unit whose driver is
+    config-driven (-map/-cfg/-batch decide the compiled set), whose log reports
+    [SNT:] (the error's carrier is not keyed per file) or [FTL:]."""
 
     UNKEYABLE_FLAGS = {"-y", "-v", "-f", "-map", "-cfg", "-batch"}
+    CONFIG_FLAGS = {"-map", "-cfg", "-batch"}
     SRC_SUFFIXES = (".sv", ".v", ".svh")
+    SUMMARY_MARK = "[ SYNTAX] :"
 
     def __init__(self, tests_root: Path):
         self.tests_root = tests_root
@@ -5638,21 +5657,68 @@ class SurelogIndex:
                 continue
             srcs = sorted(p for p in sl.parent.rglob("*")
                           if p.suffix in self.SRC_SUFFIXES)
+            src_set = {p.resolve() for p in srcs}
             logs = sorted(sl.parent.glob("*.log"))
             external = False
+            config = False
+            compiled = set()
             for drv in sorted(sl.parent.glob("*.sl")):
-                for tok in read_text(drv).split():
+                toks = read_text(drv).split()
+                for tok in toks:
                     if tok in self.UNKEYABLE_FLAGS or ".." in tok:
                         external = True
+                    if tok in self.CONFIG_FLAGS:
+                        config = True
+                compiled |= self._compiled_sources(sl.parent, toks, src_set, depth=0)
             log_text = "".join(read_text(l) for l in logs)
             self.units[rel_dir] = {
                 "n_srcs": len(srcs),
                 "external": external,
+                "config": config,
+                "compiled": compiled,
                 "log_names": ", ".join(l.name for l in logs),
                 "has_logs": bool(logs),
+                "complete": self.SUMMARY_MARK in log_text,
                 "snt": "[SNT:" in log_text,
                 "ftl": "[FTL:" in log_text,
             }
+
+    @classmethod
+    def _compiled_sources(cls, unit_dir: Path, toks, src_set, depth: int):
+        """The in-unit sources a driver token list PROVABLY compiles: a token that
+        resolves to an in-unit source (positional, or the argument of `-v`), plus
+        the entries of an in-unit `-f` file list (one level). Any other flag
+        argument never resolves to a source file, so none is special-cased."""
+        out = set()
+        i = 0
+        while i < len(toks):
+            tok = toks[i]
+            if tok == "-f" and i + 1 < len(toks):
+                lst = unit_dir / toks[i + 1]
+                if depth == 0 and lst.is_file() and cls._inside(lst, unit_dir):
+                    out |= cls._compiled_sources(unit_dir, read_text(lst).split(), src_set, depth=1)
+                i += 2
+                continue
+            if tok == "-v" and i + 1 < len(toks):
+                p = (unit_dir / toks[i + 1]).resolve()
+                if p in src_set:
+                    out.add(p)
+                i += 2
+                continue
+            if not tok.startswith(("-", "+")):
+                p = (unit_dir / tok).resolve()
+                if p in src_set:
+                    out.add(p)
+            i += 1
+        return out
+
+    @staticmethod
+    def _inside(p: Path, unit_dir: Path) -> bool:
+        try:
+            p.resolve().relative_to(unit_dir.resolve())
+            return True
+        except ValueError:
+            return False
 
     def expect(self, relpath: str):
         p = Path(relpath.replace("\\", "/"))
@@ -5668,19 +5734,19 @@ class SurelogIndex:
             return ("chained_only",
                     "Surelog: no per-test .sl driver unit owns this file's "
                     "directory - unkeyed (chain-level only)")
-        if unit["n_srcs"] != 1:
-            return ("chained_only",
-                    f"Surelog: multi-file test unit ({unit['n_srcs']} "
-                    "sources) - dir-level chained adjudication (leaf .4)")
-        if unit["external"]:
-            return ("chained_only",
-                    "Surelog: driver references out-of-unit sources/"
-                    "libraries/file-lists (-y/-v/-f/-map/-cfg/-batch or "
-                    "../ paths) - chain-level only")
+        if unit["n_srcs"] != 1 or unit["external"]:
+            # the file is not the whole compiled set (siblings, or out-of-unit references): the golden
+            # testifies per NAMED file, as part of its unit (SV-CORPUS-GRAD.57) - never for the raw lane
+            return self._expect_unit_member(unit, p)
         if not unit["has_logs"]:
             return ("chained_only",
                     "Surelog: no committed golden log for the unit - no "
                     "upstream parse testimony")
+        if not unit["complete"]:
+            return ("chained_only",
+                    f"Surelog: golden log {unit['log_names']} never reached its "
+                    "summary block - an aborted run, no usable parse testimony "
+                    "(SV-CORPUS-GRAD.57)")
         if unit["ftl"]:
             return ("chained_only",
                     f"Surelog: golden log {unit['log_names']} aborted with "
@@ -5694,6 +5760,50 @@ class SurelogIndex:
                 f"Surelog: golden log {unit['log_names']} completes with no "
                 "[SNT:]/[FTL:] - upstream testimony that the unit's single "
                 "source parses under Surelog's IEEE 1800-2017 grammar")
+
+    def _expect_unit_member(self, unit, p: Path):
+        """SV-CORPUS-GRAD.57: the per-file key of a unit whose single source is not the whole compiled
+        set - a multi-source unit, or a single-source unit whose driver references out-of-unit paths
+        (-y/-v/-f/-map/-cfg/-batch or ../ - the .8b.1 arm keyed nothing there)."""
+        n = unit["n_srcs"]
+        kind = (f"multi-file test unit ({n} sources)" if n != 1
+                else "single-source test unit whose driver references out-of-unit paths")
+        if unit["config"]:
+            return ("chained_only",
+                    f"Surelog: {kind}; its driver is "
+                    "config-driven (-map/-cfg/-batch decide the compiled set) - "
+                    "dir-level chained adjudication (leaf .4)")
+        if not unit["has_logs"]:
+            return ("chained_only",
+                    f"Surelog: {kind}, no committed "
+                    "golden log - no upstream parse testimony (leaf .4)")
+        if not unit["complete"]:
+            return ("chained_only",
+                    f"Surelog: {kind}; golden log "
+                    f"{unit['log_names']} never reached its summary block - an "
+                    "aborted run, no usable parse testimony (leaf .4)")
+        if unit["ftl"]:
+            return ("chained_only",
+                    f"Surelog: {kind}; golden log "
+                    f"{unit['log_names']} aborted with [FTL:] - no usable parse "
+                    "testimony (leaf .4)")
+        if unit["snt"]:
+            return ("chained_only",
+                    f"Surelog: {kind}; golden log "
+                    f"{unit['log_names']} reports [SNT:] syntax errors - the "
+                    "error's carrier is not keyed per file (leaf .4)")
+        if (self.tests_root / Path(*p.parts[1:])).resolve() not in unit["compiled"]:
+            return ("chained_only",
+                    f"Surelog: {kind}; the driver does "
+                    "not name this file (a -y library member or an unnamed sibling) "
+                    "- not provably among the compiled sources, no per-file "
+                    "testimony (leaf .4)")
+        return ("chained_must_accept",
+                f"Surelog: {kind}; golden log "
+                f"{unit['log_names']} completes with no [SNT:]/[FTL:] and the "
+                "driver names this file - upstream testimony that it parses under "
+                "Surelog's IEEE 1800-2017 grammar as part of its unit "
+                "(SV-CORPUS-GRAD.57; the raw lane cannot judge it alone)")
 
 
 # opentitan / black-parrot / uvm-core join the design-corpus lane: real-design
@@ -6831,7 +6941,9 @@ def adjudicate(expected, observed, dep_flag):
         # Known-pathological tracking outranks deferral: a hang is surfaced
         # no matter which lane owns the file.
         return "divergence:explained_timeout"
-    if expected == "chained_only":
+    if expected in ("chained_only", "chained_must_accept"):
+        # SV-CORPUS-GRAD.57: a unit-level must-accept is still NO verdict on the raw lane (the
+        # file is parsed alone); the pipeline reading is where that expectation is cashed
         return "deferred:chained_only"
     if expected == "not_source_text":
         return "deferred:not_source_text"
@@ -6930,6 +7042,76 @@ def _self_test_keywords_region() -> int:
         return 1
     print("keywords-region self-test: PASS (0 failing)")
     return 0
+
+
+def _self_test_surelog_units() -> int:
+    """SV-CORPUS-GRAD.57: the Surelog key's multi-source arm, on a synthetic tests/ tree."""
+    import tempfile
+    checks = []
+
+    def check(label, cond):
+        checks.append((label, bool(cond)))
+
+    # DATA-LOCALITY: scratch stays on the repository volume
+    with tempfile.TemporaryDirectory(dir=str(Path(__file__).resolve().parent.parent.parent / "rust/target")) as td:
+        root = Path(td) / "tests"
+
+        def unit(name, srcs, driver, log):
+            d = root / name
+            d.mkdir(parents=True)
+            for rel, body in srcs.items():
+                (d / rel).parent.mkdir(parents=True, exist_ok=True)
+                (d / rel).write_text(body, encoding="utf-8")
+            (d / f"{name}.sl").write_text(driver, encoding="utf-8")
+            if log is not None:
+                (d / f"{name}.log").write_text(log, encoding="utf-8")
+        CLEAN = "[  FATAL] : 0\n[ SYNTAX] : 0\n[  ERROR] : 0\n[WARNING] : 0\n"
+        ABORTED = "[INF:CM0023] Command line arguments: -parse a.sv\n"
+        unit("Single", {"a.sv": "module a; endmodule\n"}, "-parse a.sv\n", CLEAN)
+        unit("SingleAborted", {"a.sv": "module a; endmodule\n"}, "-parse a.sv\n", ABORTED)
+        unit("Multi", {"a.sv": "", "b.sv": "", "lib/c.v": ""}, "-parse -d uhdm a.sv b.sv -y lib +libext+.v -nobuiltin\n", CLEAN)
+        unit("Flist", {"a.sv": "", "b.sv": ""}, "-parse -f files.f\n", CLEAN)
+        (root / "Flist" / "files.f").write_text("a.sv\nb.sv\n", encoding="utf-8")
+        unit("Dashv", {"a.sv": "", "lib.v": ""}, "-parse a.sv -v lib.v\n", CLEAN)
+        unit("Snt", {"a.sv": "", "b.sv": ""}, "-parse a.sv b.sv\n", "[SNT:SY0001] x\n" + CLEAN.replace(": 0\n[  ERROR]", ": 1\n[  ERROR]"))
+        unit("Cfg", {"a.sv": "", "b.sv": ""}, "-parse a.sv b.sv -cfg top\n", CLEAN)
+        unit("Aborted", {"a.sv": "", "b.sv": ""}, "-parse a.sv b.sv\n", ABORTED)
+        unit("NoLog", {"a.sv": "", "b.sv": ""}, "-parse a.sv b.sv\n", None)
+        unit("Ftl", {"a.sv": "", "b.sv": ""}, "-parse a.sv b.sv\n", "[FTL:PP0001] x\n" + CLEAN)
+        unit("SingleExt", {"top.sv": ""}, "+incdir+.+../../../UVM/uvm-1.2/src/ -parse top.sv\n", CLEAN)
+        unit("SingleExtSnt", {"top.sv": ""}, "+incdir+../lib -parse top.sv\n", "[SNT:SY0001] x\n" + CLEAN)
+        idx = SurelogIndex(root)
+        E = lambda rel: idx.expect(rel)  # noqa: E731
+        check("the .8b.1 arm unmoved: a single-source clean unit keys must_accept", E("tests/Single/a.sv")[0] == "must_accept")
+        check("multi-source clean unit: a file the driver names is chained_must_accept, the basis names the log and the driver",
+              E("tests/Multi/a.sv")[0] == "chained_must_accept" and "names this file" in E("tests/Multi/a.sv")[1]
+              and "Multi.log" in E("tests/Multi/a.sv")[1])
+        check("multi-source: a -y library member is not provably compiled - chained_only",
+              E("tests/Multi/lib/c.v")[0] == "chained_only" and "not provably" in E("tests/Multi/lib/c.v")[1])
+        check("an in-unit -f file list names its entries", E("tests/Flist/b.sv")[0] == "chained_must_accept")
+        check("-v names its file", E("tests/Dashv/lib.v")[0] == "chained_must_accept")
+        check("RED: [SNT:] in a multi-source unit keys nothing per file",
+              E("tests/Snt/a.sv")[0] == "chained_only" and "[SNT:]" in E("tests/Snt/a.sv")[1])
+        check("RED: a config-driven driver (-cfg) keys nothing",
+              E("tests/Cfg/a.sv")[0] == "chained_only" and "config-driven" in E("tests/Cfg/a.sv")[1])
+        check("RED: an aborted log (no summary block) is no testimony - multi-source",
+              E("tests/Aborted/a.sv")[0] == "chained_only" and "summary block" in E("tests/Aborted/a.sv")[1])
+        check("RED: an aborted log is no testimony - single-source (the .8b.1 hole, closed; 0 tracked rows move)",
+              E("tests/SingleAborted/a.sv")[0] == "chained_only" and "summary block" in E("tests/SingleAborted/a.sv")[1])
+        check("RED: no golden log - chained_only", E("tests/NoLog/a.sv")[0] == "chained_only")
+        check("RED: [FTL:] - chained_only", E("tests/Ftl/a.sv")[0] == "chained_only")
+        check("a single-source unit whose driver references out-of-unit paths (the .8b.1 arm keyed nothing) keys its named file as part of its unit",
+              E("tests/SingleExt/top.sv")[0] == "chained_must_accept" and "single-source test unit whose driver references out-of-unit paths" in E("tests/SingleExt/top.sv")[1])
+        check("RED: the same unit with [SNT:] keys nothing - never must_reject (the error's carrier may be out of the unit)",
+              E("tests/SingleExtSnt/top.sv")[0] == "chained_only" and "[SNT:]" in E("tests/SingleExtSnt/top.sv")[1])
+        check("the raw lane cashes no unit-level expectation: adjudicate(chained_must_accept, pass | fail) is deferred:chained_only",
+              adjudicate("chained_must_accept", "pass", "") == "deferred:chained_only"
+              and adjudicate("chained_must_accept", "fail", "") == "deferred:chained_only")
+    bad = [label for label, ok in checks if not ok]
+    for label, ok in checks:
+        print(("  ok   " if ok else "  FAIL ") + label)
+    print(f"surelog-units self-test: {len(checks) - len(bad)} ok, {len(bad)} failed" + (f" - {bad}" if bad else ""))
+    return 1 if bad else 0
 
 
 def _self_test_ivtest_lists(ivtest_dir: Path) -> int:
@@ -7197,9 +7379,12 @@ def key_2017(suite, rel, text, vidx, ividx, sidx):
         # not standalone compilation units (may be bare fragments).
         return ("chained_only", f"{suite}: .svh include payload, not a standalone unit")
     if suite in DESIGN_SUITES:
-        return ("chained_only",
-                "design corpus parsed in isolation - honest adjudication "
-                "needs include/define chaining (leaf .4)")
+        # SVPP-EXPANSION.6c.1's convention, carried by the KEY since SV-CORPUS-GRAD.57: a shipping
+        # design's file is valid as part of its unit; the raw lane still parses it in isolation
+        return ("chained_must_accept",
+                "design corpus: a shipping design's file is valid as part of its unit "
+                "(the DESIGN_SUITES convention; cashed by the pipeline reading) - parsed "
+                "in isolation here, honest adjudication needs include/define chaining (leaf .4)")
     if suite == "sv-tests":
         return expect_sv_tests(rel, text)
     if suite == "verilator":
@@ -7649,6 +7834,7 @@ def main():
                 | _self_test_edition_packed_dimension()
                 | _self_test_edition_empty_call()
                 | _self_test_macro_definition_tell()
+                | _self_test_surelog_units()
                 | _self_test_ivtest_lists(args.subs_root / "iverilog" / "ivtest"))
 
     args.store_gate_cache = resolve_store_gate_cache(

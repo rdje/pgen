@@ -153,10 +153,12 @@ BUCKETS = ["ADJUDICATED", "ROUTED", "NO VERDICT"]
 # must-reject row through the preprocess→parse pipeline and says what expansion changed; this map
 # says how each of its verdicts contributes to the confidence claim. A row the pipeline did not
 # re-read keeps its raw bucket. ⛔ Expected verdicts still come from the SPEC / the suite convention,
-# never from the fix: a `chained:accepted_under_expansion` row testifies only when its suite is a
-# DESIGN corpus (the adjudicator's own `DESIGN_SUITES`: a shipping design's file is valid as part of
-# its unit), and a `refuted:parser_question` row is a defect CANDIDATE that enters the bar until the
-# corpus tree rules it (its raw class was `explained_svpp_*` — a must-accept row).
+# never from the fix: a `chained:accepted_under_expansion` row testifies only when the KEY expects the
+# file must-accept AS PART OF ITS UNIT (`expected = chained_must_accept`, SV-CORPUS-GRAD.57: a DESIGN
+# corpus's file — the adjudicator's `DESIGN_SUITES` convention — or a Surelog multi-source unit whose
+# golden log completes clean and whose driver names the file), and a `refuted:parser_question` row is a
+# defect CANDIDATE that enters the bar until the corpus tree rules it (its raw class was
+# `explained_svpp_*` — a must-accept row).
 PIPELINE_CLASSES = {
     "corroborated": ("ADJUDICATED", "a must-accept row the raw lane explained away by preprocessing PASSES "
                                     "once preprocessed — the explanation held; the row testifies FOR the parser"),
@@ -185,19 +187,21 @@ PIPELINE_CLASSES = {
     "must_reject:refused_engine": ("ADJUDICATED", "a must-reject row the PREPROCESSOR refuses by a rule of its own "
                                                   "(E_SVPP_* / an invalid directive, each naming its clause) — the "
                                                   "rejection the key expects, at the expansion stage (SVPP-EXPANSION.6c.3)"),
-    "chained:accepted_under_expansion": ("ADJUDICATED", "a design-corpus file ACCEPTED under its derived context — "
-                                                        "must-accept by the suite convention (a shipping design's "
-                                                        "file is valid as part of its unit); outside DESIGN_SUITES the "
-                                                        "row keeps NO VERDICT (no per-file expectation)"),
+    "chained:accepted_under_expansion": ("ADJUDICATED", "a file ACCEPTED under its derived context that the key expects "
+                                                        "must-accept AS PART OF ITS UNIT (`chained_must_accept`: a shipping "
+                                                        "design's file, or a Surelog multi-source unit whose golden log "
+                                                        "completes clean and whose driver names the file — .57); with no "
+                                                        "per-file expectation the row keeps NO VERDICT"),
     "accepted_in_unit": ("ADJUDICATED", "a must-accept row the raw lane explained away is a MEMBER of a package unit "
                                         "the library pass ACCEPTED (SVPP-EXPANSION.6d.2: an included class file has no "
                                         "import of its own; its bytes were parsed inside its unit) — the row testifies FOR "
                                         "the parser"),
     "unreached_in_unit": ("NO VERDICT", "a member whose every including unit rejects elsewhere — its bytes were never "
                                         "judged; the unit's origin is named (.6d.2)"),
-    "chained:accepted_in_unit": ("ADJUDICATED", "a design-corpus file ACCEPTED as a MEMBER of its package unit under the "
-                                                "library (.6d.2) — must-accept by the suite convention; outside "
-                                                "DESIGN_SUITES the row keeps NO VERDICT"),
+    "chained:accepted_in_unit": ("ADJUDICATED", "a file ACCEPTED as a MEMBER of its package unit under the library "
+                                                "(.6d.2) that the key expects must-accept as part of its unit "
+                                                "(`chained_must_accept`); with no per-file expectation the row keeps "
+                                                "NO VERDICT"),
     "chained:unreached_in_unit": ("NO VERDICT", "DARK UNDER THE PIPELINE: a member whose every including unit rejects "
                                                 "elsewhere (.6d.2) — the unit's own origin row carries the verdict"),
     "chained:rejects_own_file": ("NO VERDICT", "DARK UNDER THE PIPELINE: rejected in its own file under its derived "
@@ -233,7 +237,10 @@ PIPELINE_CLASSES = {
 }
 PIPELINE_BAR_CLASSES = {"pipeline:refuted:parser_question", "pipeline:svpp_owned:refuted:parser_question", "pipeline:must_reject:accepts_invalid"}
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from pipeline_context import DESIGN_SUITES  # noqa: E402  — ONE definition (SVPP-EXPANSION.6d.1)
+# SV-CORPUS-GRAD.57: the design-suite convention is read from the KEY (`expected = chained_must_accept`,
+# derived by the adjudicator from `pipeline_context.DESIGN_SUITES` — still ONE definition), never from a
+# suite set here: a Surelog unit's golden gives the same expectation to a non-design row.
+UNIT_MUST_ACCEPT = "chained_must_accept"
 
 
 def read_readjudication(path: Path):
@@ -267,7 +274,7 @@ def pipeline_reading(rows, readj):
                 raise SystemExit(f"⛔ REFUSING: re-adjudication verdict this census has no bucket for: {verdict!r} "
                                  f"({r['suite']}/{r['relpath']}). Classify it explicitly.")
             bucket, _why = PIPELINE_CLASSES[verdict]
-            if verdict in ("chained:accepted_under_expansion", "chained:accepted_in_unit") and r["suite"] not in DESIGN_SUITES:
+            if verdict in ("chained:accepted_under_expansion", "chained:accepted_in_unit") and r.get("expected") != UNIT_MUST_ACCEPT:
                 bucket = "NO VERDICT"
             if verdict == "must_reject:accepts_invalid" and raw_cls.startswith("divergence:"):
                 cls = raw_cls                      # already the raw bar's row; no double count
@@ -448,7 +455,8 @@ def read_manifest(path: Path):
     with path.open(encoding="utf-8") as fh:
         header = fh.readline().rstrip("\n").split("\t")
         idx = {name: header.index(name) for name in
-               ("suite", "relpath", "observed", "adjudication", "basis")}
+               ("suite", "relpath", "observed", "expected", "adjudication", "basis")}
+        # `expected` since SV-CORPUS-GRAD.57: the pipeline reading cashes a unit-level must-accept from the KEY
         for line in fh:
             if not line.strip():
                 continue
@@ -798,13 +806,13 @@ def main():
                     continue
                 L.append(f"| {b} | `{cls}` | {n:,} | {100*n/total:.1f} % | {why} |")
         for acc_v in ("chained:accepted_under_expansion", "chained:accepted_in_unit"):
-            acc_design = sum(1 for r in rows if readj.get((r['suite'], r['relpath']), ('',''))[0] == acc_v and r['suite'] in DESIGN_SUITES)
+            acc_design = sum(1 for r in rows if readj.get((r['suite'], r['relpath']), ('',''))[0] == acc_v and r.get('expected') == UNIT_MUST_ACCEPT)
             acc_other = p_counts.get("pipeline:" + acc_v, 0) - acc_design
             if acc_design:
-                L.append(f"| ADJUDICATED | `pipeline:{acc_v}` (design corpora) | {acc_design:,} | "
+                L.append(f"| ADJUDICATED | `pipeline:{acc_v}` (key: must-accept as part of its unit) | {acc_design:,} | "
                          f"{100*acc_design/total:.1f} % | {PIPELINE_CLASSES[acc_v][1]} |")
             if acc_other:
-                L.append(f"| NO VERDICT | `pipeline:{acc_v}` (other suites) | {acc_other:,} | "
+                L.append(f"| NO VERDICT | `pipeline:{acc_v}` (no per-file expectation) | {acc_other:,} | "
                          f"{100*acc_other/total:.1f} % | accepted under its context, but the suite gives no per-file expectation |")
         L.append(f"| | **TOTAL** | **{total:,}** | **100.0 %** | |")
         L.append("")

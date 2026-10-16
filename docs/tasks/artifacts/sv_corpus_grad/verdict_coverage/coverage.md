@@ -6,7 +6,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `85fe3813599b7e0466aa526964d3740f127444f50a2220bfbb62d8d27dd58b99` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `6ed1ddf8986bb9be5c1a2e640d09bed850884397a853ad05710366561bdab182` |
 | v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `e6eef5b48a81b6a36ce80da012d27e8b8afbc683ce454682331eabe8a24b680c` |
 
 ## The headline
@@ -125,31 +125,89 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 | class | rows | reason (the row's own `basis`) |
 |---|---:|---|
-| `deferred:chained_only` | 4,609 | design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4) |
-| `deferred:chained_only` | 53 | Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4) |
-| `deferred:chained_only` | 36 | Surelog: multi-file test unit (2 sources) - dir-level chained adjudication (leaf .4) |
+| `deferred:chained_only` | 4,609 | design corpus: a shipping design's file is valid as part of its unit (the DESIGN_SUITES convention; cashed by the pipeline read… |
 | `deferred:chained_only` | 36 | verilator: multi-file test payload outside flat test_regress/t/ |
 | `deferred:chained_only` | 29 | verilator: no same-stem driver and never a top_filename - include/companion fragment |
-| `deferred:chained_only` | 24 | Surelog: multi-file test unit (8 sources) - dir-level chained adjudication (leaf .4) |
-| `deferred:chained_only` | 15 | Surelog: multi-file test unit (4 sources) - dir-level chained adjudication (leaf .4) |
-| `deferred:chained_only` | 15 | Surelog: multi-file test unit (5 sources) - dir-level chained adjudication (leaf .4) |
-| `deferred:chained_only` | 14 | Surelog: driver references out-of-unit sources/libraries/file-lists (-y/-v/-f/-map/-cfg/-batch or ../ paths) - chain-level only |
+| `deferred:chained_only` | 17 | Surelog: multi-file test unit (3 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
 | `deferred:chained_only` | 13 | verilator: .svh include payload, not a standalone unit |
-| `deferred:chained_only` | 12 | Surelog: multi-file test unit (6 sources) - dir-level chained adjudication (leaf .4) |
+| `deferred:chained_only` | 11 | Surelog: multi-file test unit (4 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
 | `deferred:chained_only` | 11 | verible: kythe multi-file/include fixture directory |
-| `deferred:chained_only` | 10 | Surelog: multi-file test unit (10 sources) - dir-level chained adjudication (leaf .4) |
+| `deferred:chained_only` | 10 | Surelog: multi-file test unit (10 sources); its driver is config-driven (-map/-cfg/-batch decide the compiled set) - dir-level … |
+| `deferred:chained_only` | 10 | Surelog: multi-file test unit (5 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
 | `deferred:chained_only` | 10 | slang: unittest library/multi-file fixture directory |
-| `deferred:chained_only` | 9 | Surelog: multi-file test unit (9 sources) - dir-level chained adjudication (leaf .4) |
 | `deferred:chained_only` | 9 | slang: .svh include payload, not a standalone unit |
+| `deferred:chained_only` | 8 | Surelog: multi-file test unit (2 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
+| `deferred:chained_only` | 8 | Surelog: multi-file test unit (8 sources); golden log DiffSimpleIncludeAndMacros.log never reached its summary block - an abort… |
+| `deferred:chained_only` | 8 | Surelog: multi-file test unit (8 sources); golden log SimpleIncludeAndMacros.log, UnitSimpleIncludeAndMacros.log reports [SNT:]… |
+| `deferred:chained_only` | 8 | Surelog: multi-file test unit (9 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
+| `deferred:chained_only` | 7 | Surelog: multi-file test unit (8 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
+| `deferred:chained_only` | 6 | Surelog: multi-file test unit (6 sources); golden log SimpleTask.log completes with no [SNT:]/[FTL:] and the driver names this … |
 | `deferred:chained_only` | 6 | verible: .svh include payload, not a standalone unit |
+| `deferred:chained_only` | 4 | Surelog: multi-file test unit (6 sources); golden log FSMBsp13.log completes with no [SNT:]/[FTL:] and the driver names this fi… |
 | `deferred:chained_only` | 4 | Surelog: no per-test .sl driver unit owns this file's directory - unkeyed (chain-level only) |
+| `deferred:chained_only` | 3 | Surelog: multi-file test unit (3 sources); golden log AssertDelayError.log completes with no [SNT:]/[FTL:] and the driver names… |
+| `deferred:chained_only` | 3 | Surelog: multi-file test unit (3 sources); golden log Kmac.log completes with no [SNT:]/[FTL:] and the driver names this file -… |
+| `deferred:chained_only` | 3 | Surelog: multi-file test unit (3 sources); golden log TestMacros.log reports [SNT:] syntax errors - the error's carrier is not … |
+| `deferred:chained_only` | 3 | Surelog: multi-file test unit (3 sources); golden log UnitDefParam.log completes with no [SNT:]/[FTL:] and the driver names thi… |
+| `deferred:chained_only` | 3 | Surelog: multi-file test unit (3 sources); its driver is config-driven (-map/-cfg/-batch decide the compiled set) - dir-level c… |
+| `deferred:chained_only` | 3 | Surelog: multi-file test unit (5 sources); golden log SplitFile.log completes with no [SNT:]/[FTL:] and the driver names this f… |
 | `deferred:chained_only` | 3 | sv2v: .svh include payload, not a standalone unit |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log AllBinding.log completes with no [SNT:]/[FTL:] and the driver names this … |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log AssertTempError.log completes with no [SNT:]/[FTL:] and the driver names … |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log Attributes.log completes with no [SNT:]/[FTL:] and the driver names this … |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log Cell.log completes with no [SNT:]/[FTL:] and the driver names this file -… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log Escape.log completes with no [SNT:]/[FTL:] and the driver names this file… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log FileList.log completes with no [SNT:]/[FTL:] and the driver names this fi… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log Guards.log completes with no [SNT:]/[FTL:] and the driver names this file… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log PackageHierRef.log completes with no [SNT:]/[FTL:] and the driver names t… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log SimpleCmdLineTest.log, TestBasic.log aborted with [FTL:] - no usable pars… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log UnitElab.log completes with no [SNT:]/[FTL:] and the driver names this fi… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log UnitElabExternNested.log completes with no [SNT:]/[FTL:] and the driver n… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (2 sources); golden log UnitForeach.log completes with no [SNT:]/[FTL:] and the driver names this… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (3 sources); golden log LowMemPkg.log completes with no [SNT:]/[FTL:] and the driver names this f… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (3 sources); golden log OneDivider.log completes with no [SNT:]/[FTL:] and the driver names this … |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (3 sources); golden log OneFF.log completes with no [SNT:]/[FTL:] and the driver names this file … |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (3 sources); golden log OneNetInterf.log completes with no [SNT:]/[FTL:] and the driver names thi… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (3 sources); golden log OneNetModPort.log completes with no [SNT:]/[FTL:] and the driver names th… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (3 sources); golden log OneNetModPortGeneric.log completes with no [SNT:]/[FTL:] and the driver n… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (3 sources); golden log OneNetNonAnsi.log completes with no [SNT:]/[FTL:] and the driver names th… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (3 sources); golden log OneNetRange.log completes with no [SNT:]/[FTL:] and the driver names this… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (3 sources); golden log TimeUnit.log completes with no [SNT:]/[FTL:] and the driver names this fi… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (4 sources); golden log OneAnd.log completes with no [SNT:]/[FTL:] and the driver names this file… |
+| `deferred:chained_only` | 2 | Surelog: multi-file test unit (6 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
 | `deferred:chained_only` | 1 | Surelog: .svh include payload, not a standalone unit |
 | `deferred:chained_only` | 1 | Surelog: golden log ElabSysCall.log aborted with [FTL:] - no usable parse testimony |
 | `deferred:chained_only` | 1 | Surelog: golden log ExprEvalPartial.log aborted with [FTL:] - no usable parse testimony |
 | `deferred:chained_only` | 1 | Surelog: golden log ParamFile.log, ParamFileMacro.log, ParamFileNoTop.log, ParamFileOverr.log aborted with [FTL:] - no usable p… |
 | `deferred:chained_only` | 1 | Surelog: golden log PreprocLine.log reports [SNT:] syntax errors - upstream keys this single-source unit parse-level invalid - … |
+| `deferred:chained_only` | 1 | Surelog: multi-file test unit (2 sources); golden log LowMemLib.log completes with no [SNT:]/[FTL:] and the driver names this f… |
+| `deferred:chained_only` | 1 | Surelog: multi-file test unit (2 sources); golden log PreprocUhdmCov.log completes with no [SNT:]/[FTL:] and the driver names t… |
+| `deferred:chained_only` | 1 | Surelog: multi-file test unit (2 sources); golden log SimpleInterface.log completes with no [SNT:]/[FTL:] and the driver names … |
+| `deferred:chained_only` | 1 | Surelog: multi-file test unit (2 sources); golden log UnitPython.log completes with no [SNT:]/[FTL:] and the driver names this … |
+| `deferred:chained_only` | 1 | Surelog: multi-file test unit (3 sources); golden log NonSynthUnusedMod.log completes with no [SNT:]/[FTL:] and the driver name… |
+| `deferred:chained_only` | 1 | Surelog: multi-file test unit (3 sources); golden log OneNet.log completes with no [SNT:]/[FTL:] and the driver names this file… |
+| `deferred:chained_only` | 1 | Surelog: multi-file test unit (3 sources); golden log PragmaProtect.log completes with no [SNT:]/[FTL:] and the driver names th… |
+| `deferred:chained_only` | 1 | Surelog: multi-file test unit (4 sources); golden log OldLibrary.log completes with no [SNT:]/[FTL:] and the driver names this … |
+| `deferred:chained_only` | 1 | Surelog: multi-file test unit (4 sources); golden log SimpleClass.log completes with no [SNT:]/[FTL:] and the driver names this… |
+| `deferred:chained_only` | 1 | Surelog: multi-file test unit (5 sources); golden log DashYTest.log completes with no [SNT:]/[FTL:] and the driver names this f… |
+| `deferred:chained_only` | 1 | Surelog: multi-file test unit (5 sources); golden log TestFileSplit.log completes with no [SNT:]/[FTL:] and the driver names th… |
+| `deferred:chained_only` | 1 | Surelog: multi-file test unit (8 sources); golden log UnitClass.log completes with no [SNT:]/[FTL:] and the driver names this f… |
+| `deferred:chained_only` | 1 | Surelog: multi-file test unit (9 sources); golden log SimpleClass1.log completes with no [SNT:]/[FTL:] and the driver names thi… |
 | `deferred:chained_only` | 1 | Surelog: no committed golden log for the unit - no upstream parse testimony |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log BeginKeywords.log completes with no [SNT… |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log ClassCons.log completes with no [SNT:]/[… |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log ClassFuncProto.log completes with no [SN… |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log GenerateAssigns.log completes with no [S… |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log GenerateUnnamed.log completes with no [S… |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log InterfaceModPort.log completes with no [… |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log ModPortTest.log completes with no [SNT:]… |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log SimpleClass2.log completes with no [SNT:… |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log UnitElabBlock.log completes with no [SNT… |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log UnitEnum.log completes with no [SNT:]/[F… |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log UnitForLoop.log completes with no [SNT:]… |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log UnitQueue.log completes with no [SNT:]/[… |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; golden log UnitTest.log completes with no [SNT:]/[F… |
+| `deferred:chained_only` | 1 | Surelog: single-source test unit whose driver references out-of-unit paths; its driver is config-driven (-map/-cfg/-batch decid… |
 | `deferred:chained_only` | 1 | ivtest: 'include target of ivltests/line_directive.v - a fragment, not a standalone unit (the verilator convention); honest adj… |
 | `deferred:chained_only` | 1 | ivtest: 'include target of ivltests/pr2215342.v - a fragment, not a standalone unit (the verilator convention); honest adjudica… |
 | `deferred:chained_only` | 1 | ivtest: 'include target of vpi/nextsimtime_cb1.v - a fragment, not a standalone unit (the verilator convention); honest adjudic… |
@@ -260,11 +318,11 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 > Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`37a04a0ac8e63c93f827422bacaa3702ccee3d7e5b87b956ac5f482f65f83fe9`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
 
-**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11503/2943/1890/1247/0`** (raw: `7730/2943/5663/3815/0`).
+**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11582/2943/1811/1247/0`** (raw: `7730/2943/5663/3815/0`).
 
-- **ADJUDICATED: 11,503 rows (70.4 %)** (raw 7,730, +3,773)
+- **ADJUDICATED: 11,582 rows (70.9 %)** (raw 7,730, +3,852)
 - **ROUTED: 2,943 rows (18.0 %)** (raw 2,943, +0)
-- **NO VERDICT: 1,890 rows (11.6 %)** (raw 5,663, -3,773)
+- **NO VERDICT: 1,811 rows (11.1 %)** (raw 5,663, -3,852)
 
 | bucket | class under the pipeline | rows | % | why |
 |---|---|---:|---:|---|
@@ -296,8 +354,8 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | NO VERDICT | `pipeline:svpp_owned:refuted:key_question` | 2 | 0.0 % | the stage or the parser is right to refuse; the svpp-owned row's expectation (its suite's own convention) is what needs a ruling (.6c.4) |
 | NO VERDICT | `pipeline:refuted:preprocessor_item` | 1 | 0.0 % | an expansion-stage rule not yet implemented (named per row) |
 | NO VERDICT | `pipeline:must_reject:hollow` | 1 | 0.0 % | the rejection lands in an included file |
-| ADJUDICATED | `pipeline:chained:accepted_under_expansion` (design corpora) | 2,113 | 12.9 % | a design-corpus file ACCEPTED under its derived context — must-accept by the suite convention (a shipping design's file is valid as part of its unit); outside DESIGN_SUITES the row keeps NO VERDICT (no per-file expectation) |
-| NO VERDICT | `pipeline:chained:accepted_under_expansion` (other suites) | 266 | 1.6 % | accepted under its context, but the suite gives no per-file expectation |
-| ADJUDICATED | `pipeline:chained:accepted_in_unit` (design corpora) | 1,501 | 9.2 % | a design-corpus file ACCEPTED as a MEMBER of its package unit under the library (.6d.2) — must-accept by the suite convention; outside DESIGN_SUITES the row keeps NO VERDICT |
+| ADJUDICATED | `pipeline:chained:accepted_under_expansion` (key: must-accept as part of its unit) | 2,192 | 13.4 % | a file ACCEPTED under its derived context that the key expects must-accept AS PART OF ITS UNIT (`chained_must_accept`: a shipping design's file, or a Surelog multi-source unit whose golden log completes clean and whose driver names the file — .57); with no per-file expectation the row keeps NO VERDICT |
+| NO VERDICT | `pipeline:chained:accepted_under_expansion` (no per-file expectation) | 187 | 1.1 % | accepted under its context, but the suite gives no per-file expectation |
+| ADJUDICATED | `pipeline:chained:accepted_in_unit` (key: must-accept as part of its unit) | 1,501 | 9.2 % | a file ACCEPTED as a MEMBER of its package unit under the library (.6d.2) that the key expects must-accept as part of its unit (`chained_must_accept`); with no per-file expectation the row keeps NO VERDICT |
 | | **TOTAL** | **16,336** | **100.0 %** | |
 

@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.57 (`PGEN-SV-CORPUS-GRAD-0444`): an expectation is a column in the key, never a suite set in a reader
+
+- **A clean golden testifies for the files the driver NAMES, not for the directory.** Surelog reads a `-y` member on demand and an unnamed sibling never, so a per-unit key would have blessed files no tool parsed; the pre-screen's 146 became 79 the moment the driver was read. Read the driver before the log.
+- **Pre-screen and instrument must run the same arms.** 79 predicted, 71 keyed: the eight were single-source units the pre-screen had treated as multi-source. A disagreement that small is still a wrong rule somewhere — it was the instrument's (`.8b.1` keyed nothing for an out-of-unit include path).
+- **A reader that names its columns drops the one you add.** `read_manifest` selected five columns; the tuple under the pipeline fell by 3,700 rows and only the denominator doctrine said so. Any new key column needs its readers listed before the first run.
+
 ## 2026-10-16 — SV-CORPUS-GRAD.56 (`PGEN-SV-CORPUS-GRAD-0443`): a published path cargo uplifts cannot be a RED arm
 
 - **`restore` is undone by a no-op build.** cargo copies the cached deps artifact over the published binary on every build of that feature set, even when nothing recompiles; the file that replaced the ceremony's bytes was six days older than the restore it replaced. A chain's "last" step is never last while a pre-commit hook builds.

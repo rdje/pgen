@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e0220394.js";
+            window.path_to_searchindex_js = "searchindex-6a08efcd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -248,13 +248,13 @@ inapplicable one.</li>
 <tr><th>Lane</th><th style="text-align: right">Rows</th><th style="text-align: right">Adjudicated</th><th style="text-align: right">Permanently unadjudicable (named, bounded)</th><th style="text-align: right"><strong>Still awaiting a verdict</strong></th><th style="text-align: right">Unexplained</th><th style="text-align: right">Bar rows</th><th><code>full_pass</code></th></tr>
 </thead>
 <tbody>
-<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 503</td><td style="text-align: right">479</td><td style="text-align: right"><strong>1 411</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 582</td><td style="text-align: right">479</td><td style="text-align: right"><strong>1 332</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
 <tr><td><code>verilog_2005</code> — the routed rows, read raw under IEEE 1364-2005</td><td style="text-align: right">2 943</td><td style="text-align: right">2 896</td><td style="text-align: right">33</td><td style="text-align: right"><strong>14</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
-<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">14 399</td><td style="text-align: right">512</td><td style="text-align: right"><strong>1 425</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">14 478</td><td style="text-align: right">512</td><td style="text-align: right"><strong>1 346</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>The three row counts sum to the denominator (14 399 + 512 + 1 425 = 16 336). <strong>1 425 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
+<p>The three row counts sum to the denominator (14 478 + 512 + 1 346 = 16 336). <strong>1 346 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -287,7 +287,12 @@ parsed on its own bytes. The bar’s assertion does not stop there, and since <c
 <li>A <strong>chained</strong> row (a multi-file design, <code>deferred:chained_only</code>) is deferred by the raw lane <em>by
 design</em> and read under the preprocess→parse pipeline’s re-adjudication
 (<code>stimuli/sv/characterization/pipeline_readjudication.tsv</code>, the lane
-<a href="preprocess-parse-pipeline.html">the pipeline chapter</a> describes). The assertion reads it there.</li>
+<a href="preprocess-parse-pipeline.html">the pipeline chapter</a> describes). The assertion reads it there —
+and counts it adjudicated only when the <strong>key</strong> expects the file must-accept <em>as part of its unit</em>
+(<code>expected = chained_must_accept</code>: a design corpus’s file by the suite convention, or since
+<code>SV-CORPUS-GRAD.57</code> a Surelog multi-source unit whose committed golden log completes clean and whose
+driver names the file). A chained row the pipeline accepts with <strong>no per-file expectation</strong> stays
+burnable: an accept is not a verdict until something independent of the parser expected it.</li>
 <li>A <strong>permanently unadjudicable</strong> row — a <code>$readmemh</code> memory image, a Verilog-AMS file, a test whose
 own suite marks the verdict implementation-dependent, a construct the upstream runner skips — can
 never carry a verdict about SystemVerilog, and the project said so in

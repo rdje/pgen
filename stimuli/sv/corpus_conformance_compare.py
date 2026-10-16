@@ -157,7 +157,8 @@ def declared_reading(fresh, readj, ceilings):
     stale = sorted(k for k in fresh if k in readj and readj[k]["raw_class"] != fresh[k]["adjudication"])
     stale_set = set(stale)
     overlay = {k: (v["verdict"], v["pipeline_status"]) for k, v in readj.items() if k in fresh and k not in stale_set}
-    rows = [{"suite": k[0], "relpath": k[1], "adjudication": r["adjudication"], "observed": r["observed"]}
+    rows = [{"suite": k[0], "relpath": k[1], "adjudication": r["adjudication"], "observed": r["observed"],
+             "expected": r.get("expected", "")}
             for k, r in sorted(fresh.items())]
     try:
         counts, by_bucket, bar, dark = cov.pipeline_reading(rows, overlay)
@@ -304,12 +305,10 @@ def self_test():
     ok = True
     cov = _coverage()
     CEIL = {"sv_2017": {c: 10 ** 9 for c in cov.PERMANENT}, "verilog_2005": {c: 10 ** 9 for c in cov.PERMANENT_V2005}}
-    design = sorted(cov.DESIGN_SUITES)[0]
-    assert "verilator" not in cov.DESIGN_SUITES
     def arm(label, cond):
         nonlocal ok
         print(("  ✓ " if cond else "  ✗ ") + label); ok = ok and cond
-    r = lambda obs, adj: {"observed": obs, "adjudication": adj}
+    r = lambda obs, adj, exp="": {"observed": obs, "adjudication": adj, "expected": exp}
     rj = lambda verdict, status, raw: {"verdict": verdict, "pipeline_status": status, "raw_class": raw}
     base = {("s", "a"): r("pass", MATCH), ("s", "b"): r("fail", "divergence:unexplained_rejects_valid"),
             ("s", "c"): r("fail", "divergence:explained_svpp_include"), ("s", "d"): r("pass", "deferred:chained_only")}
@@ -352,18 +351,18 @@ def self_test():
     arm("3f RED-vs-GREEN on one manifest: a PERMANENT row alone — the raw-lane bit stays False (full_pass_raw_lane) while full_pass is True, the row counted permanent, not burnable",
         po["full_pass_raw_lane"] is False and po["full_pass"] is True and po["permanent_no_verdict"] == 1
         and po["permanent_by_class"]["deferred:not_source_text"] == 1 and po["burnable_no_verdict"] == 0 and po["no_verdict"] == 1)
-    chained = {("s", "a"): r("pass", MATCH), (design, "x.sv"): r("fail", "deferred:chained_only")}
-    ch_ok = compare(chained, chained, readj={(design, "x.sv"): rj("chained:accepted_under_expansion", "pass", "deferred:chained_only")}, ceilings=CEIL)
-    arm("3f a chained_only row of a DESIGN suite the pipeline accepts is adjudicated under the declared reading — full_pass True, declared_adjudicated 2, burnable 0",
+    chained = {("s", "a"): r("pass", MATCH), ("d", "x.sv"): r("fail", "deferred:chained_only", "chained_must_accept")}
+    ch_ok = compare(chained, chained, readj={("d", "x.sv"): rj("chained:accepted_under_expansion", "pass", "deferred:chained_only")}, ceilings=CEIL)
+    arm("3f/.57 a chained row the KEY expects must-accept as part of its unit (chained_must_accept) that the pipeline accepts is adjudicated under the declared reading — full_pass True, declared_adjudicated 2, burnable 0",
         ch_ok["full_pass"] is True and ch_ok["declared_adjudicated"] == 2 and ch_ok["burnable_no_verdict"] == 0 and ch_ok["no_verdict"] == 1 and ch_ok["readjudication_rows"] == 1)
-    chained_nd = {("s", "a"): r("pass", MATCH), ("verilator", "x.v"): r("fail", "deferred:chained_only")}
+    chained_nd = {("s", "a"): r("pass", MATCH), ("verilator", "x.v"): r("fail", "deferred:chained_only", "chained_only")}
     ch_nd = compare(chained_nd, chained_nd, readj={("verilator", "x.v"): rj("chained:accepted_under_expansion", "pass", "deferred:chained_only")}, ceilings=CEIL)
-    arm("3f the same verdict outside DESIGN_SUITES keeps NO VERDICT (no per-file expectation) — burnable 1, full_pass False",
+    arm("3f/.57 the same verdict with expected chained_only (no per-file expectation) keeps NO VERDICT — burnable 1, full_pass False; the suite name decides nothing",
         ch_nd["full_pass"] is False and ch_nd["burnable_no_verdict"] == 1 and ch_nd["declared_no_verdict"] == 1)
     ch_none = compare(chained, chained, readj={}, ceilings=CEIL)
     arm("3f a chained_only row the pipeline never re-read is burnable — full_pass False, burnable 1",
         ch_none["full_pass"] is False and ch_none["burnable_no_verdict"] == 1 and ch_none["readjudication_rows"] == 0)
-    ch_stale = compare(chained, chained, readj={(design, "x.sv"): rj("chained:accepted_under_expansion", "pass", MATCH)}, ceilings=CEIL)
+    ch_stale = compare(chained, chained, readj={("d", "x.sv"): rj("chained:accepted_under_expansion", "pass", MATCH)}, ceilings=CEIL)
     arm("3f RED: a table row whose recorded raw class differs from the fresh adjudication is STALE — counted, not scored, full_pass False",
         ch_stale["full_pass"] is False and ch_stale["readjudication_stale"] == 1 and ch_stale["readjudication_rows"] == 0
         and ch_stale["readjudication_stale_rows"][0]["table_raw_class"] == MATCH and ch_stale["burnable_no_verdict"] == 1)
