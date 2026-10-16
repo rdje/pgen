@@ -61,10 +61,10 @@ Only **7 730 rows (47.3 %)** were asked a question they could answer, and **3 81
 | Lane | Rows | Adjudicated | Permanently unadjudicable (named, bounded) | **Still awaiting a verdict** | Unexplained | Bar rows | `full_pass` |
 |---|---:|---:|---:|---:|---:|---:|---|
 | `sv_2017` — the corpus, raw rows read under the pipeline where it re-read them | 16 336 | 11 503 | 479 | **1 411** | 0 | 0 | `false` |
-| `verilog_2005` — the routed rows, read raw under IEEE 1364-2005 | 2 943 | 2 897 | 33 | **13** | 0 | 0 | `false` |
-| **Both lanes — the corpus** | 16 336 | 14 400 | 512 | **1 424** | 0 | 0 | `false` |
+| `verilog_2005` — the routed rows, read raw under IEEE 1364-2005 | 2 943 | 2 896 | 33 | **14** | 0 | 0 | `false` |
+| **Both lanes — the corpus** | 16 336 | 14 399 | 512 | **1 425** | 0 | 0 | `false` |
 
-The three row counts sum to the denominator (14 400 + 512 + 1 424 = 16 336). **1 424 rows still stand between this corpus and leg 3** — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-`.3f` bit (`no_verdict == 0` on the raw lane, unreachable by construction) reads `false` and is kept by name as `full_pass_raw_lane`.
+The three row counts sum to the denominator (14 399 + 512 + 1 425 = 16 336). **1 425 rows still stand between this corpus and leg 3** — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-`.3f` bit (`no_verdict == 0` on the raw lane, unreachable by construction) reads `false` and is kept by name as `full_pass_raw_lane`.
 
 **What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. **4 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 
@@ -128,41 +128,11 @@ denominator doctrine cannot disagree about this reading.
   machine's reading of them would make the check fail on a fresh clone. Run
   `bash scripts/audit_done_bar.sh` to see what the gate artifacts in *your* tree say.
 
-## Release distance — one number, re-derived every release
+## Why this page publishes no "release distance"
 
-**The question the director asked (2026-09-17): how far is the SV parser from its release, as a number a reader can watch move?**
-
-The three-leg bar above says *whether* the family is `Done`; the **release distance** counts what still stands between this tree and that bar, and its
-history says how fast the count has been falling. `items = legs_unmet + bar_rows + open_leaves`:
-
-- **legs unmet** — the `Distance to `Done`` line of the derived block above (owned by `FAMILY-STATUS-CURRENCY`).
-- **bar rows** — `divergence:unexplained_*` rows in the three adjudication manifests: the rows the parser must clear on `sv_2017`, `sv_2023` and `verilog_2005`
-  (the bar the director's directive names — "the SV parser shall cleanly pass all of them").
-- **open leaves** — `todo` / `active` leaves of `docs/tasks/SV-CORPUS-GRAD.md` plus the `todo` leaves of `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` that SV-CORPUS-GRAD
-  opened (engine work the SV parser owes). Read by the STATUS WORD — a heading that is not ✅-headed and carries `todo` or `active` — never by its
-  decoration (`SV-CORPUS-GRAD.49`, 2026-10-09: the first census counted a heading only when it began with exactly one ⛔ / ⏳ and read 3 where 10 were
-  open; the engine matcher now tolerates the opener's `session #N` token), at every heading level from `###` to `######`, counting each open leaf ONCE: a
-  heading whose own section holds an open heading is an umbrella and is counted through its children, never beside them (`SV-CORPUS-GRAD.51`, 2026-10-09:
-  the `#####`-only form read 8 where 11 were open). `--self-test` drives both censuses on the real heading shapes.
-
-Every figure is derived from the tracked tree by [`scripts/report_sv_release_distance.sh`](../../../scripts/report_sv_release_distance.sh); nothing here runs a gate,
-so a fresh clone re-derives the same block. Each parser release appends one row to the history (`--record`) — and so does a commit outside a release that moves the distance (a leaf closed or opened), under the shipped release's label, so rows can share a label and the trailing rate divides by distinct releases (`SV-CORPUS-GRAD.23`, 2026-09-24) — and the doctrine `SV-RELEASE-DISTANCE-CURRENCY`
-refuses a commit whose published block or whose history's last row disagrees with the tree. The history's `commit` column names the tree a row was DERIVED from: a row written at a release's lockstep step carries the release commit's parent (the release commit does not exist yet when the row is written), a back-filled row the release commit itself. ⛔ **What the number is not.** The ETA is a trailing-rate
-ESTIMATE over the last five recorded releases; a structural leg (a corpus conformance gate, the generator proof) is one item that costs more than a bar row;
-the 38 % of corpus rows with no verdict are an answer-key gap outside `items`; and an item can be opened by a release as well as closed — the history shows both.
-
-<!-- BEGIN DERIVED: scripts/report_sv_release_distance.sh --markdown -->
-**SV release distance: 20 items** (`legs_unmet + bar_rows + open_leaves`).
-
-| Component | Count | Derived from |
-|---|---:|---|
-| Done-bar legs unmet | 3 of 3 | the derived block above (`report_family_status.sh`) |
-| Corpus bar rows (unexplained divergences) | 0 (sv_2017 0, sv_2023 0, verilog_2005 0) | `stimuli/sv/characterization/adjudication_manifest*.tsv` |
-| Open leaves owning SV work | 17 (SV-CORPUS-GRAD 10, engine leaves SV opened 7) | `docs/tasks/SV-CORPUS-GRAD.md`, `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` |
-| Corpus passing (sv_2017, `match` rows) | 6310 of 16336 (38.6 %) | the sv_2017 manifest |
-| Known defects (unexplained, sv_2017) | 0 | the sv_2017 manifest |
-
-**Trailing closure rate:** n/a items per release over the last 5 recorded release(s); **ETA ≈ n/a (one release in the window) releases ≈ n/a days** — an ESTIMATE that assumes the trailing rate holds; a structural leg is one item that costs more than a bar row, and the no-verdict rows are outside the count.
-
-History: [`release_distance/history.tsv`](../../tasks/artifacts/sv_corpus_grad/release_distance/history.tsv) (one row per release, appended by `--record` — and one more, under the shipped release's label, when a commit outside a release moves the distance; the rate above divides by distinct releases; the last row must equal this tree, checked by `--check`).
-<!-- END DERIVED: scripts/report_sv_release_distance.sh -->
+Until `1.0.252` this page ended with a derived *release distance* — `items = legs_unmet + bar_rows + open_leaves`, with a
+trailing-rate ETA. It was retired in `1.0.253` (`SV-CORPUS-GRAD.55`) on the director's ruling of 2026-10-10 that **a wrong
+distance is worse than reporting nothing**: the number had read 10 → 20 in two days while the parser got no further from
+`Done`, because its open-leaf census had stopped under-counting, and the sum added a done-bar leg, a corpus row and a
+tracker leaf as if they were one unit. The three-leg bar above is the only distance this book publishes — each leg a
+defined, measured condition — and the corpus table says how many rows still await a verdict.

@@ -2,12 +2,12 @@
  "profile": "sv_2017",
  "gap_rules": 91,
  "certificate": {
-  "total": 1531,
+  "total": 1533,
   "proof": 24,
-  "witness": 1504,
+  "witness": 1506,
   "unknown": 3
  },
- "coverage_artifact_satisfiable": 1531,
+ "coverage_artifact_satisfiable": 1533,
  "classes": {
   "coverage_gap": 52,
   "lr_eliminated_original": 2,

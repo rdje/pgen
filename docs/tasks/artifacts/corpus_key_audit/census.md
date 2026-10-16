@@ -19,8 +19,8 @@
 | expected | provenance | rows |
 |---|---|---|
 | `must_accept` | `clause-cited` | 3 |
-| `must_accept` | `whole-golden:accept-claim` | 467 |
-| `must_reject` | `clause-cited` | 18 |
+| `must_accept` | `whole-golden:accept-claim` | 466 |
+| `must_reject` | `clause-cited` | 19 |
 | `must_reject` | `quoted-decider` | 11 |
 
 `clause-cited` rows contribute NO message class: their key rests on the clause, which the north star ranks above tool testimony (`pr1704726a`'s basis says so in its own words). `whole-golden:accept-claim` is exact rather than a fallback — a `must_accept` key asserts that EVERY message present is post-parse. `whole-golden:UNDETERMINED` is the conservative fallback for a `must_reject` row whose basis records no quotable decider; it keeps the row in the worklist.

@@ -412,9 +412,10 @@ each under the memory guard, sequentially.
     the register's back-fill tripwire all read that digester; a hand-rolled sha256 over an
     `--emit-raw-ast-json` dump serializes the same envelope differently and does not match it
     (`.3.66` drafted such a digest and the carriers refused it before it was published).
-    ⭐ And the release's LAST lockstep step is the distance: `bash scripts/report_sv_release_distance.sh --record <release>`
-    appends the release's row to the history and `--markdown` republishes the block on the status page, so the
-    `SV-RELEASE-DISTANCE-CURRENCY` doctrine reads the tree it describes (`SV-CORPUS-GRAD.25`).
+    ⛔ The release distance that used to be the last lockstep step (`SV-CORPUS-GRAD.25`'s `items=…` with a
+    trailing-rate ETA, `report_sv_release_distance.sh --record`) is RETIRED since `1.0.253` (`.55`, director 2026-10-10: *a
+    wrong distance is worse than reporting nothing*) — no row, no block, no doctrine; the done-bar legs in the status
+    block are the only distance this book publishes.
 11. **The family umbrellas, on the same final bytes** (since `1.0.243`, in post chain A2; recorded here by
     `SV-CORPUS-GRAD.24`, 2026-09-24): `annotation_differential_parity_gate`, `return_parity_gate`,
     `stimuli_module_parity_gate`, `rtl_const_expr_cert_gate`, `regex_formal_exhaustive_closure_gate`,

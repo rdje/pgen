@@ -1,4 +1,5 @@
-// SV-CORPUS-GRAD.48 — ILLEGAL under IEEE 1364-2005, ACCEPTED by PGEN today (class accepts_invalid; WATCHED).
+// SV-CORPUS-GRAD.48 — ILLEGAL under IEEE 1364-2005, ACCEPTED by PGEN through 1.0.252 (class accepts_invalid; WATCHED) —
+// REFUSED from 1.0.253 by SV-CORPUS-GRAD.50: parameter_value_assignment_v2005 requires the list.
 // `mod #() m1(1'b1);` — an EMPTY parameter value assignment on a module instance. IEEE 1364-2005 A.4.1.1
 // parameter_value_assignment ::= # ( list_of_parameter_assignments ), list_of_parameter_assignments ::=
 // ordered_parameter_assignment { , ordered_parameter_assignment } | named_parameter_assignment { , … }

@@ -867,6 +867,8 @@ package_or_generate_item_declaration_sv_2017	80602	10498	0
 package_scope	2163613	8027	1430500
 package_scope_dollar_unit_sv_only	733113	0	0
 packed_dimension	112621	8950	2113
+packed_dimension_list	51514	19369	0
+packed_dimension_list_sv_only	51514	19369	0
 par_block	55586	0	5147
 par_block_sv_only	50439	0	0
 param_assignment	3388	526	0

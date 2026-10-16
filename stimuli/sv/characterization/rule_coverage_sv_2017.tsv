@@ -1182,6 +1182,9 @@ package_or_generate_item_declaration_sv_2023	na_profile	0	sv_2023,sv_2023_tolera
 package_scope	covered	611	sv_2017,sv_2023,sv_2023_tolerant
 package_scope_dollar_unit_sv_only	covered	4	sv_2017,sv_2023,sv_2023_tolerant
 packed_dimension	covered	4526	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
+packed_dimension_list	covered	7821	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
+packed_dimension_list_sv_only	covered	7821	sv_2017,sv_2023,sv_2023_tolerant
+packed_dimension_list_v2005	na_profile	0	verilog_2005
 packed_dimension_one_v2005	na_profile	0	verilog_2005
 par_block	covered	218	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
 par_block_sv_only	covered	218	sv_2017,sv_2023,sv_2023_tolerant
@@ -1213,8 +1216,9 @@ parameter_port_list	covered	883	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
 parameter_port_list_sv_only	covered	883	sv_2017,sv_2023,sv_2023_tolerant
 parameter_port_list_v2005	na_profile	0	verilog_2005
 parameter_value_assignment	covered	930	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
-parameter_value_assignment_sv_2017	covered	930	sv_2017,verilog_2005
+parameter_value_assignment_sv_2017	covered	930	sv_2017
 parameter_value_assignment_sv_2023	na_profile	0	sv_2023,sv_2023_tolerant
+parameter_value_assignment_v2005	na_profile	0	verilog_2005
 paren_operator_assignment_operand	covered	14	sv_2017,sv_2023,sv_2023_tolerant
 parseable_source_item	GAP	0	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005
 part_select_range	covered	928	sv_2017,sv_2023,sv_2023_tolerant,verilog_2005

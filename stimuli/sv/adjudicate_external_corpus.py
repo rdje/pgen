@@ -3182,6 +3182,22 @@ def expect_ispras_v2005(relpath: str, text: str):
 V2005_ANNEX_A = "docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt"
 
 V2005_LRM_PINNED = {
+    # ---- SV-CORPUS-GRAD.50 (release 1.0.253) ------------------------------------------------------------
+    # The one furthest-moved corpus row of the packed-dimension split: a second packed range on a reg declaration that
+    # the raw parse used to pass over on its way to the `include` on line 7 (explained_svpp_include). From 1.0.253 the
+    # parse stops ON the second range at byte 87, and the EDITION-PACKED-DIMENSION pass cannot measure it (its sv_2017
+    # arm parses the raw text, which the `include` refuses), so the row is keyed by the clause here — the .13e.13 way.
+    "test/core/string_byte_order.v": (
+        "must_reject", "pinned .50: line 4 `reg [3:0][7:0] c = \"abcd\";` - a SECOND packed range on a reg declaration. IEEE 1364-2005 "
+        "A.2.1.3 reg_declaration ::= reg [ signed ] [ range ] list_of_variable_identifiers ; (docs/verilog/2005/txt/section-Annex_A-"
+        "normative-formal-syntax-definition.txt:172; range :252) derives ONE range; IEEE 1800-2017 A.2.2.1 data_type ::= "
+        "integer_vector_type [ signing ] { packed_dimension } (docs/systemverilog/2017/md/section-41-data-read-api.md:842) derives "
+        "any number, which is why the same line parses on the sv_2017 lane. REJECTS at furthest_position=87 under verilog_2005 from "
+        "1.0.253 (through 1.0.252 the raw parse passed the line and stopped ON the `include` of line 7, explained_svpp_include); "
+        "the EDITION-PACKED-DIMENSION pass cannot re-key it because its sv_2017 measurement parses the raw text, which the `include` "
+        "refuses - pinned by the clause instead. Controls (rust/target/sv50/rep, release probe 1.0.252 -> 1.0.253): "
+        "control_v2005_one_packed_dim_sites.sv (one range at every site) ACCEPTS on every profile; iverilog 13.0 -g2005 accepts the "
+        "second range - a tool extension. sv2v's golden claims valid Verilog-2005 output; the clause decides"),
     # ---- SV-CORPUS-GRAD.13e.14 ------------------------------------------------------------------
     # Eight of the forty stage-unresolved CE rows the other ivtest lists keyed (.13e.13): run through the vendored
     # iverilog 13.0 on this host with the entry's generation, each row's own message is a LATER-stage error (or an
@@ -6379,6 +6395,181 @@ def edition_net_declaration_pass(lane, manifest, resolve, positions, *, measurer
     return out
 
 
+# ---- SV-CORPUS-GRAD.50: the EDITION-PACKED-DIMENSION pass (verilog_2005 lane) ----------------------
+# Release 1.0.253 split the packed-dimension LIST by edition at the three sites a 1364-2005 declaration reaches (data_type
+# alternative 1, block_data_type alternative 1, implicit_data_type) and made the instance's parameter value assignment
+# require its list: IEEE 1364-2005 derives ONE optional `range` (reg_declaration :172, input/inout/output_declaration
+# :133-139, function_range_or_type :268, tf_*_declaration :296-305; range :252) and `# ( list_of_parameter_assignments )`
+# with a non-empty list (:399-402), where IEEE 1800-2017 A.2.2.1 derives `{ packed_dimension }` (:842, :867) and A.4.1.1
+# `# ( [ list ] )` (:1795). iverilog -g2005 accepts both (a tool extension), so ten must_accept rows keyed on its testimony
+# (ivtest array_packed_2d.v, br_gh497c/d/e/f.v, partsel_reversed_idx2/4/6.v; sv2v tf_unpacked_input.v,
+# unbased_unsized_function.v) stop on the construct from 1.0.253. The .3.68 shape, TOKEN-EXACT: the stop must be ON the
+# `[` opening a SECOND packed range whose declaration head (walking back over ranges, `signed`, `reg`, `automatic`) is
+# reg / input / output / inout / function / task, or ON the `)` of an empty `#()`; nets are .3.68's and are left to it.
+EDITION_PACKED_BASIS_TAG = "EDITION-PACKED-DIMENSION (SV-CORPUS-GRAD.50)"
+_PACKED_DECL_HEADS_1364 = frozenset("reg input output inout function task".split())
+_PACKED_DECL_FILLERS_1364 = frozenset("signed reg automatic".split())
+
+
+def stuck_on_second_packed_range(text: str, furthest):
+    """`("[", at)` when the parse stopped ON a `[` that follows a `]` (a SECOND packed range) in a declaration whose
+    head — found walking back over balanced `[…]` groups and the words signed / reg / automatic — is reg, input, output,
+    inout, function or task; `("#()", at)` when it stopped ON the `)` of an empty `#()`; else `(None, at)`; `(None, None)`
+    with no position. Comments and strings blanked; an escaped identifier is never a head."""
+    if furthest is None:
+        return None, None
+    stripped = blank_comments_and_strings(text)
+    i = min(furthest, len(stripped))
+    while i < len(stripped) and stripped[i].isspace():
+        i += 1
+    before = stripped[:i]
+    if stripped.startswith(")", i) and re.search(r"#\s*\(\s*$", before):
+        return "#()", i
+    if not stripped.startswith("[", i) or not re.search(r"\]\s*$", before):
+        return None, i
+    j = len(before.rstrip())
+    # walk back over balanced [...] groups and the filler words to the declaration head
+    while True:
+        k = len(before[:j].rstrip())
+        if k == 0:
+            return None, i
+        if before[k - 1] == "]":
+            depth, q = 0, k - 1
+            while q >= 0:
+                if before[q] == "]":
+                    depth += 1
+                elif before[q] == "[":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                q -= 1
+            if q < 0:
+                return None, i
+            j = q
+            continue
+        m = re.search(r"([A-Za-z_][A-Za-z_0-9$]*)$", before[:k])
+        if m is None:
+            return None, i
+        word = m.group(1)
+        if m.start() > 0 and before[m.start() - 1] == "\\":
+            return None, i
+        if word in _PACKED_DECL_HEADS_1364:
+            return "[", i
+        if word in _PACKED_DECL_FILLERS_1364:
+            j = m.start()
+            continue
+        return None, i
+
+
+def edition_packed_dimension_pass(lane, manifest, resolve, positions, *, measurer=None):
+    """SV-CORPUS-GRAD.50. Every row keyed must_accept and observed `fail` is a candidate; the row is re-keyed
+    must_reject (=> `match`) iff the stop is ON a second packed range in a reg / port / function-range / task-port
+    declaration, or ON the `)` of an empty `#()`, AND the sv_2017 profile accepts the bytes (measured here). Every
+    other row is byte-identical (the .3.37 lesson: one condition, no `continue`)."""
+    if measurer is None:
+        def measurer(raw):
+            sg = _sg()
+            m = sg.machinery()
+            saved = m.PROFILE
+            m.PROFILE = "sv_2017"
+            try:
+                ok, _surface, _furthest, _trace = m.probe_text(raw, trace=False)
+            finally:
+                m.PROFILE = saved
+            return bool(ok)
+    out = []
+    ruled = 0
+    for suite, rel, observed, expected, verdict, basis in manifest:
+        if expected == "must_accept" and observed == "fail":
+            text = read_text(resolve(suite, rel))
+            token, at = stuck_on_second_packed_range(text, positions.get((suite, rel)))
+            if token is not None and measurer(text):
+                line = text.count("\n", 0, at) + 1
+                if token == "[":
+                    what = ("a SECOND packed range in a reg / port / function-range / task-port declaration - IEEE 1364-2005 "
+                            "derives ONE optional range (reg_declaration docs/verilog/2005/txt/section-Annex_A-normative-formal-"
+                            "syntax-definition.txt:172, input/inout/output_declaration :133-139, function_range_or_type :268, "
+                            "tf_*_declaration :296-305; range :252), IEEE 1800-2017 A.2.2.1 derives { packed_dimension } "
+                            "(docs/systemverilog/2017/md/section-41-data-read-api.md:842, :867)")
+                else:
+                    what = ("the `)` of an EMPTY parameter value assignment `#()` - IEEE 1364-2005 A.4.1.1 parameter_value_assignment "
+                            "::= # ( list_of_parameter_assignments ) with a non-empty list (docs/verilog/2005/txt/section-Annex_A-"
+                            "normative-formal-syntax-definition.txt:399-402), IEEE 1800-2017 A.4.1.1 # ( [ list ] ) "
+                            "(docs/systemverilog/2017/md/section-41-data-read-api.md:1795)")
+                expected, verdict, ruled = "must_reject", "match", ruled + 1
+                basis = (f"{EDITION_PACKED_BASIS_TAG}: the {lane} parse stops at byte {at} (line {line}) ON {what}: the sv_2017 "
+                         "profile ACCEPTS these bytes (measured here, by parsing), so the line is SystemVerilog text with no 1364-2005 "
+                         "derivation; iverilog -g2005 accepts it too, a tool extension. Spec outranks tool. Original key: must_accept - "
+                         + basis)
+        out.append((suite, rel, observed, expected, verdict, basis))
+    print(f"edition-packed-dimension pass [{lane}]: {ruled} row(s) re-keyed must_reject (the stop is ON a second packed range in a reg / port / function / task declaration or ON an empty #(); sv_2017 accepts)",
+          file=sys.stderr)
+    return out
+
+
+def _self_test_edition_packed_dimension() -> int:
+    """SV-CORPUS-GRAD.50 arms, the .3.68 shape: a fake measurer (sv_2017 accepts everything but `z`) drives the pass over
+    synthetic files; the positions are the stop bytes the parser would report."""
+    import tempfile
+    fails = []
+
+    def check(name, cond):
+        print(f"  {'PASS' if cond else 'FAIL'}  edition-packed-dimension: {name}")
+        if not cond:
+            fails.append(name)
+
+    with tempfile.TemporaryDirectory(dir=str(Path(__file__).resolve().parent.parent.parent / "rust/target")) as td:
+        d = Path(td)
+        (d / "s").mkdir()
+        bodies = {"a.v": "module a;\n  reg [1:0][1:0] x;\nendmodule\n",
+                  "b.v": "module b(input [7:0][3:0] p);\nendmodule\n",
+                  "c.v": "module c;\n  function [1:0][1:0] f; input q; f = q; endfunction\nendmodule\n",
+                  "d.v": "module d;\n  task t(input [1:0][1:0] v); ; endtask\nendmodule\n",
+                  "e.v": "module e(output reg signed [1:0][1:0] q);\nendmodule\n",
+                  "f.v": "module f;\n  mod #() m1(1'b1);\nendmodule\n",
+                  "g.v": "module g;\n  reg [1:0] mem [0:3];\nendmodule\n",
+                  "h.v": "module h;\n  wire [3:0][3:0] w;\nendmodule\n",
+                  "i.v": "module i;\n  reg [1:0][1:0] z;\nendmodule\n",
+                  "j.v": "module j;\n  reg \\input [1:0][1:0] k;\nendmodule\n",
+                  "k.v": "module k; endmodule\n",
+                  "l.v": "module l;\n  mod #(1) m1(1'b1);\nendmodule\n"}
+        for name, body in bodies.items():
+            (d / "s" / name).write_text(body)
+        def second(body): return body.index("][") + 1
+        positions = {("s", "a.v"): second(bodies["a.v"]), ("s", "b.v"): second(bodies["b.v"]), ("s", "c.v"): second(bodies["c.v"]),
+                     ("s", "d.v"): second(bodies["d.v"]), ("s", "e.v"): second(bodies["e.v"]), ("s", "f.v"): bodies["f.v"].index("#()") + 2,
+                     ("s", "g.v"): bodies["g.v"].index("[0:3]"), ("s", "h.v"): second(bodies["h.v"]), ("s", "i.v"): second(bodies["i.v"]),
+                     ("s", "j.v"): second(bodies["j.v"]), ("s", "l.v"): bodies["l.v"].index(")")}
+        manifest = [("s", n, "fail", "must_accept", "divergence:unexplained_rejects_valid", "key") for n in bodies if n not in ("k.v",)]
+        manifest.append(("s", "k.v", "pass", "must_accept", "match", "key"))
+        manifest.append(("s", "a.v", "fail", "must_reject", "match", "already keyed"))
+        measured = []
+        def measurer(raw):
+            measured.append(raw); return " z;" not in raw
+        out = edition_packed_dimension_pass("verilog_2005", manifest, lambda s_, r_: d / s_ / r_, positions, measurer=measurer)
+        by = {}
+        for row in out:
+            by.setdefault((row[1], row[3], row[5][:12]), row)
+        def rekeyed(n): return any(r[1] == n and r[3] == "must_reject" and r[4] == "match" and r[5].startswith(EDITION_PACKED_BASIS_TAG) for r in out)
+        def untouched(n): return any(r[1] == n and r[3] == "must_accept" and r[5] == "key" for r in out)
+        for n, label in (("a.v", "a reg variable"), ("b.v", "an ANSI input port"), ("c.v", "a function range"), ("d.v", "a task port"), ("e.v", "an output reg signed port")):
+            check(f"a second packed range on {label} is re-keyed must_reject with the clause in its basis", rekeyed(n))
+        check("an empty #() on an instance is re-keyed must_reject (the stop ON its `)`)", rekeyed("f.v") and "EMPTY parameter value assignment" in next(r[5] for r in out if r[1] == "f.v" and r[3] == "must_reject"))
+        check("an UNPACKED second dimension (`reg [1:0] mem [0:3]`) is NOT a packed range: untouched", untouched("g.v"))
+        check("a second range on a NET is .3.68's and is left untouched here", untouched("h.v"))
+        check("a row sv_2017 also refuses stays in the bar (the measurer decides)", untouched("i.v"))
+        check("an escaped identifier spelled like a head is never a head: untouched", untouched("j.v"))
+        check("a non-empty #(1) is not an empty assignment: untouched", untouched("l.v"))
+        check("a passing row and a row already keyed must_reject are byte-identical", any(r == ("s", "k.v", "pass", "must_accept", "match", "key") for r in out) and any(r == ("s", "a.v", "fail", "must_reject", "match", "already keyed") for r in out))
+        check("the measurer is asked only for rows whose stop qualifies (7 of 12 candidates)", len(measured) == 7)
+        check("every row reaches the output exactly once", len(out) == len(manifest))
+        tok, at = stuck_on_second_packed_range("module m;\n  reg [1:0]  [1:0] x;\nendmodule\n", "module m;\n  reg [1:0]  ".__len__())
+        check("the locator reads the stop after a layout gap and a `]` with spaces between", tok == "[")
+        check("the locator with no position answers (None, None)", stuck_on_second_packed_range("x", None) == (None, None))
+    print(f"edition-packed-dimension self-test: {'PASS' if not fails else 'FAIL'} ({len(fails)} failing)")
+    return 1 if fails else 0
+
+
 def _self_test_edition_net_declaration() -> int:
     """SV-CORPUS-GRAD.3.68 arms for the edition-net-declaration pass, the same shape as .20's."""
     import tempfile
@@ -7455,6 +7646,7 @@ def main():
                 | _self_test_edition_operator()
                 | _self_test_edition_type()
                 | _self_test_edition_net_declaration()
+                | _self_test_edition_packed_dimension()
                 | _self_test_edition_empty_call()
                 | _self_test_macro_definition_tell()
                 | _self_test_ivtest_lists(args.subs_root / "iverilog" / "ivtest"))
@@ -7734,6 +7926,7 @@ def main():
     v_manifest = edition_operator_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
     v_manifest = edition_type_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
     v_manifest = edition_net_declaration_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
+    v_manifest = edition_packed_dimension_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
     v_manifest = edition_empty_call_pass("verilog_2005", v_manifest, resolve_corpus_path(args), positions)
     v_manifest = store_gate_pass("verilog_2005", v_manifest, resolve_corpus_path(args), args.report_v2005,
                                  store_gate_cache, args.store_gate_jobs)

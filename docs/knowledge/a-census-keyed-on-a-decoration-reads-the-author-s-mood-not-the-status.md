@@ -14,7 +14,7 @@ answers:
 tags: [instrument, task-tree, release-distance, census, self-test, derived-state, status-word]
 date: 2026-10-09
 provenance: SV-CORPUS-GRAD.49 (PGEN-SV-CORPUS-GRAD-0437); SV-CORPUS-GRAD.51 (PGEN-SV-CORPUS-GRAD-0438, the level rule); SV-CORPUS-GRAD.25 (the instrument, PGEN-SV-CORPUS-GRAD-0406); SV-CORPUS-GRAD.46 (close-on-measurement)
-reverify: "bash scripts/report_sv_release_distance.sh --self-test   # SV-RELEASE-DISTANCE-SELF-TEST: pass=7 fail=0; the retired decoration form reads 1 and the #####-only form 6 of the same seven open lines"
+reverify: "git show fb8e0c65c:scripts/report_sv_release_distance.sh > /tmp/x.sh && bash /tmp/x.sh --self-test   # the instrument was RETIRED by SV-CORPUS-GRAD.55 (director 2026-10-10: a wrong distance is worse than reporting nothing); its last tracked form, at fb8e0c65c, read SV-RELEASE-DISTANCE-SELF-TEST: pass=7 fail=0 — the lesson about status words stands, the published number does not"
 ---
 
 # A census keyed on a decoration reads the author's mood, not the status

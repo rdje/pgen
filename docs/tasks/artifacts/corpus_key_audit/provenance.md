@@ -18,26 +18,26 @@
 
 ⇒ **trust bound: 7094 of 7730 (91.8%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
-## `verilog_2005` — 2897 keyed rows
+## `verilog_2005` — 2896 keyed rows
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **299** | 10.3% | 158 | 141 |
-| `tool-testimony` | **487** | 16.8% | 476 | 11 |
-| `suite-convention` | **2110** | 72.8% | 2110 | 0 |
+| `clause-cited` | **309** | 10.7% | 158 | 151 |
+| `tool-testimony` | **479** | 16.5% | 468 | 11 |
+| `suite-convention` | **2107** | 72.8% | 2107 | 0 |
 | `UNCLASSIFIED` | **1** | 0.0% | 1 | 0 |
 
-⇒ **trust bound: 2598 of 2897 (89.7%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 2587 of 2896 (89.3%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
 ## By suite — where the non-clause evidence actually lives
 
 | suite | rows | `clause-cited` | `tool-testimony` | `suite-convention` | `UNCLASSIFIED` |
 |---|---|---|---|---|---|
-| `iverilog` | 3742 | 490 | 564 | 2688 | 0 |
+| `iverilog` | 3742 | 498 | 559 | 2685 | 0 |
 | `verilator` | 3067 | 124 | 717 | 2226 | 0 |
 | `ispras-sv-tests` | 1146 | 38 | 0 | 1106 | ⛔ 2 |
 | `sv-tests` | 933 | 18 | 0 | 915 | 0 |
-| `sv2v` | 921 | 236 | 338 | 347 | 0 |
+| `sv2v` | 920 | 238 | 335 | 347 | 0 |
 | `Surelog` | 627 | 18 | 609 | 0 | 0 |
 | `verible` | 128 | 9 | 0 | 119 | 0 |
 | `slang` | 63 | 2 | 0 | 61 | 0 |
@@ -59,7 +59,7 @@ nothing else. That the partition is EXHAUSTIVE is why the split is trustworthy.
 
 ## ⛔ The residual, VERBATIM — a census that hides its leftovers is a census you cannot check
 
-**2 of 10627 rows** (0.02%) match no rule. Every one is printed here rather than folded into a class, because a
+**2 of 10626 rows** (0.02%) match no rule. Every one is printed here rather than folded into a class, because a
 residual absorbed into the nearest bucket is exactly how a classifier stops being
 checkable. The first cut left **4 961** unclassified (49 %) and the vocabulary was
 extended by ENUMERATING those shapes, not by widening a rule until the number fell.

@@ -3072,7 +3072,7 @@ scoped_block_covergroup_identifier := scoped_covergroup_type_identifier
 # `Sequence` envelope (`int unsigned` in a block was `[{kind: "int"}, {kind: "unsigned"}]`). Alternative 1 keeps its
 # shipped `{base, signing, dims}` shape byte-identically (no `kind`; its key set is unique in the rule); the
 # single-reference alternatives pass their child through unchanged, as before.
-block_data_type := integer_vector_type ( signing )? packed_dimension*
+block_data_type := integer_vector_type ( signing )? packed_dimension_list
                 -> {kind: "integer_vector", base: $1, signing: $2, dims: $3}
                  # SV-CORPUS-GRAD.3.46 (release 1.0.220, schema 31 -> 32): alternative 1 carries data_type's own
                  # `{kind: "integer_vector", …}` — through 1.0.219 it was the ONLY integer-vector shape in the grammar
@@ -3131,7 +3131,7 @@ wildcard_escape_block_class_type := wildcard_escape_class_type_identifier parame
 block_data_type_or_implicit_explicit := block_data_type    -> {kind: "block_data",     body: $1}
 block_data_type_or_implicit_implicit := implicit_data_type -> {kind: "implicit_data", body: $1}
 
-data_type := @probe_sample: "int" integer_vector_type ( signing )? packed_dimension*
+data_type := @probe_sample: "int" integer_vector_type ( signing )? packed_dimension_list
                   -> {kind: "integer_vector",        base: $1, signing: $2, dims: $3}
            # SV-CORPUS-GRAD.13e.4 (SV-0069): `integer_atom_type` STAYS reachable under
            # `verilog_2005` (that admission is what makes plain `integer i;` work); only the
@@ -4307,7 +4307,7 @@ implicit_class_handle := kw_this_c2543fff                                -> {kin
                        | kw_super_8451ba8a                               -> {kind: "super"}
                        | kw_this_c2543fff dot kw_super_8451ba8a          -> {kind: "this_super"}
 
-implicit_data_type := ( signing )? packed_dimension*
+implicit_data_type := ( signing )? packed_dimension_list
                    -> {signing: $1, dims: $2}
 
 import_export := kw_import_62fdfbd5 -> {kind: "import"}
@@ -6169,6 +6169,27 @@ package_scope := package_identifier scope_resolution             -> {kind: "pack
 packed_dimension := lbrack constant_range rbrack !unsized_dimension   -> {kind: "range",    body: $2}
                   | dpi_open_packed_dimension                         -> {kind: "unsized", body: $1}
 
+# SV-CORPUS-GRAD.50 (release 1.0.253): the packed-dimension LIST, split by edition at the three sites a 1364-2005 declaration
+# reaches (data_type alternative 1, block_data_type alternative 1, implicit_data_type — a variable, a named-block variable, a
+# port, a function range, a task/function port). IEEE 1364-2005 derives ONE optional `range`: reg_declaration ::= reg [ signed ]
+# [ range ] list_of_variable_identifiers (docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:172),
+# input_declaration ::= input [ net_type ] [ signed ] [ range ] (:133-137), function_range_or_type ::= [ signed ] [ range ] | …
+# (:268), tf_input_declaration ::= input [ reg ] [ signed ] [ range ] list_of_port_identifiers (:296-305), range ::= [ msb : lsb ]
+# (:252) — while IEEE 1800-2017 A.2.2.1 `data_type ::= integer_vector_type [ signing ] { packed_dimension }` and
+# `implicit_data_type ::= [ signing ] { packed_dimension }` (docs/systemverilog/2017/md/section-41-data-read-api.md:842, :867)
+# derive any number. Through 1.0.252 the 1800 repetition served the verilog_2005 profile at these sites, so `reg [7:0][3:0] r;`
+# parsed there (the net site was closed by .3.66 / release 1.0.236 with implicit_data_type_v2005; iverilog 13.0 -g2005 accepts
+# a second packed range everywhere — a tool extension; the clause decides). The twins render the SAME `dims` list: measured
+# byte-identical to the inline `packed_dimension*` for 0 / 1 / N dimensions on the 1.5c synthetic carrier before this landed.
+packed_dimension_list := packed_dimension_list_sv_only -> $1
+                       | packed_dimension_list_v2005   -> $1
+
+@profiles: ["sv_2017", "sv_2023", "sv_2023_tolerant"]
+packed_dimension_list_sv_only := packed_dimension* -> $1
+
+@profiles: ["verilog_2005"]
+packed_dimension_list_v2005 := ( packed_dimension )? -> $1
+
 par_block := par_block_sv_only -> $1
            | par_block_v2005   -> $1
 
@@ -6363,9 +6384,21 @@ parameter_port_list_v2005 := hash lparen parameter_port_declaration_v2005 ( comm
 @profiles: ["verilog_2005"]
 parameter_port_declaration_v2005 := &( kw_parameter_b75381f0 ) parameter_port_declaration -> $2
 
-@profiles: ["sv_2017", "verilog_2005"]
+# SV-CORPUS-GRAD.50 (release 1.0.253): IEEE 1364-2005 A.4.1.1 `parameter_value_assignment ::= # ( list_of_parameter_assignments )`,
+# `list_of_parameter_assignments ::= ordered_parameter_assignment { , ordered_parameter_assignment } | named_parameter_assignment
+# { , named_parameter_assignment }` (docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:399-402) — the
+# list is never EMPTY; IEEE 1800-2017 A.4.1.1 `# ( [ list_of_parameter_assignments ] )` (docs/systemverilog/2017/md/
+# section-41-data-read-api.md:1795) admits `#()`. Through 1.0.252 the sv_2017 twin served the verilog_2005 profile, so
+# `mod #() m1(…);` parsed there (iverilog 13.0 -g2005 accepts it too — a tool leniency; the clause decides). The verilog_2005
+# twin REQUIRES the list and renders the same `{params}` shape (a matched optional and a required group render identically —
+# the .3.66 carrier facts), under the same `kind: "sv_2017"`, which names the SHAPE, as the sv_2023 split does.
+@profiles: ["sv_2017"]
 parameter_value_assignment_sv_2017 := hash lparen ( list_of_parameter_assignments )? rparen
                                    -> {params: $3}
+
+@profiles: ["verilog_2005"]
+parameter_value_assignment_v2005 := hash lparen list_of_parameter_assignments rparen
+                                 -> {params: $3}
 
 @profiles: ["sv_2023", "sv_2023_tolerant"]
 parameter_value_assignment_sv_2023 := hash lparen ( list_of_parameter_value_assignments )? rparen
@@ -6373,6 +6406,7 @@ parameter_value_assignment_sv_2023 := hash lparen ( list_of_parameter_value_assi
 
 parameter_value_assignment := parameter_value_assignment_sv_2017 -> {kind: "sv_2017", body: $1}
                             | parameter_value_assignment_sv_2023 -> {kind: "sv_2023", body: $1}
+                            | parameter_value_assignment_v2005   -> {kind: "sv_2017", body: $1}
 
 # SV-CORPUS-GRAD.3.25 — the queue-slice `q[a:$]` bound. IEEE 1800-2017 A.8.4
 # footnote 42 states the `$` primary "shall be legal only in a select for a
