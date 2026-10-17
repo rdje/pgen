@@ -734,7 +734,11 @@ the whole lane — the library pass and every row — under one edition profile.
 dumps, so the two never share a path, and every run now leaves a *provenance sidecar* beside its dump (the
 profile, the binary's digest, the dumps' digests) — the record of which run wrote it. The two-edition census
 (`docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.md`) joins the readings per file and refuses
-unless both came from one binary. Measured: 40 rows pass under 2023 only (`2023_only_pass`) and none under 2017
+unless both came from one binary. Since `SV-CORPUS-GRAD.58b` (2026-10-17) this census and its tolerant sibling are arms (5)
+and (6) of the `PIPELINE-LANE-CURRENCY` doctrine — each re-derived and diffed on every commit by its own `--check` — after
+both had sat three answer-key re-derivations stale at HEAD with their `expected` column reading the pre-`.57` key, found by
+`SVPP-EXPANSION.4c.3`'s chain (the identity-carriers gate had seen the mismatch and deferred it by basename to an oracle
+that judges a different `census.md`; `.58c`). Measured: 40 rows pass under 2023 only (`2023_only_pass`) and none under 2017
 only (`2017_only_pass = 0`: the newer edition loses nothing the older accepts, now measured through the
 preprocessor and the library); 3 more package files pass — the three `rstmgr_env_pkg.sv`, whose
 `parameter string LIST_OF_LEAFS[] = {` is 1800-2023's unsized parameter dimension — and 51 member files the

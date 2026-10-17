@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.58b (`PGEN-SV-CORPUS-GRAD-0447`): a deferral by basename is a pass nobody issued
+
+- **A `--check` no gate runs is decoration.** Both profile censuses could say `STALE` in 0.23 s and nobody asked them for a week while the key they join against moved three times. The leaf that gives a producer a `--check` wires it into the gate that runs on the staged set, in the same commit — or the check is a promise with no enforcer.
+- **"Deferred to X, which judges this carrier" must be TRUE of X.** The identity-carriers gate saw the stale row and handed it to an oracle chosen by basename — `census.md` — that opens a different `census.md`. A deferral is an assertion about another oracle; it must be keyed on something that oracle provably reads (the path), never a common filename. Six carriers were "owned" by a stranger (`.58c`).
+- **Run the check before writing the claim.** `.4c.3`'s leaf said the censuses were "not among the identity carriers" without replaying the stale file through the carriers check; one run through the `PGEN_IDENTITY_CARRIERS` seam showed the opposite. Corrected forward the same day — but the sentence had been committed.
+
 ## 2026-10-17 — SVPP-EXPANSION.4c.3 (`PGEN-SVPP-EXPANSION-0049`): a pick among real builds is still a guess
 
 - **"Every one of them is real" does not make one of them the file's.** OpenTitan's aes is built four ways and each build is a true input; the first cut applied the build that sorted first and reported the rest — and read the aes unit under `EN_GCM=1`, where it rejects on a tolerance shape, when under two of its four builds the file never sees that branch. The rule that parked `.6d.5` already said it: a disagreement is reported, not resolved by guessing which build the row meant. The instrument now applies the intersection and prints the rest per build.

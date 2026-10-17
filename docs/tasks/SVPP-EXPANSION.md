@@ -1606,11 +1606,14 @@ it waits on the `.5`(d) ruling.
   identity row still named the sv_2023 answer key's pre-`.57` digest (`b7944259…`) and their `expected` column read
   `chained_only` where the key has read `chained_must_accept` since `.57` (`-0444`) — three key re-derivations (`.57`,
   `.57a`, `.58`) went by without them, because `PIPELINE-LANE-CURRENCY` holds four arms (context, report,
-  re-adjudication, rejects-own-file census) and neither census is among them or among the identity carriers, although
-  `census.py --check` re-derives and diffs the bytes and would have said `STALE`. Fixed here by the chain's
+  re-adjudication, rejects-own-file census) and neither census is among them, although `census.py --check`
+  re-derives and diffs the bytes and would have said `STALE`. (⚠️ This leaf first said the censuses were not identity
+  carriers either — WRONG, corrected forward by `SV-CORPUS-GRAD.58b` the same day: they ARE carriers, and
+  `IDENTITY-CARRIERS` saw the key row's mismatch and deferred it by basename to an oracle that judges a different
+  `census.md` — `SV-CORPUS-GRAD.58c`.) Fixed here by the chain's
   re-derivation (both read the live key `26af4200…`; the headline counts unmoved — `2023_only_pass=41`,
   `tolerant_only_pass=18`, `population_breaches=0` — and their `--check` prints `(current)`); the GATE is routed and
-  owned as `SV-CORPUS-GRAD.58b`: two more arms of `check_pipeline_lane_currency.sh`, each reading's `census.py --check`.
+  owned as `SV-CORPUS-GRAD.58b`: two more arms of `check_pipeline_lane_currency.sh`, each reading's `census.py --check` — ✅ built the same day (`PGEN-SV-CORPUS-GRAD-0447`).
 - **Routed `.4c.4`** — the per-variant READING: a lane dimension variant × file (each row parsed under every build
   its directory declares, the verdict their conjunction, a disagreement between builds a class of its own), the
   director's call `.6d.5` names; the build list it needs is now derived and reported. `.4c` is re-opened for it.

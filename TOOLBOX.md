@@ -313,7 +313,8 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   unit including it rejects elsewhere (the bytes were never judged; the unit's origin is named). The
   `unit` column of `pipeline_readjudication.tsv` names the unit; the coverage census counts
   `accepted_in_unit` as ADJUDICATED in the design suites, exactly as `accepted_under_expansion`.
-  ⭐ All four tracked tables and the tracked report are held to a fresh derivation on every commit by the
+  ⭐ All four tracked tables, the tracked report, the re-adjudication, the rejects-own-file census and the two
+  profile censuses (six arms since `SV-CORPUS-GRAD.58b`) are held to a fresh derivation on every commit by the
   `PIPELINE-LANE-CURRENCY` doctrine (`scripts/check_pipeline_lane_currency.sh`; the dumps being
   `.gitignore`d, a tree without them is NOT EVALUATED, loudly).
   ⭐ **The rows the re-adjudication files as `rejects_own_file` are a CENSUS, not a residue**
@@ -345,7 +346,9 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
                                                                        #   context and library pass; dumps suffixed `_sv2023`, never the 2017 paths
   python3 docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.py [--check|--self-test]
                                                                        #   the two-edition census of the pipeline: the per-file matrix, the library
-                                                                       #   matrix, the members a 2023-passing unit reaches (census.md + .tsv, tracked)
+                                                                       #   matrix, the members a 2023-passing unit reaches (census.md + .tsv, tracked);
+                                                                       #   `--check` is arm (5) of PIPELINE-LANE-CURRENCY, `--other sv_2023_tolerant
+                                                                       #   --check` arm (6) — SV-CORPUS-GRAD.58b
   ```
   ⭐ **THE RE-ADJUDICATION REPORT** (`stimuli/sv/characterization/pipeline_readjudication.md`, per row in the
   `.tsv`): every `divergence:explained_svpp_*`, `deferred:chained_only` and `deferred:svpp_owned` row of the

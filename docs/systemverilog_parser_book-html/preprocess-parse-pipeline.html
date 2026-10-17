@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0e908053.js";
+            window.path_to_searchindex_js = "searchindex-ffca72f9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -888,7 +888,11 @@ the whole lane — the library pass and every row — under one edition profile.
 dumps, so the two never share a path, and every run now leaves a <em>provenance sidecar</em> beside its dump (the
 profile, the binary’s digest, the dumps’ digests) — the record of which run wrote it. The two-edition census
 (<code>docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.md</code>) joins the readings per file and refuses
-unless both came from one binary. Measured: 40 rows pass under 2023 only (<code>2023_only_pass</code>) and none under 2017
+unless both came from one binary. Since <code>SV-CORPUS-GRAD.58b</code> (2026-10-17) this census and its tolerant sibling are arms (5)
+and (6) of the <code>PIPELINE-LANE-CURRENCY</code> doctrine — each re-derived and diffed on every commit by its own <code>--check</code> — after
+both had sat three answer-key re-derivations stale at HEAD with their <code>expected</code> column reading the pre-<code>.57</code> key, found by
+<code>SVPP-EXPANSION.4c.3</code>’s chain (the identity-carriers gate had seen the mismatch and deferred it by basename to an oracle
+that judges a different <code>census.md</code>; <code>.58c</code>). Measured: 40 rows pass under 2023 only (<code>2023_only_pass</code>) and none under 2017
 only (<code>2017_only_pass = 0</code>: the newer edition loses nothing the older accepts, now measured through the
 preprocessor and the library); 3 more package files pass — the three <code>rstmgr_env_pkg.sv</code>, whose
 <code>parameter string LIST_OF_LEAFS[] = {</code> is 1800-2023’s unsized parameter dimension — and 51 member files the

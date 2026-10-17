@@ -21,7 +21,7 @@
 # tracked table is not re-derived), the report (a lane re-run whose numbers nobody published), and
 # the identity block (already `IDENTITY-CARRIERS`' business — this doctrine does NOT re-check it).
 #
-# WHAT IT ASSERTS, two arms, each blind to what the other sees:
+# WHAT IT ASSERTS, six arms, each blind to what the others see:
 #   (1) CONTEXT — `pipeline_context.py --check`: all four tracked context tables equal a fresh derivation
 #       from the tree. Always evaluable (the corpus submodules being absent is itself reported by
 #       the tool, per suite, as NOT EVALUATED). HARD on drift.
@@ -40,6 +40,15 @@
 #       on every commit after the one that published it — SVPP-EXPANSION.5(g)(h)). The dumps are .gitignored,
 #       so where either is absent the arm reports NOT EVALUATED, loudly, and passes — a clone that
 #       has not run the lanes has nothing to compare, and saying so is the honest verdict.
+#   (5) TWO-EDITION CENSUS and (6) TOLERANT CENSUS — `docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.py
+#       --check` and `… --other sv_2023_tolerant --check` (SV-CORPUS-GRAD.58b): the tracked per-file census of the
+#       sv_2017 × sv_2023 readings, and of the sv_2023 × sv_2023_tolerant readings, equal a fresh derivation from the
+#       dumps, the re-adjudication table and the sv_2023 answer key they join (rc 1 STALE on drift; an absent dump is
+#       NOT EVALUATED, loudly). Adopted because both censuses sat THREE answer-key re-derivations stale at HEAD
+#       (PGEN-SV-CORPUS-GRAD-0444 … -0446) with their `expected` column still reading the pre-.57 key — found by
+#       SVPP-EXPANSION.4c.3's chain, which re-derived them; IDENTITY-CARRIERS had seen the key row's mismatch and
+#       deferred it by BASENAME to an oracle that judges a different `census.md` (routed as .58c). A producer with a
+#       `--check` that no gate runs is decoration.
 #
 # HONEST LIMIT: arm (2) proves the report is the render of the dumps ON DISK; whether those dumps
 # were produced by the probe the identity block names is IDENTITY-CARRIERS' (the `parse binary`
@@ -47,9 +56,10 @@
 # another's number.
 #
 # Exit codes (the §4 contract): 0 holds (incl. NOT EVALUATED, which is printed), 1 breach, 2 refuse
-# (a tool missing). `--self-test` drives four arms — a GREEN control on the real tree, a RED context
-# mutation, a RED report mutation, and the absent-dump NOT EVALUATED path — each on a COPY, restoring
-# every file it touches; a miss exits 7.
+# (a tool missing). `--self-test` drives eight arms — a GREEN control on the real tree, a RED context
+# mutation, a RED report mutation, the absent-dump NOT EVALUATED path, a RED re-adjudication edit, a moved
+# input only arm (4) sees, and a RED verdict-cell edit in each profile census that only arm (5) / arm (6)
+# sees — each on a COPY, restoring every file it touches; a miss exits 7.
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -58,7 +68,8 @@ CTX_TOOL=stimuli/sv/pipeline_context.py
 REPORT_TOOL=stimuli/sv/pipeline_vs_raw.py
 READJ_TOOL=stimuli/sv/pipeline_readjudication.py   # SVPP-EXPANSION.6a: the deferred population re-read (arm 3)
 CENSUS_TOOL=docs/tasks/artifacts/sv_corpus_grad/rejects_own_file_census/census.py   # SVPP-EXPANSION.6e (arm 4)
-[ -f "$CTX_TOOL" ] && [ -f "$REPORT_TOOL" ] && [ -f "$READJ_TOOL" ] && [ -f "$CENSUS_TOOL" ] || { echo "$TAG: REFUSE — $CTX_TOOL, $REPORT_TOOL, $READJ_TOOL or $CENSUS_TOOL is missing" >&2; exit 2; }
+PROFILE_CENSUS_TOOL=docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.py   # SV-CORPUS-GRAD.58b (arms 5, 6)
+[ -f "$CTX_TOOL" ] && [ -f "$REPORT_TOOL" ] && [ -f "$READJ_TOOL" ] && [ -f "$CENSUS_TOOL" ] && [ -f "$PROFILE_CENSUS_TOOL" ] || { echo "$TAG: REFUSE — $CTX_TOOL, $REPORT_TOOL, $READJ_TOOL, $CENSUS_TOOL or $PROFILE_CENSUS_TOOL is missing" >&2; exit 2; }
 
 run_arms() {
   local rc=0 out
@@ -75,6 +86,14 @@ run_arms() {
   out="$(python3 "$CENSUS_TOOL" --check 2>&1)"; local r4=$?
   if [ $r4 -ne 0 ]; then echo "$TAG: ✗ (4) REJECTS-OWN-FILE CENSUS — $(printf '%s' "$out" | grep -E 'DRIFT|REFUSED|no tracked' | tail -1 | cut -c1-200)" >&2; rc=1
   else echo "$TAG: (4) REJECTS-OWN-FILE CENSUS — $(printf '%s' "$out" | grep -E '^REJECTS-OWN-FILE-CENSUS: (OK|NOT EVALUATED)' | tail -1 | cut -c1-160)"; fi
+  # arms (5), (6) — SV-CORPUS-GRAD.58b: each profile census equals a fresh derivation from the dumps, the
+  # re-adjudication table and the sv_2023 answer key it joins (the producer's own derive-and-diff)
+  out="$(python3 "$PROFILE_CENSUS_TOOL" --check 2>&1)"; local r5=$?
+  if [ $r5 -ne 0 ]; then echo "$TAG: ✗ (5) TWO-EDITION CENSUS — $(printf '%s' "$out" | grep -E 'STALE|REFUSED' | tail -1 | cut -c1-200)" >&2; rc=1
+  else echo "$TAG: (5) TWO-EDITION CENSUS — $(printf '%s' "$out" | grep -E '^PIPELINE-SV2023-CENSUS: ' | tail -1 | cut -c1-160)"; fi
+  out="$(python3 "$PROFILE_CENSUS_TOOL" --other sv_2023_tolerant --check 2>&1)"; local r6=$?
+  if [ $r6 -ne 0 ]; then echo "$TAG: ✗ (6) TOLERANT CENSUS — $(printf '%s' "$out" | grep -E 'STALE|REFUSED' | tail -1 | cut -c1-200)" >&2; rc=1
+  else echo "$TAG: (6) TOLERANT CENSUS — $(printf '%s' "$out" | grep -E '^PIPELINE-TOLERANT-CENSUS: ' | tail -1 | cut -c1-160)"; fi
   return $rc
 }
 
@@ -82,8 +101,11 @@ if [ "${1:-}" = "--self-test" ]; then
   fails=0
   CTX=stimuli/sv/pipeline_context.tsv; REP=stimuli/sv/characterization/pipeline_characterization.md; DUMP=stimuli/sv/characterization/pipeline_results.tsv
   READJ=stimuli/sv/characterization/pipeline_readjudication.tsv
-  cp "$CTX" "$CTX.selftest.bak"; cp "$REP" "$REP.selftest.bak"; cp "$READJ" "$READJ.selftest.bak"; [ -f "$DUMP" ] && cp "$DUMP" "$DUMP.selftest.bak"
-  restore() { mv -f "$CTX.selftest.bak" "$CTX"; mv -f "$REP.selftest.bak" "$REP"; mv -f "$READJ.selftest.bak" "$READJ"; [ -f "$DUMP.selftest.bak" ] && mv -f "$DUMP.selftest.bak" "$DUMP"; return 0; }
+  C23=docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.md; CTOL=docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_tolerant_lane/census.md
+  cp "$CTX" "$CTX.selftest.bak"; cp "$REP" "$REP.selftest.bak"; cp "$READJ" "$READJ.selftest.bak"; cp "$C23" "$C23.selftest.bak"; cp "$CTOL" "$CTOL.selftest.bak"; [ -f "$DUMP" ] && cp "$DUMP" "$DUMP.selftest.bak"
+  restore() { mv -f "$CTX.selftest.bak" "$CTX"; mv -f "$REP.selftest.bak" "$REP"; mv -f "$READJ.selftest.bak" "$READJ"; mv -f "$C23.selftest.bak" "$C23"; mv -f "$CTOL.selftest.bak" "$CTOL"; [ -f "$DUMP.selftest.bak" ] && mv -f "$DUMP.selftest.bak" "$DUMP"; return 0; }
+  # one verdict cell of a profile census set back to the pre-.57 reading — the staleness .4c.3 found, reconstructed
+  stale_cell() { python3 -c 'import sys,pathlib; p=pathlib.Path(sys.argv[1]); s=p.read_text(); assert "chained_must_accept" in s, "no must-accept cell to edit"; p.write_text(s.replace("chained_must_accept","chained_only",1))' "$1"; }
   trap restore EXIT
   # arm A — GREEN control on the real tree
   if run_arms >/dev/null 2>&1; then echo "  PASS A green control (the real tree holds)"; else echo "  FAIL A green control"; fails=$((fails+1)); fi
@@ -118,12 +140,22 @@ PY
     f_out="$(run_arms 2>&1)"
     if printf '%s' "$f_out" | grep -q '(4) REJECTS-OWN-FILE CENSUS — .*DRIFT'; then echo "  PASS F a re-adjudication table the census did not read is refused by arm (4)"; else echo "  FAIL F the census arm did not refuse a moved input"; fails=$((fails+1)); fi
     cp "$READJ.selftest.bak" "$READJ"
+    # arms G, H — RED: an `expected` cell of a profile census reading the pre-.57 key (`chained_only` where the key
+    # says `chained_must_accept`) is STALE, and only arm (5) — resp. only arm (6) — can see it (SV-CORPUS-GRAD.58b)
+    stale_cell "$C23"
+    g_out="$(run_arms 2>&1)"
+    if printf '%s' "$g_out" | grep -q '(5) TWO-EDITION CENSUS — .*STALE' && ! printf '%s' "$g_out" | grep -q '(6) TOLERANT CENSUS — .*STALE'; then echo "  PASS G an edited two-edition census cell is refused by arm (5) alone"; else echo "  FAIL G the two-edition census arm did not refuse an edited cell (or arm 6 did)"; fails=$((fails+1)); fi
+    cp "$C23.selftest.bak" "$C23"
+    stale_cell "$CTOL"
+    h_out="$(run_arms 2>&1)"
+    if printf '%s' "$h_out" | grep -q '(6) TOLERANT CENSUS — .*STALE' && ! printf '%s' "$h_out" | grep -q '(5) TWO-EDITION CENSUS — .*STALE'; then echo "  PASS H an edited tolerant census cell is refused by arm (6) alone"; else echo "  FAIL H the tolerant census arm did not refuse an edited cell (or arm 5 did)"; fails=$((fails+1)); fi
+    cp "$CTOL.selftest.bak" "$CTOL"
   else
-    echo "  SKIP C/D/E/F (no dump on this tree — the arms need one to mutate)"
+    echo "  SKIP C/D/E/F/G/H (no dump on this tree — the arms need one to mutate)"
   fi
-  echo "$TAG-SELF-TEST: arms=$([ -f "$DUMP" ] && echo 6 || echo 2) failed=$fails"
+  echo "$TAG-SELF-TEST: arms=$([ -f "$DUMP" ] && echo 8 || echo 2) failed=$fails"
   [ $fails -eq 0 ] || exit 7
   exit 0
 fi
 
-if run_arms; then echo "$TAG: OK"; exit 0; else echo "$TAG: ✗ FAIL — the lane's published context or report no longer describes this tree; re-derive (pipeline_context.py --write; run_pipeline_lane.sh all; pipeline_vs_raw.py)" >&2; exit 1; fi
+if run_arms; then echo "$TAG: OK"; exit 0; else echo "$TAG: ✗ FAIL — the lane's published context or report no longer describes this tree; re-derive (pipeline_context.py --write; run_pipeline_lane.sh all; pipeline_vs_raw.py; the profile censuses: pipeline_sv2023_lane/census.py [--other sv_2023_tolerant])" >&2; exit 1; fi
