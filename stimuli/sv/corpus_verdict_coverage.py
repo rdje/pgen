@@ -209,7 +209,8 @@ PIPELINE_CLASSES = {
                                                "declaration, mostly a class base), the library design's population"),
     "chained:explained_store_gate": ("ADJUDICATED", "the sound store gate's refusal UNDER THE PIPELINE (SV-CORPUS-GRAD.57b): a "
                                                     "must-accept-as-part-of-its-unit row, no alterable directive before the failure, "
-                                                    "the demanded type name declared nowhere in its suite, proven to parse once "
+                                                    "the demanded type name declared nowhere in its unit (nowhere in the suite, or — "
+                                                    "`.57c` — only in files outside the row's own unit), proven to parse once "
                                                     "declared by the dark worklist's search, `.13w`'s soundness holding — "
                                                     "explained, never a pass"),
     "chained:hollow": ("NO VERDICT", "the rejection lands in an included file"),

@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.57c (`PGEN-SV-CORPUS-GRAD-0453`): the suite is not the unit
+
+- **Scope a question by what the subject can see, not by what the index holds.** The `.13c` audit asked "does some sibling declare this name?" over the whole suite, which is the right scope for *defect or dependency*; the store-gate question is *could this row's compile have seen the declaration*, whose scope is the unit the key itself defines. Same index, different predicate — and the wrong one filed a provable refusal as a dependency for a month.
+- **A count derived by a join I wrote is not the instrument's count.** `-0452` said "the instrument's own tables say THREE"; the tables said FOUR once the instrument carried the rule — my join against the members dump dropped `UnitForeach/top2.v`. The number that stands is the one the owning instrument derives; a hand join is pre-registration at best, never the published figure.
+- **A legend that names channels the code no longer emits publishes empty readings.** The audit's summary carried its first cut's four channel names; every live channel printed a blank reading, in a tracked artifact, since `.13c`. Replaced with the live names — the kind of rot a reader sees and a gate does not.
+
 ## 2026-10-17 — SVPP-EXPANSION.4c.6 (`PGEN-SVPP-EXPANSION-0051`): close the cut, do not refuse it
 
 - **A derived refusal is still a refusal; measure before accepting it.** The first derivation reported 170 fragments as "inside a conditional region, not applied" — a rule I wrote because a prefix cut inside an `ifndef` looked unsafe. One synthetic pair through the probe said what unsafe meant (rc 3 `unterminated`) and what safe meant (close the region: rc 0, the same macro state). The rule became a column and a loop of `endif`s; 131 UVM fragments and `rom.sv` came back in.

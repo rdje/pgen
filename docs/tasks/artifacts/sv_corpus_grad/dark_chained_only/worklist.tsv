@@ -1,6 +1,10 @@
 verdict	channel	suite	relpath	furthest	stuck	first_tick	fail_line	bytes	fact_names	snippet
 NO-ALTERABLE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/base/uvm_port_base.svh	2863	2863		75	29865	uvm_port_component_base	xtends uvm_component; function new (string name, uvm_component parent);
 NO-ALTERABLE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm_policies.svh	4829	4830		147	4900	T	function uvm_object clone(input T from); return from.clone(); endfunction
+NO-ALTERABLE-TICK	FACT-GATED-OUT-OF-UNIT	Surelog	tests/ClassFuncProto/top.v	289	290		30	708	REQ @ stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv	ity; function REQ get_current_item(); REQ t; endfunction function v
+NO-ALTERABLE-TICK	FACT-GATED-OUT-OF-UNIT	Surelog	tests/SimpleClass1/top_1.v	100	100		8	259	uvm_void @ stimuli/sv/subs/Surelog/tests/ClassVirtual/dut.sv	r #(type IF=uvm_void) extends IF; endclass typedef uvm_sequencer #(uvm_sequ
+NO-ALTERABLE-TICK	FACT-GATED-OUT-OF-UNIT	Surelog	tests/SimpleClass2/top.v	148	149		13	743	uvm_component @ stimuli/sv/subs/Surelog/tests/SimpleClass1/top.v	name, uvm_component parent); function foo(string name = ""); endfunct
+NO-ALTERABLE-TICK	FACT-GATED-OUT-OF-UNIT	Surelog	tests/UnitForeach/top2.v	66	67		5	410	uvm_sequencer_base @ stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv	ncer_base::do_print (uvm_printer printer); super.do_print(printer); prin
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Cores-VeeR-EL2	design/include/el2_dec_csr_equ_m.svh	1622	1623		87	19862		nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Cores-VeeR-EL2	design/include/el2_dec_csr_equ_mu.svh	1939	1940		104	24138		nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/ElabSysCall/dut.sv	42	78		3	385		must be at most 4kB"); end endmodule module top_error(); if (1) begin $error(

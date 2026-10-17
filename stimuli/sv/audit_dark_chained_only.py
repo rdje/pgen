@@ -65,7 +65,9 @@ USAGE
 Outputs (repo-root-relative, deterministic -- rows sorted by (verdict, suite, relpath)):
     docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv
     docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/summary.md
-    docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv   (the two ⭐ buckets)
+    docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv   (the ⭐ buckets)
+
+    python3 stimuli/sv/audit_dark_chained_only.py --self-test   (the unit rule and the fact channel on literal rows)
 
 ⚠️ Pass 2 runs one TRACED parse per text-refuted row (~1-2 s each, 8-way parallel by default).
 """
@@ -78,6 +80,7 @@ import subprocess
 import sys
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -295,7 +298,44 @@ def build_declaration_index(suites) -> dict:
     return index
 
 
-def classify_fact_channel(stripped: str, stuck: int, names, declared_elsewhere=None) -> tuple:
+SURELOG_TESTS = ROOT / "stimuli/sv/subs/Surelog/tests"
+
+
+def unit_dir_of(suite: str, path: Path, tests_root: Path = SURELOG_TESTS):
+    """The row's COMPILATION UNIT, where the answer key defines one this audit can read off the tree
+    (SV-CORPUS-GRAD.57c). Surelog: *a test unit = a directory under tests/ directly containing >= 1
+    `.sl` driver* (`SurelogIndex`, adjudicate_external_corpus.py) — the nearest such directory above
+    the file; a file with no driver directory above it has no unit here. Every other suite's unit is
+    the library design's (`SVPP-EXPANSION.6d`, the members dump), not read here: None."""
+    if suite != "Surelog":
+        return None
+    d = path.parent
+    while tests_root in d.parents:
+        if any(x.suffix == ".sl" for x in d.iterdir()):
+            return d
+        d = d.parent
+    return None
+
+
+@lru_cache(maxsize=None)
+def unit_declared_map(unit_dir: Path) -> dict:
+    """{declared type/class/package name: the unit file that declares it} over EVERY source file of
+    the unit's directory (the same over-inclusive reader as the suite index, the same conservative
+    direction: a false in-unit entry keeps a row OUT of the out-of-unit stratum)."""
+    names = {}
+    for f in sorted(unit_dir.rglob("*")):
+        if not f.is_file() or f.suffix.lower() not in INDEX_EXTS:
+            continue
+        try:
+            text = f.read_bytes().decode("latin-1")
+        except OSError:
+            continue
+        for n in declared_type_names(text):
+            names.setdefault(n, str(f.relative_to(ROOT)) if f.is_relative_to(ROOT) else str(f))
+    return names
+
+
+def classify_fact_channel(stripped: str, stuck: int, names, declared_elsewhere=None, unit_names=None) -> tuple:
     """Sort the row by what the PARSER demanded AT THE FAILURE, not by what the text looks
     like anywhere.
 
@@ -318,9 +358,19 @@ def classify_fact_channel(stripped: str, stuck: int, names, declared_elsewhere=N
             # ⭐ This file declares it and the parser still lacked the fact.
             return ("FACT-GATED-LOCAL-TYPE", n)
     own, other = declared_elsewhere or ({}, {})
-    for n in local:
-        if n in own:
-            return ("FACT-GATED-CROSS-FILE", f"{n} @ {own[n]}")
+    in_suite = [n for n in local if n in own]
+    if in_suite:
+        if unit_names is None:
+            return ("FACT-GATED-CROSS-FILE", f"{in_suite[0]} @ {own[in_suite[0]]}")
+        # SV-CORPUS-GRAD.57c — the suite is not the unit. A name a file of the row's OWN unit declares is
+        # the `.6d` declaration barrier (chaining would supply it; the in-unit file is named, and it wins
+        # over an out-of-unit one — the conservative direction). A name declared in the suite but in NO
+        # file of the row's unit cannot reach the row's compile: the unit's own text is all the parser can
+        # ever see, so the sound store gate's refusal is provable on the raw text — a WORKLIST bucket.
+        in_unit = [n for n in in_suite if n in unit_names]
+        if in_unit:
+            return ("FACT-GATED-CROSS-FILE", f"{in_unit[0]} @ {unit_names[in_unit[0]]}")
+        return ("FACT-GATED-OUT-OF-UNIT", f"{in_suite[0]} @ {own[in_suite[0]]}")
     # ⚠️ A THIRD, HONEST ANSWER. A test can depend on a library that is vendored in ANOTHER
     # suite (Surelog's tests use UVM, which lives under `stimuli/sv/uvm`). Then the name is
     # neither a parser defect nor in-suite chaining: the compilation unit is incomplete as
@@ -380,6 +430,53 @@ def md_code_cell(text: str) -> str:
     return f"{fence}{text}{fence}"
 
 
+def self_test() -> int:
+    """SV-CORPUS-GRAD.57c — the unit rule and the fact channel on literal rows, no probe, no corpus."""
+    import tempfile
+    checks = []
+    with tempfile.TemporaryDirectory(dir=str(ROOT / "rust/target")) as td:   # DATA-LOCALITY: scratch stays on the repo volume
+        tests = Path(td) / "tests"
+        (tests / "A" / "sub").mkdir(parents=True)
+        (tests / "A" / "A.sl").write_text("-parse g.sv sub/f.sv\n")
+        (tests / "A" / "g.sv").write_text("class K; endclass\n")
+        (tests / "A" / "sub" / "f.sv").write_text("module m; K k; endmodule\n")
+        (tests / "B").mkdir()
+        (tests / "B" / "B.sl").write_text("-parse dut.sv\n")
+        (tests / "B" / "dut.sv").write_text("class S #(type REQ = int, type RSP = REQ); endclass\n")
+        (tests / "C").mkdir()
+        (tests / "C" / "x.sv").write_text("module x; endmodule\n")
+        u = unit_dir_of("Surelog", tests / "A" / "sub" / "f.sv", tests)
+        checks.append(("a Surelog file's unit is the nearest directory above it holding a `.sl` driver", u == tests / "A"))
+        checks.append(("a file with no driver directory above it has no unit", unit_dir_of("Surelog", tests / "C" / "x.sv", tests) is None))
+        checks.append(("a non-Surelog suite has no unit notion here (the library design's)", unit_dir_of("opentitan", tests / "A" / "g.sv", tests) is None))
+        umap = unit_declared_map(tests / "A")
+        checks.append(("the unit map names the unit file declaring each type", set(umap) == {"K"} and umap["K"].endswith("g.sv")))
+        stripped = "module m; REQ t; endmodule"
+        stuck = stripped.index("REQ")
+        own = {"REQ": "tests/B/dut.sv", "RSP": "tests/B/dut.sv"}
+        checks.append(("declared in the suite, in no file of the row's unit → FACT-GATED-OUT-OF-UNIT, the suite file named",
+                       classify_fact_channel(stripped, stuck, {"REQ"}, (own, {}), {}) == ("FACT-GATED-OUT-OF-UNIT", "REQ @ tests/B/dut.sv")))
+        checks.append(("declared in a file of the row's own unit → FACT-GATED-CROSS-FILE, the unit file named",
+                       classify_fact_channel(stripped, stuck, {"REQ"}, (own, {}), {"REQ": "tests/A/g.sv"}) == ("FACT-GATED-CROSS-FILE", "REQ @ tests/A/g.sv")))
+        checks.append(("no unit notion → FACT-GATED-CROSS-FILE as before (the suite's first declaring file)",
+                       classify_fact_channel(stripped, stuck, {"REQ"}, (own, {}), None) == ("FACT-GATED-CROSS-FILE", "REQ @ tests/B/dut.sv")))
+        two = "module m; REQ a; RSP b; endmodule"
+        checks.append(("two demanded names, one in the unit → the in-unit one wins (conservative: the .6d barrier)",
+                       classify_fact_channel(two, two.index("REQ"), {"REQ", "RSP"}, (own, {}), {"RSP": "tests/A/g.sv"}) == ("FACT-GATED-CROSS-FILE", "RSP @ tests/A/g.sv")))
+        checks.append(("declared only in another suite's vendored library → CROSS-LIBRARY, unchanged",
+                       classify_fact_channel(stripped, stuck, {"REQ"}, ({}, {"REQ": "stimuli/sv/uvm/x.svh"}), {}) == ("CROSS-LIBRARY", "REQ @ stimuli/sv/uvm/x.svh")))
+        checks.append(("declared nowhere → UNDECLARED-ANYWHERE, unchanged",
+                       classify_fact_channel(stripped, stuck, {"REQ"}, ({}, {}), {}) == ("UNDECLARED-ANYWHERE", "REQ")))
+        checks.append(("declared in this very file → FACT-GATED-LOCAL-TYPE before any unit reading",
+                       classify_fact_channel("typedef int REQ; module m; REQ t; endmodule", 25, {"REQ"}, (own, {}), {}) == ("FACT-GATED-LOCAL-TYPE", "REQ")))
+    failed = 0
+    for label, good in checks:
+        print(f"  {'PASS' if good else 'FAIL'} {label}")
+        failed += 0 if good else 1
+    print(f"DARK-CHAINED-AUDIT-SELF-TEST: checks={len(checks)} failed={failed}")
+    return 7 if failed else 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--manifest",
@@ -397,7 +494,12 @@ def main():
     ap.add_argument("--outdir",
                     default=ROOT / "docs/tasks/artifacts/sv_corpus_grad/dark_chained_only",
                     type=Path)
+    ap.add_argument("--self-test", action="store_true",
+                    help="the unit rule and the fact channel on literal rows (no probe, no corpus)")
     args = ap.parse_args()
+
+    if args.self_test:
+        sys.exit(self_test())
 
     if not args.probe_bin.is_file():
         raise SystemExit(
@@ -464,9 +566,11 @@ def main():
 
     def adjudicate(r):
         names = probe_fact_gates(args.probe_bin, r["_path"], args.timeout)
+        unit = unit_dir_of(r["suite"], r["_path"])
         r["channel"], r["fact_names"] = classify_fact_channel(
             r["_stripped"], r["_stuck"], names,
-            (decl_index.get(r["suite"], {}), global_index))
+            (decl_index.get(r["suite"], {}), global_index),
+            unit_declared_map(unit) if unit is not None else None)
         return r
 
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
@@ -487,7 +591,7 @@ def main():
 
     worklist = [r for r in out
                 if r["channel"] in ("FACT-GATED-LOCAL-TYPE", "NO-FACT-GATE-AT-FAILURE",
-                                    "UNDECLARED-ANYWHERE")]
+                                    "UNDECLARED-ANYWHERE", "FACT-GATED-OUT-OF-UNIT")]
     with (args.outdir / "worklist.tsv").open("w", encoding="utf-8") as fh:
         fh.write("\t".join(cols) + "\n")
         for r in worklist:
@@ -501,7 +605,7 @@ def main():
     L = [f"# DARK `deferred:chained_only` — what can chaining actually explain? "
          f"(SV-CORPUS-GRAD.13c)\n",
          "> Generated by `stimuli/sv/audit_dark_chained_only.py`. ⛔ No row is relabelled "
-         "here: a row earns a verdict by being PARSED. The two ⭐ buckets are a WORKLIST for "
+         "here: a row earns a verdict by being PARSED. The ⭐ buckets are a WORKLIST for "
          "toolbox adjudication, not a defect count.\n",
          "## Instrument identity\n",
          "| input | repo-root-relative path | sha256 |", "|---|---|---|"]
@@ -537,18 +641,27 @@ def main():
     L += ["## Then the FACT channel — is a cross-file *name* the live explanation?\n",
           "| channel | rows | reading |", "|---|---:|---|"]
     creading = {
-        "CROSS-FILE-TYPE": "the failure sits on the `A B` shape of a declaration whose type "
-                           "name `A` is **not declared in this file** ⇒ a sibling file's "
-                           "`typedef` would supply the `type_name` fact. ⚠️ PLAUSIBLE, NOT "
-                           "PROVEN — only a chained parse settles it (`.13d`)",
-        "CROSS-FILE-SCOPE": "the failure is at or after a `::` scope another file declares. "
-                            "⚠️ Same bound",
-        "LOCAL-TYPE-REFUSED": "⭐ the leading identifier **IS declared in this very file** "
-                              "(typedef / class / interface / package / nettype) — no "
-                              "chaining is needed for the parser to know it. **CANDIDATE "
-                              "DEFECT**",
-        "NEEDS-TOOLBOX": "⭐ neither channel applies: nothing to expand, and no unknown name "
-                       "at the failure. **CANDIDATE DEFECT**",
+        "FACT-GATED-CROSS-FILE": "the parser demanded a type fact AT THE FAILURE that another file of "
+                                 "the suite declares (`NAME @ file`) — for a Surelog row, a file of its "
+                                 "own test unit ⇒ the `.6d` declaration barrier (the library design's "
+                                 "population, `SVPP-EXPANSION.6d`), not the worklist's",
+        "FACT-GATED-OUT-OF-UNIT": "⭐ the demanded name is declared in the suite but in **no file of the "
+                                  "row's own compilation unit** (Surelog: another test's directory; "
+                                  "`SV-CORPUS-GRAD.57c`) — the unit's compile cannot see it, so the "
+                                  "sound store gate's refusal is provable on the raw text ⇒ WORKLIST "
+                                  "(the `.13c.2` proof runs on it; a must-accept row it proves earns "
+                                  "`chained:explained_store_gate` under the pipeline)",
+        "CROSS-LIBRARY": "the name lives in a library vendored in ANOTHER suite (Surelog's tests use the "
+                         "UVM under `stimuli/sv/uvm`) — the compilation unit is incomplete as the corpus "
+                         "holds it; neither a parser defect nor in-suite chaining",
+        "UNDECLARED-ANYWHERE": "⭐ a fact was demanded at the failure and NOTHING in the suite declares "
+                               "the name as a type ⇒ WORKLIST (a candidate defect until the toolbox "
+                               "says otherwise)",
+        "NO-FACT-GATE-AT-FAILURE": "⭐ no missing fact at the failure — nothing to expand, no unknown "
+                                   "name ⇒ WORKLIST",
+        "FACT-GATED-LOCAL-TYPE": "⭐ the demanded name **IS declared in this very file** and the parser "
+                                 "still lacked the fact ⇒ WORKLIST",
+        "PROBE-TIMEOUT": "the traced parse did not finish inside the timeout — unclassified",
     }
     for c, n in channels.most_common():
         L.append(f"| `{c}` | {n:,} | {creading.get(c, '')} |")

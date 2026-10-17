@@ -10,7 +10,7 @@ answers:
 tags: [systemverilog, pipeline, re-adjudication, store-gate, answer-key, doctrine]
 date: 2026-10-17
 provenance: SV-CORPUS-GRAD.57b (PGEN-SV-CORPUS-GRAD-0451); SV-CORPUS-GRAD.13w (the raw lane's class and its three soundness conditions); SV-CORPUS-GRAD.13c / .13c.2 (the strata and the fixed-point proof); SV-CORPUS-GRAD.17(a) (the positional reading of §26.3); SV-CORPUS-GRAD.57c (routed)
-reverify: "python3 stimuli/sv/pipeline_readjudication.py --self-test   # PIPELINE-READJUDICATION-SELF-TEST: checks=10 failed=0; grep -c explained_store_gate stimuli/sv/characterization/pipeline_readjudication.tsv   # 3"
+reverify: "python3 stimuli/sv/pipeline_readjudication.py --self-test   # PIPELINE-READJUDICATION-SELF-TEST: checks=12 failed=0; grep -c explained_store_gate stimuli/sv/characterization/pipeline_readjudication.tsv   # 3"
 ---
 
 # The store-gate explanation holds under the pipeline too
@@ -35,9 +35,12 @@ re-adjudication) and adds no prover.
 
 **What the strata keep out, and why.** `FACT-GATED-CROSS-FILE` means the name IS declared in another file of the
 suite: inside the row's unit it is the `.6d` declaration barrier (`SVPP-EXPANSION.6d.9`'s population), outside it the
-gate's refusal — the unit's source list decides, and `.57b` does not read it (19 rows, `tests/ClassFuncProto/top.v`
-among them). `PRE-TICK` means an alterable directive precedes the failure, so the proof must run on the lane's
-expanded text (210 rows). Both are `.57c`. Measured on the first reading: 3 rows explained (`ModPortTest`, `UnitClass`,
+gate's refusal — the unit's source list decides. Since `.57c` the audit reads that list for Surelog (the unit is the
+test's directory, the key's own definition) and files a name declared only outside it as `FACT-GATED-OUT-OF-UNIT`,
+which this arm accepts beside `UNDECLARED-ANYWHERE` — four rows, three of them must-accept; see
+[[declared-nowhere-means-nowhere-in-the-row-s-unit]]. `PRE-TICK` means an alterable directive precedes the failure,
+so the proof would have to run on the lane's expanded text; `-0452` measured those rows to be the library's
+population too, so no such prover was built. Measured on the first reading: 3 rows explained (`ModPortTest`, `UnitClass`,
 ibex `spec_api.sv`), `rejects_own_file` 299 → 296, the tuple under the pipeline `11648 → 11651` adjudicated.
 
 **Related.** [[an-accept-is-not-a-verdict-until-the-key-expected-it]] (the key side of the same discipline);

@@ -368,7 +368,9 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `refused_context` / `refused_engine`, the `chained:` / `svpp_owned:` forms for rows the key holds no
   expected verdict for — among them `chained:explained_store_gate` (`SV-CORPUS-GRAD.57b`: the `.13w` store-gate
   proof read under the pipeline from the dark worklist's `CROSS-FILE-FACTS`; ADJUDICATED-explained, never a pass;
-  `pipeline_readjudication.py --self-test`, ten arms) —, and the `must_reject:` forms for every row the key expects rejected — the manifest's
+  `.57c`: a demanded name declared in the suite but in NO file of the row's own unit qualifies too — the dark audit's
+  `FACT-GATED-OUT-OF-UNIT` channel, a Surelog row's unit read off the tree as the key defines it (its test's directory),
+  `audit_dark_chained_only.py --self-test` eleven arms; `pipeline_readjudication.py --self-test`, twelve arms) —, and the `must_reject:` forms for every row the key expects rejected — the manifest's
   `expected`, or a pin the raw lane demoted (`reject_arm_demotion`), read from the adjudicator's own pin tables
   (`.6b.1`): `match_under_expansion`, or `accepts_invalid` = an over-acceptance only the pipeline can see. A `refuted` row DISPOSITIONED in the tracked `refuted_dispositions.tsv` (`.6b.3`: `suite relpath disposition basis`, a closed vocabulary — `cross_file_base_class`, `vendor_identity_branch`, `driver_define`, `cross_file_define`, `parser_question`, `key_question`, `preprocessor_item`; a row that moved is REFUSED) reads `refuted:<disposition>`, and the summary line's `refuted_awaiting_disposition` is the `.6b` worklist. ⛔ It
   READS the answer key, never writes it; a `chained:accepted_under_expansion` row is not a `match` until its

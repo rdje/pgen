@@ -7,7 +7,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `90c46802bb8a13a2ee6a67f2c87cb8e3266eb48e930fdda8711d14b5b47ec864` |
+| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `f1469b78e8a4d148a51c945038767e2113f655c3665950e3b5c7d08e8bbad1b4` |
 | grammar | `grammars/systemverilog.ebnf` | `782a81ac7348d479dcd36ad4719d5c2e8b4a5df38cee78ff09232f0d8b2e1bf6` |
 | residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `12159e94b174d591aa1c6b346e71c224830749514baa01488618bb765655621b` |
 
@@ -17,11 +17,11 @@
 |---|---:|---|
 | `MACRO-BLOCKED` | 28 | the RESIDUAL failure sits on an undefined macro invocation ⇒ expansion owns what is left (`.13d`), NOT a parser defect |
 | `INVALID-SV` | 11 | the text is NOT legal SV; the rejection is CORRECT and accepting it would be an over-acceptance defect (pinned as a negative reproducer) |
-| `CROSS-FILE-FACTS` | 5 | declaring the cross-file names the parser demanded makes the file PARSE ⇒ blocked by cross-file FACT continuity (`.4`), NOT a parser defect |
+| `CROSS-FILE-FACTS` | 9 | declaring the cross-file names the parser demanded makes the file PARSE ⇒ blocked by cross-file FACT continuity (`.4`), NOT a parser defect |
 | `FRAGMENT-MODULE` | 2 | parses only inside a `module` ⇒ an include payload, not a legal standalone compilation unit |
 | `FRAGMENT-ENUM-BODY` | 1 | an enum-member list included INSIDE an `enum { … }` — no compilation-unit wrapper can shape it |
 | `FRAGMENT-STATEMENT` | 1 | parses only inside a `statement` ⇒ an include payload, not a legal standalone compilation unit |
-| **TOTAL** | **48** | |
+| **TOTAL** | **52** | |
 
 ## Per row
 
@@ -31,8 +31,12 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 
 | verdict | suite | file | line | wrapper | what unblocks it / repro |
 |---|---|---|---:|---|---|
+| `CROSS-FILE-FACTS` | Surelog | `tests/ClassFuncProto/top.v` | 30 | none | `REQ,uvm_reg` |
 | `CROSS-FILE-FACTS` | Surelog | `tests/ModPortTest/top.v` | 14 | none | `DD,id_t1` |
+| `CROSS-FILE-FACTS` | Surelog | `tests/SimpleClass1/top_1.v` | 8 | none | `uvm_void` |
+| `CROSS-FILE-FACTS` | Surelog | `tests/SimpleClass2/top.v` | 13 | none | `uvm_component` |
 | `CROSS-FILE-FACTS` | Surelog | `tests/UnitClass/top.v` | 24 | none | `DD` |
+| `CROSS-FILE-FACTS` | Surelog | `tests/UnitForeach/top2.v` | 5 | none | `uvm_printer,uvm_sequencer_base` |
 | `CROSS-FILE-FACTS` | opentitan | `hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv` | 24 | none | `t_Counteren,t_MainMode,t_MainResult,t_Mcause,t_Minterrupts,t_Mseccfg_ent,t_Mstatus,t_Mtvec,t_Pmpcfg_ent,t_Privilege` |
 | `CROSS-FILE-FACTS` | uvm-core | `uvm-core-2020.3.1/src/base/uvm_port_base.svh` | 75 | none | `uvm_component,uvm_coreservice_t,uvm_object,uvm_phase,uvm_port_type_e,uvm_root,uvm_void` |
 | `CROSS-FILE-FACTS` | uvm-core | `uvm-core-2020.3.1/src/comps/uvm_policies.svh` | 147 | none | `uvm_object` |

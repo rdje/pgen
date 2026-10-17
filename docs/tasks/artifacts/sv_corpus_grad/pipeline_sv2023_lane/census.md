@@ -17,7 +17,7 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 | sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `b987f55646f24f63f5de40f4faecec6860dd9a0cafa9becc0214a4f34c9795bf` |
 | sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `f3ba226fbd83dbd8456198c299ea8b8fa943e8b5ec4be2f08e1c0205e52624c9` |
 | unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023.tsv` | `acac7a118b3cfe26a207b0d1bf64e5758093b730c825a75122d3c7fb1b6c3c6c` |
-| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `f00053fb0c7ee71a9b67bf3880b8eb5ab4574d647c4883c099cdf6cf9a9c66f7` |
+| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `c7ca12d65daf222ae0087319c30062d38fa05195b4b79d00b309207e513b66e6` |
 | sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `c217fd567d2a759802dbc245837f90874ee70b38d1fb8404bd173a8884405f2c` |
 
 The 2023 run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6` `files=16336`.

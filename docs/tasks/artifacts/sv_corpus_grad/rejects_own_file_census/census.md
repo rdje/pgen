@@ -7,13 +7,13 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 
 | input | path | sha256 |
 |---|---|---|
-| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `f00053fb0c7ee71a9b67bf3880b8eb5ab4574d647c4883c099cdf6cf9a9c66f7` |
+| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `c7ca12d65daf222ae0087319c30062d38fa05195b4b79d00b309207e513b66e6` |
 | sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `7b1ac7eaa01fe7b4646878b2ae9117b82bb11b1650f46927cb26742c266d8274` |
 | sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `b987f55646f24f63f5de40f4faecec6860dd9a0cafa9becc0214a4f34c9795bf` |
 | sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `044ea4ba169dddafacf231ae91326204a8695f904a3c1d9d4d18ff343c01645d` |
 | expansion binary | `rust/target/debug/ast_pipeline` | `9382dff7f4f2a60f0e0f74aa9b61d563fce05064f7becf9fffed6a6e93cd3614` |
 
-## The classes — 314 rows
+## The classes — 311 rows
 
 | class | rows | what it means |
 |---|---:|---|
@@ -27,8 +27,8 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `preprocess_only` | 0 | a verilator test its own driver runs with `-E` — the preprocessor's input, not SystemVerilog to parse |
 | `declared_fragment` | 5 | the file declares itself a module body (`verilog_syntax: parse-as-…`) — the suite's own convention |
 | `fragment` | 40 | the file is the `include` target of another corpus file — its standalone reading is not the parser's claim |
-| `undeclared_type` | 10 | a declaration whose type is an identifier the parser has not seen declared — the cross-file barrier in data position |
-| `residue` | 17 | none of the above — adjudicated one by one below |
+| `undeclared_type` | 8 | a declaration whose type is an identifier the parser has not seen declared — the cross-file barrier in data position |
+| `residue` | 16 | none of the above — adjudicated one by one below |
 
 ## `raw_backtick` — 0 rows, by the macro the context did not define
 
@@ -51,19 +51,17 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `NUM_ALERTS` | 1 | `opentitan` `hw/top_englishbreakfast/dv/env/autogen/chip_env_pkg__params.sv` (7) |
 | `clk_rst_if_main` | 1 | `opentitan` `hw/top_englishbreakfast/dv/autogen/tb__xbar_connect.sv` (30) |
 
-## `undeclared_type` — 10 rows, by the type the parser never saw
+## `undeclared_type` — 8 rows, by the type the parser never saw
 
 | type | rows | files |
 |---|---:|---|
 | `Driver` | 1 | Surelog:Environemnt.sv |
-| `REQ` | 1 | Surelog:top.v |
 | `busproperty` | 1 | verilator:cpu.sv |
 | `satp_mode_t` | 1 | opentitan:riscv_core_setting.tpl.sv |
 | `sel_mux` | 1 | opentitan:keccak_2share_fpv.sv |
 | `t_padtype` | 1 | verilator:pads.sv |
 | `t_pinid` | 1 | verilator:pinout_h.sv |
 | `type_scr1_mem_resp_e` | 1 | Surelog:dut.sv |
-| `uvm_component` | 1 | Surelog:top.v |
 | `uvm_packer` | 1 | Surelog:top_1.sv |
 
 ## `base_class` — 233 rows, by suite
@@ -114,13 +112,12 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 |---|---:|
 | `verible` | 5 |
 
-## `residue` — 17 rows, one by one
+## `residue` — 16 rows, one by one
 
 | suite | file | origin | token at the stop | source construct | sv_2023 | tolerant |
 |---|---|---|---|---|---|---|
 | `Surelog` | `tests/ElabSysCall/dut.sv` | `Surelog/tests/ElabSysCall/dut.sv:3:10` | `"` | other | `fail` | `fail` |
 | `Surelog` | `tests/TestMacros/macros.v` | `Surelog/tests/TestMacros/macros.v:6:1` | `begin` | other | `fail` | `fail` |
-| `Surelog` | `tests/UnitForeach/top2.v` | `Surelog/tests/UnitForeach/top2.v:5:45` | `(` | a `::`-scoped name | `fail` | `fail` |
 | `opentitan` | `hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv` | `opentitan/hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv:52:33` | `)` | other | `fail` | `fail` |
 | `opentitan` | `hw/ip/otbn/dv/verilator/otbn_top_sim.sv` | `opentitan/hw/ip/otbn/dv/verilator/otbn_top_sim.sv:168:48` | `,` | a parameter port list `#(` | `fail` | `fail` |
 | `opentitan` | `hw/ip/otbn/pre_sca/rtl/otbn_mask_accelerator_sca_wrapper.sv` | `opentitan/hw/ip/otbn/pre_sca/rtl/otbn_mask_accelerator_sca_wrapper.sv:50:24` | `else` | other | `fail` | `fail` |

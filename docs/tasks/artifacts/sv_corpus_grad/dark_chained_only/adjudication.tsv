@@ -1,6 +1,10 @@
 final_verdict	repro	note	verdict	channel	suite	relpath	fail_line	wrapper	form	decl_count	declarations	macro	rounds	residual_furthest	snippet
+CROSS-FILE-FACTS			CROSS-FILE-FACTS	FACT-GATED-OUT-OF-UNIT	Surelog	tests/ClassFuncProto/top.v	30	none	class	2	REQ,uvm_reg		3		ity; function REQ get_current_item(); REQ t; endfunction function v
 CROSS-FILE-FACTS			CROSS-FILE-FACTS	UNDECLARED-ANYWHERE	Surelog	tests/ModPortTest/top.v	14	none	class	2	DD,id_t1		3		id_t1 aw_id; modport Master ( output aw_id ); id_t
+CROSS-FILE-FACTS			CROSS-FILE-FACTS	FACT-GATED-OUT-OF-UNIT	Surelog	tests/SimpleClass1/top_1.v	8	none	class	1	uvm_void		2		r #(type IF=uvm_void) extends IF; endclass typedef uvm_sequencer #(uvm_sequ
+CROSS-FILE-FACTS			CROSS-FILE-FACTS	FACT-GATED-OUT-OF-UNIT	Surelog	tests/SimpleClass2/top.v	13	none	class	1	uvm_component		2		"name, uvm_component parent); function foo(string name = """"); endfunct"
 CROSS-FILE-FACTS			CROSS-FILE-FACTS	UNDECLARED-ANYWHERE	Surelog	tests/UnitClass/top.v	24	none	class	1	DD		2		ass B b; DD d; covergroup memory @ (posedge ce); address : co
+CROSS-FILE-FACTS			CROSS-FILE-FACTS	FACT-GATED-OUT-OF-UNIT	Surelog	tests/UnitForeach/top2.v	5	none	class	2	uvm_printer,uvm_sequencer_base		3		ncer_base::do_print (uvm_printer printer); super.do_print(printer); prin
 CROSS-FILE-FACTS			CROSS-FILE-FACTS	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv	24	none	class	10	t_Counteren,t_MainMode,t_MainResult,t_Mcause,t_Minterrupts,t_Mseccfg_ent,t_Mstatus,t_Mtvec,t_Pmpcfg_ent,t_Privilege		11		input t_MainMode main_mode, input [31:0] regs_i [1:31], output logi
 CROSS-FILE-FACTS			CROSS-FILE-FACTS	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/base/uvm_port_base.svh	75	none	class	7	uvm_component,uvm_coreservice_t,uvm_object,uvm_phase,uvm_port_type_e,uvm_root,uvm_void		8		xtends uvm_component; function new (string name, uvm_component parent);
 CROSS-FILE-FACTS			CROSS-FILE-FACTS	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm_policies.svh	147	none	class	1	uvm_object		2		function uvm_object clone(input T from); return from.clone(); endfunction

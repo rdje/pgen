@@ -41,7 +41,9 @@ and says, row by row, what expansion changed:
                  (corpus-expected-from-SPEC, never from the fix); that derivation is `.6c`'s.
   chained:explained_store_gate  (SV-CORPUS-GRAD.57b) a `chained:rejects_own_file` row the key expects
                  must-accept as part of its unit, whose failure no alterable directive precedes (`.13c`:
-                 the expanded text IS the file's own text) on a type name declared NOWHERE in its suite,
+                 the expanded text IS the file's own text) on a type name declared NOWHERE IN ITS UNIT —
+                 `.13c`'s `UNDECLARED-ANYWHERE` (nowhere in the suite) or `.57c`'s `FACT-GATED-OUT-OF-UNIT`
+                 (in the suite, but in no file of the row's own unit: Surelog, another test's directory) —
                  and which the dark worklist's fixed-point search PROVED parses bare once the names the
                  parser demanded and lacked are declared (`adjudicate_dark_worklist.py`, CROSS-FILE-FACTS,
                  the minimal prelude published in the `unit` column) — with `.13w`'s soundness conditions
@@ -110,6 +112,8 @@ EXPLAINED_AUDIT = ART / "explained_svpp_audit" / "after" / "audit.tsv"
 DARK_AUDIT = ART / "dark_chained_only" / "audit.tsv"
 DARK_ADJUDICATION = ART / "dark_chained_only" / "adjudication.tsv"   # .13c.2: the fixed-point proof per dark row (.57b reads it)
 STORE_GATE_STRATUM = "NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE"         # .57b: raw text == expanded text, declared nowhere in the suite
+STORE_GATE_STRATA = (STORE_GATE_STRATUM,
+                     "NO-ALTERABLE-TICK/FACT-GATED-OUT-OF-UNIT")       # .57c: declared in the suite, in NO file of the row's own unit
 STORE_GATE_VERDICT = "chained:explained_store_gate"
 DISPOSITIONS = CHAR / "refuted_dispositions.tsv"
 LIBRARY = CHAR / "pipeline_library.tsv"                 # SVPP-EXPANSION.6d.1: the library pass's per-unit verdicts (a dump)
@@ -201,9 +205,11 @@ def store_gate_explanation(verdict: str, expected: str, stratum: str, adjudicate
     earns `chained:explained_store_gate` only when every condition below is decided mechanically, in this order
     (the cheap ones first; the file is read only when they hold):
       1. the key expects the file must-accept AS PART OF ITS UNIT (`chained_must_accept`);
-      2. `.13c`'s audit found NO alterable directive before the failure and the demanded name declared NOWHERE in
-         the suite (`NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE`): the expanded text is the file's own text, so the
-         raw-text proof is the pipeline's, and "nowhere in the suite" is "nowhere in the unit";
+      2. `.13c`'s audit found NO alterable directive before the failure (the expanded text is the file's own text,
+         so the raw-text proof is the pipeline's) and the demanded name declared NOWHERE IN THE ROW'S UNIT — either
+         nowhere in the suite (`NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE`, `.57b`) or, `.57c`, in the suite but in no
+         file of the row's own unit (`NO-ALTERABLE-TICK/FACT-GATED-OUT-OF-UNIT`: Surelog, another test's directory
+         — the unit's compile cannot see it); a name a file of the unit declares is the `.6d` barrier, kept dark;
       3. the dark worklist's fixed-point search (`adjudicate_dark_worklist.py`) PROVED the file parses bare once the
          names the parser demanded and lacked are declared (`CROSS-FILE-FACTS`, not overridden by a RESIDUAL_ROWS
          ruling), the minimal prelude published;
@@ -211,7 +217,7 @@ def store_gate_explanation(verdict: str, expected: str, stratum: str, adjudicate
          declare BEFORE the use (IEEE 1800-2017 §26.3, positional), no package `export`, no LRM-predefined name —
          else the rejection may be the gate being unsound, a defect for SV-PARSE-STRICT, and the row stays dark.
     Returns (verdict, the prelude note for the `unit` column) or None (the row keeps `chained:rejects_own_file`)."""
-    if verdict != "chained:rejects_own_file" or expected != "chained_must_accept" or stratum != STORE_GATE_STRATUM:
+    if verdict != "chained:rejects_own_file" or expected != "chained_must_accept" or stratum not in STORE_GATE_STRATA:
         return None
     if not adjudicated or adjudicated.get("verdict") != "CROSS-FILE-FACTS" or adjudicated.get("final_verdict") != "CROSS-FILE-FACTS":
         return None
@@ -237,8 +243,12 @@ def self_test() -> int:
          store_gate_explanation(V, E, S, ok_adj, {"stuck": "20"}, plain) == (STORE_GATE_VERDICT, "parses once declared: DD,id_t1 (class)")),
         ("a row the key does not expect must-accept stays dark", store_gate_explanation(V, "chained_only", S, ok_adj, {"stuck": "20"}, plain) is None),
         ("a PRE-TICK stratum (expansion could alter the text) stays dark", store_gate_explanation(V, E, "PRE-TICK/UNDECLARED-ANYWHERE", ok_adj, {"stuck": "20"}, plain) is None),
-        ("a FACT-GATED-CROSS-FILE stratum (declared elsewhere in the suite) stays dark — .57c's business",
+        ("a FACT-GATED-CROSS-FILE stratum (declared in a file of the row's own unit — the .6d barrier) stays dark",
          store_gate_explanation(V, E, "NO-ALTERABLE-TICK/FACT-GATED-CROSS-FILE", ok_adj, {"stuck": "20"}, plain) is None),
+        ("GREEN (.57c): a FACT-GATED-OUT-OF-UNIT stratum (declared in the suite, in no file of the row's unit) is explained",
+         store_gate_explanation(V, E, "NO-ALTERABLE-TICK/FACT-GATED-OUT-OF-UNIT", ok_adj, {"stuck": "20"}, plain) == (STORE_GATE_VERDICT, "parses once declared: DD,id_t1 (class)")),
+        ("a PRE-TICK out-of-unit stratum (expansion could alter the text) stays dark",
+         store_gate_explanation(V, E, "PRE-TICK/FACT-GATED-OUT-OF-UNIT", ok_adj, {"stuck": "20"}, plain) is None),
         ("a RESIDUAL dark adjudication (no prelude makes it parse) stays dark", store_gate_explanation(V, E, S, dict(ok_adj, verdict="RESIDUAL", final_verdict="RESIDUAL"), {"stuck": "20"}, plain) is None),
         ("a proof a RESIDUAL_ROWS ruling overrode stays dark", store_gate_explanation(V, E, S, dict(ok_adj, final_verdict="INVALID-SV"), {"stuck": "20"}, plain) is None),
         ("a proof with no declarations is no proof", store_gate_explanation(V, E, S, dict(ok_adj, declarations=""), {"stuck": "20"}, plain) is None),
@@ -595,7 +605,8 @@ def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, 
              "library design's (`SVPP-EXPANSION.6`, `--lib-in` / `--lib-out`), not the expansion stage's.")
     L.append("- A `chained:explained_store_gate` row (`SV-CORPUS-GRAD.57b`) is the sound store gate's refusal under the "
              "pipeline: the key expects the file must-accept as part of its unit, no alterable directive precedes the "
-             "failure (the expanded text is the file's own), the demanded name is declared nowhere in the suite, and the "
+             "failure (the expanded text is the file's own), the demanded name is declared nowhere in the row's unit (nowhere "
+             "in the suite, or — `.57c` — only in files outside the unit: Surelog, another test's directory), and the "
              "dark worklist's search proved the file parses once that name is declared (the prelude in the `unit` column), "
              "with `.13w`'s soundness conditions holding at the use — ADJUDICATED-explained, never a pass.")
     L.append("- A `hollow` row is judged in the header its rejection lands in; the lane report's origin tables "

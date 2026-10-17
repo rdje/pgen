@@ -122,7 +122,7 @@ Surelog	tests/BlockingAssignRewrite/dut.sv	divergence:explained_svpp_macro_use	S
 Surelog	tests/Cell/cell.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/Cell/dut.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/ClassCons/top.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
-Surelog	tests/ClassFuncProto/top.v	deferred:chained_only	NO-ALTERABLE-TICK/FACT-GATED-CROSS-FILE	fail	own file		a function / task header	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/ClassFuncProto/top.v:30:13
+Surelog	tests/ClassFuncProto/top.v	deferred:chained_only	NO-ALTERABLE-TICK/FACT-GATED-OUT-OF-UNIT	fail	own file	parses once declared: REQ,uvm_reg (class)	a function / task header	chained:explained_store_gate	stimuli/sv/subs/Surelog/tests/ClassFuncProto/top.v:30:13
 Surelog	tests/ClassScope/dut.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 Surelog	tests/ClassTypeParamAlias/dut.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/Surelog/tests/ClassTypeParamAlias/dut.sv:4:20
 Surelog	tests/CovMacro/dut.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -257,8 +257,8 @@ Surelog	tests/SimpleClass1/Sequencer.sv	deferred:chained_only	IN-WINDOW	pp_fail	
 Surelog	tests/SimpleClass1/header.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/SimpleClass1/mod.v	deferred:chained_only	PRE-TICK/CROSS-LIBRARY	pp_fail	context		-	chained:refused_context	`wrapper is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/SimpleClass1/mod.v:5 — IEEE 1800-2017 §22.5.1 gives a text-macro usa
 Surelog	tests/SimpleClass1/top.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
-Surelog	tests/SimpleClass1/top_1.v	deferred:chained_only	NO-ALTERABLE-TICK/FACT-GATED-CROSS-FILE	fail	own file		class header with a base class (`extends`)	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/SimpleClass1/top_1.v:8:47
-Surelog	tests/SimpleClass2/top.v	deferred:chained_only	NO-ALTERABLE-TICK/FACT-GATED-CROSS-FILE	fail	own file		a function / task header	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/SimpleClass2/top.v:13:50
+Surelog	tests/SimpleClass1/top_1.v	deferred:chained_only	NO-ALTERABLE-TICK/FACT-GATED-OUT-OF-UNIT	fail	own file		class header with a base class (`extends`)	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/SimpleClass1/top_1.v:8:47
+Surelog	tests/SimpleClass2/top.v	deferred:chained_only	NO-ALTERABLE-TICK/FACT-GATED-OUT-OF-UNIT	fail	own file	parses once declared: uvm_component (class)	a function / task header	chained:explained_store_gate	stimuli/sv/subs/Surelog/tests/SimpleClass2/top.v:13:50
 Surelog	tests/SimpleCmdLineTest/cell.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/SimpleCmdLineTest/top.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/SimpleIncludeAndMacros/foo/inc.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
@@ -323,7 +323,7 @@ Surelog	tests/UnitElabExternNested/top.v	deferred:chained_only	ONE-SIDED (raw pa
 Surelog	tests/UnitEnum/top.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/UnitForLoop/top.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/UnitForeach/top.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
-Surelog	tests/UnitForeach/top2.v	deferred:chained_only	NO-ALTERABLE-TICK/FACT-GATED-CROSS-FILE	fail	own file		a `::`-scoped name	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/UnitForeach/top2.v:5:45
+Surelog	tests/UnitForeach/top2.v	deferred:chained_only	NO-ALTERABLE-TICK/FACT-GATED-OUT-OF-UNIT	fail	own file	parses once declared: uvm_printer,uvm_sequencer_base (class)	a `::`-scoped name	chained:explained_store_gate	stimuli/sv/subs/Surelog/tests/UnitForeach/top2.v:5:45
 Surelog	tests/UnitLibrary/lib1/bot.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/UnitLibrary/lib2/bot.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/UnitLibrary/lib2/sub.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	

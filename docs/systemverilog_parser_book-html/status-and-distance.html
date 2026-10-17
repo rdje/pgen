@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4efb8e62.js";
+            window.path_to_searchindex_js = "searchindex-42e39a4c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -248,13 +248,13 @@ inapplicable one.</li>
 <tr><th>Lane</th><th style="text-align: right">Rows</th><th style="text-align: right">Adjudicated</th><th style="text-align: right">Permanently unadjudicable (named, bounded)</th><th style="text-align: right"><strong>Still awaiting a verdict</strong></th><th style="text-align: right">Unexplained</th><th style="text-align: right">Bar rows</th><th><code>full_pass</code></th></tr>
 </thead>
 <tbody>
-<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 653</td><td style="text-align: right">479</td><td style="text-align: right"><strong>1 261</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 656</td><td style="text-align: right">479</td><td style="text-align: right"><strong>1 258</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
 <tr><td><code>verilog_2005</code> — the routed rows, read raw under IEEE 1364-2005</td><td style="text-align: right">2 943</td><td style="text-align: right">2 896</td><td style="text-align: right">33</td><td style="text-align: right"><strong>14</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
-<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">14 549</td><td style="text-align: right">512</td><td style="text-align: right"><strong>1 275</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">14 552</td><td style="text-align: right">512</td><td style="text-align: right"><strong>1 272</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>The three row counts sum to the denominator (14 549 + 512 + 1 275 = 16 336). <strong>1 275 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
+<p>The three row counts sum to the denominator (14 552 + 512 + 1 272 = 16 336). <strong>1 272 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
