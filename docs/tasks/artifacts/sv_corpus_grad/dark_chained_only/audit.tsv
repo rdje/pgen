@@ -1479,8 +1479,6 @@ IN-WINDOW		verilator	test_regress/t/t_sv_cpu_code/pad_gpio.sv	786	786	786	30	114
 IN-WINDOW		verilator	test_regress/t/t_sv_cpu_code/pads.sv	572	572	572	23	2800		// **** Pinout **** `ifdef VERILATOR // see t_tri_array inout wire [NUMPADS:1
 IN-WINDOW		verilator	test_regress/t/t_sv_cpu_code/pinout_h.sv	558	561	248	21	1736		packed { t_pinid id; t_padtype padtype; int aux; } t_pin_descriptor;
 IN-WINDOW		verilator	test_regress/t/t_sv_cpu_code/rom.sv	537	544	544	19	876		[0:13] = '{ `LDI( R0, 11 ) `LDI( R1, 22 ) `LDI( R2, 33 )
-IN-WINDOW		verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh	167222	167223	1217	3695	1533677		32 package uvm_pkg; `define UVM_DPI_SVH `define UVM_HDL__SVH `define UVM_HDL_MAX
-IN-WINDOW		verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_nodpi.svh	167243	167244	1219	3696	1534767		32 package uvm_pkg; `define UVM_DPI_SVH `define UVM_HDL_NO_DPI `define UVM_REGEX
 IN-WINDOW		verilator	test_regress/t/uvm/uvm_pkg_all_v2020_3_1_dpi.svh	177761	177762	1263	3893	1908208		\ package uvm_pkg; `define UVM_DPI_SVH `define UVM_HDL__SVH `define UVM_HDL_MAX
 IN-WINDOW		verilator	test_regress/t/uvm/uvm_pkg_all_v2020_3_1_nodpi.svh	177782	177783	1265	3894	1908678		\ package uvm_pkg; `define UVM_DPI_SVH `define UVM_HDL_NO_DPI `define UVM_REGEX
 IN-WINDOW		verilator	test_regress/t/uvm/v2017_1_0/dpi/uvm_hdl.svh	1801	1802	1385	54	5687		UVM_HDL_MAX_WIDTH = `UVM_HDL_MAX_WIDTH; typedef logic [UVM_HDL_MAX_WIDTH-1:0]
@@ -1545,7 +1543,6 @@ NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/ElabSysCall/dut.sv	42	78
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv	1430	1433		53	13926		th(EntropyWidth), ) u_kmac_reduced ( .clk_i, .rst_ni, // Inputs e
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv	275	275		7	906		#( .SecureIbex, .ICache, .PMPEnable, .PMPGranularity,
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v	200	201		6	303		pecific cell module $_DLATCH_P_ (input E, input D, output Q); DLH_X1 _TECHMAP_RE
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	verilator	test_regress/t/t_langext_order_sub.v	335	336		11	351		ext_order_sub(input do); endmodule
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/ModPortTest/top.v	220	220		14	739	id_t1	id_t1 aw_id; modport Master ( output aw_id ); id_t
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/UnitClass/top.v	460	461		24	868	DD	ass B b; DD d; covergroup memory @ (posedge ce); address : co
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	6554	6554		168	19497	DmemAddrWidth,ImemAddrWidth,otbn_core	_if #(.ImemAddrWidth, .DmemAddrWidth) i_otbn_trace_if (.*); bind otbn_core otb

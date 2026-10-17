@@ -32,7 +32,8 @@ this order (first match wins):
                       kin): a module body with no module around it, by the suite's own convention
   fragment            the file is the `include` target of another corpus source file — its standalone
                       reading is not a claim about the parser (the includer's reading is the one that counts)
-  undeclared_type     the stop is an identifier that follows another identifier (optionally `pkg::`-scoped, with
+  undeclared_type     the stop is an identifier that follows another identifier (or, since .58a, the `;` ending
+                      `T name`) (optionally `pkg::`-scoped, with
                       a `#(…)`) and a declaration qualifier — `mubi4_t sel_mux;`, `uvm_component parent)`: a
                       declaration whose TYPE the parser has not seen declared — the same cross-file barrier as
                       `base_class`, in the data-declaration position
@@ -105,7 +106,15 @@ def token_at(text: str) -> str:
 
 def undeclared_type_shape(before: str, tok: str) -> bool:
     """`before` is the source line up to the stop; `tok` the token at the stop: an identifier preceded by an
-    identifier (not a keyword) is a declaration whose type the parser never saw declared."""
+    identifier (not a keyword) is a declaration whose type the parser never saw declared — and so is the `;`
+    that ends `T name` (SV-CORPUS-GRAD.58a: when the declaration is the whole statement the fact gate refuses
+    at the `;`, not at the name — verilator t_sv_cpu_code/cpu.sv:225 `mPreAdrDecode_resp busproperty;`)."""
+    if tok == ";":
+        m2 = re.match(r"^(.*?\S)\s+([A-Za-z_]\w*)\s*$", before)
+        if not m2 or m2.group(2) in SV_KEYWORDS:
+            return False
+        m = UNDECLARED_TYPE_RE.search(m2.group(1) + " ")
+        return bool(m) and m.group(1) not in SV_KEYWORDS
     if not IDENT_RE.match(tok) or tok in SV_KEYWORDS:
         return False
     m = UNDECLARED_TYPE_RE.search(before + " ")
@@ -394,6 +403,9 @@ def self_test() -> int:
         ("…also with a qualifier and a package scope", classify("parent);", "a function / task header", False, "a.sv", 0, before="extern function new (string name, uvm_pkg::uvm_component ") == "undeclared_type"),
         ("…but not after a keyword", classify("x = f;", "other", False, "a.sv", 0, before="  assign ") == "residue"),
         ("…and not when the stop token is a keyword", classify("task automatic w();", "other", False, "a.sv", 0, before="  static ") == "residue"),
+        ("the `;` that ends `T name` is undeclared_type too (.58a)", classify(";", "other", False, "a.sv", 0, before="  mPreAdrDecode_resp busproperty") == "undeclared_type"),
+        ("…but not when the type position holds a keyword", classify(";", "other", False, "a.sv", 0, before="  int unsigned x") == "residue"),
+        ("…and not for an assignment ending at the `;`", classify(";", "other", False, "a.sv", 0, before="  x = y") == "residue"),
         ("a 2023 stop further along than the 2017 one is edition_2023_moves", classify("] = {", "other", False, "a.sv", 0, fp_2017=100, fp_2023=5000) == "edition_2023_moves"),
         ("a tolerant stop further along than the 2023 one is tolerated_moves", classify(".rlb", "other", False, "a.sv", 0, fp_2017=100, fp_2023=100, fp_tol=900) == "tolerated_moves"),
         ("the same stop under every reading moves nothing", classify("x", "other", False, "a.sv", 0, fp_2017=100, fp_2023=100, fp_tol=100) == "residue"),

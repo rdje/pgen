@@ -10,14 +10,14 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `5700b61a03622ed56df921f16124bdb89f3c7ce76b62971e4deac7d6e941a9a6` |
+| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `0a787f15151fe297936617f1c2800760cad49b7cb2d3247888df963442db5cbd` |
 | IEEE 1800-2017 Annex A | `docs/systemverilog/2017/md/section-41-data-read-api.md` | `249ab571c2ef3237790a6bd9743f07a7595bdded337ca2cbb6d5e189b3b40d22` |
 | IEEE 1800-2023 Annex A | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md` | `0b4f7fe935e9c499a56ccde8dc769ed626bf53d154f8a9585bd1daf371a9d4aa` |
 | instrument | `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/production_parity.py` | `203a3cf82f746db08fabe0790b5b8ba586ff7e60c13bb05575f63711b032fed2` |
 
 ## The census
 
-`PRODUCTION-PARITY: rows=151 all_cited_identical=99 some_differs=26 some_missing=9 no_production_named=20 productions=138`
+`PRODUCTION-PARITY: rows=152 all_cited_identical=99 some_differs=26 some_missing=9 no_production_named=21 productions=138`
 
 | production | verdict |
 |---|---|
@@ -156,6 +156,7 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 | `verilator` | `test_regress/t/t_interface_gen6.v` | IDENTICAL | `generate_region:IDENTICAL generate_item:IDENTICAL generate_block:IDENTICAL` |
 | `verilator` | `test_regress/t/t_interface_modport_export.v` | DIFFERS | `extern_tf_declaration:IDENTICAL function_prototype:DIFFERS` |
 | `verilator` | `test_regress/t/t_langext_order.v` | UNCITED | — |
+| `verilator` | `test_regress/t/t_langext_order_sub.v` | UNCITED | — |
 | `verilator` | `test_regress/t/t_lint_colonplus_bad.v` | IDENTICAL | `output_declaration:IDENTICAL variable_port_type:IDENTICAL var_data_type:IDENTICAL list_of_variable_port_identifiers:IDENTICAL` |
 | `verilator` | `test_regress/t/t_lint_notredop_bad.v` | IDENTICAL | `expression:IDENTICAL port_expression:IDENTICAL port_reference:IDENTICAL` |
 | `verilator` | `test_regress/t/t_lint_paramnodefault.v` | UNCITED | — |

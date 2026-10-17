@@ -321,7 +321,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   (`SVPP-EXPANSION.6e`): `python3 docs/tasks/artifacts/sv_corpus_grad/rejects_own_file_census/census.py`
   re-expands every such row under the lane's own derived context and classes it by what the parser SAW
   — `raw_backtick` (an undefined macro reached the parser: context, not syntax), `base_class` /
-  `undeclared_type` (the cross-file declaration barrier), `edition_2023` / `edition_2023_moves` (the 2023
+  `undeclared_type` (the cross-file declaration barrier — an identifier stop, or since `SV-CORPUS-GRAD.58a` the `;` that ends `T name`), `edition_2023` / `edition_2023_moves` (the 2023
   text licenses the stop), `tolerated_spelling`, `error_test`, `preprocess_only` (a verilator `-E`
   driver), `declared_fragment`, `fragment` (an `include` target), `residue` (one by one). Run it after
   every lane reading; `--check` (cheap, the identity block) is arm (4) of the doctrine; `--check --full`

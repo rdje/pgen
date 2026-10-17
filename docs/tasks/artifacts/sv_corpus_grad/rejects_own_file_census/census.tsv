@@ -282,14 +282,15 @@ Surelog	tests/SimpleClass/Environemnt.sv	undeclared_type	568	stimuli/sv/subs/Sur
 Surelog	tests/SimpleClass/top_1.sv	undeclared_type	797	stimuli/sv/subs/Surelog/tests/SimpleClass/top_1.sv:51:65	packer	a function / task header	fail	fail	0	chained:rejects_own_file
 Surelog	tests/SimpleClass2/top.v	undeclared_type	148	stimuli/sv/subs/Surelog/tests/SimpleClass2/top.v:13:50	parent	a function / task header	fail	fail	0	chained:rejects_own_file
 Surelog	tests/UnitClass/top.v	undeclared_type	460	stimuli/sv/subs/Surelog/tests/UnitClass/top.v:24:6	d	other	fail	fail	0	chained:rejects_own_file
+opentitan	hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv	undeclared_type	1299	stimuli/sv/subs/opentitan/hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv:46:18	;	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv	undeclared_type	682	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv:24:21	main_mode	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/riscv_dv_extension/riscv_core_setting.tpl.sv	undeclared_type	1331	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/riscv_dv_extension/riscv_core_setting.tpl.sv:41:22	SATP_MODE	other	fail	fail	0	chained:rejects_own_file
+verilator	test_regress/t/t_sv_cpu_code/cpu.sv	undeclared_type	5733	stimuli/sv/subs/verilator/test_regress/t/t_sv_cpu_code/cpu.sv:225:33	;	other	fail	fail	0	chained:rejects_own_file
 verilator	test_regress/t/t_sv_cpu_code/pads.sv	undeclared_type	946	stimuli/sv/subs/verilator/test_regress/t/t_sv_cpu_code/pads.sv:51:27	p_type	other	fail	fail	0	chained:rejects_own_file
 verilator	test_regress/t/t_sv_cpu_code/pinout_h.sv	undeclared_type	513	stimuli/sv/subs/verilator/test_regress/t/t_sv_cpu_code/pinout_h.sv:21:9	id	other	fail	fail	0	chained:rejects_own_file
 Surelog	tests/ElabSysCall/dut.sv	residue	42	stimuli/sv/subs/Surelog/tests/ElabSysCall/dut.sv:3:10	"	other	fail	fail	0	chained:rejects_own_file
 Surelog	tests/TestMacros/macros.v	residue	0	stimuli/sv/subs/Surelog/tests/TestMacros/macros.v:6:1	begin	other	fail	fail	0	chained:rejects_own_file
 Surelog	tests/UnitForeach/top2.v	residue	66	stimuli/sv/subs/Surelog/tests/UnitForeach/top2.v:5:45	(	a `::`-scoped name	fail	fail	0	chained:rejects_own_file
-opentitan	hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv	residue	1299	stimuli/sv/subs/opentitan/hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv:46:18	;	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv	residue	1430	stimuli/sv/subs/opentitan/hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv:52:33	)	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	residue	6554	stimuli/sv/subs/opentitan/hw/ip/otbn/dv/verilator/otbn_top_sim.sv:168:48	,	a parameter port list `#(`	fail	fail	0	chained:rejects_own_file
 opentitan	hw/ip/otbn/pre_sca/rtl/otbn_mask_accelerator_sca_wrapper.sv	residue	1983	stimuli/sv/subs/opentitan/hw/ip/otbn/pre_sca/rtl/otbn_mask_accelerator_sca_wrapper.sv:50:24	else	other	fail	fail	0	chained:rejects_own_file
@@ -303,8 +304,4 @@ opentitan	hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_sy
 opentitan	hw/vendor/lowrisc_ibex/rtl/ibex_top_tracing.sv	residue	7175	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/rtl/ibex_top_tracing.sv:123:12	"	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v	residue	200	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v:6:7	$_DLATCH_P_	other	fail	fail	0	chained:rejects_own_file
 slang	tests/unittests/data/file_uses_defn.svh	residue	0	stimuli/sv/subs/slang/tests/unittests/data/file_uses_defn.svh:2:1	"	other	fail	fail	0	chained:rejects_own_file
-verilator	test_regress/t/t_langext_order_sub.v	residue	335	stimuli/sv/subs/verilator/test_regress/t/t_langext_order_sub.v:11:33	do	other	fail	fail	0	chained:rejects_own_file
 verilator	test_regress/t/t_preproc_persist2.v	residue	232	stimuli/sv/subs/verilator/test_regress/t/t_preproc_persist2.v:8:7	"	other	fail	fail	0	svpp_owned:rejects_own_file
-verilator	test_regress/t/t_sv_cpu_code/cpu.sv	residue	5733	stimuli/sv/subs/verilator/test_regress/t/t_sv_cpu_code/cpu.sv:225:33	;	other	fail	fail	0	chained:rejects_own_file
-verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh	residue	560201	stimuli/sv/subs/verilator/test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh:18004:19	.	other	fail	fail	0	chained:rejects_own_file
-verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_nodpi.svh	residue	560928	stimuli/sv/subs/verilator/test_regress/t/uvm/uvm_pkg_all_v2017_1_0_nodpi.svh:18053:19	.	other	fail	fail	0	chained:rejects_own_file

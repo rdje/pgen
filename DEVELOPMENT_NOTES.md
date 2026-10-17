@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.58a (`PGEN-SV-CORPUS-GRAD-0449`): a test's success is not a grammar
+
+- **A reference library is not the standard either.** UVM 1800.2-2017 writes `#setting.offset;` and every tool compiles it, so the row read as "valid as part of its test". The LRM's `delay_value` admits a `ps_identifier` and nothing with a `.`; the parenthesized form is the standard's. The pin says why and names the tolerance candidate — the opt-in profile is where a tool's extension lives, never the strict grammar.
+- **The driver's language flag is part of the key.** `+1364-2005ext+v` makes a `.v` file Verilog-2005 for that test; a keyword of 1800 in it is no defect of the 1800 lane, which must reject it. `.6c.2` had ruled this for slang's `verilog.v` by extension and intent; here the driver says it outright.
+- **A stop at the `;` is the same barrier as a stop at the name.** The census keyed `undeclared_type` on an identifier stop; the fact gate stops at the `;` when `T name;` is the whole statement. Read the synthetic shape before trusting a class — `module m; foo_t x; endmodule` rejects at the `;`.
+
 ## 2026-10-17 — SV-CORPUS-GRAD.58c (`PGEN-SV-CORPUS-GRAD-0448`): measure with the instrument, not a replica of it
 
 - **A replica of a population is a guess with a decimal point.** `.58b` counted "six `census.md` carriers" with a hand-written heading regex; the gate's own regex (`^## Instrument identity`) says four, and two of the six are not carriers at all. The instrument has a `--report`; use it, and quote it. Corrected in place the same day.

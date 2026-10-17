@@ -7,7 +7,6 @@ NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/ElabSysCall/dut.sv	42	78
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv	1430	1433		53	13926		th(EntropyWidth), ) u_kmac_reduced ( .clk_i, .rst_ni, // Inputs e
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv	275	275		7	906		#( .SecureIbex, .ICache, .PMPEnable, .PMPGranularity,
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v	200	201		6	303		pecific cell module $_DLATCH_P_ (input E, input D, output Q); DLH_X1 _TECHMAP_RE
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	verilator	test_regress/t/t_langext_order_sub.v	335	336		11	351		ext_order_sub(input do); endmodule
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/ModPortTest/top.v	220	220		14	739	id_t1	id_t1 aw_id; modport Master ( output aw_id ); id_t
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/UnitClass/top.v	460	461		24	868	DD	ass B b; DD d; covergroup memory @ (posedge ce); address : co
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	6554	6554		168	19497	DmemAddrWidth,ImemAddrWidth,otbn_core	_if #(.ImemAddrWidth, .DmemAddrWidth) i_otbn_trace_if (.*); bind otbn_core otb

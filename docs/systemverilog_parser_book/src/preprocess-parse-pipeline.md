@@ -874,6 +874,18 @@ suite's own driver passes to every test (`test_regress/driver.py:771`) — with 
 `fails=True` owner keys nothing. The coverage instrument and the done-bar assertion read that column and
 nothing else, so a Surelog row, a verilator companion and an OpenTitan row are adjudicated by the same rule.
 
+**What a test's success cannot outrank (`.58a`).** Of the nine verilator rows the `.58` key expected must-accept and
+the pipeline rejects, three are text the standard does not derive: the UVM 1800.2-2017 library's `#setting.offset;`
+(twice — a delay control is `# delay_value` or `# ( mintypmax_expression )` and a `delay_value` is at most a
+`ps_identifier`, which carries no `.`, A.6.5 in both editions; verilator accepts the spelling, a tolerance candidate
+for the opt-in profile's closed list) and a port named `do` in a file its driver compiles with `+1364-2005ext+v`
+(a keyword of every 1800 edition, none of 1364-2005: the file is Verilog-2005 by the test's own declaration). They are
+pinned `must_reject` with the clause and a reproducer, the standard outranking the tool as `.57a` ruled. The other
+six are not the parser's: three are the derived context's (a `-f` command file behind `$TEST_ROOT`, a `-y` library
+member compiled after the listed files with their macros — `SVPP-EXPANSION.4c.5`) and three the unit's declaration
+barrier (`t_sv_cpu`'s typedefs, declared earlier in the same unit and never exported — `SVPP-EXPANSION.6d.9`); they
+stay NO VERDICT under the pipeline until read, nothing relabelled.
+
 ⛔ **A note on the host, not the engine.** The reading above was taken on the debug probe because no
 release build of the crate could be completed on the development host that day: a per-process
 memory watchdog independent of the repository's own guard kills any process above 14 GB, and the

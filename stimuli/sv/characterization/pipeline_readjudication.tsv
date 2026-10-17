@@ -6212,7 +6212,7 @@ verilator	test_regress/t/t_interface_typedef3.v	divergence:explained_svpp_macro_
 verilator	test_regress/t/t_interface_virtual_modport_sel.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_interface_virtual_sub_iface.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_langext_order.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_langext_order.v:11:15
-verilator	test_regress/t/t_langext_order_sub.v	deferred:chained_only	NO-ALTERABLE-TICK/NO-FACT-GATE-AT-FAILURE	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_langext_order_sub.v:11:33
+verilator	test_regress/t/t_langext_order_sub.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_langext_order_sub.v:11:33
 verilator	test_regress/t/t_lib_prot.v	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
 verilator	test_regress/t/t_lib_prot_comb.v	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
 verilator	test_regress/t/t_lint_bsspace_bad.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_lint_bsspace_bad.v:11:8
@@ -6915,8 +6915,8 @@ verilator	test_regress/t/t_x_rand_scoped_is_random.v	divergence:explained_svpp_m
 verilator	test_regress/t/t_x_rand_stability.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/tsub/t_flag_f_tsub.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 verilator	test_regress/t/tsub/t_flag_f_tsub_inc.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
-verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh:18004:19
-verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_nodpi.svh	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/uvm/uvm_pkg_all_v2017_1_0_nodpi.svh:18053:19
+verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh:18004:19
+verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_nodpi.svh	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/uvm/uvm_pkg_all_v2017_1_0_nodpi.svh:18053:19
 verilator	test_regress/t/uvm/uvm_pkg_all_v2020_3_1_dpi.svh	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 verilator	test_regress/t/uvm/uvm_pkg_all_v2020_3_1_nodpi.svh	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 verilator	test_regress/t/uvm/v2017_1_0/dpi/uvm_dpi.svh	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	

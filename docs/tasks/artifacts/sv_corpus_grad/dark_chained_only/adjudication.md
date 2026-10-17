@@ -7,21 +7,21 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `ee89f1f61d794bf44e6c3fb465c9dd324e29200b44c0cb6725509b71cc6fc412` |
+| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `90c46802bb8a13a2ee6a67f2c87cb8e3266eb48e930fdda8711d14b5b47ec864` |
 | grammar | `grammars/systemverilog.ebnf` | `782a81ac7348d479dcd36ad4719d5c2e8b4a5df38cee78ff09232f0d8b2e1bf6` |
-| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `f4f8f0d26bd796f1c176dfe1e31da4c67759e5f617717311a628f3e1e476acf0` |
+| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `12159e94b174d591aa1c6b346e71c224830749514baa01488618bb765655621b` |
 
 ## Verdicts
 
 | verdict | rows | what it means |
 |---|---:|---|
 | `MACRO-BLOCKED` | 28 | the RESIDUAL failure sits on an undefined macro invocation ⇒ expansion owns what is left (`.13d`), NOT a parser defect |
-| `INVALID-SV` | 12 | the text is NOT legal SV; the rejection is CORRECT and accepting it would be an over-acceptance defect (pinned as a negative reproducer) |
+| `INVALID-SV` | 11 | the text is NOT legal SV; the rejection is CORRECT and accepting it would be an over-acceptance defect (pinned as a negative reproducer) |
 | `CROSS-FILE-FACTS` | 5 | declaring the cross-file names the parser demanded makes the file PARSE ⇒ blocked by cross-file FACT continuity (`.4`), NOT a parser defect |
 | `FRAGMENT-MODULE` | 2 | parses only inside a `module` ⇒ an include payload, not a legal standalone compilation unit |
 | `FRAGMENT-ENUM-BODY` | 1 | an enum-member list included INSIDE an `enum { … }` — no compilation-unit wrapper can shape it |
 | `FRAGMENT-STATEMENT` | 1 | parses only inside a `statement` ⇒ an include payload, not a legal standalone compilation unit |
-| **TOTAL** | **49** | |
+| **TOTAL** | **48** | |
 
 ## Per row
 
@@ -51,7 +51,6 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `INVALID-SV` | opentitan | `hw/ip/spi_device/pre_dv/tb/spid_upload_tb.sv` | 186 | — | `invalid_lifetime_before_task.sv` |
 | `INVALID-SV` | opentitan | `hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv` | 7 | — | `invalid_implicit_named_param.sv` |
 | `INVALID-SV` | opentitan | `hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v` | 6 | — | `invalid_dollar_module_identifier.sv` |
-| `INVALID-SV` | verilator | `test_regress/t/t_langext_order_sub.v` | 11 | — | `invalid_reserved_word_port.sv` |
 | `MACRO-BLOCKED` | opentitan | `hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh` | 5 | class | stuck on `` `uvm_info `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__shadow_reg_errors.svh` | 5 | class | stuck on `` `uvm_fatal `` (undefined here) |
 | `MACRO-BLOCKED` | opentitan | `hw/ip/aes/dv/env/aes_ral_extension.svh` | 6 | none | stuck on `` `uvm_object_utils `` (undefined here) |
