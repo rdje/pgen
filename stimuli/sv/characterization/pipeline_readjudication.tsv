@@ -184,7 +184,7 @@ Surelog	tests/LowMemPkg/wddr_pkg.sv	deferred:chained_only	ONE-SIDED (raw pass)	p
 Surelog	tests/MacroArgDefaultSpaces/dut.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 Surelog	tests/MacroArgMismatch/dut.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 Surelog	tests/MaskNeg/dut.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/Surelog/tests/MaskNeg/dut.sv:2:32
-Surelog	tests/ModPortTest/top.v	deferred:chained_only	NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/ModPortTest/top.v:14:20
+Surelog	tests/ModPortTest/top.v	deferred:chained_only	NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE	fail	own file	parses once declared: DD,id_t1 (class)	other	chained:explained_store_gate	stimuli/sv/subs/Surelog/tests/ModPortTest/top.v:14:20
 Surelog	tests/Moves/dut.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 Surelog	tests/MultiConcat/dut.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 Surelog	tests/NonSynthUnusedMod/dut.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
@@ -311,7 +311,7 @@ Surelog	tests/UnitClass/Packet.sv	deferred:chained_only	IN-WINDOW	pp_fail	contex
 Surelog	tests/UnitClass/Sequencer.sv	deferred:chained_only	IN-WINDOW	pp_fail	context		-	chained:refused_context	`uvm_sequencer_utils is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/UnitClass/Sequencer.sv:17 — IEEE 1800-2017 §22.5.1 gives
 Surelog	tests/UnitClass/header.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/UnitClass/mod.v	deferred:chained_only	PRE-TICK/CROSS-LIBRARY	pp_fail	context		-	chained:refused_context	`wrapper is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/UnitClass/mod.v:5 — IEEE 1800-2017 §22.5.1 gives a text-macro usage 
-Surelog	tests/UnitClass/top.v	deferred:chained_only	NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/Surelog/tests/UnitClass/top.v:24:6
+Surelog	tests/UnitClass/top.v	deferred:chained_only	NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE	fail	own file	parses once declared: DD (class)	other	chained:explained_store_gate	stimuli/sv/subs/Surelog/tests/UnitClass/top.v:24:6
 Surelog	tests/UnitDefParam/def.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/UnitDefParam/small.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 Surelog	tests/UnitDefParam/top.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
@@ -4682,7 +4682,7 @@ opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/protocol/irqs.sv	deferred:chain
 opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/protocol/mem.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/spec_instance.sv	deferred:chained_only	PRE-TICK/UNDECLARED-ANYWHERE	pp_fail	context		-	chained:refused_context	`ID is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/formal/check/spec_instance.sv:18 — IEEE 1800-2017 §
 opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/top.sv	deferred:chained_only	IN-WINDOW	pp_fail	context		-	chained:refused_context	failed to resolve include '../build/psgen-jg.sv' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/formal/check/top.sv:537: include '../build/psgen-jg.sv' was n
-opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv	deferred:chained_only	NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv:24:21
+opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv	deferred:chained_only	NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE	fail	own file	parses once declared: t_Counteren,t_MainMode,t_MainResult,t_Mcause,t_Minterrupts,t_Mseccfg_ent,t_Mstatus,t_Mtvec,t_Pmpcfg_ent,t_Privilege (class)	other	chained:explained_store_gate	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv:24:21
 opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/stub.sv	deferred:chained_only	PAST-LAST-TICK	pp_fail	context		-	chained:refused_context	failed to resolve include 'sail.sv' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/formal/spec/stub.sv:7: include 'sail.sv' was not found in search paths
 opentitan	hw/vendor/lowrisc_ibex/dv/riscv_compliance/rtl/ibex_riscv_compliance.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/vendor/lowrisc_ibex/dv/riscv_compliance/rtl/riscv_testutil.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	

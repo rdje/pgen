@@ -207,6 +207,11 @@ PIPELINE_CLASSES = {
     "chained:rejects_own_file": ("NO VERDICT", "DARK UNDER THE PIPELINE: rejected in its own file under its derived "
                                                "context — the barrier behind the macro barrier (a cross-file "
                                                "declaration, mostly a class base), the library design's population"),
+    "chained:explained_store_gate": ("ADJUDICATED", "the sound store gate's refusal UNDER THE PIPELINE (SV-CORPUS-GRAD.57b): a "
+                                                    "must-accept-as-part-of-its-unit row, no alterable directive before the failure, "
+                                                    "the demanded type name declared nowhere in its suite, proven to parse once "
+                                                    "declared by the dark worklist's search, `.13w`'s soundness holding — "
+                                                    "explained, never a pass"),
     "chained:hollow": ("NO VERDICT", "the rejection lands in an included file"),
     "chained:refused_context": ("NO VERDICT", "an include the derived context cannot supply"),
     "chained:refused_engine": ("NO VERDICT", "refused by the preprocessor"),
@@ -274,7 +279,7 @@ def pipeline_reading(rows, readj):
                 raise SystemExit(f"⛔ REFUSING: re-adjudication verdict this census has no bucket for: {verdict!r} "
                                  f"({r['suite']}/{r['relpath']}). Classify it explicitly.")
             bucket, _why = PIPELINE_CLASSES[verdict]
-            if verdict in ("chained:accepted_under_expansion", "chained:accepted_in_unit") and r.get("expected") != UNIT_MUST_ACCEPT:
+            if verdict in ("chained:accepted_under_expansion", "chained:accepted_in_unit", "chained:explained_store_gate") and r.get("expected") != UNIT_MUST_ACCEPT:
                 bucket = "NO VERDICT"
             if verdict == "must_reject:accepts_invalid" and raw_cls.startswith("divergence:"):
                 cls = raw_cls                      # already the raw bar's row; no double count

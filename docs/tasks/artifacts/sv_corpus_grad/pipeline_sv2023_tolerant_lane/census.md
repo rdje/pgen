@@ -17,7 +17,7 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 | sv_2023_tolerant pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `b6869df90588e34acfa408a54ec263234cc96aec64add1a81397aa78ad88476c` |
 | sv_2023_tolerant library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023_tolerant.tsv` | `de2cb8933c769a63c0dd47fa5c302a6bf9d81b1d0d57b4422a475aaf5d07eb22` |
 | unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023_tolerant.tsv` | `acac7a118b3cfe26a207b0d1bf64e5758093b730c825a75122d3c7fb1b6c3c6c` |
-| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `a8beb4071e8e164e2689e925c6740cbaeec1022a6e2a664cc326f415e0b5946a` |
+| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `969dc9dab41468532e5e99ef1ced862a45fdec1917fd6a913fa1d6c9254e9752` |
 | sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `c217fd567d2a759802dbc245837f90874ee70b38d1fb8404bd173a8884405f2c` |
 
 The tolerant run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6` `files=16336`.

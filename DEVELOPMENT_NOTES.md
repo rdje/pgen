@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.57b (`PGEN-SV-CORPUS-GRAD-0451`): a proof that already exists is read, not re-run
+
+- **Look for the proof before building the prover.** The route asked for "the `.13w` proof over the lane's expanded text"; the strata said that for a `NO-ALTERABLE-TICK` row the expanded text IS the raw text, and the dark worklist had already proved `CROSS-FILE-FACTS` for exactly those rows. The arm reads a tracked table; the prover stays where it was.
+- **Let the strata scope the leaf.** `UNDECLARED-ANYWHERE` makes "nowhere in the unit" free; `FACT-GATED-CROSS-FILE` needs the unit's source list and `PRE-TICK` needs the expanded text — different instruments, routed with their counts (19 and 210) rather than approximated.
+- **A route's own example may belong to the next leaf.** The `.57b` route named `ClassFuncProto/top.v`; its stratum is fact-gated, so it waits for `.57c` with its reason written down instead of being squeezed through the wrong arm.
+
 ## 2026-10-17 — SVPP-EXPANSION.4c.5 (`PGEN-SVPP-EXPANSION-0050`): read the option file as the tool does, and say where you stop
 
 - **The option file is the command line.** `.4c.2` reported `-f` lists as "not read" because Verilator's syntax has forms (`+define+A+B`, environment names) a regex over the driver would guess at. The honest move was never to skip the file; it was to read it with the tool's rules — comments, nesting, `-F`'s relative paths, lazy `-v` — and to WITHHOLD exactly what those rules do not settle for us (a quoted value), with a report. Five option files, two of them deliberately malformed, exercised every branch.

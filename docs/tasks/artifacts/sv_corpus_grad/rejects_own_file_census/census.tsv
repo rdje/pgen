@@ -277,13 +277,10 @@ scr1	src/tb/scr1_top_tb_runtests.sv	fragment	334	stimuli/sv/subs/scr1/src/tb/scr
 verilator	test_regress/t/t_preproc_persist_inc.v	fragment	232	stimuli/sv/subs/verilator/test_regress/t/t_preproc_persist_inc.v:10:7	"	other	fail	fail	2	svpp_owned:rejects_own_file
 Surelog	tests/AllBinding/dut.sv	undeclared_type	40	stimuli/sv/subs/Surelog/tests/AllBinding/dut.sv:1:41	dmem2exu_resp_i	other	fail	fail	0	chained:rejects_own_file
 Surelog	tests/ClassFuncProto/top.v	undeclared_type	289	stimuli/sv/subs/Surelog/tests/ClassFuncProto/top.v:30:13	get_current_item	a function / task header	fail	fail	0	chained:rejects_own_file
-Surelog	tests/ModPortTest/top.v	undeclared_type	220	stimuli/sv/subs/Surelog/tests/ModPortTest/top.v:14:20	rt	other	fail	fail	0	chained:rejects_own_file
 Surelog	tests/SimpleClass/Environemnt.sv	undeclared_type	568	stimuli/sv/subs/Surelog/tests/SimpleClass/Environemnt.sv:17:9	drvr	other	fail	fail	0	chained:rejects_own_file
 Surelog	tests/SimpleClass/top_1.sv	undeclared_type	797	stimuli/sv/subs/Surelog/tests/SimpleClass/top_1.sv:51:65	packer	a function / task header	fail	fail	0	chained:rejects_own_file
 Surelog	tests/SimpleClass2/top.v	undeclared_type	148	stimuli/sv/subs/Surelog/tests/SimpleClass2/top.v:13:50	parent	a function / task header	fail	fail	0	chained:rejects_own_file
-Surelog	tests/UnitClass/top.v	undeclared_type	460	stimuli/sv/subs/Surelog/tests/UnitClass/top.v:24:6	d	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv	undeclared_type	1299	stimuli/sv/subs/opentitan/hw/ip/kmac/fpv/tb/keccak_2share_fpv.sv:46:18	;	other	fail	fail	0	chained:rejects_own_file
-opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv	undeclared_type	682	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv:24:21	main_mode	other	fail	fail	0	chained:rejects_own_file
 opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/riscv_dv_extension/riscv_core_setting.tpl.sv	undeclared_type	1331	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/riscv_dv_extension/riscv_core_setting.tpl.sv:41:22	SATP_MODE	other	fail	fail	0	chained:rejects_own_file
 verilator	test_regress/t/t_sv_cpu_code/cpu.sv	undeclared_type	5733	stimuli/sv/subs/verilator/test_regress/t/t_sv_cpu_code/cpu.sv:225:33	;	other	fail	fail	0	chained:rejects_own_file
 verilator	test_regress/t/t_sv_cpu_code/pads.sv	undeclared_type	946	stimuli/sv/subs/verilator/test_regress/t/t_sv_cpu_code/pads.sv:51:27	p_type	other	fail	fail	0	chained:rejects_own_file

@@ -7,13 +7,13 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 
 | input | path | sha256 |
 |---|---|---|
-| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `a8beb4071e8e164e2689e925c6740cbaeec1022a6e2a664cc326f415e0b5946a` |
+| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `969dc9dab41468532e5e99ef1ced862a45fdec1917fd6a913fa1d6c9254e9752` |
 | sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `0f05e65c9e8be4e9953be35ed189aa267abc5832af7727ed1a4add15aa16261e` |
 | sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `a5bfe12d3ef1b56767fe95e52326091251138893736028ccacf6dbc67d4287ba` |
 | sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `b6869df90588e34acfa408a54ec263234cc96aec64add1a81397aa78ad88476c` |
 | expansion binary | `rust/target/debug/ast_pipeline` | `9382dff7f4f2a60f0e0f74aa9b61d563fce05064f7becf9fffed6a6e93cd3614` |
 
-## The classes — 306 rows
+## The classes — 303 rows
 
 | class | rows | what it means |
 |---|---:|---|
@@ -27,7 +27,7 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `preprocess_only` | 0 | a verilator test its own driver runs with `-E` — the preprocessor's input, not SystemVerilog to parse |
 | `declared_fragment` | 5 | the file declares itself a module body (`verilog_syntax: parse-as-…`) — the suite's own convention |
 | `fragment` | 40 | the file is the `include` target of another corpus file — its standalone reading is not the parser's claim |
-| `undeclared_type` | 13 | a declaration whose type is an identifier the parser has not seen declared — the cross-file barrier in data position |
+| `undeclared_type` | 10 | a declaration whose type is an identifier the parser has not seen declared — the cross-file barrier in data position |
 | `residue` | 17 | none of the above — adjudicated one by one below |
 
 ## `raw_backtick` — 0 rows, by the macro the context did not define
@@ -53,18 +53,15 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `state` | 1 | `black-parrot` `bp_me/src/include/bp_me_cce_pkgdef.svh` (19) |
 | `type_id` | 1 | `opentitan` `hw/ip/tlul/generic_dv/env/xbar_scoreboard.sv` (15) |
 
-## `undeclared_type` — 13 rows, by the type the parser never saw
+## `undeclared_type` — 10 rows, by the type the parser never saw
 
 | type | rows | files |
 |---|---:|---|
-| `DD` | 1 | Surelog:top.v |
 | `Driver` | 1 | Surelog:Environemnt.sv |
 | `REQ` | 1 | Surelog:top.v |
-| `aw_id` | 1 | Surelog:top.v |
 | `busproperty` | 1 | verilator:cpu.sv |
 | `satp_mode_t` | 1 | opentitan:riscv_core_setting.tpl.sv |
 | `sel_mux` | 1 | opentitan:keccak_2share_fpv.sv |
-| `t_MainMode` | 1 | opentitan:spec_api.sv |
 | `t_padtype` | 1 | verilator:pads.sv |
 | `t_pinid` | 1 | verilator:pinout_h.sv |
 | `type_scr1_mem_resp_e` | 1 | Surelog:dut.sv |

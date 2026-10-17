@@ -39,6 +39,16 @@ and says, row by row, what expansion changed:
                  its context is "accepted under expansion", not yet a `match`. ⛔ A row earns a
                  `match` only when its EXPECTED verdict is derived from the suite's own convention
                  (corpus-expected-from-SPEC, never from the fix); that derivation is `.6c`'s.
+  chained:explained_store_gate  (SV-CORPUS-GRAD.57b) a `chained:rejects_own_file` row the key expects
+                 must-accept as part of its unit, whose failure no alterable directive precedes (`.13c`:
+                 the expanded text IS the file's own text) on a type name declared NOWHERE in its suite,
+                 and which the dark worklist's fixed-point search PROVED parses bare once the names the
+                 parser demanded and lacked are declared (`adjudicate_dark_worklist.py`, CROSS-FILE-FACTS,
+                 the minimal prelude published in the `unit` column) — with `.13w`'s soundness conditions
+                 holding at the refused use (no wildcard import before it, no package export, no LRM-
+                 predefined name): the sound store gate's refusal (SV-PARSE-STRICT), ADJUDICATED-explained
+                 under the pipeline exactly as `divergence:explained_store_gate` is on the raw lane;
+                 never a pass
   must_reject:*  every row whose EXPECTED verdict is must_reject — from the manifest's `expected`
                  column, or from the answer key's own PIN TABLES when the raw lane demoted the pin
                  (`reject_arm_demotion`: the raw parse stops on a macro use above the construct, so
@@ -92,11 +102,15 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import pipeline_vs_raw as pv  # noqa: E402  (the lane report: the join, the buckets, the identity)
 import adjudicate_external_corpus as adj  # noqa: E402  (the answer key's pin tables — read, never written)
+from store_gate_explanations import soundness_reason  # noqa: E402  (SV-CORPUS-GRAD.13w's conditions 2..4, .57b)
 
 CHAR = ROOT / "stimuli" / "sv" / "characterization"
 ART = ROOT / "docs" / "tasks" / "artifacts" / "sv_corpus_grad"
 EXPLAINED_AUDIT = ART / "explained_svpp_audit" / "after" / "audit.tsv"
 DARK_AUDIT = ART / "dark_chained_only" / "audit.tsv"
+DARK_ADJUDICATION = ART / "dark_chained_only" / "adjudication.tsv"   # .13c.2: the fixed-point proof per dark row (.57b reads it)
+STORE_GATE_STRATUM = "NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE"         # .57b: raw text == expanded text, declared nowhere in the suite
+STORE_GATE_VERDICT = "chained:explained_store_gate"
 DISPOSITIONS = CHAR / "refuted_dispositions.tsv"
 LIBRARY = CHAR / "pipeline_library.tsv"                 # SVPP-EXPANSION.6d.1: the library pass's per-unit verdicts (a dump)
 LIBRARY_MEMBERS = CHAR / "pipeline_library_members.tsv"  # SVPP-EXPANSION.6d.2: (suite, package file, member file) (a dump)
@@ -172,6 +186,74 @@ def read_dispositions(path: pathlib.Path) -> dict[tuple[str, str], tuple[str, st
 def read_audit(path: pathlib.Path) -> dict[tuple[str, str], dict[str, str]]:
     with open(path, newline="") as fh:
         return {(r["suite"], r["relpath"]): r for r in csv.DictReader(fh, delimiter="\t")}
+
+
+def read_dark_adjudication(path: pathlib.Path) -> dict[tuple[str, str], dict[str, str]]:
+    if not path.exists():
+        return {}
+    with open(path, newline="") as fh:
+        return {(r["suite"], r["relpath"]): r for r in csv.DictReader(fh, delimiter="\t")}
+
+
+def store_gate_explanation(verdict: str, expected: str, stratum: str, adjudicated: dict | None,
+                           audit_row: dict | None, read_text) -> tuple[str, str] | None:
+    """SV-CORPUS-GRAD.57b — the `.13w` store-gate explanation UNDER THE PIPELINE. A `chained:rejects_own_file` row
+    earns `chained:explained_store_gate` only when every condition below is decided mechanically, in this order
+    (the cheap ones first; the file is read only when they hold):
+      1. the key expects the file must-accept AS PART OF ITS UNIT (`chained_must_accept`);
+      2. `.13c`'s audit found NO alterable directive before the failure and the demanded name declared NOWHERE in
+         the suite (`NO-ALTERABLE-TICK/UNDECLARED-ANYWHERE`): the expanded text is the file's own text, so the
+         raw-text proof is the pipeline's, and "nowhere in the suite" is "nowhere in the unit";
+      3. the dark worklist's fixed-point search (`adjudicate_dark_worklist.py`) PROVED the file parses bare once the
+         names the parser demanded and lacked are declared (`CROSS-FILE-FACTS`, not overridden by a RESIDUAL_ROWS
+         ruling), the minimal prelude published;
+      4. `.13w`'s soundness conditions hold at the refused use — no wildcard import of a package the file does not
+         declare BEFORE the use (IEEE 1800-2017 §26.3, positional), no package `export`, no LRM-predefined name —
+         else the rejection may be the gate being unsound, a defect for SV-PARSE-STRICT, and the row stays dark.
+    Returns (verdict, the prelude note for the `unit` column) or None (the row keeps `chained:rejects_own_file`)."""
+    if verdict != "chained:rejects_own_file" or expected != "chained_must_accept" or stratum != STORE_GATE_STRATUM:
+        return None
+    if not adjudicated or adjudicated.get("verdict") != "CROSS-FILE-FACTS" or adjudicated.get("final_verdict") != "CROSS-FILE-FACTS":
+        return None
+    names = [n for n in (adjudicated.get("declarations") or "").split(",") if n]
+    if not names:
+        return None
+    stuck = (audit_row or {}).get("stuck", "")
+    anchor = int(stuck) if stuck.isdigit() else None
+    if soundness_reason(adj.blank_comments_and_strings(read_text()), names, anchor):
+        return None
+    return STORE_GATE_VERDICT, f"parses once declared: {','.join(sorted(names))} ({adjudicated.get('form', '')})"
+
+
+def self_test() -> int:
+    """The `.57b` explanation on literal rows — every condition observed refusing and the GREEN arm passing."""
+    ok_adj = {"verdict": "CROSS-FILE-FACTS", "final_verdict": "CROSS-FILE-FACTS", "declarations": "DD,id_t1", "form": "class"}
+    plain = lambda: "module m; id_t1 x; DD y; endmodule\n"
+    wild_before = lambda: "import pkg::*;\nmodule m; id_t1 x; endmodule\n"
+    wild_after = lambda: "module m; id_t1 x; endmodule\nimport pkg::*;\n"
+    V, E, S = "chained:rejects_own_file", "chained_must_accept", STORE_GATE_STRATUM
+    checks = [
+        ("GREEN: must-accept, no alterable tick, declared nowhere, CROSS-FILE-FACTS, sound → explained",
+         store_gate_explanation(V, E, S, ok_adj, {"stuck": "20"}, plain) == (STORE_GATE_VERDICT, "parses once declared: DD,id_t1 (class)")),
+        ("a row the key does not expect must-accept stays dark", store_gate_explanation(V, "chained_only", S, ok_adj, {"stuck": "20"}, plain) is None),
+        ("a PRE-TICK stratum (expansion could alter the text) stays dark", store_gate_explanation(V, E, "PRE-TICK/UNDECLARED-ANYWHERE", ok_adj, {"stuck": "20"}, plain) is None),
+        ("a FACT-GATED-CROSS-FILE stratum (declared elsewhere in the suite) stays dark — .57c's business",
+         store_gate_explanation(V, E, "NO-ALTERABLE-TICK/FACT-GATED-CROSS-FILE", ok_adj, {"stuck": "20"}, plain) is None),
+        ("a RESIDUAL dark adjudication (no prelude makes it parse) stays dark", store_gate_explanation(V, E, S, dict(ok_adj, verdict="RESIDUAL", final_verdict="RESIDUAL"), {"stuck": "20"}, plain) is None),
+        ("a proof a RESIDUAL_ROWS ruling overrode stays dark", store_gate_explanation(V, E, S, dict(ok_adj, final_verdict="INVALID-SV"), {"stuck": "20"}, plain) is None),
+        ("a proof with no declarations is no proof", store_gate_explanation(V, E, S, dict(ok_adj, declarations=""), {"stuck": "20"}, plain) is None),
+        ("a wildcard import BEFORE the refused use keeps the row dark (the gate may be unsound there)",
+         store_gate_explanation(V, E, S, ok_adj, {"stuck": "30"}, wild_before) is None),
+        ("a wildcard import AFTER the refused use does not (IEEE 1800-2017 §26.3 is positional)",
+         store_gate_explanation(V, E, S, ok_adj, {"stuck": "20"}, wild_after) is not None),
+        ("a verdict other than rejects_own_file is never re-read", store_gate_explanation("chained:hollow", E, S, ok_adj, {"stuck": "20"}, plain) is None),
+    ]
+    failed = 0
+    for label, good in checks:
+        print(f"  {'PASS' if good else 'FAIL'} {label}")
+        failed += 0 if good else 1
+    print(f"PIPELINE-READJUDICATION-SELF-TEST: checks={len(checks)} failed={failed}")
+    return 7 if failed else 0
 
 
 def pinned_expected(suite: str, relpath: str) -> str | None:
@@ -366,7 +448,8 @@ def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, 
     L.append("## Instrument identity\n")
     L.append("| input | repo-root-relative path | sha256 |\n|---|---|---|")
     for label, path in (("answer key", manifest), ("explained_svpp audit", EXPLAINED_AUDIT),
-                        ("dark chained_only audit", DARK_AUDIT), ("pipeline results (input)", dump)):
+                        ("dark chained_only audit", DARK_AUDIT), ("dark chained_only adjudication", DARK_ADJUDICATION),
+                        ("pipeline results (input)", dump)):
         L.append(f"| {label} | `{rel(path)}` | `{pv.sha256(path)}` |")
     if DISPOSITIONS.exists():
         L.append(f"| refuted dispositions (`.6b`) | `{rel(DISPOSITIONS)}` | `{pv.sha256(DISPOSITIONS)}` |")
@@ -440,8 +523,8 @@ def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, 
              "(`IN-WINDOW` / `PAST-LAST-TICK` = expansion-owned, `.13d`'s population) or not (`PRE-TICK` / "
              "`NO-ALTERABLE-TICK`, with the cross-file CHANNEL the failure sits on). `ONE-SIDED` rows passed "
              "raw; the pipeline says whether that pass was hollow.\n")
-    cverdicts = ["chained:accepted_under_expansion", "chained:accepted_in_unit", "chained:rejects_own_file", "chained:hollow",
-                 "chained:unreached_in_unit", "chained:refused_context", "chained:refused_engine"]
+    cverdicts = ["chained:accepted_under_expansion", "chained:accepted_in_unit", "chained:rejects_own_file", "chained:explained_store_gate",
+                 "chained:hollow", "chained:unreached_in_unit", "chained:refused_context", "chained:refused_engine"]
     cstrata = sorted({r["prior_stratum"] for r in rows if r["population"] == "chained_only"})
     L.append("| `.13c` stratum | rows | " + " | ".join(f"`{v.split(':')[1]}`" for v in cverdicts) + " |")
     L.append("|---|---:|" + "---:|" * len(cverdicts))
@@ -510,6 +593,11 @@ def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, 
     L.append("- A `chained:rejects_own_file` row with a `FACT-GATED-CROSS-FILE` stratum is what the `.13c` audit "
              "predicted: no preprocessor supplies a type a sibling file declares. That population is the "
              "library design's (`SVPP-EXPANSION.6`, `--lib-in` / `--lib-out`), not the expansion stage's.")
+    L.append("- A `chained:explained_store_gate` row (`SV-CORPUS-GRAD.57b`) is the sound store gate's refusal under the "
+             "pipeline: the key expects the file must-accept as part of its unit, no alterable directive precedes the "
+             "failure (the expanded text is the file's own), the demanded name is declared nowhere in the suite, and the "
+             "dark worklist's search proved the file parses once that name is declared (the prelude in the `unit` column), "
+             "with `.13w`'s soundness conditions holding at the use — ADJUDICATED-explained, never a pass.")
     L.append("- A `hollow` row is judged in the header its rejection lands in; the lane report's origin tables "
              "name those headers.")
     L.append("- The per-row table is `stimuli/sv/characterization/pipeline_readjudication.tsv`.")
@@ -523,14 +611,17 @@ def main() -> int:
     ap.add_argument("--probe", default=str(ROOT / "rust" / "target" / "release" / "parseability_probe"))
     ap.add_argument("--out", default=str(CHAR / "pipeline_readjudication.md"))
     ap.add_argument("--out-tsv", default=str(CHAR / "pipeline_readjudication.tsv"))
+    ap.add_argument("--self-test", action="store_true", help="the .57b store-gate explanation on literal rows")
     ap.add_argument("--check", action="store_true",
                     help="re-render into rust/target/ and diff against the tracked report and table; drift exits 1, "
                          "an absent dump is NOT EVALUATED (0), an empty dump is REFUSED (2)")
     args = ap.parse_args()
+    if args.self_test:
+        return self_test()
 
     dump = pathlib.Path(args.pipeline)
     manifest_path = pathlib.Path(args.manifest)
-    for needed in (manifest_path, EXPLAINED_AUDIT, DARK_AUDIT):
+    for needed in (manifest_path, EXPLAINED_AUDIT, DARK_AUDIT, DARK_ADJUDICATION):
         if not needed.exists():
             print(f"PIPELINE-READJUDICATION: REFUSED — tracked input {rel(needed)} is absent", file=sys.stderr)
             return 2
@@ -589,6 +680,16 @@ def main() -> int:
         ur = unit_reading(r, repo_rel, mine)
         if ur:
             r["verdict"], r["unit"] = ur
+
+    # SV-CORPUS-GRAD.57b — the store-gate explanation under the pipeline (the dark worklist's proof, re-read here)
+    dark_adj = read_dark_adjudication(DARK_ADJUDICATION)
+    for r in rows:
+        key = (r["suite"], r["relpath"])
+        repo_rel = lane[key][2]
+        res = store_gate_explanation(r["verdict"], expected_of(manifest[key]), r["prior_stratum"], dark_adj.get(key), dark.get(key),
+                                     lambda p=repo_rel: (ROOT / p).read_bytes().decode("latin-1"))
+        if res:
+            r["verdict"], r["unit"] = res
 
     dispositions = read_dispositions(DISPOSITIONS)
     # `.6c.4`: a svpp-owned row this lane judged must_accept and still fails in its own text is `svpp_owned:refuted`

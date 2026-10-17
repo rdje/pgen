@@ -576,7 +576,11 @@ rows, 1 530 are accepted under their derived context, 2 936 still reject in thei
 `class … extends` header whose base is declared elsewhere — the cross-file fact the library flags exist
 for), 236 land in an included file and 225 are refused. A `chained:` outcome is not yet a `match`: the
 answer key holds no expected verdict for those rows, and one is derived from the suite's own convention
-before the coverage tuple moves. A refuted row keeps that label until someone has looked at it and written down what it is: the tracked
+before the coverage tuple moves. Since `SV-CORPUS-GRAD.57b` one `chained:` outcome is adjudicated without becoming a
+pass: `chained:explained_store_gate` — a row the key expects must-accept as part of its unit, rejected in its own
+file on a type declared nowhere in its suite with no alterable directive before the failure, and proven by the dark
+worklist's search to parse once that type is declared — the sound store gate's refusal (`SV-PARSE-STRICT`), the
+`.13w` class under the pipeline; three rows on this reading, the fact-gated and pre-tick populations routed (`.57c`). A refuted row keeps that label until someone has looked at it and written down what it is: the tracked
 `stimuli/sv/characterization/refuted_dispositions.tsv` carries one line per row looked at — the disposition
 and its evidence, in the answer key's own style — and the report splits the refuted rows by it. The
 dispositions are a closed vocabulary: the base class lives in another file (the library design's rows), the
