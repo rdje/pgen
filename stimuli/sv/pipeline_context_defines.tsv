@@ -691,6 +691,17 @@ verilator	stimuli/sv/subs/verilator/test_regress/t/t_dpi_var.v	ATTRIBUTES	stimul
 verilator	stimuli/sv/subs/verilator/test_regress/t/t_event_control_expr.v	NO_CLASS	stimuli/sv/subs/verilator/test_regress/t/t_event_control_expr.py
 verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.v	CMD_DEF	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.py
 verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.v	CMD_DEF2	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.py
+verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.v	D1A	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.py (-f option file)
+verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.v	D2A=VALA	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.py (-f option file)
+verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.v	D3A	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.py (-f option file)
+verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.v	D3B	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.py (-f option file)
+verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.v	D4A=VALA	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.py (-f option file)
+verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.v	D4B	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.py (-f option file)
+verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.v	D5A=VALA	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.py (-f option file)
+verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.v	D5B=VALB	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.py (-f option file)
+verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_f.v	GOT_DEF1	stimuli/sv/subs/verilator/test_regress/t/t_flag_f.py (-f option file)
+verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_f.v	GOT_DEF2=1	stimuli/sv/subs/verilator/test_regress/t/t_flag_f.py (-f option file)
+verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_f.v	GOT_DEF4=1	stimuli/sv/subs/verilator/test_regress/t/t_flag_f.py (-f option file)
 verilator	stimuli/sv/subs/verilator/test_regress/t/t_func_public.v	VERILATOR_PUBLIC_TASKS	stimuli/sv/subs/verilator/test_regress/t/t_func_public.py
 verilator	stimuli/sv/subs/verilator/test_regress/t/t_func_wide_out.v	T_FUNC_WIDE_OUT	stimuli/sv/subs/verilator/test_regress/t/t_func_wide_out.py
 verilator	stimuli/sv/subs/verilator/test_regress/t/t_gen_missing.v	T_GEN_MISSING	stimuli/sv/subs/verilator/test_regress/t/t_gen_missing.py

@@ -355,21 +355,151 @@ F_LIST = re.compile(r"""(?<![A-Za-z0-9_])-[fF]\s+[^\s"']+""")
 SRC_TOKEN = re.compile(r"^[A-Za-z0-9_./\-]+\.(?:sv|svh|v|vh)$")
 
 
-def driver_unit_files(py_text: str, top: str, test_root: str) -> tuple[list[str], list[str]]:
-    """(predecessor source files in command order — `t/…` relative to test_regress —, reported items)
-    from a verilator driver's SV flag lists; `$TEST_ROOT` is the test's own directory."""
+QUOTED_ITEM = re.compile(r"""["']([^"']*)["']""")
+VC_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.S)
+VC_LINE_COMMENT = re.compile(r"(?m)(?:^|(?<=\s))(?://|#).*$")   # a comment starts a token: `t//x.v` is a doubled slash, not a comment (t_flag_f.vc)
+IDENT = re.compile(r"^[A-Za-z_]\w*$")
+
+
+def subst_env(tok: str, test_root: str) -> str:
+    """`$TEST_ROOT` / `${TEST_ROOT}` → the test's own directory; `$TEST_REGRESS` / `${TEST_REGRESS}` → the run
+    directory (every path here is test_regress-relative); a doubled slash collapsed, a leading `./` dropped — the
+    reading the key's `VerilatorIndex._owner_map` gives the same tokens (SV-CORPUS-GRAD.58)."""
+    tok = tok.replace("${TEST_REGRESS}/", "").replace("$TEST_REGRESS/", "")
+    tok = tok.replace("${TEST_ROOT}/", test_root + "/").replace("$TEST_ROOT/", test_root + "/")
+    while "//" in tok:
+        tok = tok.replace("//", "/")
+    return tok[2:] if tok.startswith("./") else tok
+
+
+def vc_defines(tok: str) -> tuple[list[str], list[str]]:
+    """`+define+A+B=V+C` → (`["A", "B=V", "C"]`, withheld): Verilator's plus-arg form, every `+` starting a new
+    name. ⛔ A value carrying a quote or a backslash (t_flag_define.vc's STRING1 … LIT3) depends on the option
+    file's quoting rules, which this reader does not derive — the name is WITHHELD and reported, never emitted guessed."""
+    out, withheld = [], []
+    for part in tok[len("+define+"):].split("+"):
+        name, eq, value = part.partition("=")
+        if not IDENT.match(name):
+            continue
+        if any(c in value for c in "\"'\\"):
+            withheld.append(name)
+            continue
+        out.append(f"{name}={value}" if eq else name)
+    return out, withheld
+
+
+def read_option_file(rel: str, regress: pathlib.Path, test_root: str, seen: frozenset, base_dir: str = ""):
+    """Verilator's option file, named by `-f` (paths relative to the run directory) or `-F` (relative to the file's
+    own directory) — SVPP-EXPANSION.4c.5. Whitespace-separated options; `//`, `/* */` and leading-`#` comments (the
+    suite's own `.vc` files carry all three and verilator reads them); nested `-f` / `-F`; `-v X` a LIBRARY file
+    (parsed on demand, after every listed source — Verilator's library semantics, the reading the slang arm gives
+    `-v`); `+define+A+B=V` defines; environment names substituted. Returns (members [(rel, 'source' | 'library')] in
+    command order, defines [NAME or NAME=VALUE], reported [notes]). ⛔ Derived, never guessed: a file absent from the
+    tree, an unterminated comment, an environment name the harness sets at run time, an option file naming itself —
+    each is REPORTED and contributes nothing."""
+    p = regress / rel
+    if not p.is_file():
+        return [], [], [f"-f {rel} (an option file absent from the tree; not read)"]
+    text = p.read_text(errors="replace")
+    if text.count("/*") != text.count("*/"):
+        return [], [], [f"-f {rel} (an unterminated comment in the option file; not read)"]
+    text = VC_LINE_COMMENT.sub("", VC_BLOCK_COMMENT.sub(" ", text))
+    members, defines, reported = [], [], []
+
+    def resolve(raw: str) -> str:
+        arg = subst_env(raw, test_root)
+        if raw.startswith(("$", "/")) or not base_dir:
+            return arg
+        return pathlib.PurePosixPath(os.path.normpath(base_dir + "/" + arg)).as_posix()
+
+    toks = text.split()
+    i = 0
+    while i < len(toks):
+        t = toks[i]
+        if t in ("-f", "-F") and i + 1 < len(toks):
+            raw = toks[i + 1]; sub_rel = resolve(raw)
+            if "$" in sub_rel:
+                reported.append(f"{t} {raw} (an environment name the harness sets at run time; not read)")
+            elif sub_rel in seen:
+                reported.append(f"{t} {sub_rel} (an option file naming itself; not read twice)")
+            else:
+                m2, d2, r2 = read_option_file(sub_rel, regress, test_root, seen | {sub_rel},
+                                              "" if t == "-f" else pathlib.PurePosixPath(sub_rel).parent.as_posix())
+                members += m2; defines += d2; reported += r2
+            i += 2
+            continue
+        if t == "-v" and i + 1 < len(toks):
+            raw = toks[i + 1]; arg = resolve(raw)
+            if "$" in arg:
+                reported.append(f"-v {raw} (an environment name the harness sets at run time; not read)")
+            elif SRC_TOKEN.match(arg):
+                members.append((arg, "library"))
+            i += 2
+            continue
+        if t.startswith("+define+"):
+            d2, withheld = vc_defines(t)
+            defines += d2
+            for name in withheld:
+                reported.append(f"+define+{name}=… in {rel} (a quoted value; the option file's quoting rules are not derived — withheld)")
+            i += 1
+            continue
+        if t.startswith(("-", "+")):
+            i += 1
+            continue
+        arg = resolve(t)
+        if "$" in arg:
+            reported.append(f"{t} (an environment name the harness sets at run time; not read)")
+        elif SRC_TOKEN.match(arg):
+            members.append((arg, "source"))
+        i += 1
+    return members, defines, reported
+
+
+def driver_unit_members(py_text: str, top: str, test_root: str, regress):
+    """The files a verilator driver's SV flag lists compile besides the top, in command order — `t/…` relative to
+    test_regress: (members [(rel, 'source' | 'library')], defines [from `-f` option files], reported). The quoted
+    items of each list are tokenized in order, so `-f t/x.vc -DFOO` and `"t/a.v"` read alike; `-f` / `-F` option
+    files are READ (`read_option_file`, SVPP-EXPANSION.4c.5; `regress` None = not here, reported), `$TEST_ROOT` is
+    the test's own directory, a `-v` file is a library member."""
     py_text = CXX_SPANS.sub(" ", py_text)
-    preds, reported = [], []
+    members, defines, reported = [], [], []
     for m in FLAG_LIST.finditer(py_text):
-        span = m.group(1)
-        for f in F_LIST.findall(span):
-            reported.append(f"{f.strip()} (a -f list; not read)")
-        for f in SRC_ARG.findall(span):
-            f = f.replace("$TEST_ROOT/", test_root + "/")
-            if f.split("/")[-1] == top or f in preds:
-                continue
-            preds.append(f)
-    return preds, reported
+        for item in QUOTED_ITEM.findall(m.group(1)):
+            toks = item.split()
+            i = 0
+            while i < len(toks):
+                t = toks[i]
+                if t in ("-f", "-F") and i + 1 < len(toks):
+                    raw = toks[i + 1]; arg = subst_env(raw, test_root)
+                    if regress is None or "$" in arg:
+                        reported.append(f"{t} {raw} (an option file; not read here)")
+                    else:
+                        m2, d2, r2 = read_option_file(arg, regress, test_root, frozenset({arg}),
+                                                      "" if t == "-f" else pathlib.PurePosixPath(arg).parent.as_posix())
+                        members += m2; defines += d2; reported += r2
+                    i += 2
+                    continue
+                if t == "-v" and i + 1 < len(toks):
+                    arg = subst_env(toks[i + 1], test_root)
+                    if "$" not in arg and SRC_TOKEN.match(arg):
+                        members.append((arg, "library"))
+                    i += 2
+                    continue
+                if t.startswith(("-", "+")):
+                    i += 1
+                    continue
+                arg = subst_env(t, test_root)
+                if "$" not in arg and SRC_TOKEN.match(arg) and arg.split("/")[-1] != top and (arg, "source") not in members:
+                    members.append((arg, "source"))
+                i += 1
+    return members, defines, reported
+
+
+def driver_unit_files(py_text: str, top: str, test_root: str, regress=None) -> tuple[list[str], list[str]]:
+    """(the top's predecessor SOURCE files in command order, reported items) — the `.4c.2` reading, over
+    `driver_unit_members`; a `-v` library file is not a predecessor of the top (parsed on demand, after it)."""
+    members, _defs, reported = driver_unit_members(py_text, top, test_root, regress)
+    return [m for m, kind in members if kind == "source"], reported
 
 
 def units_from_lists(units: list[tuple[str, list[str]]]):
@@ -403,6 +533,7 @@ def derive_units(suite: str, base: pathlib.Path):
         tdir = base / "test_regress" / "t"
         if not tdir.is_dir():
             return rows, reported, ties
+        regress = base / "test_regress"
         by_target: dict[str, list[pathlib.Path]] = {}
         for py in sorted(tdir.glob("t_*.py")):
             text = py.read_text(errors="replace")
@@ -410,28 +541,56 @@ def derive_units(suite: str, base: pathlib.Path):
             target = m.group(1) if m else py.stem + ".v"
             if (tdir / target).is_file():
                 by_target.setdefault(target, []).append(py)
+        vunits: list[tuple[str, list[str]]] = []          # (driver, [members in command order, the top last])
+        vlibs: list[tuple[str, str, list[str]]] = []      # (driver, -v library file, every listed file before it)
         for target, drivers in sorted(by_target.items()):
             same = [d for d in drivers if d.stem + ".v" == target]
             chosen = same[0] if same else (drivers[0] if len(drivers) == 1 else None)
             rel = (tdir / target).relative_to(ROOT).as_posix()
             if chosen is None:
-                with_units = [d.name for d in drivers if driver_unit_files(d.read_text(errors="replace"), target, "t/" + d.stem)[0]]
+                with_units = [d.name for d in drivers if driver_unit_files(d.read_text(errors="replace"), target, "t/" + d.stem, regress)[0]]
                 if with_units:
                     ties[rel] = with_units
                 continue
             test_root = "t/" + chosen.stem if (tdir / chosen.stem).is_dir() else "t"
-            preds, notes = driver_unit_files(chosen.read_text(errors="replace"), target, test_root)
+            members, _vcdefs, notes = driver_unit_members(chosen.read_text(errors="replace"), target, test_root, regress)
             src = chosen.relative_to(ROOT).as_posix()
-            order = 0
-            for pth in preds:
-                f = base / "test_regress" / pth
+            sources = [m for m, kind in members if kind == "source"]
+            present = []
+            for pth in sources + ["t/" + target]:          # the top LAST: driver.py:1099 puts *flags before top_filename
+                f = regress / pth
                 if not f.is_file():
                     notes.append(f"{pth} (named by the driver, absent from the tree)")
                     continue
-                order += 1
-                rows.append((suite, rel, order, f.relative_to(ROOT).as_posix(), src))
+                present.append(f.relative_to(ROOT).as_posix())
+            vunits.append((src, present))
+            for lib in [m for m, kind in members if kind == "library" and m not in sources]:
+                f = regress / lib
+                if not f.is_file():
+                    notes.append(f"-v {lib} (a library file named by the driver, absent from the tree)")
+                    continue
+                vlibs.append((src, f.relative_to(ROOT).as_posix(), list(present)))
             if notes:
                 reported[rel] = notes
+        # SVPP-EXPANSION.4c.5: every listed member — not only the top — reads after the files its own command line
+        # compiles before it (one compilation unit; the same `units_from_lists` reading the slang arm has, a pair two
+        # drivers order differently reported, not applied)
+        preds, conflicts = units_from_lists(vunits)
+        for f, lst in sorted(preds.items()):
+            for order, (p, src) in enumerate(lst, 1):
+                rows.append((suite, f, order, p, src))
+        for f, note in conflicts.items():
+            reported.setdefault(f, []).append(note)
+        # a `-v` LIBRARY file is parsed on demand, once every listed file (the top among them) has been: its
+        # predecessors are all of them, and it precedes nothing
+        listed = {r[1] for r in rows}
+        for src, lib, allp in vlibs:
+            if lib in listed:
+                reported.setdefault(lib, []).append(f"-v {lib} is also a listed source of a unit; the library reading is not applied")
+                continue
+            listed.add(lib)
+            for order, p in enumerate(allp, 1):
+                rows.append((suite, lib, order, p, src))
     elif suite == "slang":
         data = base / "tests" / "unittests" / "data"
         if not data.is_dir():
@@ -677,9 +836,16 @@ def derive_defines(suite: str, base: pathlib.Path):
                 if with_defs:
                     ties[rel] = with_defs
                 continue
-            lit, comp = driver_defines(chosen.read_text(errors="replace"))
+            text = chosen.read_text(errors="replace")
+            lit, comp = driver_defines(text)
             for d in lit:
                 rows.append((suite, rel, d, chosen.relative_to(ROOT).as_posix()))
+            # SVPP-EXPANSION.4c.5: the `+define+` tokens of the driver's -f option files, a name the command line -U's again excluded
+            _members, vcdefs, _notes = driver_unit_members(text, target, "t/" + chosen.stem if (tdir / chosen.stem).is_dir() else "t", base / "test_regress")
+            undefs = {u.group(1) for u in UNDEF_TOKEN.finditer(CXX_SPANS.sub(" ", text))}
+            for d in vcdefs:
+                if d.split("=", 1)[0] not in undefs:
+                    rows.append((suite, rel, d, chosen.relative_to(ROOT).as_posix() + " (-f option file)"))
             if comp:
                 computed[rel] = comp
     elif suite == "sv-tests":
@@ -920,9 +1086,23 @@ def self_test() -> int:
         (t / "t_u.v").write_text("module u; endmodule\n"); (t / "t_u_pre.vh").write_text("`define P 1\n")
         (t / "t_u").mkdir(); (t / "t_u" / "t_u_def.vh").write_text("`define Q 1\n")
         (t / "t_u.py").write_text('test.compile(v_flags2=["-DKEEP -DGONE -UGONE"], verilator_flags2=["t/t_u_pre.vh", "$TEST_ROOT/t_u_def.vh", "-f t/t_u.vc", "t/t_u.v"])\n')
+        # .4c.5: the option file — three comment forms, nested -F relative to its own directory, a -v library file,
+        # ${TEST_REGRESS} with a doubled slash, +define+ plus-args, an absent nested file; and an unreadable one
+        (t / "t_u.vc").write_text("// a line comment t/t_u_no.v\n# a hash comment, as the suite's args.vc writes them\n/* +define+NON_DEF\n   t/t_u_no2.v */\n"
+                                  "--stats +define+GOT1 +define+GOT2=1+GOT3 +define+QUOTED=\"\\\"x y\\\"\"\n${TEST_REGRESS}/t//t_u_f1.v\n-F $TEST_REGRESS/t/sub/t_u_sub.vc\n-v t/t_u_lib.v\n-f t/t_u_absent.vc\n")
+        (t / "sub").mkdir(); (t / "sub" / "t_u_sub.vc").write_text("t_u_sub.v\n+incdir+.\n")
+        for n in ("t_u_f1.v", "sub/t_u_sub.v", "t_u_lib.v", "t_w.v"):
+            (t / n).write_text("module w; endmodule\n")
+        (t / "t_w.py").write_text('test.lint(v_flags2=["-f t/t_w.vc"], fails=True)\n'); (t / "t_w.vc").write_text("/* an unterminated comment\nt/t_u_f1.v\n")
         urows, ureported, uties = derive_units("verilator", base)
         ulist = [(r[1].rsplit("/", 1)[1], r[2], r[3].rsplit("/", 1)[1]) for r in urows if r[1].endswith("t_u.v")]
+        upreds = {}
+        for r in urows:
+            upreds.setdefault(r[1].split("/t/", 1)[1], []).append((r[2], r[3].rsplit("/", 1)[1]))
         lit, _ = driver_defines((t / "t_u.py").read_text())
+        _m, vcdefs, _r = driver_unit_members((t / "t_u.py").read_text(), "t_u.v", "t", base / "test_regress")
+        drows, _c, _t, _v = derive_defines("verilator", base)
+        udefs = sorted(d for s_, f, d, src in drows if f.endswith("t_u.v"))
         sdata = base / "tests" / "unittests" / "data"; sdata.mkdir(parents=True)
         for n in ("a.sv", "b.sv", "c.sv", "lib.sv"):
             (sdata / n).write_text("module x; endmodule\n")
@@ -937,9 +1117,21 @@ def self_test() -> int:
         vrows, vreported, _ = derive_units("sv2v", base)
         vrel = [(r[1].rsplit("/", 1)[1], r[2], r[3].rsplit("/", 1)[1]) for r in vrows]
         checks3 = [
-            ("verilator: the driver's source arguments precede the file, in order, the top excluded, $TEST_ROOT resolved",
-             ulist == [("t_u.v", 1, "t_u_pre.vh"), ("t_u.v", 2, "t_u_def.vh")]),
-            ("verilator: a -f list is reported, not read", any("-f t/t_u.vc" in n for k, v in ureported.items() if k.endswith("t_u.v") for n in v)),
+            ("verilator: the driver's source arguments precede the top, in order, the top excluded, $TEST_ROOT resolved, the -f file's sources among them (.4c.5)",
+             ulist == [("t_u.v", 1, "t_u_pre.vh"), ("t_u.v", 2, "t_u_def.vh"), ("t_u.v", 3, "t_u_f1.v"), ("t_u.v", 4, "t_u_sub.v")]),
+            ("verilator: a -f option file is READ — its comments (//, #, /* */) skipped, ${TEST_REGRESS}// resolved, -F relative to its own directory (.4c.5)",
+             upreds.get("t_u_f1.v") == [(1, "t_u_pre.vh"), (2, "t_u_def.vh")] and upreds.get("sub/t_u_sub.v") == [(1, "t_u_pre.vh"), (2, "t_u_def.vh"), (3, "t_u_f1.v")]
+             and not any("t_u_no" in r[3] for r in urows)),
+            ("verilator: every listed member reads after the files before it; the top after all of them (.4c.5)",
+             upreds.get("t_u_pre.vh") is None and upreds.get("t_u/t_u_def.vh") == [(1, "t_u_pre.vh")]),
+            ("verilator: a -v library file reads after every listed file, the top included, and precedes nothing (.4c.5)",
+             upreds.get("t_u_lib.v") == [(1, "t_u_pre.vh"), (2, "t_u_def.vh"), (3, "t_u_f1.v"), (4, "t_u_sub.v"), (5, "t_u.v")] and not any(r[3].endswith("t_u_lib.v") for r in urows)),
+            ("verilator: the -f file's +define+A+B=V plus-args reach the top's defines, a commented one does not (.4c.5)",
+             vcdefs == ["GOT1", "GOT2=1", "GOT3"] and {"GOT1", "GOT2=1", "GOT3", "KEEP"} <= set(udefs) and "NON_DEF" not in udefs
+             and not any(d.startswith("QUOTED") for d in udefs) and any("+define+QUOTED=… in t/t_u.vc (a quoted value" in n for v in ureported.values() for n in v)),
+            ("verilator: an absent nested option file and an unterminated comment are REPORTED, not read (.4c.5)",
+             any("t/t_u_absent.vc (an option file absent" in n for k, v in ureported.items() if k.endswith("t_u.v") for n in v)
+             and any("unterminated comment" in n for k, v in ureported.items() if k.endswith("t_w.v") for n in v) and not any(r[1].endswith("t_w.v") for r in urows)),
             ("verilator: a define the driver -U's again is not emitted", lit == ["KEEP"]),
             ("slang: .f units are unioned in order, -F expanded, -v skipped", ("b.sv", 1, "a.sv") in srel and ("lib.sv", 1, "b.sv") not in srel and not any(r[0] == "lib.sv" for r in srel)),
             ("slang: a pair two .f files order differently is a conflict, reported", not any(r[0] == "c.sv" for r in srel) and any(k.endswith("c.sv") for k in sreported)),

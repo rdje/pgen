@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-576fdf36.js";
+            window.path_to_searchindex_js = "searchindex-4a3b1e4b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -316,9 +316,10 @@ directory) or withheld for its includer (a per-file one), since <code>.4d</code>
 computes at run time and a file several variant drivers configure differently are reported, not
 guessed. These are the test’s own configuration, not a tool identity: <code>.6b.3</code> measured and declined
 the identity predefines — and, since <code>.4c.2</code>, the unit predecessors a file’s own harness compiles
-before it, applied as <code>--unit-file</code> in order: verilator’s source-file arguments, slang’s <code>.f</code> command
-files, sv2v’s explicit multi-file runs; a <code>-f</code> list, a glob, a <code>--siloed</code> run and an ordering conflict
-are reported, not applied — and, since <code>.6d.6</code>, the predecessors a suite’s whole FLOW compiles before every
+before it, applied as <code>--unit-file</code> in order: verilator’s source-file arguments and, since <code>.4c.5</code>, its <code>-f</code> / <code>-F</code>
+option files read as the tool reads them (every listed member with its predecessors, a <code>-v</code> library file after all),
+slang’s <code>.f</code> command files, sv2v’s explicit multi-file runs; a glob, a <code>--siloed</code> run, an ordering conflict, an
+unreadable option file and a quoted <code>+define+</code> value are reported, not applied — and, since <code>.6d.6</code>, the predecessors a suite’s whole FLOW compiles before every
 file, hand-curated with their source: OpenTitan’s dvsim builds one compilation unit that starts with UVM and
 compiles <code>dv_utils_pkg.sv</code> and the RTL before any DV package, so <code>uvm_macros.svh</code>, <code>dv_macros.svh</code>,
 <code>prim_assert.sv</code> and, since <code>.6d.7</code>, <code>cip_macros.svh</code> precede every OpenTitan row; and, since <code>.6d.8</code>, VeeR’s
@@ -834,6 +835,20 @@ behind it. The deriver reserves a hand-curated row kind for exactly this (<code>
 <code>opentitan define UVM hand &lt;source&gt;</code> in <code>stimuli/sv/pipeline_context.tsv</code>, the source cited), applied as
 <code>--symbol UVM</code> to every OpenTitan row. Re-run on the whole lane: ten OpenTitan packages <code>fail → pass</code>, zero
 the other way, and the library pass publishes 264 packages (was 256).</p>
+<p><strong>The harness’s option files (<code>.4c.5</code>).</strong> The <code>-f</code> list <code>.4c.2</code> reported is part of the command line, and the derived
+context now reads it as Verilator reads it: whitespace-separated options with <code>//</code>, <code>/* */</code> and leading-<code>#</code> comments
+(a <code>//</code> opens a comment only where a token starts — <code>${TEST_REGRESS}/t//t_flag_f__3.v</code> is a doubled slash the
+upstream test writes on purpose), nested <code>-f</code> (paths relative to the run directory) and <code>-F</code> (relative to the file’s
+own directory), <code>$TEST_ROOT</code> and <code>$TEST_REGRESS</code> substituted, <code>-v</code> a library file parsed on demand once every listed
+file has been, <code>+define+A+B=V</code> plus-args read as separate names into the top’s defines. What the tool’s rules do not
+settle for us is withheld and reported, never guessed: an option file absent from the tree, an unterminated comment
+(<code>t_flag_f_bad_cmt.vc</code>, whose driver expects the failure), an environment name the harness sets at run time, an option
+file naming itself, a <code>+define+</code> whose value carries a quote or a backslash. And every listed member of a verilator
+unit — not only the top, as the <code>.4c.2</code> arm had it — reads after the files its command line compiles before it, the
+quoted items of a flag list tokenized in order so a string naming several files yields its unit. Measured:
+<code>pipeline_context_units.tsv</code> 44 → 222 rows on 17 → 46 files, eleven option-file defines; re-run on the whole lane under
+the three readings, <strong>exactly 2 movers on each of the three readings, both pre-registered</strong> (<code>subB.v</code> <code>pp_fail → pass</code>, <code>subsub.v</code> <code>pp_fail → fail</code> on the <code>param_t</code> declaration barrier inside its included <code>.vh</code>), none other. The include fragment’s own-row context — 266 of the lane’s refused-context rows
+are include targets, 123 of them OpenTitan’s and 118 UVM’s — is a lever of its own, routed as <code>.4c.6</code>.</p>
 <p><strong>A suite’s unit predecessors (<code>.6d.6</code>).</strong> IEEE 1800-2017 §22.5.1 makes a macro unit-wide once defined, and
 OpenTitan’s dvsim builds one unit: <code>{UVM_HOME}/src/uvm_pkg.sv</code> first (it includes <code>uvm_macros.svh</code>), then
 <code>dv_utils_pkg.sv</code> (which includes <code>dv_macros.svh</code>), the RTL (<code>prim_assert.sv</code>) and only then the DV env and

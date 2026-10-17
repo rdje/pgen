@@ -6132,8 +6132,8 @@ verilator	test_regress/t/t_hier_block1_bad.v	divergence:explained_svpp_macro_use
 verilator	test_regress/t/t_hier_block_chained.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_hier_block_import.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_hier_block_import/t_hier_block_import_subA.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
-verilator	test_regress/t/t_hier_block_import/t_hier_block_import_subB.v	deferred:chained_only	IN-WINDOW	pp_fail	context		-	chained:refused_context	`VALUE_B is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_hier_block_import/t_hier_block_import_subB.v:13 — IEEE 1
-verilator	test_regress/t/t_hier_block_import/t_hier_block_import_subsub.v	deferred:chained_only	IN-WINDOW	pp_fail	context		-	chained:refused_context	`VALUE_A is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_hier_block_import/t_hier_block_import.vh:12 — IEEE 1800-
+verilator	test_regress/t/t_hier_block_import/t_hier_block_import_subB.v	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
+verilator	test_regress/t/t_hier_block_import/t_hier_block_import_subsub.v	deferred:chained_only	IN-WINDOW	fail	included file		other	chained:hollow	stimuli/sv/subs/verilator/test_regress/t/t_hier_block_import/t_hier_block_import.vh:11:18
 verilator	test_regress/t/t_hier_block_libmod.v	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
 verilator	test_regress/t/t_hier_block_perf.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pp_fail	context		-	refused_context	`SIM_CYCLES is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_hier_block_perf.v:99 — IEEE 1800-2017 §22.5.1 gives 
 verilator	test_regress/t/t_hier_block_struct.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	

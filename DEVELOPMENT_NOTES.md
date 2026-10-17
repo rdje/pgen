@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SVPP-EXPANSION.4c.5 (`PGEN-SVPP-EXPANSION-0050`): read the option file as the tool does, and say where you stop
+
+- **The option file is the command line.** `.4c.2` reported `-f` lists as "not read" because Verilator's syntax has forms (`+define+A+B`, environment names) a regex over the driver would guess at. The honest move was never to skip the file; it was to read it with the tool's rules — comments, nesting, `-F`'s relative paths, lazy `-v` — and to WITHHOLD exactly what those rules do not settle for us (a quoted value), with a report. Five option files, two of them deliberately malformed, exercised every branch.
+- **A doubled slash is not a comment.** The first cut's `//` comment rule swallowed `${TEST_REGRESS}/t//t_flag_f__3.v` — the very token the upstream test writes to prove its tool tolerates a doubled slash. Comment markers start tokens; pin the shape in the self-test before the lane runs.
+- **Pre-register the movers from the table diff, not from the goal.** The leaf set out to move two rows; the table diff said 29 files gain predecessors (24 already passing, 3 type barriers no macro reaches). The lane's movers census is read against that list, so an unexpected mover is a finding and an expected non-mover is not a disappointment.
+- **A lever measured larger than the leaf is routed, not squeezed in.** 266 refused-context rows are include fragments; that is a census and a design, not a bullet. Measure, route, name the measurement in the route.
+
 ## 2026-10-17 — SV-CORPUS-GRAD.58d (`PGEN-SV-CORPUS-GRAD-0450`): the cure for a deferral to a stranger is an arm in the stranger
 
 - **When the deferral names an oracle that does not judge the file, give that oracle the arm.** Three attempts at a sharper text match (`.58c`'s path-or-directory, then exact path) all break on a legitimate owner that names the tool rather than the artifact; the fourth was to make the named oracle judge the artifact. A deferral is a claim about another gate; the cheapest way to make it true is to make the other gate true.
