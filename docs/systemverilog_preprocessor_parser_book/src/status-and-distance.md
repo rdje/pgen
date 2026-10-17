@@ -94,4 +94,42 @@ tree listed above, not a leg of this family's `Done` bar. Its contract is the SV
 is the SV parser book's chapter
 [*The preprocess→parse pipeline*](../../systemverilog_parser_book/src/preprocess-parse-pipeline.md).
 The corpus line above stays NOT MEASURED for exactly that reason: no corpus of directive *files* is wired;
-the expansion's corpus is the SystemVerilog family's, and it is measured there.
+the expansion's corpus is the SystemVerilog family's, and it is measured there. The next section is the
+first reading of THIS parser over that corpus; it is not yet the family's leg-3 assertion (wiring it is
+`SV-CORPUS-GRAD.13c.2v.10`).
+
+## The SystemVerilog corpus, read by this parser (2026-10-17)
+
+Every file a SystemVerilog tool compiles is input to the preprocessor, whatever its SystemVerilog verdict.
+So the corpus the SystemVerilog lanes read — 16,336 files, the path column of
+`stimuli/sv/characterization/results.tsv` — asks this parser one question per file: does the directive
+structure parse? The census
+(`docs/tasks/artifacts/sv_corpus_grad/svpp_corpus_census/census.py`) runs the **generated** parser inside the
+release `parseability_probe` (`--parse systemverilog_preprocessor`), never the interpreter, and classes every
+rejection by the backtick word that opens the line where the parse stopped.
+
+**Release `1.0.7`: 4,477 of the 16,336 files are rejected** (`census.md` beside the script):
+
+| what opens the line where the parse stops | files |
+|---|---:|
+| a text macro usage (§22.5.1) — `` `uvm_object_utils(c) ``, `` `ASSERT(…) `` | 4,182 |
+| a clause-22 directive the grammar does not derive — `` `begin_keywords `` 93, `` `resetall `` 69, `` `line ``, `` `pragma ``, … | 243 |
+| no backtick word (a string or comment inside macro text, a one-line conditional, …) | 52 |
+
+The dominant class is a grammar gap, not a corpus property: a passthrough line could not *begin* with a
+backtick, so any line that opens with a macro usage — most UVM and OpenTitan code — was refused. Five more
+defects surfaced beside it, two of them wrong trees for input the parser accepted:
+
+- a backslash-continued `` `define `` body was cut at its first line (`"a + \"`, the continuation read as a
+  separate line) — 38 corpus files;
+- `` `define M (x) y `` was read as a function-like macro; §22.5.1 makes it object-like, because the
+  parenthesis does not follow the name immediately;
+- `` `include "a.sv" x `` was accepted, where §22.4 allows only white space or a comment on the line;
+- `` `\`" ``, and a backtick inside a plain string or a `//` comment in macro text, were refused;
+- `` `include `home(myfile) `` was refused, which §22.5.1 licenses in both editions.
+
+All of them are fixed together in release `1.0.8` (task leaves `SV-CORPUS-GRAD.13c.2v.1` – `.7`). Measured on
+the interpreter before the release is built, the fix takes the rejections from 4,477 to **64**, with **no**
+file going from accepted to rejected. Each of the 64 is read one by one: 34 are the suites' own error tests,
+16 are refused by a clause, 12 are valid text routed to later leaves, and 2 sit at a boundary of the
+line-oriented model. This page is republished with the generated parser's numbers when `1.0.8` ships.

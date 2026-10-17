@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.13c.2v.1 / .2 (`PGEN-SV-CORPUS-GRAD-0457`): measure the population before costing the seven
+
+- **The leaf named seven directives; the corpus named a different defect.** `.13c.2v.1` was costed as seven missing `pp_item` branches. Running the generated parser over the 16,336 corpus files put those seven at 243 rejections and a passthrough rule that could not begin with a backtick at 4,182. A leaf's own list is a hypothesis about its population; the census is the population.
+- **A lookahead is what keeps a widening honest.** Admitting a line that opens with a backtick would have accepted every malformed directive as a macro-usage line. `!directive_keyword` over the twenty §22.1 keywords keeps `` `timescale 1ns `` and a stray `` `else `` refused, and the bank holds both.
+- **Read the whole clause, and the sibling component.** `` `include `MACRO `` is licensed two pages after §22.4's syntax box (`SVPP-EXPANSION.5`(m) had found that once for the expansion stage), and the expansion stage already read `` `define M (x) `` as object-like. The grammar disagreed with its own sibling on both.
+- **A moved tree is a claim to explain, not a number.** 69 of 11,859 previously accepted files changed shape under the prototype; each was attributed to one grammar delta by re-running the prototype one step back (v10 reproduced the old tree for all 31 string-atom movers).
+
 ## 2026-10-17 — SV-CORPUS-GRAD.59 (`PGEN-SV-CORPUS-GRAD-0455`): a convention's premise is derived per file or it is a guess
 
 - **A derivation is only as honest as the declarations it reads.** "Compiled by no unit" from fusesoc cores alone classed 328 rows and would have called ibex's whole DV dead because its flow is a `.f` list the index did not read. The class was cut to the two cases the tree decides without a flow — a templates-only directory, an include file nothing includes — and the rest left to the convention with the reason written down.

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-71df97b7.js";
+            window.path_to_searchindex_js = "searchindex-180306b1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1f5fa4fd.js"></script>
@@ -272,7 +272,47 @@ tree listed above, not a leg of this family’s <code>Done</code> bar. Its contr
 is the SV parser book’s chapter
 <a href="../../systemverilog_parser_book/src/preprocess-parse-pipeline.html"><em>The preprocess→parse pipeline</em></a>.
 The corpus line above stays NOT MEASURED for exactly that reason: no corpus of directive <em>files</em> is wired;
-the expansion’s corpus is the SystemVerilog family’s, and it is measured there.</p>
+the expansion’s corpus is the SystemVerilog family’s, and it is measured there. The next section is the
+first reading of THIS parser over that corpus; it is not yet the family’s leg-3 assertion (wiring it is
+<code>SV-CORPUS-GRAD.13c.2v.10</code>).</p>
+<h2 id="the-systemverilog-corpus-read-by-this-parser-2026-10-17"><a class="header" href="#the-systemverilog-corpus-read-by-this-parser-2026-10-17">The SystemVerilog corpus, read by this parser (2026-10-17)</a></h2>
+<p>Every file a SystemVerilog tool compiles is input to the preprocessor, whatever its SystemVerilog verdict.
+So the corpus the SystemVerilog lanes read — 16,336 files, the path column of
+<code>stimuli/sv/characterization/results.tsv</code> — asks this parser one question per file: does the directive
+structure parse? The census
+(<code>docs/tasks/artifacts/sv_corpus_grad/svpp_corpus_census/census.py</code>) runs the <strong>generated</strong> parser inside the
+release <code>parseability_probe</code> (<code>--parse systemverilog_preprocessor</code>), never the interpreter, and classes every
+rejection by the backtick word that opens the line where the parse stopped.</p>
+<p><strong>Release <code>1.0.7</code>: 4,477 of the 16,336 files are rejected</strong> (<code>census.md</code> beside the script):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>what opens the line where the parse stops</th><th style="text-align: right">files</th></tr>
+</thead>
+<tbody>
+<tr><td>a text macro usage (§22.5.1) — <code>`uvm_object_utils(c)</code>, <code>`ASSERT(…)</code></td><td style="text-align: right">4,182</td></tr>
+<tr><td>a clause-22 directive the grammar does not derive — <code>`begin_keywords</code> 93, <code>`resetall</code> 69, <code>`line</code>, <code>`pragma</code>, …</td><td style="text-align: right">243</td></tr>
+<tr><td>no backtick word (a string or comment inside macro text, a one-line conditional, …)</td><td style="text-align: right">52</td></tr>
+</tbody>
+</table>
+</div>
+<p>The dominant class is a grammar gap, not a corpus property: a passthrough line could not <em>begin</em> with a
+backtick, so any line that opens with a macro usage — most UVM and OpenTitan code — was refused. Five more
+defects surfaced beside it, two of them wrong trees for input the parser accepted:</p>
+<ul>
+<li>a backslash-continued <code>`define</code> body was cut at its first line (<code>"a + \"</code>, the continuation read as a
+separate line) — 38 corpus files;</li>
+<li><code>`define M (x) y</code> was read as a function-like macro; §22.5.1 makes it object-like, because the
+parenthesis does not follow the name immediately;</li>
+<li><code>`include "a.sv" x</code> was accepted, where §22.4 allows only white space or a comment on the line;</li>
+<li><code>`\`"</code>, and a backtick inside a plain string or a <code>//</code> comment in macro text, were refused;</li>
+<li><code>`include `home(myfile)</code> was refused, which §22.5.1 licenses in both editions.</li>
+</ul>
+<p>All of them are fixed together in release <code>1.0.8</code> (task leaves <code>SV-CORPUS-GRAD.13c.2v.1</code> – <code>.7</code>). Measured on
+the interpreter before the release is built, the fix takes the rejections from 4,477 to <strong>64</strong>, with <strong>no</strong>
+file going from accepted to rejected. Each of the 64 is read one by one: 34 are the suites’ own error tests,
+16 are refused by a clause, 12 are valid text routed to later leaves, and 2 sit at a boundary of the
+line-oriented model. This page is republished with the generated parser’s numbers when <code>1.0.8</code> ships.</p>
 
                     </main>
 
