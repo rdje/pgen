@@ -24,6 +24,10 @@
     "deferred:not_source_text": {
       "ceiling": 350,
       "argument": "the bytes are not source text in any language this grammar describes (a $readmemh memory image per IEEE 1800-2017 §21.4, a bare string literal, a tool command line) - decided from the file's bytes by adjudicate_external_corpus.py::not_source_text(), never from a list; no key, chaining or grammar revision can yield a verdict about SystemVerilog from them (SV-CORPUS-GRAD.13c.1)"
+    },
+    "deferred:no_unit": {
+      "ceiling": 205,
+      "argument": "no unit of the suite compiles the file, so the design convention's must-accept has no subject — derived from OpenTitan's own compile declarations by adjudicate_external_corpus.py::OpenTitanNoUnitIndex, never from a list (SV-CORPUS-GRAD.59, PGEN-SV-CORPUS-GRAD-0455): 203 template copies under hw/ip_templates/ (the 204th, flash_ctrl's template package, carries SV-CORPUS-GRAD.60's clause pin, which the key reads before the unit question) (a top-level template directory whose compile declarations are all `.core.tpl`, rendered by ipgen into hw/top_*/ip_autogen/ where the rendered copies carry the real cores and ARE the unit members) and 2 include files hw/dv/sv/usb20_agent/usb20_agent.core lists `is_include_file: true` that no `include of the tree names (usb20_device_driver.sv, usb20_host_driver.sv); an include file of a core whose sources include through a macro-built name (aes_tb_pkg.sv's `include `REQUESTS_FILE) is never classed here — the conservative guard"
     }
   },
   "ceilings_verilog_2005": {

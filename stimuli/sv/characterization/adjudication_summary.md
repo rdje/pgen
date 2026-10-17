@@ -24,9 +24,10 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 
 | class | count |
 |---|---|
-| deferred:chained_only | 4934 |
+| deferred:chained_only | 4729 |
 | deferred:impl_varying | 90 |
 | deferred:ni_unimplemented | 14 |
+| deferred:no_unit | 205 |
 | deferred:not_source_text | 350 |
 | deferred:svpp_owned | 247 |
 | deferred:v2005_profile_lane | 2943 |

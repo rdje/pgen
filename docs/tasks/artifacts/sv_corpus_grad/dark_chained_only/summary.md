@@ -6,7 +6,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `de6b716edf8a9de2b6f74e79a48aa622c8f3e329fabe3eacb70ec6ebef59390e` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `abb165841cf83cf66c077e46b1817f52283d6d762786a153a135ba25fd825b2a` |
 | positions | `stimuli/sv/characterization/positions.tsv` | `2570f719f50b930057e0bfa79e39ba64d104ff8571939837e675a43cb801d0ad` |
 | grammar | `grammars/systemverilog.ebnf` | `782a81ac7348d479dcd36ad4719d5c2e8b4a5df38cee78ff09232f0d8b2e1bf6` |
 
@@ -14,20 +14,20 @@
 
 | verdict | rows | % | reading |
 |---|---:|---:|---|
-| `PRE-TICK` | 2,005 | 56.2 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
-| `IN-WINDOW` | 1,484 | 41.6 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
-| `NO-ALTERABLE-TICK` | 70 | 2.0 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
+| `PRE-TICK` | 1,878 | 55.3 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
+| `IN-WINDOW` | 1,441 | 42.4 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
+| `NO-ALTERABLE-TICK` | 68 | 2.0 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
 | `PAST-LAST-TICK` | 9 | 0.3 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
-| **TOTAL** | **3,568** | **100.0 %** | |
+| **TOTAL** | **3,396** | **100.0 %** | |
 
-⇒ **2,075 of 3,568 rows (58.2 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
+⇒ **1,946 of 3,396 rows (57.3 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
 
 ## Then the FACT channel — is a cross-file *name* the live explanation?
 
 | channel | rows | reading |
 |---|---:|---|
-| `FACT-GATED-CROSS-FILE` | 1,856 | the parser demanded a type fact AT THE FAILURE that another file of the suite declares (`NAME @ file`) — for a Surelog row, a file of its own test unit ⇒ the `.6d` declaration barrier (the library design's population, `SVPP-EXPANSION.6d`), not the worklist's |
-| `CROSS-LIBRARY` | 167 | the name lives in a library vendored in ANOTHER suite (Surelog's tests use the UVM under `stimuli/sv/uvm`) — the compilation unit is incomplete as the corpus holds it; neither a parser defect nor in-suite chaining |
+| `FACT-GATED-CROSS-FILE` | 1,735 | the parser demanded a type fact AT THE FAILURE that another file of the suite declares (`NAME @ file`) — for a Surelog row, a file of its own test unit ⇒ the `.6d` declaration barrier (the library design's population, `SVPP-EXPANSION.6d`), not the worklist's |
+| `CROSS-LIBRARY` | 159 | the name lives in a library vendored in ANOTHER suite (Surelog's tests use the UVM under `stimuli/sv/uvm`) — the compilation unit is incomplete as the corpus holds it; neither a parser defect nor in-suite chaining |
 | `UNDECLARED-ANYWHERE` | 24 | ⭐ a fact was demanded at the failure and NOTHING in the suite declares the name as a type ⇒ WORKLIST (a candidate defect until the toolbox says otherwise) |
 | `NO-FACT-GATE-AT-FAILURE` | 16 | ⭐ no missing fact at the failure — nothing to expand, no unknown name ⇒ WORKLIST |
 | `FACT-GATED-LOCAL-TYPE` | 8 | ⭐ the demanded name **IS declared in this very file** and the parser still lacked the fact ⇒ WORKLIST |

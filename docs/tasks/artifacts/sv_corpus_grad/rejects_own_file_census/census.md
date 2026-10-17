@@ -7,18 +7,18 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 
 | input | path | sha256 |
 |---|---|---|
-| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `0c7b858d99b53133b756b1c508837e492cbf0db8d5b2fa4aafb572dec71edc3f` |
+| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `4b28995d2649a697e01e7651d5b926e7362aec423385a954a1d62741590aae9d` |
 | sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `7b1ac7eaa01fe7b4646878b2ae9117b82bb11b1650f46927cb26742c266d8274` |
 | sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `b987f55646f24f63f5de40f4faecec6860dd9a0cafa9becc0214a4f34c9795bf` |
 | sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `044ea4ba169dddafacf231ae91326204a8695f904a3c1d9d4d18ff343c01645d` |
 | expansion binary | `rust/target/debug/ast_pipeline` | `9382dff7f4f2a60f0e0f74aa9b61d563fce05064f7becf9fffed6a6e93cd3614` |
 
-## The classes — 305 rows
+## The classes — 256 rows
 
 | class | rows | what it means |
 |---|---:|---|
 | `raw_backtick` | 0 | the expanded text at the stop begins with a backtick: an undefined macro reached the parser — CONTEXT, not syntax |
-| `base_class` | 233 | a class header with a base class the parser has not seen declared — the cross-file declaration barrier |
+| `base_class` | 184 | a class header with a base class the parser has not seen declared — the cross-file declaration barrier |
 | `edition_2023` | 1 | the same row passes under the `sv_2023` reading — the 2017 rejection is the older text's |
 | `tolerated_spelling` | 2 | the same row passes under `sv_2023_tolerant` only — a spelling of the opt-in profile's closed list |
 | `edition_2023_moves` | 0 | the 2023 reading stops further: the construct at this stop is the 2023 text's, a later barrier remains |
@@ -64,11 +64,11 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `type_scr1_mem_resp_e` | 1 | Surelog:dut.sv |
 | `uvm_packer` | 1 | Surelog:top_1.sv |
 
-## `base_class` — 233 rows, by suite
+## `base_class` — 184 rows, by suite
 
 | suite | rows |
 |---|---:|
-| `opentitan` | 221 |
+| `opentitan` | 172 |
 | `Cores-VeeR-EL2` | 7 |
 | `Surelog` | 4 |
 | `uvm-core` | 1 |

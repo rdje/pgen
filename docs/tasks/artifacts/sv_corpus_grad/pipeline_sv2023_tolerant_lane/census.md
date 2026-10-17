@@ -17,8 +17,8 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 | sv_2023_tolerant pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `044ea4ba169dddafacf231ae91326204a8695f904a3c1d9d4d18ff343c01645d` |
 | sv_2023_tolerant library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023_tolerant.tsv` | `26cc1349d594cb7b3ae743e773673236e046225d1b17f691b150c3fdcd5220b0` |
 | unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023_tolerant.tsv` | `acac7a118b3cfe26a207b0d1bf64e5758093b730c825a75122d3c7fb1b6c3c6c` |
-| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `0c7b858d99b53133b756b1c508837e492cbf0db8d5b2fa4aafb572dec71edc3f` |
-| sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `91d04e28dae5cd2b2772a924b5cf06eb1cd259d9f194b088ee35777e1876b7aa` |
+| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `4b28995d2649a697e01e7651d5b926e7362aec423385a954a1d62741590aae9d` |
+| sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `5140d532e67ada90d29283e18fdef83c79be605b7fb04d42851f3b219f7ec33c` |
 
 The tolerant run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6` `files=16336`.
 
@@ -66,7 +66,7 @@ The stop is the REJECTING reading's own origin and the source line there; the 20
 | `tolerant_only_pass` | `opentitan` | `hw/ip/adc_ctrl/dv/env/adc_ctrl_env_pkg.sv` | `adc_ctrl_env_var_filter_cfg.sv:64:1` | `solve max_val, min_val, apply_max_v before filter_cfg[channel][filter].min_v;` | `chained:hollow` | `chained_must_accept / deferred:chained_only` |
 | `tolerant_only_pass` | `opentitan` | `hw/ip/sysrst_ctrl/dv/env/sysrst_ctrl_env_pkg.sv` | `sysrst_ctrl_in_out_inverted_vseq.sv:49:39` | `key0_inXval: cross cp_key0_in, cfg.vif.key0_in;` | `chained:hollow` | `chained_must_accept / deferred:chained_only` |
 | `tolerant_only_pass` | `opentitan` | `hw/ip_templates/flash_ctrl/dv/env/flash_ctrl_env_pkg.sv` | `flash_otf_read_entry.sv:129:30` | `foreach (prv_read[i][j]) begin` | `must_reject:match_under_expansion` | `must_accept / divergence:explained_svpp_include` |
-| `tolerant_only_pass` | `opentitan` | `hw/ip_templates/flash_ctrl/dv/env/flash_ctrl_scoreboard.sv` | `flash_ctrl_scoreboard.sv:106:49` | `foreach (cfg.flash_ctrl_vif.hazard[i][j]) begin` | `chained:unreached_in_unit` | `chained_must_accept / deferred:chained_only` |
+| `tolerant_only_pass` | `opentitan` | `hw/ip_templates/flash_ctrl/dv/env/flash_ctrl_scoreboard.sv` | `flash_ctrl_scoreboard.sv:106:49` | `foreach (cfg.flash_ctrl_vif.hazard[i][j]) begin` | `-` | `no_unit / deferred:no_unit` |
 | `tolerant_only_pass` | `opentitan` | `hw/top_earlgrey/ip_autogen/flash_ctrl/dv/env/flash_ctrl_env_pkg.sv` | `flash_otf_read_entry.sv:129:30` | `foreach (prv_read[i][j]) begin` | `must_reject:match_under_expansion` | `must_accept / divergence:explained_svpp_include` |
 | `tolerant_only_pass` | `opentitan` | `hw/top_earlgrey/ip_autogen/flash_ctrl/dv/env/flash_ctrl_scoreboard.sv` | `flash_ctrl_scoreboard.sv:106:49` | `foreach (cfg.flash_ctrl_vif.hazard[i][j]) begin` | `chained:unreached_in_unit` | `chained_must_accept / deferred:chained_only` |
 | `tolerant_only_pass` | `opentitan` | `hw/top_englishbreakfast/ip_autogen/flash_ctrl/dv/env/flash_ctrl_env_pkg.sv` | `flash_otf_read_entry.sv:129:30` | `foreach (prv_read[i][j]) begin` | `must_reject:match_under_expansion` | `must_accept / divergence:explained_svpp_include` |
@@ -109,14 +109,13 @@ A member file's verdict under the pipeline is its package unit's (`SVPP-EXPANSIO
 
 | 2017 reading | rows | under `sv_2023_tolerant` |
 |---|---:|---|
-| `unreached_in_unit` | 337 | **337** are included by a unit that PASSES — reached |
-| `accepted_in_unit` | 1498 | **0** have no passing unit — a regression candidate |
+| `unreached_in_unit` | 261 | **261** are included by a unit that PASSES — reached |
+| `accepted_in_unit` | 1492 | **0** have no passing unit — a regression candidate |
 
 The members the tolerant reading reaches, by the passing unit that includes them (the per-member rows are in `census.tsv`, kind `member`):
 
 | suite | unit (package file) | members reached |
 |---|---|---:|
-| `opentitan` | `hw/ip_templates/flash_ctrl/dv/env/flash_ctrl_env_pkg.sv` | 76 |
 | `opentitan` | `hw/top_earlgrey/ip_autogen/flash_ctrl/dv/env/flash_ctrl_env_pkg.sv` | 76 |
 | `opentitan` | `hw/top_englishbreakfast/ip_autogen/flash_ctrl/dv/env/flash_ctrl_env_pkg.sv` | 76 |
 | `opentitan` | `hw/ip/sysrst_ctrl/dv/env/sysrst_ctrl_env_pkg.sv` | 22 |

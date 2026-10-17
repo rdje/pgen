@@ -87,7 +87,9 @@ SUITE_META = re.compile(
     r"|driver \S+\.py|positive test|negative test|clause-keyed|suite contract|fixture"
     r"|:should_fail_because:|TYPE:\s*(?:POSITIVE|NEGATIVE)"
     # an annotation the corpus file carries about ITSELF is still the suite declaring intent
-    r"|in-file comment|header says", re.I)
+    r"|in-file comment|header says"
+    # SV-CORPUS-GRAD.59: a design file no unit compiles, derived from the suite's own compile declarations
+    r"|compiled by no unit|core\.tpl|is_include_file", re.I)
 
 CLAUSE, TOOL, SUITE, UNCLASSIFIED = (
     "clause-cited", "tool-testimony", "suite-convention", "UNCLASSIFIED")
@@ -273,6 +275,9 @@ def self_test() -> int:
          "a golden log read for its message"),
         ("ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect",
          SUITE, "a driver LIST metadata field, no tool output inspected"),
+        ("design corpus, compiled by no unit (SV-CORPUS-GRAD.59): a template copy under hw/ip_templates/flash_ctrl/ - a "
+         "directory whose compile declarations are all `*.core.tpl` templates (no `*.core` at any depth), rendered by ipgen",
+         SUITE, "SV-CORPUS-GRAD.59: a no-unit row reads the suite's compile declarations, no tool output"),
         ("ivtest: vvp_tests descriptor(s) br_gh1087a3.json - runs under an explicit SV generation",
          SUITE, "a descriptor, still metadata"),
         ("sv2v error-suite key: declaration grammar violation", TOOL, "an error-suite key"),

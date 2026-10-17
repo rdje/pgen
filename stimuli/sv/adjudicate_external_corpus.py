@@ -65,6 +65,10 @@ Adjudication classes:
                                          (no verdict here)
   deferred:not_source_text               the row is a fact about the CORPUS, not the parser
                                          (PERMANENT and ceiling-bounded in the instrument)
+  deferred:no_unit                       an OpenTitan file the suite's own compile declarations
+                                         compile nowhere (a template copy, a dead include file —
+                                         SV-CORPUS-GRAD.59): the design convention's must-accept
+                                         has no subject; PERMANENT and ceiling-bounded
 
 Deterministic: output ordering is (suite, relpath); content-derived only.
 
@@ -5969,6 +5973,152 @@ class SurelogIndex:
 
 # opentitan / black-parrot / uvm-core join the design-corpus lane: real-design
 # trees whose files need include/define chaining to adjudicate honestly.
+class OpenTitanNoUnitIndex:
+    """SV-CORPUS-GRAD.59 — the OpenTitan files the suite's OWN compile declarations compile NOWHERE, derived
+    from the tree on every run (never a list). The DESIGN_SUITES convention — *a shipping design's file is
+    valid as part of its unit* — presumes a unit; for a file no unit compiles the expectation has no subject,
+    so the row is a fact about the corpus's composition (like `not_source_text`), PERMANENT and ceiling-bounded.
+    Two mechanical cases, each stated with the evidence that decides it:
+      (a) a TEMPLATE copy — a top-level directory under hw/ip_templates/ whose compile declarations are ALL
+          templates (>= 1 `*.core.tpl` below it, no `*.core` at any depth): ipgen renders it into
+          hw/top_*/ip_autogen/<ip>/, where the rendered copies carry real `.core` files and are the unit
+          members; the copy under hw/ip_templates/ is compiled in place by nothing;
+      (b) a DEAD include file — an entry a `.core` lists `is_include_file: true` that no `` `include `` of the
+          tree names (literal operand, matched by basename), that no `.core` lists as a compiled source, and
+          whose listing core holds no source including through a MACRO-BUILT name (`` `include `NAME `` —
+          aes_tb_pkg.sv's `` `include `REQUESTS_FILE `` names its data tables that way, so that core's
+          include entries are never dead here: the guard that keeps the rule conservative).
+    Everything the derivation cannot decide keeps the convention (None). Other design suites declare their
+    compiles in Makefiles, `.f` lists and Bender manifests this index does not read: they get None."""
+
+    INC_LITERAL = re.compile(r'`include\s+"([^"]+)"')
+    INC_MACRO = re.compile(r'`include\s+`[A-Za-z_]\w*')
+    CORE_ENTRY = re.compile(r"^\s*-\s*([^\s:{}]+)(?:\s*:\s*\{([^}]*)\})?\s*$")
+
+    def __init__(self, root: Path):
+        self.root = root
+        self.template_dirs: list[str] = []
+        self.dead: dict[str, str] = {}
+        if not root.is_dir():
+            return
+        tpl = root / "hw" / "ip_templates"
+        if tpl.is_dir():
+            for d in sorted(p for p in tpl.iterdir() if p.is_dir()):
+                has_core = any(d.rglob("*.core"))
+                has_tpl = any(d.rglob("*.core.tpl"))
+                if has_tpl and not has_core:
+                    self.template_dirs.append(d.relative_to(root).as_posix() + "/")
+        sources: set[str] = set()
+        inc_entries: dict[str, str] = {}      # resolved include-only entry -> listing core (repo-relative)
+        core_sources: dict[str, list[Path]] = {}
+        for core in sorted(root.rglob("*.core")):
+            in_files = False
+            try:
+                lines = core.read_text(encoding="utf-8", errors="replace").splitlines()
+            except OSError:
+                continue
+            for line in lines:
+                s = line.rstrip()
+                if re.match(r"^\s*files\s*:", s):
+                    in_files = True
+                    continue
+                if in_files and s and not s.startswith(" ") and not s.startswith("-"):
+                    in_files = False
+                if not in_files:
+                    continue
+                m = self.CORE_ENTRY.match(s)
+                if not m:
+                    continue
+                p = (core.parent / m.group(1)).resolve()
+                if not p.exists():
+                    continue
+                if m.group(2) and "is_include_file" in m.group(2):
+                    inc_entries.setdefault(str(p), core.relative_to(root).as_posix())
+                else:
+                    sources.add(str(p))
+                    core_sources.setdefault(core.relative_to(root).as_posix(), []).append(p)
+        included: set[str] = set()
+        macro_cores: set[str] = set()
+        for p in list(root.rglob("*.sv")) + list(root.rglob("*.svh")) + list(root.rglob("*.v")) + list(root.rglob("*.vh")):
+            try:
+                text = p.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            included |= {m.rsplit("/", 1)[-1] for m in self.INC_LITERAL.findall(text)}
+        for core_rel, srcs in core_sources.items():
+            for sp in srcs:
+                try:
+                    if self.INC_MACRO.search(sp.read_text(encoding="utf-8", errors="replace")):
+                        macro_cores.add(core_rel)
+                        break
+                except OSError:
+                    continue
+        for p, core_rel in inc_entries.items():
+            if p in sources or core_rel in macro_cores:
+                continue
+            if p.rsplit("/", 1)[-1] in included:
+                continue
+            try:
+                rel = Path(p).relative_to(root.resolve()).as_posix()
+            except ValueError:
+                continue
+            self.dead[rel] = core_rel
+
+    def reason(self, rel: str):
+        """The no-unit evidence for a suite-relative path, or None (the convention keeps the row)."""
+        for d in self.template_dirs:
+            if rel.startswith(d):
+                return (f"a template copy under {d} — a directory whose compile declarations are all `*.core.tpl` "
+                        f"templates (no `*.core` at any depth), rendered by ipgen into hw/top_*/ip_autogen/ where the "
+                        f"rendered copies carry the real cores; compiled in place by nothing")
+        core = self.dead.get(rel)
+        if core:
+            return (f"an include file {core} lists `is_include_file: true` that no `include directive of the tree "
+                    f"names and no core lists as a compiled source (that core's sources include nothing through a "
+                    f"macro-built name); included by nothing, compiled by nothing")
+        return None
+
+
+def _self_check_no_unit():
+    """SV-CORPUS-GRAD.59 — ground truth for the no-unit derivation on a literal tree, both directions, re-run
+    on every invocation like the not-source check."""
+    import tempfile
+    with tempfile.TemporaryDirectory(dir=str(Path(__file__).resolve().parent.parent.parent / "rust/target")) as td:
+        r = Path(td)
+        (r / "hw/ip_templates/x/dv").mkdir(parents=True)
+        (r / "hw/ip_templates/x/x.core.tpl").write_text("name: x\n")
+        (r / "hw/ip_templates/x/dv/f.sv").write_text("module f; endmodule\n")
+        (r / "hw/ip_templates/y/dv").mkdir(parents=True)
+        (r / "hw/ip_templates/y/y.core").write_text("name: y\nfilesets:\n  files_rtl:\n    files:\n      - dv/g.sv\n")
+        (r / "hw/ip_templates/y/dv/g.sv").write_text("module g; endmodule\n")
+        (r / "hw/ip/z").mkdir(parents=True)
+        (r / "hw/ip/z/z.core").write_text("filesets:\n  files_dv:\n    files:\n      - a.sv\n      - b.svh: {is_include_file: true}\n      - c.svh: {is_include_file: true}\n")
+        (r / "hw/ip/z/a.sv").write_text('`include "b.svh"\nmodule a; endmodule\n')
+        (r / "hw/ip/z/b.svh").write_text("// b\n"); (r / "hw/ip/z/c.svh").write_text("// c\n")
+        (r / "hw/ip/w").mkdir(parents=True)
+        (r / "hw/ip/w/w.core").write_text("filesets:\n  files_dv:\n    files:\n      - m.sv\n      - d.svh: {is_include_file: true}\n")
+        (r / "hw/ip/w/m.sv").write_text("`include `DATA_FILE\nmodule m; endmodule\n"); (r / "hw/ip/w/d.svh").write_text("// d\n")
+        (r / "hw/ip/v").mkdir(parents=True)
+        (r / "hw/ip/v/v.core").write_text("filesets:\n  files_dv:\n    files:\n      - e.sv\n")
+        (r / "hw/ip/v/e.sv").write_text("module e; endmodule\n")
+        idx = OpenTitanNoUnitIndex(r)
+        checks = [
+            ("a file under a templates-only directory has no unit", idx.reason("hw/ip_templates/x/dv/f.sv") is not None and "template copy" in idx.reason("hw/ip_templates/x/dv/f.sv")),
+            ("a file under an ip_templates directory that holds a real .core keeps the convention", idx.reason("hw/ip_templates/y/dv/g.sv") is None),
+            ("an include-only entry a source includes keeps the convention", idx.reason("hw/ip/z/b.svh") is None),
+            ("an include-only entry nothing includes is dead", idx.reason("hw/ip/z/c.svh") is not None and "included by nothing" in idx.reason("hw/ip/z/c.svh")),
+            ("a core whose source includes through a macro-built name never yields a dead entry", idx.reason("hw/ip/w/d.svh") is None),
+            ("a compiled source keeps the convention", idx.reason("hw/ip/v/e.sv") is None and idx.reason("hw/ip/z/a.sv") is None),
+            ("a path the tree does not declare keeps the convention", idx.reason("hw/ip/q/none.sv") is None),
+        ]
+        fails = [n for n, ok in checks if not ok]
+        if fails:
+            raise SystemExit("adjudicator MISCALIBRATED: the no-unit derivation fails its ground truth: " + "; ".join(fails))
+        empty = OpenTitanNoUnitIndex(r / "absent")
+        if empty.reason("hw/ip_templates/x/dv/f.sv") is not None:
+            raise SystemExit("adjudicator MISCALIBRATED: a missing OpenTitan root must yield no no-unit rows")
+
+
 DESIGN_SUITES = {"Cores-VeeR-EL2", "friscv", "scr1",
                  "opentitan", "black-parrot", "uvm-core"}
 
@@ -7108,6 +7258,9 @@ def adjudicate(expected, observed, dep_flag):
         return "deferred:chained_only"
     if expected == "not_source_text":
         return "deferred:not_source_text"
+    if expected == "no_unit":
+        # SV-CORPUS-GRAD.59: no unit compiles the file, so the convention's must-accept has no subject
+        return "deferred:no_unit"
     if expected.startswith("out_of_scope_with_cause"):
         # A ':<slug>' suffix names the owning lane (SV-CORPUS-GRAD.8); the
         # bare form keeps the historical svpp_owned label byte-stable.
@@ -7583,7 +7736,7 @@ def blank_comments_only(text: str) -> str:
     return COMMENT_STRING_RE.sub(repl, text)
 
 
-def key_2017(suite, rel, text, vidx, ividx, sidx):
+def key_2017(suite, rel, text, vidx, ividx, sidx, nidx=None):
     """The sv_2017 lane's answer key for ONE row: the pinned overrides first, then the suite
     conventions, then each suite's own oracle. Factored out of main() by SV-CORPUS-GRAD.14b.2 so
     the sv_2023 lane keys the same rows through the same code and differs ONLY by edition."""
@@ -7603,6 +7756,13 @@ def key_2017(suite, rel, text, vidx, ividx, sidx):
         # not standalone compilation units (may be bare fragments).
         return ("chained_only", f"{suite}: .svh include payload, not a standalone unit")
     if suite in DESIGN_SUITES:
+        # SV-CORPUS-GRAD.59: the convention presumes a unit. A file OpenTitan's own compile declarations
+        # compile nowhere (a template copy, a dead include file — derived by OpenTitanNoUnitIndex) has no
+        # unit to be valid in: a corpus-composition fact, PERMANENT and ceiling-bounded, never a must-accept.
+        if suite == "opentitan" and nidx is not None:
+            why = nidx.reason(rel)
+            if why:
+                return ("no_unit", "design corpus, compiled by no unit (SV-CORPUS-GRAD.59): " + why)
         # SVPP-EXPANSION.6c.1's convention, carried by the KEY since SV-CORPUS-GRAD.57: a shipping
         # design's file is valid as part of its unit; the raw lane still parses it in isolation
         return ("chained_must_accept",
@@ -7975,6 +8135,7 @@ def main():
     # so a broken split refuses to produce a manifest rather than producing a wrong one.
     _self_check_arm_split()
     _self_check_not_source_text()
+    _self_check_no_unit()
     ap = argparse.ArgumentParser(description=__doc__)
     root = Path(__file__).resolve().parent.parent.parent  # repo root
     ap.add_argument("--self-test", action="store_true",
@@ -8103,12 +8264,13 @@ def main():
     vidx = VerilatorIndex(args.subs_root / "verilator/test_regress/t")
     ividx = IvtestIndex(args.subs_root / "iverilog/ivtest")
     sidx = SurelogIndex(args.subs_root / "Surelog/tests")
+    nidx = OpenTitanNoUnitIndex(args.subs_root / "opentitan")   # SV-CORPUS-GRAD.59
 
     resolve = resolve_corpus_path(args)
     manifest = []
     for suite, rel, observed in rows:
         text = read_text(resolve(suite, rel))
-        expected, basis = key_2017(suite, rel, text, vidx, ividx, sidx)
+        expected, basis = key_2017(suite, rel, text, vidx, ividx, sidx, nidx)
         manifest.append(finish_row(suite, rel, observed, text, expected, basis, positions))
     manifest = edition_keyword_pass("sv_2017", manifest, resolve, positions)
 
@@ -8207,7 +8369,7 @@ def main():
         manifest23 = []
         for suite, rel, observed in rows23:
             text = read_text(resolve(suite, rel))
-            e17, b17 = key_2017(suite, rel, text, vidx, ividx, sidx)
+            e17, b17 = key_2017(suite, rel, text, vidx, ividx, sidx, nidx)
             e23, b23 = key_2023(suite, rel, e17, b17)
             manifest23.append(finish_row(suite, rel, observed, text, e23, b23, positions23,
                                          profile="sv_2023"))

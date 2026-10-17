@@ -29,7 +29,7 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 | pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `7b1ac7eaa01fe7b4646878b2ae9117b82bb11b1650f46927cb26742c266d8274` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
 
-Measured at `HEAD` = `b21f4925b+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `fddf19519+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -147,11 +147,12 @@ Measured at `HEAD` = `b21f4925b+dirty`; the parse binary is a **debug** build (t
 | adjudication class | rows | pipeline pass | pipeline fail | pp_fail | timeout | crash |
 |---|---:|---:|---:|---:|---:|---:|
 | `match` | 6313 | 5928 | 382 | 3 | 0 | 0 |
-| `deferred:chained_only` | 4934 | 2385 | 2167 | 382 | 0 | 0 |
+| `deferred:chained_only` | 4729 | 2314 | 2036 | 379 | 0 | 0 |
 | `deferred:v2005_profile_lane` | 2943 | 2858 | 71 | 14 | 0 | 0 |
 | `divergence:explained_svpp_macro_use` | 1029 | 1006 | 4 | 19 | 0 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 350 | 0 | 0 | 0 |
 | `deferred:svpp_owned` | 247 | 96 | 86 | 65 | 0 | 0 |
+| `deferred:no_unit` | 205 | 71 | 131 | 3 | 0 | 0 |
 | `divergence:explained_svpp_conditional` | 196 | 194 | 1 | 1 | 0 | 0 |
 | `divergence:explained_svpp_include` | 133 | 128 | 0 | 5 | 0 | 0 |
 | `deferred:impl_varying` | 90 | 89 | 1 | 0 | 0 | 0 |

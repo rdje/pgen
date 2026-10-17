@@ -54,17 +54,17 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 | **No verdict** — nothing is known about these rows | 5 660 | 34.6 % |
 | Total | 16 336 | 100.0 % |
 
-Only **7 733 rows (47.3 %)** were asked a question they could answer, and **3 812** of the no-verdict rows are *dark* — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6313/7733 would quietly drop the 34.6 % carrying no verdict at all and the 18.0 % answered in another lane's manifest.
+Only **7 733 rows (47.3 %)** were asked a question they could answer, and **3 640** of the no-verdict rows are *dark* — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6313/7733 would quietly drop the 34.6 % carrying no verdict at all and the 18.0 % answered in another lane's manifest.
 
 **Under the reading leg 3 asserts** (`DONE-BAR.3f`): the table above is the RAW lane; the bar reads a row the raw lane defers to the preprocess→parse pipeline under that pipeline's re-adjudication, and names — never demands — the permanently unadjudicable classes, each held under a recorded ceiling. Derived by the register's tracked assertion (`python3 stimuli/sv/corpus_conformance_compare.py --assert-tracked stimuli/sv/characterization/adjudication_manifest.tsv --assert-tracked-v2005 stimuli/sv/characterization/adjudication_manifest_v2005.tsv`), its sv_2017 reading cross-checked against the tuple under the pipeline that `bash scripts/check_sv_corpus_denominator.sh` prints.
 
 | Lane | Rows | Adjudicated | Permanently unadjudicable (named, bounded) | **Still awaiting a verdict** | Unexplained | Bar rows | `full_pass` |
 |---|---:|---:|---:|---:|---:|---:|---|
-| `sv_2017` — the corpus, raw rows read under the pipeline where it re-read them | 16 336 | 11 662 | 479 | **1 252** | 0 | 0 | `false` |
+| `sv_2017` — the corpus, raw rows read under the pipeline where it re-read them | 16 336 | 11 585 | 684 | **1 124** | 0 | 0 | `false` |
 | `verilog_2005` — the routed rows, read raw under IEEE 1364-2005 | 2 943 | 2 896 | 33 | **14** | 0 | 0 | `false` |
-| **Both lanes — the corpus** | 16 336 | 14 558 | 512 | **1 266** | 0 | 0 | `false` |
+| **Both lanes — the corpus** | 16 336 | 14 481 | 717 | **1 138** | 0 | 0 | `false` |
 
-The three row counts sum to the denominator (14 558 + 512 + 1 266 = 16 336). **1 266 rows still stand between this corpus and leg 3** — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-`.3f` bit (`no_verdict == 0` on the raw lane, unreachable by construction) reads `false` and is kept by name as `full_pass_raw_lane`.
+The three row counts sum to the denominator (14 481 + 717 + 1 138 = 16 336). **1 138 rows still stand between this corpus and leg 3** — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-`.3f` bit (`no_verdict == 0` on the raw lane, unreachable by construction) reads `false` and is kept by name as `full_pass_raw_lane`.
 
 **What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. **4 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 

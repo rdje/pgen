@@ -885,7 +885,9 @@ the day the ruling lands. The dark population is now named by its unit's origin 
 together and held by the same gate: the raw lane's `7486/2606/6244/4037/9`, and `9135/2606/4595/3312/14`
 under the pipeline. The second is the first with the re-adjudication table applied: 1 218 explained-away
 rows corroborated, 1 704 design-corpus files accepted under their derived context and library (must-accept by the
-suite's own convention — a shipping design compiles), 448 must-reject rows rejected where the raw lane
+suite's own convention — a shipping design compiles; since 2026-10-17 a file no unit of the suite compiles is outside that
+convention: `SV-CORPUS-GRAD.59`'s permanent `deferred:no_unit` class, 205 OpenTitan template copies and dead include files the
+pipeline no longer re-reads or credits), 448 must-reject rows rejected where the raw lane
 never reached the construct (28 of them the key questions of the disposition table, pinned with the
 clause and a reproducer each, 3 the rows a file's own driver define reaches — `.4c.1`, and 11 the pipeline-routed parser questions re-read at the furthest token — `SV-CORPUS-GRAD.12b.1`; since 2026-10-17 six more are `SV-CORPUS-GRAD.60`'s edition contrast — an unsized `[ ]` parameter dimension in six OpenTitan package files, refused under IEEE 1800-2017 and derived by IEEE 1800-2023, so the sv_2023 reading expects them accepted), and 5 must-accept rows still refused in their own text (three of `.12b.1`'s four grammar families shipped: the spaced `@ ( * )` as `1.0.228` — nine pipeline rows `fail → pass` — and the `$`-indexed receiver with the sv_2023 `+%-` range as `1.0.229`, whose streaming-slice row proved the standard's own refusal and is pinned) — the bar's
 members, each with its clause, until the corpus tree rules them. 2 935 rows are dark under the pipeline

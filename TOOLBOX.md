@@ -362,7 +362,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```
   ⭐ **THE RE-ADJUDICATION REPORT** (`stimuli/sv/characterization/pipeline_readjudication.md`, per row in the
   `.tsv`): every `divergence:explained_svpp_*`, `deferred:chained_only` and `deferred:svpp_owned` row of the
-  answer key joined with the `.12a` position verdict / the `.13c` stratum and the pipeline's outcome —
+  answer key (a `deferred:no_unit` row — `SV-CORPUS-GRAD.59`, a file no unit compiles — is not re-read: no unit to read it through) joined with the `.12a` position verdict / the `.13c` stratum and the pipeline's outcome —
   `corroborated` (a must-accept row the raw lane explained away now PASSES preprocessed), `refuted` (it still
   fails in its OWN file: a defect candidate for `.6b`), `hollow` (the rejection lands in an included file),
   `refused_context` / `refused_engine`, the `chained:` / `svpp_owned:` forms for rows the key holds no

@@ -24,9 +24,10 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 
 | class | count |
 |---|---|
-| deferred:chained_only | 4928 |
+| deferred:chained_only | 4723 |
 | deferred:impl_varying | 90 |
 | deferred:ni_unimplemented | 14 |
+| deferred:no_unit | 205 |
 | deferred:not_source_text | 350 |
 | deferred:svpp_owned | 243 |
 | deferred:v2005_profile_lane | 2943 |

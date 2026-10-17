@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.59 (`PGEN-SV-CORPUS-GRAD-0455`): a convention's premise is derived per file or it is a guess
+
+- **A derivation is only as honest as the declarations it reads.** "Compiled by no unit" from fusesoc cores alone classed 328 rows and would have called ibex's whole DV dead because its flow is a `.f` list the index did not read. The class was cut to the two cases the tree decides without a flow — a templates-only directory, an include file nothing includes — and the rest left to the convention with the reason written down.
+- **The first cut's guard came from one grep.** `aes_tb_pkg.sv` includes its data tables through `` `include `REQUESTS_FILE ``; a dead-include rule on literal operands alone would have classed five live files. One macro-include guard per core, and the rule is conservative by construction.
+- **An honest class can lower the adjudicated count.** Seventy-seven template copies had been credited under the pipeline by a convention with no subject; removing them is the direction the denominator doctrine exists for.
+
 ## 2026-10-17 — SV-CORPUS-GRAD.60 (`PGEN-SV-CORPUS-GRAD-0454`): read the decisions before proposing a ruling
 
 - **A shape a strict profile rejects may already be a decision, not a question.** Two of the four shapes I routed as pin candidates were the director's tolerance-list members of 2026-10-02; the strict readings reject them by that decision. `docs/decisions/` and the `.41` census answered in one grep what I had queued as a leaf. Read the decisions register before writing "pin candidate".

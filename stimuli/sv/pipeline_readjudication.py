@@ -149,7 +149,8 @@ DISPOSITION_KINDS = {
 POPULATIONS = (
     ("explained_svpp", "must-accept rows the raw lane explained away by preprocessing "
                        "(`divergence:explained_svpp_*`; `.12a`'s position test, `.12b`'s 263)"),
-    ("chained_only", "multi-file design rows the raw lane could not judge (`deferred:chained_only`; "
+    ("chained_only", "multi-file design rows the raw lane could not judge (`deferred:chained_only`; a `deferred:no_unit` "
+                     "row — SV-CORPUS-GRAD.59, a file no unit compiles — is NOT re-read: there is no unit to read it through; "
                      "`.13c`'s strata, `.13d`'s expansion-owned rows)"),
     ("svpp_owned", "rows whose conformance the raw lane routed to the preprocessor lane "
                    "(`deferred:svpp_owned`) and for which this lane derives no expectation yet"),

@@ -142,6 +142,11 @@ CLASSES = {
         "NO VERDICT", "the file is not SystemVerilog source text at all (a $readmemh memory "
         "image, a bare string literal, a tool command line) - it testifies to nothing about "
         "the parser; a CORPUS-COMPOSITION fact, stated per row (SV-CORPUS-GRAD.13c.1)"),
+    "deferred:no_unit": (
+        "NO VERDICT", "an OpenTitan file the suite's own compile declarations compile NOWHERE - a "
+        "template copy under hw/ip_templates/ (only `.core.tpl` templates, rendered elsewhere) or an "
+        "include file a core lists that nothing includes - so the design convention's must-accept has "
+        "no subject; a CORPUS-COMPOSITION fact, derived per row from the tree (SV-CORPUS-GRAD.59)"),
     "deferred:vendor_extension_enabled": (
         "NO VERDICT", "the descriptor switches a NON-STANDARD vendor extension ON, so "
         "'it compiled' is testimony about a superset language (SV-CORPUS-GRAD.13e.3)"),
@@ -294,7 +299,7 @@ def pipeline_reading(rows, readj):
             if cls in PIPELINE_BAR_CLASSES or cls in ("divergence:unexplained_rejects_valid",
                                                        "divergence:unexplained_accepts_invalid"):
                 bar += 1
-            if bucket == "NO VERDICT" and status != "pass" and raw_cls != NOT_SOURCE:
+            if bucket == "NO VERDICT" and status != "pass" and raw_cls not in NOT_DARK:
                 dark += 1
         else:
             bucket = CLASSES[raw_cls][0]
@@ -302,7 +307,7 @@ def pipeline_reading(rows, readj):
             by_bucket[bucket] += 1
             if raw_cls in ("divergence:unexplained_rejects_valid", "divergence:unexplained_accepts_invalid"):
                 bar += 1
-            if bucket == "NO VERDICT" and r["observed"] == "fail" and raw_cls != NOT_SOURCE:
+            if bucket == "NO VERDICT" and r["observed"] == "fail" and raw_cls not in NOT_DARK:
                 dark += 1
     return counts, by_bucket, bar, dark
 
@@ -311,6 +316,9 @@ def pipeline_reading(rows, readj):
 # as SystemVerilog is not a parse nobody looked at, it is a file that was never a parse input.
 # The adjudicator decides membership from the BYTES (`not_source_text()`), never from a list.
 NOT_SOURCE = "deferred:not_source_text"
+# SV-CORPUS-GRAD.59: the second such class - a file no unit compiles was never a compile input either.
+NO_UNIT = "deferred:no_unit"
+NOT_DARK = {NOT_SOURCE, NO_UNIT}
 
 # --- SV-CORPUS-GRAD.13f: the PERMANENT deferrals, stated as permanent and BOUNDED -----------------
 # ⛔ A permanent deferral is a CLAIM — "no future work on the parser, the key or the corpus can give
@@ -342,6 +350,13 @@ PERMANENT = {
         "memory image (IEEE 1800-2017 §21.4), a bare string literal, a tool command line - so no "
         "answer key, no include/define chaining and no grammar revision can produce a verdict "
         "ABOUT SYSTEMVERILOG from them; the row is a statement about the corpus's composition",
+    "deferred:no_unit":
+        "no unit of the suite compiles the file (OpenTitan: a template copy whose only compile "
+        "declarations are `.core.tpl` templates rendered elsewhere, or an include file a core lists "
+        "that nothing includes - derived from the tree by the adjudicator, never from a list), so the "
+        "design convention 'valid as part of its unit' has no subject: no chaining, no context and no "
+        "grammar revision can make a file valid in a unit that does not exist; the row is a statement "
+        "about the corpus's composition (SV-CORPUS-GRAD.59)",
 }
 # DONE-BAR.3f (2026-10-08): the verilog_2005 LANE's permanent classes, stated beside the sv_2017 ones so
 # permanence has ONE home. That lane has no coverage instrument of its own (its rows are the sv_2017
@@ -424,6 +439,12 @@ TICK_MEANING = {
         "could alter a failing PARSE of source text; these rows are not source text, so there "
         "is no parse for a directive to reach. They are excluded from DARK by construction "
         "(`.13c.1`) and appear here only so the class table is total",
+    "deferred:no_unit":
+        "⛔ **NOT MEASURED, and saying so is the point** — expansion could alter these parses, "
+        "but no unit of the suite compiles the file (SV-CORPUS-GRAD.59: a template copy rendered "
+        "elsewhere, an include file nothing includes), so there is no unit for chaining to read it "
+        "through and no expectation to refute. Excluded from DARK by construction and listed only so "
+        "the class table is total",
     "deferred:vendor_extension_enabled":
         "⛔ **IRRELEVANT to this deferral, and saying so is the point** — the row is "
         "parked because of what the ANSWER KEY tested, never because of what the TEXT "
@@ -602,6 +623,9 @@ def main():
         if r["adjudication"] == NOT_SOURCE:
             # SV-CORPUS-GRAD.13c.1: not a parse of source text, so neither testimony nor DARK.
             s["not_source"] += 1
+        elif r["adjudication"] == NO_UNIT:
+            # SV-CORPUS-GRAD.59: never a compile input of the suite, so neither testimony nor DARK.
+            s["no_unit"] += 1
         elif r["observed"] == "pass":
             s["one_sided_fragment" if is_fragment_shaped(r) else "one_sided_unit"] += 1
         else:
@@ -617,7 +641,7 @@ def main():
         for r, rel in zip(rows, paths):
             if (CLASSES[r["adjudication"]][0] == "NO VERDICT"
                     and r["observed"] == "fail"
-                    and r["adjudication"] != NOT_SOURCE):
+                    and r["adjudication"] not in NOT_DARK):
                 dark_scanned += 1
                 if has_no_backtick(ROOT / rel):
                     no_tick[r["adjudication"]] += 1
