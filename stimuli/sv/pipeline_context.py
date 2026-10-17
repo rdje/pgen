@@ -496,14 +496,170 @@ def derive_units(suite: str, base: pathlib.Path):
     return rows, reported, ties
 
 
+# SVPP-EXPANSION.4c.3 — opentitan: the IP's OWN dvsim configuration. A `*_sim_cfg.hjson` declares
+# `build_modes: [{name, build_opts: ["+define+NAME[=VALUE]", …]}]`, enables some for every test
+# (`en_build_modes`) or lets a test pick one (`build_mode:`), carries its own top-level `build_opts`,
+# and imports a base cfg (`import_cfgs: ["{proj_root}/…"]`) whose modes it may enable. Each cfg and
+# each enabled / picked mode is one CONFIGURATION the IP's harness compiles its dv tree under; the
+# nearest cfg directory owns a file. Several configurations of one directory are VARIANTS: the lane
+# applies the FIRST by name and reports the others (every value is a literal the cfg itself wrote;
+# a templated value such as `{tl_aw}` is computed and reported, never emitted). The project-wide
+# `hw/dv/tools/dvsim/common_sim_cfg.hjson` is not an IP's directory and is left to the suite rows.
+SIM_CFG_GLOB = "*_sim_cfg.hjson"
+HJSON_DEFINE = re.compile(r'"\+define\+([A-Za-z_]\w*)(?:=([^"\s]*))?"')
+HJSON_QUOTED = re.compile(r'"([^"\n]*)"')
+
+
+def _hjson_bracket(text: str, key: str, start: int = 0):
+    """(inner text, end) of the first `key: [ … ]` at or after `start`, bracket-balanced; None if absent."""
+    m = re.compile(r"(?<![\w])" + re.escape(key) + r"\s*:\s*\[").search(text, start)
+    if not m:
+        return None
+    depth, i = 1, m.end()
+    while i < len(text) and depth:
+        depth += {"[": 1, "]": -1}.get(text[i], 0)
+        i += 1
+    return text[m.end():i - 1], i
+
+
+def _hjson_modes(text: str) -> dict:
+    """{mode name: [define tokens]} from a cfg's `build_modes` block."""
+    blk = _hjson_bracket(text, "build_modes")
+    if not blk:
+        return {}
+    modes = {}
+    # a brace inside a quoted value (`"+define+W={tl_aw}"`) is text, not an entry boundary
+    safe = re.sub(r'"[^"\n]*"', lambda m: m.group(0).replace("{", "\x01").replace("}", "\x02"), blk[0])
+    for entry in re.split(r"\}\s*\{|\{|\}", safe):
+        entry = entry.replace("\x01", "{").replace("\x02", "}")
+        nm = re.search(r"(?<![\w])name\s*:\s*([^\s,]+)", entry)
+        opts = _hjson_bracket(entry, "build_opts")
+        if nm and opts:
+            modes[nm.group(1)] = HJSON_DEFINE.findall(opts[0])
+    return modes
+
+
+def _hjson_names(text: str, key: str) -> list[str]:
+    blk = _hjson_bracket(text, key)
+    return HJSON_QUOTED.findall(blk[0]) if blk else []
+
+
+def opentitan_sim_cfg_defines(base: pathlib.Path):
+    """(rows [(suite, relpath, define, source)], computed {relpath: [names]},
+    variants {dir: {name: {build: value}}}) — SVPP-EXPANSION.4c.3, the IP's own configurations, read from its
+    `dv/*_sim_cfg.hjson`. A cfg nobody imports is a RUN cfg; its default build carries the top-level `build_opts`
+    of its import chain plus the chain's `en_build_modes`, and every `build_mode:` a test of the chain picks is one
+    more build on top of that; a cfg another cfg imports is a base, run only through its importers. A define is
+    applied to the files the cfg directory owns only when EVERY build of the directory carries it with ONE value;
+    a name the builds disagree on (another value, or absent from one build) is REPORTED per build, never applied —
+    `.6d.1`'s rule, the `.6d.5` parking: a disagreement is reported, not resolved by guessing which build the row
+    meant. A templated value (`{tl_aw}`) is computed: reported, never emitted."""
+    rows, computed, variants = [], {}, {}
+    cfgs = [c for c in sorted(base.rglob(SIM_CFG_GLOB)) if "hw/dv/tools/dvsim" not in c.as_posix()]
+    texts = {c: c.read_text(errors="replace") for c in cfgs}
+
+    def imported(c: pathlib.Path):
+        out = []
+        for ref in _hjson_names(texts[c], "import_cfgs"):
+            p = base / ref.replace("{proj_root}/", "")
+            if p in texts:
+                out.append(p)
+        return out
+
+    importers: dict[pathlib.Path, list] = {}
+    for c in cfgs:
+        for b in imported(c):
+            importers.setdefault(b, []).append(c)
+
+    def chain(c: pathlib.Path, seen=()):
+        """the cfg and every cfg it imports, bases first"""
+        out: list = []
+        for b in imported(c):
+            if b not in seen and b not in out:
+                out += [x for x in chain(b, seen + (c,)) if x not in out]
+        out.append(c)
+        return out
+
+    def top_defs_of(c: pathlib.Path):
+        text = texts[c]
+        own_top = _hjson_bracket(text, "build_opts")
+        # the FIRST build_opts at the cfg's own level: inside a build_modes block it belongs to a mode
+        modes_blk = _hjson_bracket(text, "build_modes")
+        if own_top and not (modes_blk and modes_blk[1] - len(modes_blk[0]) - 1 < own_top[1] <= modes_blk[1]):
+            return HJSON_DEFINE.findall(own_top[0])
+        return []
+
+    by_dir: dict[pathlib.Path, list] = {}
+    for c in cfgs:
+        if c in importers:
+            continue  # a base: run only through the cfgs importing it
+        members = chain(c)
+        modes: dict = {}
+        for m in members:
+            modes.update(_hjson_modes(texts[m]))
+        top = [d for m in members for d in top_defs_of(m)]
+        enabled: list[str] = []
+        for m in members:
+            enabled += [n for n in _hjson_names(texts[m], "en_build_modes") if "{" not in n and n in modes and n not in enabled]
+        picked = sorted({n for m in members for n in re.findall(r"(?<![\w])build_mode\s*:\s*([^\s,}]+)", texts[m])
+                         if "{" not in n and n in modes and n not in enabled})
+        default = top + [d for n in enabled for d in modes[n]]
+        stem = c.stem + (f"+{'+'.join(enabled)}" if enabled else "")
+        confs = [(stem, default)] + [(f"{stem}+{n}", default + modes[n]) for n in picked]
+        if any(defs for _, defs in confs):
+            by_dir.setdefault(c.parent, []).extend((name, c, defs) for name, defs in confs)
+    dirs = sorted(by_dir, key=lambda d: -len(d.as_posix()))     # the nearest cfg directory owns a file
+    owned: dict[pathlib.Path, pathlib.Path] = {}
+    for d in dirs:
+        for f in d.rglob("*"):
+            if f.suffix in (".sv", ".svh") and f not in owned:
+                owned[f] = d
+    for d, confs in by_dir.items():
+        confs = sorted(confs, key=lambda t: t[0])
+        per_build: dict[str, dict] = {}
+        for name, _cfg, defs in confs:
+            per_build[name] = dict(defs)  # a later +define+ of the same name wins, as on a command line
+        agreed, comp, disagreed = [], [], {}
+        for k in sorted({k for m in per_build.values() for k in m}):
+            vals = {b: ("(absent)" if k not in m else ("(defined)" if not m[k] else m[k])) for b, m in per_build.items()}
+            if len(set(vals.values())) == 1:
+                v = next(iter(vals.values()))
+                if "{" in v:
+                    comp.append(k)
+                else:
+                    agreed.append((k, None if v == "(defined)" else v))
+            else:
+                disagreed[k] = vals
+        rel_dir = d.relative_to(ROOT).as_posix()
+        if disagreed:
+            variants[rel_dir] = disagreed
+        if not agreed and not comp:
+            continue
+        n = len(per_build)
+        src = f"{confs[0][1].relative_to(ROOT).as_posix()} ({n} build{'s' if n > 1 else ''} agree: {' '.join(per_build)}; dvsim build_opts)"
+        for f, od in owned.items():
+            if od != d:
+                continue
+            rel = f.relative_to(ROOT).as_posix()
+            for k, v in agreed:
+                rows.append(("opentitan", rel, f"{k}={v}" if v else k, src))
+            if comp:
+                computed[rel] = comp
+    return sorted(set(rows)), computed, variants
+
+
 def derive_defines(suite: str, base: pathlib.Path):
     """Per-file define rows for the suites whose drivers carry them; plus what was REPORTED, not emitted.
-    Returns (rows [(suite, relpath, define, source)], computed {relpath: [names]}, ties {relpath: [drivers]})."""
-    rows, computed, ties = [], {}, {}
+    Returns (rows [(suite, relpath, define, source)], computed {relpath: [names]}, ties {relpath: [drivers]},
+    variants {dir: {name: {build: value}}} — SVPP-EXPANSION.4c.3, the IP's own builds disagree on the name)."""
+    rows, computed, ties, variants = [], {}, {}, {}
+    if suite == "opentitan":
+        rows, computed, variants = opentitan_sim_cfg_defines(base)
+        return rows, computed, ties, variants
     if suite == "verilator":
         tdir = base / "test_regress" / "t"
         if not tdir.is_dir():
-            return rows, computed, ties
+            return rows, computed, ties, variants
         by_target: dict[str, list[pathlib.Path]] = {}
         for py in sorted(tdir.glob("t_*.py")):  # a driver; `*_common.py` helpers are not drivers
             text = py.read_text(errors="replace")
@@ -535,7 +691,7 @@ def derive_defines(suite: str, base: pathlib.Path):
             for m in re.finditer(r"^:defines:\s*(.+)$", head, re.M):
                 for tok in m.group(1).split():
                     rows.append((suite, f.relative_to(ROOT).as_posix(), tok.strip(), f.relative_to(ROOT).as_posix() + " (:defines: header)"))
-    return sorted(set(rows)), computed, ties
+    return sorted(set(rows)), computed, ties, variants
 
 
 def rows_for(suite: str, base: pathlib.Path):
@@ -547,10 +703,11 @@ def rows_for(suite: str, base: pathlib.Path):
     for unit_file, source in HAND_UNITS.get(suite, []):
         rows.append((suite, "unit_file", unit_file, "hand", source))
     file_rows = sorted({(suite, includer, d, name) for includer, d, name in per_file})
-    define_rows, computed, ties = derive_defines(suite, base)
+    define_rows, computed, ties, variants = derive_defines(suite, base)
     stats["define_rows"] = len(define_rows)
     stats["computed_defines"] = computed
     stats["define_ties"] = ties
+    stats["define_variants"] = variants
     unit_rows, unit_reported, unit_ties = derive_units(suite, base)
     stats["unit_rows"] = len(unit_rows)
     stats["unit_reported"] = unit_reported
@@ -567,7 +724,8 @@ def report(suite: str, rows, ambiguous, absent, stats, out=sys.stdout):
         f"ambiguous_nonlocal_names={len(ambiguous)} absent_names={len(absent)} "
         f"identical_names={len(stats.get('identical', {}))} shadowed={len(stats.get('shadowed', []))} withheld={len(stats.get('withheld', {}))} "
         f"define_rows={stats.get('define_rows', 0)} computed_defines={len(stats.get('computed_defines', {}))} "
-        f"define_ties={len(stats.get('define_ties', {}))} "
+        f"define_ties={len(stats.get('define_ties', {}))} define_variant_dirs={len(stats.get('define_variants', {}))} "
+        f"define_variant_names={sum(len(v) for v in stats.get('define_variants', {}).values())} "
         f"unit_rows={stats.get('unit_rows', 0)} unit_reported={len(stats.get('unit_reported', {}))} "
         f"unit_ties={len(stats.get('unit_ties', {}))}",
         file=out,
@@ -586,6 +744,10 @@ def report(suite: str, rows, ambiguous, absent, stats, out=sys.stdout):
         print(f"  computed  {rel}: {' '.join(stats['computed_defines'][rel])} (the driver builds the value at run time; not derived)", file=out)
     for rel in sorted(stats.get("define_ties", {})):
         print(f"  tie       {rel}: {' '.join(stats['define_ties'][rel])} (several variant drivers carry defines; none applied)", file=out)
+    for d in sorted(stats.get("define_variants", {})):
+        for k, vals in sorted(stats["define_variants"][d].items()):
+            shown = " ".join(f"{b}={v}" for b, v in sorted(vals.items()))
+            print(f"  variant   {d}: {k} — {shown} (the IP's builds disagree; reported, not applied — SVPP-EXPANSION.4c.3)", file=out)
     for rel in sorted(stats.get("unit_reported", {})):
         print(f"  unit      {rel}: {'; '.join(stats['unit_reported'][rel])}", file=out)
     for rel in sorted(stats.get("unit_ties", {})):
@@ -738,7 +900,7 @@ def self_test() -> int:
         (t / "b_common.py").write_text('test.top_filename = "t/t_b.v"\ntest.compile(v_flags2=["+define+HELPER"])\n')
         (t / "t_c_x.py").write_text('test.top_filename = "t/t_c.v"\ntest.compile(v_flags2=["+define+X"])\n')
         (t / "t_c_y.py").write_text('test.top_filename = "t/t_c.v"\ntest.compile(v_flags2=["+define+Y"])\n')
-        rows, computed, ties = derive_defines("verilator", base)
+        rows, computed, ties, _variants = derive_defines("verilator", base)
         defs = {(r[1].rsplit("/", 1)[1], r[2]) for r in rows}
         checks2 = [
             ("a same-stem driver's literal defines are emitted", ("t_a.v", "LIT=1") in defs and ("t_a.v", "FLAG") in defs),
@@ -787,6 +949,53 @@ def self_test() -> int:
             print(f"  {'PASS' if ok else 'FAIL'} {label}")
             failures += 0 if ok else 1
         checks += checks3
+        # SVPP-EXPANSION.4c.3 — a synthetic opentitan tree: a base cfg (top-level build_opts, two build modes — one
+        # templated value — and a test picking a mode), two run cfgs importing it and enabling one mode each, a cfg
+        # with top-level build_opts only, a cfg with no defines, and a nested cfg directory
+        ot = base / "ot"
+        for d in ("hw/ip/x/dv/env", "hw/ip/x/dv/tb", "hw/ip/y/dv", "hw/ip/z/dv", "hw/ip/p/dv/p_sub", "hw/dv/tools/dvsim"):
+            (ot / d).mkdir(parents=True)
+        (ot / "hw/dv/tools/dvsim/common_sim_cfg.hjson").write_text('{\n  build_opts: ["+define+UVM", "+define+W={tl_aw}"]\n}\n')
+        (ot / "hw/ip/x/dv/x_base_sim_cfg.hjson").write_text(
+            '{\n  name: x\n  import_cfgs: ["{proj_root}/hw/dv/tools/dvsim/common_sim_cfg.hjson"]\n'
+            '  build_opts: ["+define+XTOP=3", "+define+C={tl_aw}"]\n'
+            '  build_modes: [\n    {\n      name: amode\n      build_opts: ["+define+A=1", "+define+T={tl_aw}"]\n    }\n'
+            '    {\n      name: bmode\n      build_opts: ["+define+B"]\n    }\n  ]\n'
+            '  tests: [\n    {\n      name: t1\n      build_mode: bmode\n    }\n  ]\n}\n')
+        (ot / "hw/ip/x/dv/x_a_sim_cfg.hjson").write_text(
+            '{\n  variant: a\n  import_cfgs: ["{proj_root}/hw/ip/x/dv/x_base_sim_cfg.hjson"]\n  en_build_modes: ["amode"]\n}\n')
+        (ot / "hw/ip/x/dv/x_b_sim_cfg.hjson").write_text(
+            '{\n  variant: b\n  import_cfgs: ["{proj_root}/hw/ip/x/dv/x_base_sim_cfg.hjson"]\n  en_build_modes: ["bmode"]\n}\n')
+        (ot / "hw/ip/y/dv/y_sim_cfg.hjson").write_text('{\n  name: y\n  build_opts: ["+define+Y=2", "-lutil"]\n}\n')
+        (ot / "hw/ip/z/dv/z_sim_cfg.hjson").write_text('{\n  name: z\n  build_modes: []\n}\n')
+        (ot / "hw/ip/p/dv/p_sim_cfg.hjson").write_text('{\n  name: p\n  build_opts: ["+define+TOP"]\n}\n')
+        (ot / "hw/ip/p/dv/p_sub/p_sub_sim_cfg.hjson").write_text('{\n  name: psub\n  build_opts: ["+define+SUB"]\n}\n')
+        for f in ("hw/ip/x/dv/env/x_env.sv", "hw/ip/x/dv/tb/tb.sv", "hw/ip/y/dv/y.sv", "hw/ip/z/dv/z.sv", "hw/ip/p/dv/t.sv", "hw/ip/p/dv/p_sub/s.sv"):
+            (ot / f).write_text("module m; endmodule\n")
+        rows4, computed4, _ties4, variants4 = derive_defines("opentitan", ot)
+        defs4 = {(r[1].rsplit("/", 1)[1], r[2]) for r in rows4}
+        xvar = next((v for d, v in variants4.items() if d.endswith("hw/ip/x/dv")), {})
+        checks4 = [
+            ("a define every build of the directory carries with one value is applied to the files the directory owns, the base's top-level build_opts included (XTOP=3 on env/ and tb/)",
+             ("x_env.sv", "XTOP=3") in defs4 and ("tb.sv", "XTOP=3") in defs4),
+            ("a name the builds disagree on is reported per build, never applied (A=1 under x_a's builds, absent under x_b's; a base cfg is not a build of its own)",
+             not any(f.startswith(("x_env", "tb")) and d in ("A=1", "B") for f, d in defs4)
+             and xvar.get("A") == {"x_a_sim_cfg+amode": "1", "x_a_sim_cfg+amode+bmode": "1", "x_b_sim_cfg+bmode": "(absent)"}),
+            ("a test's build_mode pick is one more build of the run cfg importing it, on top of its enabled modes",
+             xvar.get("B", {}).get("x_a_sim_cfg+amode+bmode") == "(defined)" and xvar.get("B", {}).get("x_a_sim_cfg+amode") == "(absent)"),
+            ("a templated value every build shares is computed and reported, never emitted; one a single build carries is a disagreement",
+             not any(d.startswith(("C=", "T=")) for _, d in defs4) and any(k.endswith("x_env.sv") and v == ["C"] for k, v in computed4.items()) and "T" in xvar),
+            ("a cfg's own top-level build_opts define is emitted; a non-define option is not",
+             ("y.sv", "Y=2") in defs4 and not any(f == "y.sv" and d != "Y=2" for f, d in defs4)),
+            ("a cfg with no defines emits nothing", not any(f == "z.sv" for f, _ in defs4)),
+            ("the nearest cfg directory owns a file (nested cfg)", ("s.sv", "SUB") in defs4 and ("s.sv", "TOP") not in defs4 and ("t.sv", "TOP") in defs4),
+            ("the project-wide common cfg's defines are not emitted per file (the suite rows' business)",
+             not any(d == "UVM" for _, d in defs4)),
+        ]
+        for label, ok in checks4:
+            print(f"  {'PASS' if ok else 'FAIL'} {label}")
+            failures += 0 if ok else 1
+        checks += checks4
     print(f"PIPELINE-CONTEXT-SELF-TEST: checks={len(checks)} failed={failures}")
     return 7 if failures else 0
 

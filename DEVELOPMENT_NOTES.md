@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SVPP-EXPANSION.4c.3 (`PGEN-SVPP-EXPANSION-0049`): a pick among real builds is still a guess
+
+- **"Every one of them is real" does not make one of them the file's.** OpenTitan's aes is built four ways and each build is a true input; the first cut applied the build that sorted first and reported the rest — and read the aes unit under `EN_GCM=1`, where it rejects on a tolerance shape, when under two of its four builds the file never sees that branch. The rule that parked `.6d.5` already said it: a disagreement is reported, not resolved by guessing which build the row meant. The instrument now applies the intersection and prints the rest per build.
+- **Re-read the parked row before writing the leaf that unparks it.** The design was made, the chain launched and 78 movers read before the standing rule was re-read; the rule was one grep away. A leaf that re-opens a parked item starts from that row's text.
+- **A derived artifact no gate names is stale by default.** The two profile censuses carry a `--check` that re-derives and diffs, and nothing ran it for a week while the answer key they join against was re-derived three times; `PIPELINE-LANE-CURRENCY` names four artifacts and these were the fifth and sixth. When a producer gets a `--check`, the same leaf wires it into the gate that runs on the staged set, or the check is decoration.
+- **A stopped chain keeps its baseline.** The HEAD dumps were copied aside before the first chain; stopping it mid-reading and re-running cost nothing but time because the movers diff against that copy, not against whatever the last run left on disk.
+
 ## 2026-10-17 — SV-CORPUS-GRAD.58 (`PGEN-SV-CORPUS-GRAD-0446`): read the suite's driver, not the directory
 
 - **Ownership has four spellings in one suite.** A verilator test names its companions in a flag list, in a `-f` file (with `${TEST_REGRESS}` and a doubled slash), by `include`, or by instantiating a module whose file the suite's own `-y t` resolves. The last is the one no grep for the file name finds; the driver line that makes it provable is `test_regress/driver.py:771`.

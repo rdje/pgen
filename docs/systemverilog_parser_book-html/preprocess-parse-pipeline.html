@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-395bf90f.js";
+            window.path_to_searchindex_js = "searchindex-0e908053.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -809,6 +809,22 @@ fourth <code>cross_file_define</code> row stays: 🔎 <strong>its <code>.6b.4</c
 names</strong> (<code>file_uses_define_in_file_with_no_eol.sv</code> after <code>file_with_no_eol.sv</code>) — no declaration in the
 vendored slang tree makes it, so the deriver reports nothing for it; hand-given, the pair accepts on both
 profiles, and the row’s basis now says exactly that.</p>
+<p><strong>The IP’s own builds (<code>.4c.3</code>).</strong> OpenTitan declares its per-IP build defines not per file but per BUILD, in
+each IP’s <code>dv/*_sim_cfg.hjson</code>: a cfg nobody imports is a run cfg, a cfg another imports is a base run only
+through its importers; a run cfg’s default build carries its import chain’s top-level <code>build_opts</code> plus its
+<code>en_build_modes</code>, and every <code>build_mode:</code> a test picks is one more build on top. The derived context now reads
+that declaration, and applies a define to the files the cfg directory owns <strong>only when every build of the
+directory carries it with one value</strong> (679 rows on 327 files in 4 directories: the two tops’ <code>TOP_LEVEL_DV</code> /
+<code>DISABLE_ROM_INTEGRITY_CHECK</code>, rv_dm’s <code>USE_DMI_INTERFACE=1</code>, kmac’s <code>SW_KEY_MASKED=0</code>). A name the builds
+disagree on — another value, or absent from one build — is reported per build in the deriver’s <code>variant</code> lines
+and never applied: 13 directories, 23 names, exactly the <code>.6d.5</code> population (aes <code>EN_GCM</code> 1 / 1 / 0 / 0 across
+four builds, edn <code>NUM_END_POINTS</code> 8 / 1, sram_ctrl <code>SRAM_WORD_ADDR_WIDTH</code> 14 / 15 / 10, …), so of the 145
+context refusals on an undefined macro none is defined — <code>.6d.5</code>‘s measurement, re-derived by the instrument.
+Re-run on the whole lane under the three readings: <strong>no row moved under any of the three readings</strong> (<code>PIPELINE-MOVERS moved=0 added=0 lost=0</code> on <code>sv_2017</code>, <code>sv_2023</code> and <code>sv_2023_tolerant</code> against the HEAD dumps: the agreed defines reach no verdict — the 11 own-file candidates stop at another construct, kmac’s <code>tb.sv</code> at the variant-only <code>`EN_MASKING</code>, the two tops’ <code>tb.sv</code> at a compile-order macro, the five <code>fail</code> rows at their class header). 🔎 <strong>A pick among real builds is still a
+guess</strong>: the first cut applied the build that sorted first and read the aes unit under <code>EN_GCM=1</code>, where it
+rejects on a tolerance shape (<code>foreach (key[0][i])</code>) two of its four builds never reach — withdrawn before
+commit under the rule that parked <code>.6d.5</code>. The per-variant reading (variant × file, the verdict their
+conjunction) is routed as <code>.4c.4</code>, the director’s call.</p>
 <p><strong>A suite’s build-wide symbol (<code>.6d.4</code>).</strong> One kind of define no driver carries per file: the symbol a
 whole flow compiles with. OpenTitan’s dvsim passes <code>+define+UVM</code> to every DV build
 (<code>hw/dv/tools/dvsim/common_sim_cfg.hjson:65</code>), and three DV files guard their <code>include "uvm_macros.svh"</code> on
@@ -858,7 +874,7 @@ flow compiles first as unit predecessors (<code>.6d.6</code>, below) 13 more pac
 remain are three populations, each named per row: 8 stop at a construct 1800-2023 admits and 1800-2017 does
 not (unsized parameter arrays, an indexed event trigger — <code>SV-CORPUS-GRAD.38</code>, a 2023 reading of the
 pipeline), 8 at a per-IP build define whose value differs between the IP’s simulation configurations
-(<code>SVPP-EXPANSION.6d.5</code>, parked: a variant disagreement is reported, not guessed), and 9 at a grammar
+(<code>SVPP-EXPANSION.6d.5</code>, parked: a variant disagreement is reported, not guessed — since <code>.4c.3</code> the IP’s build list is derived and every one of these symbols is reported per build, with no build-wide value to apply), and 9 at a grammar
 construct past every macro — <code>randomize() with { … local::x … }</code> (admitted by <code>1.0.248</code>, <code>SV-CORPUS-GRAD.39</code>: a
 <code>local::</code>-qualified method receiver), a lifetime in a method prototype (<code>extern function automatic</code>,
 <code>pure virtual task automatic</code>), a hierarchical name as a <code>cross</code> item, a macro argument carrying a line

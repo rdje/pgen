@@ -650,6 +650,23 @@ names** (`file_uses_define_in_file_with_no_eol.sv` after `file_with_no_eol.sv`) 
 vendored slang tree makes it, so the deriver reports nothing for it; hand-given, the pair accepts on both
 profiles, and the row's basis now says exactly that.
 
+**The IP's own builds (`.4c.3`).** OpenTitan declares its per-IP build defines not per file but per BUILD, in
+each IP's `dv/*_sim_cfg.hjson`: a cfg nobody imports is a run cfg, a cfg another imports is a base run only
+through its importers; a run cfg's default build carries its import chain's top-level `build_opts` plus its
+`en_build_modes`, and every `build_mode:` a test picks is one more build on top. The derived context now reads
+that declaration, and applies a define to the files the cfg directory owns **only when every build of the
+directory carries it with one value** (679 rows on 327 files in 4 directories: the two tops' `TOP_LEVEL_DV` /
+`DISABLE_ROM_INTEGRITY_CHECK`, rv_dm's `USE_DMI_INTERFACE=1`, kmac's `SW_KEY_MASKED=0`). A name the builds
+disagree on — another value, or absent from one build — is reported per build in the deriver's `variant` lines
+and never applied: 13 directories, 23 names, exactly the `.6d.5` population (aes `EN_GCM` 1 / 1 / 0 / 0 across
+four builds, edn `NUM_END_POINTS` 8 / 1, sram_ctrl `SRAM_WORD_ADDR_WIDTH` 14 / 15 / 10, …), so of the 145
+context refusals on an undefined macro none is defined — `.6d.5`'s measurement, re-derived by the instrument.
+Re-run on the whole lane under the three readings: **no row moved under any of the three readings** (`PIPELINE-MOVERS moved=0 added=0 lost=0` on `sv_2017`, `sv_2023` and `sv_2023_tolerant` against the HEAD dumps: the agreed defines reach no verdict — the 11 own-file candidates stop at another construct, kmac's `tb.sv` at the variant-only `` `EN_MASKING ``, the two tops' `tb.sv` at a compile-order macro, the five `fail` rows at their class header). 🔎 **A pick among real builds is still a
+guess**: the first cut applied the build that sorted first and read the aes unit under `EN_GCM=1`, where it
+rejects on a tolerance shape (`foreach (key[0][i])`) two of its four builds never reach — withdrawn before
+commit under the rule that parked `.6d.5`. The per-variant reading (variant × file, the verdict their
+conjunction) is routed as `.4c.4`, the director's call.
+
 **A suite's build-wide symbol (`.6d.4`).** One kind of define no driver carries per file: the symbol a
 whole flow compiles with. OpenTitan's dvsim passes `+define+UVM` to every DV build
 (`hw/dv/tools/dvsim/common_sim_cfg.hjson:65`), and three DV files guard their `include "uvm_macros.svh"` on
@@ -702,7 +719,7 @@ flow compiles first as unit predecessors (`.6d.6`, below) 13 more packages and 1
 remain are three populations, each named per row: 8 stop at a construct 1800-2023 admits and 1800-2017 does
 not (unsized parameter arrays, an indexed event trigger — `SV-CORPUS-GRAD.38`, a 2023 reading of the
 pipeline), 8 at a per-IP build define whose value differs between the IP's simulation configurations
-(`SVPP-EXPANSION.6d.5`, parked: a variant disagreement is reported, not guessed), and 9 at a grammar
+(`SVPP-EXPANSION.6d.5`, parked: a variant disagreement is reported, not guessed — since `.4c.3` the IP's build list is derived and every one of these symbols is reported per build, with no build-wide value to apply), and 9 at a grammar
 construct past every macro — `randomize() with { … local::x … }` (admitted by `1.0.248`, `SV-CORPUS-GRAD.39`: a
 `local::`-qualified method receiver), a lifetime in a method prototype (`extern function automatic`,
 `pure virtual task automatic`), a hierarchical name as a `cross` item, a macro argument carrying a line

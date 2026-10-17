@@ -22,13 +22,13 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 | grammar raw ast | `grammars/systemverilog.ebnf` | `e880d4d69928f48d2241c644b461285015741317a849009b39c92cd4da9779d6` |
 | generated parser | `generated/systemverilog_parser.rs` | `aa7972eda83778061bb6df0fd938a3441ca728308217c30111ff5a2c8296c09d` |
 | context | `stimuli/sv/pipeline_context.tsv` | `7da1ee0e0aa1b66dd57c7b70dd711c7e34e6eb9ba01c6e969794bd9c80b3779f` |
-| context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `636c8dec8eeab13488b6dd91c0b5547e53c3f6a25c46ccca884d2fb01f459333` |
+| context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `c7d3a1fe78dff9dd0002ac72ec9a4346e7ce286c579f320a69e5e3bc66ebdcca` |
 | context (per-file unit predecessors) | `stimuli/sv/pipeline_context_units.tsv` | `df065bdc8a87ff15fb441550d42775de494a6cf63eb971b1303e85ab4500bc70` |
-| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `707f7796de3fe3489f6574f0777097fe2f6ed096bf67f7022d17f0e807e0cf4c` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `1e41c369424835cf7914ab7d01b0baf03c4fb766adae1470e73f34e280c6f581` |
+| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `dccb179b01dd96fb752f39f3d8f7cf20d9f1cb920b0513f93605a0f86e048fca` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `7c5ca38a3c938aee33393a8aea3c89fdc9ed880ed0eacbe89b477989058475cc` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
 
-Measured at `HEAD` = `1eb2525f7+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `9e1ce4890+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -377,6 +377,7 @@ A package file's row here is its verdict AS A UNIT (its own text plus what it in
 
 | suite | files | defines | e.g. |
 |---|---:|---:|---|
+| opentitan | 327 | 679 | `kmac_cov_bind.sv` ← `--sv-define SW_KEY_MASKED=0` |
 | sv-tests | 2 | 3 | `5.6.4--compiler-directives-preprocessor-macro_0.sv` ← `--sv-define TEST_VAR` |
 | verilator | 45 | 52 | `t_assert_inside_cond.v` ← `--sv-define T_ASSERT_INSIDE_COND` |
 

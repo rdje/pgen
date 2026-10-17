@@ -282,7 +282,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   skipped, the units unioned in order), sv2v's `test/*/run.sh` explicit multi-file `convert` /
   `runAndCapture` lines (sv2v lexes its inputs as one unit unless `--siloed`); a `-f` list, a glob, a
   `--siloed` run and a pair two declarations order differently are REPORTED (`unit` lines), never
-  applied. A `-DNAME` the same command line `-U`s again is not a define the driver passes. Every directory
+  applied. A `-DNAME` the same command line `-U`s again is not a define the driver passes. OpenTitan's PER-IP build defines are read from the IP's own `dv/*_sim_cfg.hjson` (`SVPP-EXPANSION.4c.3`): a cfg nobody imports is a run cfg (a cfg another imports is a base run through its importers), its default build carries the import chain's top-level `build_opts` plus its `en_build_modes`, and each `build_mode:` a test picks is one more build; a define is applied to the files the cfg directory owns ONLY when every build of the directory carries it with one value, a name the builds disagree on is REPORTED per build (`variant` lines; `define_variant_dirs` / `define_variant_names`), never applied, and a templated value is `computed`. Every directory
   under `stimuli/sv/subs/` is a suite (`--list-suites`; the runner takes `all`). `SVPP-EXPANSION.4`/`.4b`.
   ⭐ THE LIBRARY PASS (`SVPP-EXPANSION.6d.1`, `stimuli/sv/pipeline_library.py`, run by the lane before
   the per-file rows): a design suite's file imports typedefs, classes and parameters a PACKAGE in

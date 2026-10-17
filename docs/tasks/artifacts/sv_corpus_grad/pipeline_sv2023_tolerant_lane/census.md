@@ -12,13 +12,13 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 |---|---|---|
 | parse binary | `rust/target/debug/parseability_probe` | `bdbff2e534f87c5a52cbb582d21929db020b818ac0c8c587ee71c86280a7f380` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `e880d4d69928f48d2241c644b461285015741317a849009b39c92cd4da9779d6` |
-| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `b924962463aedfdfe7336f9bdfe155a5cf7f16da794d8a414ad4f7f66fa73ed7` |
-| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `8ad843bc67b2559e99531743cdeb29da2a23a542e80c7e485876c488134c7999` |
-| sv_2023_tolerant pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `7235d426907a14490bbcfae63d618b29b7b863b53bd7153839cff679a1b7c755` |
-| sv_2023_tolerant library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023_tolerant.tsv` | `bc499fa61b401ccf4619c1be0e81bb7ed171c35de9aedb0ba656db16591e9b25` |
+| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `af2b832eec48a4f80d220cc75b95731c37c407346d584be1877609abd21d711b` |
+| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `89ecb64a83264942e47e149e785eebbc0b9762c23563b48e41005f7ce8695b9d` |
+| sv_2023_tolerant pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `22af4cc31a5771b8ceda0c85184867cfe1c440f773c80910fccaef339441379e` |
+| sv_2023_tolerant library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023_tolerant.tsv` | `df9708c6bb4e27c86ec946ef80282d52cf2a28aaee55c312c3f8256b5e3622bf` |
 | unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023_tolerant.tsv` | `acac7a118b3cfe26a207b0d1bf64e5758093b730c825a75122d3c7fb1b6c3c6c` |
-| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `37a04a0ac8e63c93f827422bacaa3702ccee3d7e5b87b956ac5f482f65f83fe9` |
-| sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `b7944259f25565892f087e0fb437f63e3f86ad772eb164bb81d0fb5e2647d91f` |
+| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `cee66d3c2c119aab4d8e3bec7f6ac26e221edbb8c4aeeedf3f27e62defb5aa51` |
+| sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `26af4200c3c240a8641557868bb0a0041fd6716d617c48824a653c9a9e9f9180` |
 
 The tolerant run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6` `files=16336`.
 
@@ -61,18 +61,18 @@ The stop is the REJECTING reading's own origin and the source line there; the 20
 |---|---|---|---|---|---|---|
 | `tolerant_only_pass` | `Surelog` | `tests/ForeachSquare/dut.sv` | `dut.sv:7:32` | `foreach(array[i][j])` | `must_reject:match_under_expansion` | `must_reject / match` |
 | `tolerant_only_pass` | `Surelog` | `tests/SynthForeach/dut.sv` | `dut.sv:4:31` | `foreach(data[i][j])` | `must_reject:match_under_expansion` | `must_reject / match` |
-| `tolerant_only_pass` | `opentitan` | `hw/dv/sv/sec_cm/sec_cm_pkg.sv` | `sec_cm_base_if_proxy.sv:21:46` | `pure virtual task automatic inject_fault();` | `chained:hollow` | `chained_only / deferred:chained_only` |
-| `tolerant_only_pass` | `opentitan` | `hw/dv/sv/tl_agent/tl_agent_pkg.sv` | `tl_seq_item.sv:190:18` | `extern function automatic logic [DataWidth-1:0] get_written_data();` | `chained:hollow` | `chained_only / deferred:chained_only` |
-| `tolerant_only_pass` | `opentitan` | `hw/ip/adc_ctrl/dv/env/adc_ctrl_env_pkg.sv` | `adc_ctrl_env_var_filter_cfg.sv:64:1` | `solve max_val, min_val, apply_max_v before filter_cfg[channel][filter].min_v;` | `chained:hollow` | `chained_only / deferred:chained_only` |
-| `tolerant_only_pass` | `opentitan` | `hw/ip/sysrst_ctrl/dv/env/sysrst_ctrl_env_pkg.sv` | `sysrst_ctrl_in_out_inverted_vseq.sv:49:39` | `key0_inXval: cross cp_key0_in, cfg.vif.key0_in;` | `chained:hollow` | `chained_only / deferred:chained_only` |
-| `tolerant_only_pass` | `opentitan` | `hw/ip_templates/flash_ctrl/dv/env/flash_ctrl_env_pkg.sv` | `flash_otf_read_entry.sv:129:30` | `foreach (prv_read[i][j]) begin` | `chained:rejects_own_file` | `chained_only / deferred:chained_only` |
-| `tolerant_only_pass` | `opentitan` | `hw/ip_templates/flash_ctrl/dv/env/flash_ctrl_scoreboard.sv` | `flash_ctrl_scoreboard.sv:106:49` | `foreach (cfg.flash_ctrl_vif.hazard[i][j]) begin` | `chained:unreached_in_unit` | `chained_only / deferred:chained_only` |
-| `tolerant_only_pass` | `opentitan` | `hw/top_earlgrey/ip_autogen/flash_ctrl/dv/env/flash_ctrl_env_pkg.sv` | `flash_otf_read_entry.sv:129:30` | `foreach (prv_read[i][j]) begin` | `chained:rejects_own_file` | `chained_only / deferred:chained_only` |
-| `tolerant_only_pass` | `opentitan` | `hw/top_earlgrey/ip_autogen/flash_ctrl/dv/env/flash_ctrl_scoreboard.sv` | `flash_ctrl_scoreboard.sv:106:49` | `foreach (cfg.flash_ctrl_vif.hazard[i][j]) begin` | `chained:unreached_in_unit` | `chained_only / deferred:chained_only` |
-| `tolerant_only_pass` | `opentitan` | `hw/top_englishbreakfast/ip_autogen/flash_ctrl/dv/env/flash_ctrl_env_pkg.sv` | `flash_otf_read_entry.sv:129:30` | `foreach (prv_read[i][j]) begin` | `chained:rejects_own_file` | `chained_only / deferred:chained_only` |
-| `tolerant_only_pass` | `opentitan` | `hw/top_englishbreakfast/ip_autogen/flash_ctrl/dv/env/flash_ctrl_scoreboard.sv` | `flash_ctrl_scoreboard.sv:106:49` | `foreach (cfg.flash_ctrl_vif.hazard[i][j]) begin` | `chained:unreached_in_unit` | `chained_only / deferred:chained_only` |
-| `tolerant_only_pass` | `opentitan` | `hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/fcov/core_ibex_fcov_if.sv` | `core_ibex_fcov_if.sv:668:52` | `misaligned_insn_bus_err_cross: cross id_stage_i.instr_fetch_err_i,` | `chained:rejects_own_file` | `chained_only / deferred:chained_only` |
-| `tolerant_only_pass` | `opentitan` | `hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/fcov/core_ibex_pmp_fcov_if.sv` | `core_ibex_pmp_fcov_if.sv:478:79` | `cross pmp_region_priv_bits, pmp_region_priv_bits_wr, csr_pmp_mseccfg.rlb iff` | `chained:rejects_own_file` | `chained_only / deferred:chained_only` |
+| `tolerant_only_pass` | `opentitan` | `hw/dv/sv/sec_cm/sec_cm_pkg.sv` | `sec_cm_base_if_proxy.sv:21:46` | `pure virtual task automatic inject_fault();` | `chained:hollow` | `chained_must_accept / deferred:chained_only` |
+| `tolerant_only_pass` | `opentitan` | `hw/dv/sv/tl_agent/tl_agent_pkg.sv` | `tl_seq_item.sv:190:18` | `extern function automatic logic [DataWidth-1:0] get_written_data();` | `chained:hollow` | `chained_must_accept / deferred:chained_only` |
+| `tolerant_only_pass` | `opentitan` | `hw/ip/adc_ctrl/dv/env/adc_ctrl_env_pkg.sv` | `adc_ctrl_env_var_filter_cfg.sv:64:1` | `solve max_val, min_val, apply_max_v before filter_cfg[channel][filter].min_v;` | `chained:hollow` | `chained_must_accept / deferred:chained_only` |
+| `tolerant_only_pass` | `opentitan` | `hw/ip/sysrst_ctrl/dv/env/sysrst_ctrl_env_pkg.sv` | `sysrst_ctrl_in_out_inverted_vseq.sv:49:39` | `key0_inXval: cross cp_key0_in, cfg.vif.key0_in;` | `chained:hollow` | `chained_must_accept / deferred:chained_only` |
+| `tolerant_only_pass` | `opentitan` | `hw/ip_templates/flash_ctrl/dv/env/flash_ctrl_env_pkg.sv` | `flash_otf_read_entry.sv:129:30` | `foreach (prv_read[i][j]) begin` | `chained:rejects_own_file` | `chained_must_accept / deferred:chained_only` |
+| `tolerant_only_pass` | `opentitan` | `hw/ip_templates/flash_ctrl/dv/env/flash_ctrl_scoreboard.sv` | `flash_ctrl_scoreboard.sv:106:49` | `foreach (cfg.flash_ctrl_vif.hazard[i][j]) begin` | `chained:unreached_in_unit` | `chained_must_accept / deferred:chained_only` |
+| `tolerant_only_pass` | `opentitan` | `hw/top_earlgrey/ip_autogen/flash_ctrl/dv/env/flash_ctrl_env_pkg.sv` | `flash_otf_read_entry.sv:129:30` | `foreach (prv_read[i][j]) begin` | `chained:rejects_own_file` | `chained_must_accept / deferred:chained_only` |
+| `tolerant_only_pass` | `opentitan` | `hw/top_earlgrey/ip_autogen/flash_ctrl/dv/env/flash_ctrl_scoreboard.sv` | `flash_ctrl_scoreboard.sv:106:49` | `foreach (cfg.flash_ctrl_vif.hazard[i][j]) begin` | `chained:unreached_in_unit` | `chained_must_accept / deferred:chained_only` |
+| `tolerant_only_pass` | `opentitan` | `hw/top_englishbreakfast/ip_autogen/flash_ctrl/dv/env/flash_ctrl_env_pkg.sv` | `flash_otf_read_entry.sv:129:30` | `foreach (prv_read[i][j]) begin` | `chained:rejects_own_file` | `chained_must_accept / deferred:chained_only` |
+| `tolerant_only_pass` | `opentitan` | `hw/top_englishbreakfast/ip_autogen/flash_ctrl/dv/env/flash_ctrl_scoreboard.sv` | `flash_ctrl_scoreboard.sv:106:49` | `foreach (cfg.flash_ctrl_vif.hazard[i][j]) begin` | `chained:unreached_in_unit` | `chained_must_accept / deferred:chained_only` |
+| `tolerant_only_pass` | `opentitan` | `hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/fcov/core_ibex_fcov_if.sv` | `core_ibex_fcov_if.sv:668:52` | `misaligned_insn_bus_err_cross: cross id_stage_i.instr_fetch_err_i,` | `chained:rejects_own_file` | `chained_must_accept / deferred:chained_only` |
+| `tolerant_only_pass` | `opentitan` | `hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/fcov/core_ibex_pmp_fcov_if.sv` | `core_ibex_pmp_fcov_if.sv:478:79` | `cross pmp_region_priv_bits, pmp_region_priv_bits_wr, csr_pmp_mseccfg.rlb iff` | `chained:rejects_own_file` | `chained_must_accept / deferred:chained_only` |
 | `tolerant_only_pass` | `verilator` | `test_regress/t/t_foreach_array.v` | `t_foreach_array.v:64:44` | `foreach (queue[i]) foreach (queue[i][j]) exp_count_que++;` | `must_reject:match_under_expansion` | `must_reject / match` |
 | `tolerant_only_pass` | `verilator` | `test_regress/t/t_foreach_nested.v` | `t_foreach_nested.v:14:31` | `foreach(this.foo.x[i][j])` | `must_reject:match_under_expansion` | `must_reject / match` |
 | `tolerant_only_pass` | `verilator` | `test_regress/t/t_randomize_array.v` | `t_randomize_array.v:51:36` | `foreach (unpacked_array[i][j]) begin` | `must_reject:match_under_expansion` | `out_of_scope_with_cause / deferred:svpp_owned` |

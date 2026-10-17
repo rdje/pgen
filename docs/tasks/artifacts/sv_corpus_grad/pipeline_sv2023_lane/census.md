@@ -12,13 +12,13 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 |---|---|---|
 | parse binary | `rust/target/debug/parseability_probe` | `bdbff2e534f87c5a52cbb582d21929db020b818ac0c8c587ee71c86280a7f380` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `e880d4d69928f48d2241c644b461285015741317a849009b39c92cd4da9779d6` |
-| sv_2017 pipeline results | `stimuli/sv/characterization/pipeline_results.tsv` | `1e41c369424835cf7914ab7d01b0baf03c4fb766adae1470e73f34e280c6f581` |
-| sv_2017 library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `707f7796de3fe3489f6574f0777097fe2f6ed096bf67f7022d17f0e807e0cf4c` |
-| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `b924962463aedfdfe7336f9bdfe155a5cf7f16da794d8a414ad4f7f66fa73ed7` |
-| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `8ad843bc67b2559e99531743cdeb29da2a23a542e80c7e485876c488134c7999` |
+| sv_2017 pipeline results | `stimuli/sv/characterization/pipeline_results.tsv` | `7c5ca38a3c938aee33393a8aea3c89fdc9ed880ed0eacbe89b477989058475cc` |
+| sv_2017 library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `dccb179b01dd96fb752f39f3d8f7cf20d9f1cb920b0513f93605a0f86e048fca` |
+| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `af2b832eec48a4f80d220cc75b95731c37c407346d584be1877609abd21d711b` |
+| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `89ecb64a83264942e47e149e785eebbc0b9762c23563b48e41005f7ce8695b9d` |
 | unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023.tsv` | `acac7a118b3cfe26a207b0d1bf64e5758093b730c825a75122d3c7fb1b6c3c6c` |
-| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `37a04a0ac8e63c93f827422bacaa3702ccee3d7e5b87b956ac5f482f65f83fe9` |
-| sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `b7944259f25565892f087e0fb437f63e3f86ad772eb164bb81d0fb5e2647d91f` |
+| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `cee66d3c2c119aab4d8e3bec7f6ac26e221edbb8c4aeeedf3f27e62defb5aa51` |
+| sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `26af4200c3c240a8641557868bb0a0041fd6716d617c48824a653c9a9e9f9180` |
 
 The 2023 run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6` `files=16336`.
 
@@ -61,7 +61,7 @@ The stop is the REJECTING reading's own origin and the source line there; the 20
 
 | cell | suite | relpath | stop (origin) | text at the stop | 2017 re-adjudication | 2023 key |
 |---|---|---|---|---|---|---|
-| `2023_only_pass` | `friscv` | `rtl/friscv_alu.sv` | `friscv_alu.sv:195:43` | `assign _srli = (shamt == 5'd01) ? {01'b0, alu_rs1_val[XLEN-1:01]} :` | `chained:rejects_own_file` | `chained_only / deferred:chained_only` |
+| `2023_only_pass` | `friscv` | `rtl/friscv_alu.sv` | `friscv_alu.sv:195:43` | `assign _srli = (shamt == 5'd01) ? {01'b0, alu_rs1_val[XLEN-1:01]} :` | `chained:rejects_own_file` | `chained_must_accept / deferred:chained_only` |
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/begin_keywords_1800_2023.v` | `begin_keywords_1800_2023.v:3:16` | `` `begin_keywords "1800-2023" `` | `must_reject:match_under_expansion` | `must_accept / match` |
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/event_array.v` | `event_array.v:23:19` | `#1 ->my_event[0];` | `-` | `out_of_scope_with_cause:v2005_profile_lane / deferred:v2005_profile_lane` |
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/sv_soft_packed_union.v` | `sv_soft_packed_union.v:7:16` | `typedef union soft packed {` | `must_reject:match_under_expansion` | `must_accept / divergence:explained_svpp_macro_use` |
@@ -82,9 +82,9 @@ The stop is the REJECTING reading's own origin and the source line there; the 20
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/sv_type_param_restrict_union2.v` | `sv_type_param_restrict_union2.v:14:17` | `parameter type union T = T0` | `must_reject:match_under_expansion` | `must_accept / divergence:explained_svpp_macro_use` |
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/sv_type_param_restrict_union_fail1.v` | `sv_type_param_restrict_union_fail1.v:8:17` | `parameter type union T = struct_t` | `must_reject:match_under_expansion` | `must_accept / match` |
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/sv_type_param_restrict_union_fail2.v` | `sv_type_param_restrict_union_fail2.v:13:17` | `parameter type union T = union_t` | `must_reject:match_under_expansion` | `must_accept / match` |
-| `2023_only_pass` | `opentitan` | `hw/top_darjeeling/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv` | `rstmgr_env_pkg.sv:37:34` | `parameter string LIST_OF_LEAFS[] = {` | `chained:rejects_own_file` | `chained_only / deferred:chained_only` |
-| `2023_only_pass` | `opentitan` | `hw/top_earlgrey/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv` | `rstmgr_env_pkg.sv:37:34` | `parameter string LIST_OF_LEAFS[] = {` | `chained:rejects_own_file` | `chained_only / deferred:chained_only` |
-| `2023_only_pass` | `opentitan` | `hw/top_englishbreakfast/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv` | `rstmgr_env_pkg.sv:37:34` | `parameter string LIST_OF_LEAFS[] = {` | `chained:rejects_own_file` | `chained_only / deferred:chained_only` |
+| `2023_only_pass` | `opentitan` | `hw/top_darjeeling/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv` | `rstmgr_env_pkg.sv:37:34` | `parameter string LIST_OF_LEAFS[] = {` | `chained:rejects_own_file` | `chained_must_accept / deferred:chained_only` |
+| `2023_only_pass` | `opentitan` | `hw/top_earlgrey/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv` | `rstmgr_env_pkg.sv:37:34` | `parameter string LIST_OF_LEAFS[] = {` | `chained:rejects_own_file` | `chained_must_accept / deferred:chained_only` |
+| `2023_only_pass` | `opentitan` | `hw/top_englishbreakfast/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv` | `rstmgr_env_pkg.sv:37:34` | `parameter string LIST_OF_LEAFS[] = {` | `chained:rejects_own_file` | `chained_must_accept / deferred:chained_only` |
 | `2023_only_pass` | `slang` | `tests/regression/all.sv` | `all.sv:255:48` | `default disable iff 1 dist { [1:2] :/ 3, 2, default :/ 4 };` | `must_reject:match_under_expansion` | `must_accept / match` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_array_event.v` | `t_array_event.v:15:26` | `->write_events[index];` | `must_reject:match_under_expansion` | `must_accept / match` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_class_extends_default.v` | `t_class_extends_default.v:14:26` | `class Cls1 extends Base1(default);` | `must_reject:match_under_expansion` | `must_accept / match` |
