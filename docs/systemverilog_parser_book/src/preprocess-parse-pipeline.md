@@ -881,8 +881,8 @@ the pipeline rejects, three are text the standard does not derive: the UVM 1800.
 for the opt-in profile's closed list) and a port named `do` in a file its driver compiles with `+1364-2005ext+v`
 (a keyword of every 1800 edition, none of 1364-2005: the file is Verilog-2005 by the test's own declaration). They are
 pinned `must_reject` with the clause and a reproducer, the standard outranking the tool as `.57a` ruled. The other
-six are not the parser's: three are the derived context's (a `-f` command file behind `$TEST_ROOT`, a `-y` library
-member compiled after the listed files with their macros — `SVPP-EXPANSION.4c.5`) and three the unit's declaration
+six are not the parser's: three are the derived context's (a `-f` command file behind `$TEST_ROOT`, an include fragment
+read standalone whose macros its includer defines before the `include` — `SVPP-EXPANSION.4c.5`) and three the unit's declaration
 barrier (`t_sv_cpu`'s typedefs, declared earlier in the same unit and never exported — `SVPP-EXPANSION.6d.9`); they
 stay NO VERDICT under the pipeline until read, nothing relabelled.
 

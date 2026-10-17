@@ -66,6 +66,13 @@
 #
 # Usage:
 #   bash scripts/check_corpus_key_integrity.sh              # the doctrine
+#   A6 RAW TWO-EDITION CENSUS CURRENT (SV-CORPUS-GRAD.58d) — docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.py
+#     --check: the sv_2017 × sv_2023 verdict census of the RAW lane equals a fresh derivation. It records the sv_2017
+#     manifest's digest, so every key re-derivation leaves it stale unless it is re-run AFTER the adjudicator; its own
+#     `--check` said STALE at PGEN-SV-CORPUS-GRAD-0449's chain and no gate ran it, while IDENTITY-CARRIERS deferred the
+#     mismatch to THIS script — which named the sv2023_lane/ directory for the parity tool and never opened the census
+#     (SV-CORPUS-GRAD.58a). The raw dumps it joins are .gitignored: absent, the arm is NOT EVALUATED, loudly, never a pass.
+#
 #   bash scripts/check_corpus_key_integrity.sh --self-test  # prove every refusal fires
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT" || exit 2
@@ -76,6 +83,8 @@ PROV="docs/tasks/artifacts/corpus_key_audit/key_provenance_census.py"
 PROV_ARTIFACT="docs/tasks/artifacts/corpus_key_audit/provenance.md"
 PARITY="docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/production_parity.py"   # A5 (SV-CORPUS-GRAD.54)
 PARITY_LAG_COMMIT="b9084e85c"   # the pair that lagged one pass (PGEN-SV-CORPUS-GRAD-0439): A5's end-to-end red control
+LANE_CENSUS="docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.py"   # A6 (SV-CORPUS-GRAD.58d): the raw two-edition census
+LANE_CENSUS_INPUTS="stimuli/sv/characterization/results.tsv stimuli/sv/characterization/results_sv2023.tsv stimuli/sv/characterization/positions.tsv stimuli/sv/characterization/positions_sv2023.tsv"
 MIN_ARMS=5        # the contradiction arm set at adoption
 MIN_PROV_ARMS=16  # the provenance arm set at adoption
 # ⛔ A CEILING, NOT A TARGET. The provenance classifier leaves 4 rows unmatched and prints all four
@@ -217,6 +226,21 @@ run_doctrine() {
     verdict_from_parity "$line" || { printf '%s\n' "$out" | grep -E '^  STALE' | head -10 >&2; rc=1; }
   fi
 
+  # ---- A6 the RAW TWO-EDITION CENSUS is current (SV-CORPUS-GRAD.58d). Its raw dumps are .gitignored: absent, the arm
+  # is NOT EVALUATED, loudly, never a pass.
+  [ -f "$LANE_CENSUS" ] || { say "✗ the raw two-edition census is missing: $LANE_CENSUS"; return 1; }
+  local lane_missing=0 lane_f
+  for lane_f in $LANE_CENSUS_INPUTS; do [ -f "$lane_f" ] || lane_missing=1; done
+  if [ "$lane_missing" -eq 1 ]; then
+    say "⚠️ NOT EVALUATED (A6) — the raw lane dumps are .gitignored and absent here (run stimuli/run_external_corpus.sh sv under"
+    say "   both profiles). This is a fresh clone, NOT a pass."
+  else
+    out="$(python3 "$LANE_CENSUS" --check 2>&1)"; local lane_rc=$?
+    line="$(printf '%s\n' "$out" | grep -E '^SV2023-LANE-CENSUS: ' | tail -1)"
+    if [ "$lane_rc" -eq 2 ]; then say "✗ (A6) the raw two-edition census REFUSED:"; printf '%s\n' "$out" >&2; rc=1
+    else verdict_from_lane_census "$line" || rc=1; fi
+  fi
+
   # ---- A2/A3 (corpus-dependent). The census REFUSES with exit 2 when the submodules are absent.
   # ⛔ Scratch is REPO-DERIVED, never $TMPDIR: project-owned data stays on the repository's own
   # volume, and rust/target/ is git-ignored (the same choice every other self-test here makes).
@@ -279,6 +303,24 @@ run_doctrine() {
 
 # The provenance self-test has its own arm floor. A separate wrapper rather than a mutated global,
 # because `MIN_ARMS=… verdict_from_selftest` only exports to a COMMAND, not to a shell function.
+verdict_from_lane_census() {  # <summary line> -> 0 holds / 1 breach (A6, SV-CORPUS-GRAD.58d)
+  local line="$1" rows breaches
+  rows="$(field rows "$line")"; breaches="$(field population_breaches "$line")"
+  if [ -z "$rows" ] || [ -z "$breaches" ] || ! printf '%s' "$line" | grep -q '^SV2023-LANE-CENSUS: '; then
+    say "✗ (A6) the raw two-edition census printed no parsable summary (rows= / population_breaches= / (current)):"
+    say "       ${line:-<none>}"; return 1
+  fi
+  if [ "$rows" -eq 0 ]; then
+    say "✗ (A6) the raw two-edition census joined ZERO rows — a current verdict over an empty population is a control that cannot fail"; return 1
+  fi
+  if [ "$breaches" -ne 0 ]; then say "✗ (A6) the raw two-edition census reports $breaches population breach(es)"; return 1; fi
+  if ! printf '%s' "$line" | grep -q ' (current)$'; then
+    say "✗ (A6) sv2023_lane/census.md / .tsv are NOT a fresh derivation — the census records the sv_2017 manifest's digest and goes"
+    say "       stale with every key re-derivation (SV-CORPUS-GRAD.58a); re-run AFTER the adjudicator: python3 $LANE_CENSUS"; return 1
+  fi
+  return 0
+}
+
 verdict_from_selftest_prov() {
   local line="$1" saved="$MIN_ARMS" rc
   MIN_ARMS="$MIN_PROV_ARMS"; verdict_from_selftest "$line"; rc=$?
@@ -338,6 +380,16 @@ self_test() {
   arm "A5 RED: an unparsable summary REFUSES, never passes" 1 verdict_from_parity \
       "PARITY-MANIFEST-AGREEMENT: fine"
 
+  arm "A6 GREEN: the raw two-edition census current over a real population" 0 verdict_from_lane_census \
+      "SV2023-LANE-CENSUS: rows=16336 both_pass=10022 both_nonpass=6288 2023_only_pass=26 2017_only_pass=0 population_breaches=0 (current)"
+  arm "A6 RED: the census is STALE (the headline without its (current) suffix — the .58a shape)" 1 verdict_from_lane_census \
+      "SV2023-LANE-CENSUS: rows=16336 both_pass=10022 both_nonpass=6288 2023_only_pass=26 2017_only_pass=0 population_breaches=0"
+  arm "A6 RED: a population breach" 1 verdict_from_lane_census \
+      "SV2023-LANE-CENSUS: rows=16336 both_pass=10022 both_nonpass=6288 2023_only_pass=26 2017_only_pass=0 population_breaches=1 (current)"
+  arm "A6 RED: zero rows is a control that cannot fail" 1 verdict_from_lane_census \
+      "SV2023-LANE-CENSUS: rows=0 both_pass=0 both_nonpass=0 2023_only_pass=0 2017_only_pass=0 population_breaches=0 (current)"
+  arm "A6 RED: an unparsable summary REFUSES, never passes" 1 verdict_from_lane_census "SV2023-LANE-CENSUS: fine"
+
   # A5 end-to-end: the pair that lagged at PGEN-SV-CORPUS-GRAD-0439, replayed from git history through the real
   # derivation — the three rows the artifact decides IDENTICAL while the manifest still reads owed.
   local pdir prc pline
@@ -375,6 +427,20 @@ self_test() {
   fi
   rm -f "$saved"
 
+  # A6 end-to-end: a hand-edited raw two-edition census must be caught by the real doctrine path (the .58a shape:
+  # the artifact sat stale behind a deferral and no gate ran its --check).
+  local lsaved LANE_MD="docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.md"
+  if [ -f "$LANE_MD" ] && [ -f stimuli/sv/characterization/results.tsv ] && [ -f stimuli/sv/characterization/results_sv2023.tsv ]; then
+    lsaved="$(mktemp "$ROOT/rust/target/lane_census_artifact.XXXXXX")"; cp "$LANE_MD" "$lsaved"
+    printf '\nHAND-EDITED LINE THAT NO RUN PRODUCES\n' >> "$LANE_MD"
+    run_doctrine >/dev/null 2>&1; rc=$?
+    cp "$lsaved" "$LANE_MD"; rm -f "$lsaved"
+    if [ "$rc" -eq 1 ]; then printf '  ✅ A6 RED end-to-end: a hand-edited raw two-edition census is caught (rc 1)\n'; pass=$((pass+1))
+    else printf '  ❌ A6 end-to-end: a hand-edited raw two-edition census scored rc %d, wanted 1\n' "$rc"; fail=$((fail+1)); fi
+  else
+    printf '  ⚠️ A6 end-to-end SKIPPED — the raw dumps or the census artifact are absent. Not a pass.\n'
+  fi
+
   # The NOT EVALUATED branch rests on the census REFUSING with exit 2 when the corpora are absent.
   # ⛔ That claim is exercised, not assumed: a submodule-less clone is simulated by relocating a COPY
   # of the census so its own `parents[4]` repo-root walk lands somewhere with no vendored corpus.
@@ -399,7 +465,7 @@ self_test() {
 case "${1:-}" in
   --self-test) self_test; exit $? ;;
   "") run_doctrine || exit 1
-      echo "corpus-key-integrity: OK (both censuses self-test alive; key clean; provenance residual within ceiling; both published artifacts current; the sv_2023 carry-over agrees with the parity artifact)"
+      echo "corpus-key-integrity: OK (both censuses self-test alive; key clean; provenance residual within ceiling; both published artifacts current; the sv_2023 carry-over agrees with the parity artifact; the raw two-edition census current)"
       exit 0 ;;
   *)  say "unknown argument: $1"; exit 2 ;;
 esac

@@ -376,7 +376,7 @@ each under the memory guard, sequentially.
    (`.53` found three such rows from `.52`; `CORPUS-KEY-INTEGRITY` tier A5 holds the pair to agree on
    every commit, `.54`);
    the sv_2017 × sv_2023 verdict census (`docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.py`,
-   an identity carrier — `2017_only_pass` must stay 0: nothing legal under 2017 may be lost under 2023).
+   an identity carrier — `2017_only_pass` must stay 0: nothing legal under 2017 may be lost under 2023) — run it AFTER the adjudicator, since it records the sv_2017 manifest's digest; `CORPUS-KEY-INTEGRITY` tier A6 holds it current on every commit (`.58d`, after `.58a`'s chain had left it a key re-derivation stale behind a deferral).
    And the PIPELINE lane, both readings, whenever the parser or the preprocessor moved:
    `stimuli/run_pipeline_lane.sh all` (the primary `sv_2017` reading, its report and re-adjudication),
    then the same command under `PGEN_PIPELINE_PROFILE=sv_2023` and the two-edition pipeline census

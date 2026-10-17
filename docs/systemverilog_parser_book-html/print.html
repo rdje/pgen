@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-62091639.js";
+            window.path_to_searchindex_js = "searchindex-576fdf36.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -1500,8 +1500,8 @@ the pipeline rejects, three are text the standard does not derive: the UVM 1800.
 for the opt-in profile’s closed list) and a port named <code>do</code> in a file its driver compiles with <code>+1364-2005ext+v</code>
 (a keyword of every 1800 edition, none of 1364-2005: the file is Verilog-2005 by the test’s own declaration). They are
 pinned <code>must_reject</code> with the clause and a reproducer, the standard outranking the tool as <code>.57a</code> ruled. The other
-six are not the parser’s: three are the derived context’s (a <code>-f</code> command file behind <code>$TEST_ROOT</code>, a <code>-y</code> library
-member compiled after the listed files with their macros — <code>SVPP-EXPANSION.4c.5</code>) and three the unit’s declaration
+six are not the parser’s: three are the derived context’s (a <code>-f</code> command file behind <code>$TEST_ROOT</code>, an include fragment
+read standalone whose macros its includer defines before the <code>include</code> — <code>SVPP-EXPANSION.4c.5</code>) and three the unit’s declaration
 barrier (<code>t_sv_cpu</code>’s typedefs, declared earlier in the same unit and never exported — <code>SVPP-EXPANSION.6d.9</code>); they
 stay NO VERDICT under the pipeline until read, nothing relabelled.</p>
 <p>⛔ <strong>A note on the host, not the engine.</strong> The reading above was taken on the debug probe because no
@@ -3410,7 +3410,7 @@ artifact reads the manifest’s new citation — one pass leaves the row <code>r
 (<code>.53</code> found three such rows from <code>.52</code>; <code>CORPUS-KEY-INTEGRITY</code> tier A5 holds the pair to agree on
 every commit, <code>.54</code>);
 the sv_2017 × sv_2023 verdict census (<code>docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.py</code>,
-an identity carrier — <code>2017_only_pass</code> must stay 0: nothing legal under 2017 may be lost under 2023).
+an identity carrier — <code>2017_only_pass</code> must stay 0: nothing legal under 2017 may be lost under 2023) — run it AFTER the adjudicator, since it records the sv_2017 manifest’s digest; <code>CORPUS-KEY-INTEGRITY</code> tier A6 holds it current on every commit (<code>.58d</code>, after <code>.58a</code>’s chain had left it a key re-derivation stale behind a deferral).
 And the PIPELINE lane, both readings, whenever the parser or the preprocessor moved:
 <code>stimuli/run_pipeline_lane.sh all</code> (the primary <code>sv_2017</code> reading, its report and re-adjudication),
 then the same command under <code>PGEN_PIPELINE_PROFILE=sv_2023</code> and the two-edition pipeline census

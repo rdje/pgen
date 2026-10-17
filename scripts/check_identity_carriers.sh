@@ -117,7 +117,11 @@ def owning_oracles(path):
     were "deferred" to `check_corpus_key_integrity.sh`, which names `corpus_key_audit/census.md` and never opens
     theirs — the two profile censuses sat three answer-key re-derivations stale behind that note (.58b). Honest
     limit: this is a TEXT match; an oracle that builds the path from a variable the match cannot see is not
-    an owner, and a mismatch on such a carrier FAILS here — the breach it always was, re-stamped by its producer."""
+    an owner, and a mismatch on such a carrier FAILS here — the breach it always was, re-stamped by its producer. The
+    converse limit, measured the same day (.58d): an oracle that names the directory for ANOTHER file and the basename
+    for another census owns a carrier it never opens — sv2023_lane/census.md was "deferred" to the key-integrity gate
+    before that gate had an arm for it; the cure was the arm (A6), not a sharper text match, because no text rule tells
+    "names the tool in that directory" from "names another file in it"."""
     p = subprocess.run(["awk", r'/^DOCTRINES=\(/{p=1;next} p&&/^\)/{exit} p&&/^ *"/{n=split($0,a,"|"); s=a[n]; sub(/".*$/,"",s); print s}', "scripts/check_doctrines.sh"], capture_output=True, text=True, cwd=ROOT)
     rel = os.path.relpath(path, ROOT) if os.path.isabs(path) else path
     base = os.path.basename(rel); parent = "/" + os.path.basename(os.path.dirname(rel)); out = []
@@ -177,6 +181,7 @@ def self_test():
         ("owning_oracles: cost.md owned, dark summary un-owned", None, None),
         ("owning_oracles: a basename alone owns nothing (.58c)", None, None),
         ("owning_oracles: the oracle naming the carrier's directory owns it (.58c)", None, None),
+        ("owning_oracles: the key-integrity gate owns the raw two-edition census it judges (.58d, arm A6)", None, None),
     ]
     misses = []
     for label, args, want in cells:
@@ -193,6 +198,8 @@ def self_test():
     own_pipe = owning_oracles("docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.md")
     if "check_pipeline_lane_currency.sh" not in own_pipe: misses.append("owning_oracles misses PIPELINE-LANE-CURRENCY for pipeline_sv2023_lane/census.md (its arm 5)")
     if "check_corpus_key_integrity.sh" in own_pipe: misses.append("owning_oracles still defers pipeline_sv2023_lane/census.md to check_corpus_key_integrity.sh, which never opens it")
+    # .58d: the raw two-edition census IS judged by CORPUS-KEY-INTEGRITY (arm A6 runs its --check), so the deferral is true of it
+    if "check_corpus_key_integrity.sh" not in owning_oracles("docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.md"): misses.append("owning_oracles misses CORPUS-KEY-INTEGRITY for sv2023_lane/census.md (its arm A6)")
     if not (FROZEN.search("docs/tasks/artifacts/x/before/report.md") and not FROZEN.search("docs/tasks/artifacts/x/report.md")):
         misses.append("frozen path rule wrong")
     if misses:

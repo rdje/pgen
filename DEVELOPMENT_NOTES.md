@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.58d (`PGEN-SV-CORPUS-GRAD-0450`): the cure for a deferral to a stranger is an arm in the stranger
+
+- **When the deferral names an oracle that does not judge the file, give that oracle the arm.** Three attempts at a sharper text match (`.58c`'s path-or-directory, then exact path) all break on a legitimate owner that names the tool rather than the artifact; the fourth was to make the named oracle judge the artifact. A deferral is a claim about another gate; the cheapest way to make it true is to make the other gate true.
+- **A derived artifact that digests the key runs after the key.** The `.57a`-shaped chain derived the raw two-edition census and the parity artifact first and the adjudicator second, and both came out stale behind it; the book's recipe now says the order out loud, and two gates (A5, A6) hold it.
+- **Read the basis you quote.** The key's row for `rom.sv` said *include of t/t_sv_cpu_code/program_h.sv* and I wrote "a `-y` library member" beside it, four surfaces deep, before one `grep include program_h.sv` refuted it. A claim about a file's channel is one command away from its evidence; run the command before the sentence.
+
 ## 2026-10-17 — SV-CORPUS-GRAD.58a (`PGEN-SV-CORPUS-GRAD-0449`): a test's success is not a grammar
 
 - **A reference library is not the standard either.** UVM 1800.2-2017 writes `#setting.offset;` and every tool compiles it, so the row read as "valid as part of its test". The LRM's `delay_value` admits a `ps_identifier` and nothing with a `.`; the parenthesized form is the standard's. The pin says why and names the tolerance candidate — the opt-in profile is where a tool's extension lives, never the strict grammar.
