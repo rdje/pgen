@@ -32,4 +32,9 @@ arm "5  RED (history): the SV report as of 0994c3c0 -> FAIL on its grammar row" 
 out="$(bash "$G" 2>&1)"; rc=$?; if [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q '^IDENTITY-CARRIERS: OK'; then pass=$((pass+1)); printf 'PASS  %-70s rc=0\n' "6  GREEN: the derived population on the real tree"; printf '      %s\n' "$(printf '%s' "$out" | grep '^IDENTITY-CARRIERS')"; else fail=$((fail+1)); printf 'FAIL  6 GREEN rc=%d\n%s\n' "$rc" "$out"; fi
 # 7 REFUSE: an empty population is never a pass
 out="$(PGEN_IDENTITY_CARRIERS="" bash "$G" 2>&1)"; rc=$?; if [ "$rc" -eq 2 ] && printf '%s' "$out" | grep -q 'EMPTY'; then pass=$((pass+1)); printf 'PASS  %-70s rc=2\n' "7  REFUSE: an empty population"; else fail=$((fail+1)); printf 'FAIL  7 rc=%d\n%s\n' "$rc" "$out"; fi
+# 8 .58c: the two-edition pipeline census as -0446 carried it (its answer-key row three re-derivations stale), copied under
+#   a basename two oracles name (`census.md`) in a directory none names — un-owned, so the stale row FAILS instead of
+#   being "deferred to check_corpus_key_integrity.sh, which judges this carrier" (the note the basename rule issued)
+git show 9e1ce4890:docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.md > "$W/live/census.md" 2>/dev/null
+arm "8  RED (.58c): a stale census.md in an un-owned directory -> FAIL, not a deferral" "$W/live/census.md" 1 "sv_2023 answer key\` MOVED"
 printf 'IDENTITY-CARRIERS-BANK: %d/%d as declared\n' "$pass" "$((pass+fail))"; [ "$fail" -eq 0 ]

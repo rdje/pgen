@@ -110,15 +110,24 @@ def verdict(label, recorded, live_bytes, live_sem, exists):
     return "fail", f"`{label}` MOVED: report {recorded[:12]}… vs tree {live_bytes[:12]}…"
 
 def owning_oracles(path):
-    """Registered oracles (the registry's script column) whose text names this carrier's basename —
-    the doctrines that already judge it under their OWN definition of its rows."""
+    """Registered oracles (the registry's script column) that name this carrier — its repo-relative PATH, or its
+    BASENAME together with its parent directory as a path component (`/parse_cost_ratchet` + `cost.md`): the
+    doctrines that already judge it under their OWN definition of its rows. ⛔ Never the basename alone
+    (SV-CORPUS-GRAD.58c): `census.md` is a common name, and under the basename rule four live census carriers
+    were "deferred" to `check_corpus_key_integrity.sh`, which names `corpus_key_audit/census.md` and never opens
+    theirs — the two profile censuses sat three answer-key re-derivations stale behind that note (.58b). Honest
+    limit: this is a TEXT match; an oracle that builds the path from a variable the match cannot see is not
+    an owner, and a mismatch on such a carrier FAILS here — the breach it always was, re-stamped by its producer."""
     p = subprocess.run(["awk", r'/^DOCTRINES=\(/{p=1;next} p&&/^\)/{exit} p&&/^ *"/{n=split($0,a,"|"); s=a[n]; sub(/".*$/,"",s); print s}', "scripts/check_doctrines.sh"], capture_output=True, text=True, cwd=ROOT)
-    base = os.path.basename(path); out = []
+    rel = os.path.relpath(path, ROOT) if os.path.isabs(path) else path
+    base = os.path.basename(rel); parent = "/" + os.path.basename(os.path.dirname(rel)); out = []
     for o in p.stdout.split():
         if o.endswith("check_identity_carriers.sh") or not os.path.isfile(o): continue
         try:
-            if base in open(o, encoding="utf-8").read(): out.append(os.path.basename(o))
-        except OSError: pass
+            t = open(o, encoding="utf-8").read()
+        except OSError:
+            continue
+        if rel in t or (base in t and parent in t): out.append(os.path.basename(o))
     return out
 
 def check_carrier(path, report):
@@ -166,6 +175,8 @@ def self_test():
         ("annotated (ebnf_raw_ast) 2-col row is semantic", None, None),
         ("frozen path rule",                          None, None),
         ("owning_oracles: cost.md owned, dark summary un-owned", None, None),
+        ("owning_oracles: a basename alone owns nothing (.58c)", None, None),
+        ("owning_oracles: the oracle naming the carrier's directory owns it (.58c)", None, None),
     ]
     misses = []
     for label, args, want in cells:
@@ -177,11 +188,16 @@ def self_test():
     if not (m2 and "ebnf_raw_ast" in (m2.group(2) or "")): misses.append("annotated 2-col row (ebnf_raw_ast) does not parse as semantic")
     if owning_oracles("docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/cost.md") == []: misses.append("owning_oracles finds no owner for cost.md (PARSE-COST-RATCHET names it)")
     if owning_oracles("docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/summary.md") != []: misses.append("owning_oracles claims an owner for the un-gated dark_chained_only summary")
+    # .58c: `census.md` is named by two oracles that never open THIS census — a basename alone must own nothing
+    if owning_oracles("docs/tasks/artifacts/sv_corpus_grad/lrm_keyword_enumeration/census.md") != []: misses.append("owning_oracles defers lrm_keyword_enumeration/census.md by its basename alone (no oracle names its directory)")
+    own_pipe = owning_oracles("docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/census.md")
+    if "check_pipeline_lane_currency.sh" not in own_pipe: misses.append("owning_oracles misses PIPELINE-LANE-CURRENCY for pipeline_sv2023_lane/census.md (its arm 5)")
+    if "check_corpus_key_integrity.sh" in own_pipe: misses.append("owning_oracles still defers pipeline_sv2023_lane/census.md to check_corpus_key_integrity.sh, which never opens it")
     if not (FROZEN.search("docs/tasks/artifacts/x/before/report.md") and not FROZEN.search("docs/tasks/artifacts/x/report.md")):
         misses.append("frozen path rule wrong")
     if misses:
         print(f"{TAG}: self-test FAILED — {misses}", file=sys.stderr); sys.exit(2)
-    print(f"{TAG}: self-test OK — {len(cells)} controls, every verdict cell and both structural rules observed")
+    print(f"{TAG}: self-test OK — {len(cells)} controls, every verdict cell, both structural rules and the ownership rule observed")
 
 args = sys.argv[1:]
 if "--self-test" in args: self_test(); sys.exit(0)

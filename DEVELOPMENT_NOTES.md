@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.58c (`PGEN-SV-CORPUS-GRAD-0448`): measure with the instrument, not a replica of it
+
+- **A replica of a population is a guess with a decimal point.** `.58b` counted "six `census.md` carriers" with a hand-written heading regex; the gate's own regex (`^## Instrument identity`) says four, and two of the six are not carriers at all. The instrument has a `--report`; use it, and quote it. Corrected in place the same day.
+- **A deferral is an assertion about another oracle.** "Deferred to X, which judges this carrier" must be true of X. Keying it on a basename made it true of whichever oracle happened to name a file of the same name; keying it on the path, or the basename beside its parent directory, makes it true of the oracle that opens the file — and leaves a stale carrier nobody names as the FAIL it always was.
+- **State the honest limit in the docstring, not the leaf.** The ownership match is textual; an oracle that builds the path from a variable is invisible to it. The gate says so where the next reader of the rule will look.
+
 ## 2026-10-17 — SV-CORPUS-GRAD.58b (`PGEN-SV-CORPUS-GRAD-0447`): a deferral by basename is a pass nobody issued
 
 - **A `--check` no gate runs is decoration.** Both profile censuses could say `STALE` in 0.23 s and nobody asked them for a week while the key they join against moved three times. The leaf that gives a producer a `--check` wires it into the gate that runs on the staged set, in the same commit — or the check is a promise with no enforcer.
