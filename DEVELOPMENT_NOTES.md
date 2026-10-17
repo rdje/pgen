@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.57c re-scoped (`PGEN-SV-CORPUS-GRAD-0452`): size a route with the tables you already have
+
+- **Two tracked columns decided a half-day leaf in a minute.** The audit's `NAME @ file` and the members dump's unit list answer "declared in the row's unit?" for every fact-gated row; the route had estimated 229 rows and an expanded-text prover, the join says three rows and no prover. Join before you build.
+- **A number in a route is a claim too.** The `.57b` leaf published "19 + 210 rows" as the next leaf's scope; the correction is recorded as a measurement in the same leaf, so the next reader sees both the estimate and the fact.
+
 ## 2026-10-17 — SV-CORPUS-GRAD.57b (`PGEN-SV-CORPUS-GRAD-0451`): a proof that already exists is read, not re-run
 
 - **Look for the proof before building the prover.** The route asked for "the `.13w` proof over the lane's expanded text"; the strata said that for a `NO-ALTERABLE-TICK` row the expanded text IS the raw text, and the dark worklist had already proved `CROSS-FILE-FACTS` for exactly those rows. The arm reads a tracked table; the prover stays where it was.
