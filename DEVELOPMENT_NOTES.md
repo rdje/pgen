@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SVPP-EXPANSION.6d.9 (`PGEN-SVPP-EXPANSION-0052`): measure the premise before building the instrument
+
+- **A route's population is a hypothesis until the owning mechanism is read.** `.6d.9` carried "223 rows the library pass did not carry facts to"; reading the mechanism (facts flow only through a file's own `import`) turned the question into "why is the row not read through its unit", and the answer was four populations, none of them a missing export. Three hours of lane readings were not spent on a premise one grep refuted.
+- **Resolve an include the way the flow does, or the count is wrong by a third.** Basename resolution put 44 rows under passing packages; same-directory-first resolution (the flow's `+incdir`) moved most of them to "compiled by nothing" — the template copies. The derivation rule is part of the number.
+- **Found while closing `.57c`, logged here per §15.** The first cut of the audit's self-test put its scratch tree under the system temp dir; the `DATA-LOCALITY` doctrine refused the commit, the fixture moved to `rust/target/` (the sibling self-tests' convention), the gate went green — a defect the gate caught before it was committed, and the fix verified by the same gate.
+
 ## 2026-10-17 — SV-CORPUS-GRAD.57c (`PGEN-SV-CORPUS-GRAD-0453`): the suite is not the unit
 
 - **Scope a question by what the subject can see, not by what the index holds.** The `.13c` audit asked "does some sibling declare this name?" over the whole suite, which is the right scope for *defect or dependency*; the store-gate question is *could this row's compile have seen the declaration*, whose scope is the unit the key itself defines. Same index, different predicate — and the wrong one filed a provable refusal as a dependency for a month.

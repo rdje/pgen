@@ -3384,8 +3384,10 @@ observation was simply unused.
 > is **`chained:explained_store_gate`** in the pipeline re-adjudication, ADJUDICATED-explained and never a pass; three
 > rows on the first reading (`ModPortTest`, `UnitClass`, ibex's `spec_api.sv`) and three more under `.57c` (Surelog's
 > `ClassFuncProto/top.v`, `SimpleClass2/top.v`, `UnitForeach/top2.v`); a fact-gated row whose declaring file lies INSIDE
-> its unit is the library design's population (`SVPP-EXPANSION.6d.9`), and the pre-tick rows were measured to be the
-> same population (`-0452`), so no expanded-text prover was built.
+> its unit is the library design's population (`SVPP-EXPANSION.6d.9` — measured 2026-10-17: of 224 such OpenTitan rows
+> none lacks an exported fact; 160 sit behind a refused package expansion, 57 are compiled by no unit, 7 are in units
+> failing on their own text), and the pre-tick rows were measured to be the same population (`-0452`), so no
+> expanded-text prover was built.
 
 > ⭐ **Four of the no-verdict classes are PERMANENT by construction and BOUNDED** (`SV-CORPUS-GRAD.13f`, 2026-09-03): `deferred:svpp_owned` (186 — conformance owned by the preprocessor lane), `deferred:impl_varying` (90 — the suite contract marks the verdict implementation-dependent), `deferred:verilog_ams_lane` (20 — a different language) and `deferred:ni_unimplemented` (6 — upstream skips the construct): **302 rows, 1.8 %**, unchanged since `.13a` measured them on 2026-08-11. Each has a recorded ceiling in `permanent_deferral_ceilings.json` that `corpus_verdict_coverage.py` **refuses to exceed** — a new row joins a class only by naming its argument and raising the ceiling in the same commit — so a permanent deferral can no longer grow silently or be mistaken for a to-do. ⭐ **A fifth class joined on 2026-09-03 (`.13c.1`, `PGEN-SV-CORPUS-GRAD-0345`): `deferred:not_source_text` (350 — the bytes are not source text in any language this grammar describes: a `$readmemh` memory image, a bare string literal, a tool command line), decided from the bytes by the adjudicator and bounded at exactly its count — 652 permanent rows, 4.0 %.** The fragment-shaped one-sided positives (`.13g`) are ruled unadjudicable as whole files and never counted as testimony.
 

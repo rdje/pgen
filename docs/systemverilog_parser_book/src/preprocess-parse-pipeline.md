@@ -583,7 +583,7 @@ unit: a Surelog row's unit is its test's directory, the key's own definition, an
 nowhere that row's compile can see — with no alterable directive before the failure, and proven by the dark
 worklist's search to parse once that type is declared — the sound store gate's refusal (`SV-PARSE-STRICT`), the
 `.13w` class under the pipeline; six rows on this reading (three under `.57b`, three Surelog rows under `.57c`). A
-fact-gated row whose declaring file lies inside its unit is the library design's population (`SVPP-EXPANSION.6d.9`). A refuted row keeps that label until someone has looked at it and written down what it is: the tracked
+fact-gated row whose declaring file lies inside its unit is the library design's population (`SVPP-EXPANSION.6d.9`, which measured it on 2026-10-17: of 224 such OpenTitan rows, 160 sit behind a package whose expansion the lane refused, 57 are files the flow compiles nowhere and 7 are in units failing on their own text — none lacks an exported fact; the six rows a parse-level unit reading would move are priced and parked). A refuted row keeps that label until someone has looked at it and written down what it is: the tracked
 `stimuli/sv/characterization/refuted_dispositions.tsv` carries one line per row looked at — the disposition
 and its evidence, in the answer key's own style — and the report splits the refuted rows by it. The
 dispositions are a closed vocabulary: the base class lives in another file (the library design's rows), the
@@ -919,7 +919,8 @@ for the opt-in profile's closed list) and a port named `do` in a file its driver
 pinned `must_reject` with the clause and a reproducer, the standard outranking the tool as `.57a` ruled. The other
 six are not the parser's: three are the derived context's (a `-f` command file behind `$TEST_ROOT`, an include fragment
 read standalone whose macros its includer defines before the `include` — `SVPP-EXPANSION.4c.5`) and three the unit's declaration
-barrier (`t_sv_cpu`'s typedefs, declared earlier in the same unit and never exported — `SVPP-EXPANSION.6d.9`); they
+barrier (`t_sv_cpu`'s typedefs, declared earlier in the same unit and never exported — `SVPP-EXPANSION.6d.9`, where the
+reading that would move them, the unit's files parsed as one compilation unit, is designed, priced and parked); they
 stay NO VERDICT under the pipeline until read, nothing relabelled.
 
 ⛔ **A note on the host, not the engine.** The reading above was taken on the debug probe because no
