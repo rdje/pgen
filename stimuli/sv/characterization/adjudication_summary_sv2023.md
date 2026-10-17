@@ -1,6 +1,6 @@
 # SV external-corpus adjudication - the sv_2023 profile lane (leaf SV-CORPUS-GRAD.14b.2)
 
-Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, parsed under `--profile sv_2023`); expected verdicts = the sv_2017 key read EDITION-RELATIVELY: 26 rows the 2017 key rules edition contrasts are `must_accept` here (the 1800-2023 production is cited in their basis); 12 rows are `must_accept` by an explicit 1800-2023 reading (text 1800-2023 derives whose upstream failure is semantic); every other row inherits its 2017 ruling.
+Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, parsed under `--profile sv_2023`); expected verdicts = the sv_2017 key read EDITION-RELATIVELY: 32 rows the 2017 key rules edition contrasts are `must_accept` here (the 1800-2023 production is cited in their basis); 12 rows are `must_accept` by an explicit 1800-2023 reading (text 1800-2023 derives whose upstream failure is semantic); every other row inherits its 2017 ruling.
 
 | suite | rows | match | UNEXPLAINED div | explained div | deferred |
 |---|---|---|---|---|---|
@@ -10,7 +10,7 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | friscv | 441 | 0 | 0 | 0 | 441 |
 | ispras-sv-tests | 1266 | 802 | 0 | 17 | 447 |
 | iverilog | 3799 | 1275 | 0 | 238 | 2286 |
-| opentitan | 3983 | 0 | 0 | 0 | 3983 |
+| opentitan | 3983 | 0 | 0 | 6 | 3977 |
 | scr1 | 50 | 0 | 0 | 0 | 50 |
 | slang | 92 | 55 | 0 | 8 | 29 |
 | sv-tests | 1028 | 809 | 0 | 124 | 95 |
@@ -18,13 +18,13 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 120 | 0 | 8 | 24 |
 | verilator | 3263 | 2158 | 0 | 914 | 191 |
-| **total** | **16336** | **6305** | **0** | **1432** | **8599** |
+| **total** | **16336** | **6305** | **0** | **1438** | **8593** |
 
 ## Verdict-class detail
 
 | class | count |
 |---|---|
-| deferred:chained_only | 4934 |
+| deferred:chained_only | 4928 |
 | deferred:impl_varying | 90 |
 | deferred:ni_unimplemented | 14 |
 | deferred:not_source_text | 350 |
@@ -33,7 +33,7 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | deferred:verilog_ams_lane | 25 |
 | divergence:explained_store_gate | 54 |
 | divergence:explained_svpp_conditional | 196 |
-| divergence:explained_svpp_include | 133 |
+| divergence:explained_svpp_include | 139 |
 | divergence:explained_svpp_keywords_region | 4 |
 | divergence:explained_svpp_macro_use | 1041 |
 | divergence:explained_svpp_protected_envelope | 4 |

@@ -7,20 +7,20 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 
 | input | path | sha256 |
 |---|---|---|
-| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `c7ca12d65daf222ae0087319c30062d38fa05195b4b79d00b309207e513b66e6` |
+| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `0c7b858d99b53133b756b1c508837e492cbf0db8d5b2fa4aafb572dec71edc3f` |
 | sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `7b1ac7eaa01fe7b4646878b2ae9117b82bb11b1650f46927cb26742c266d8274` |
 | sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `b987f55646f24f63f5de40f4faecec6860dd9a0cafa9becc0214a4f34c9795bf` |
 | sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `044ea4ba169dddafacf231ae91326204a8695f904a3c1d9d4d18ff343c01645d` |
 | expansion binary | `rust/target/debug/ast_pipeline` | `9382dff7f4f2a60f0e0f74aa9b61d563fce05064f7becf9fffed6a6e93cd3614` |
 
-## The classes — 311 rows
+## The classes — 305 rows
 
 | class | rows | what it means |
 |---|---:|---|
 | `raw_backtick` | 0 | the expanded text at the stop begins with a backtick: an undefined macro reached the parser — CONTEXT, not syntax |
 | `base_class` | 233 | a class header with a base class the parser has not seen declared — the cross-file declaration barrier |
-| `edition_2023` | 4 | the same row passes under the `sv_2023` reading — the 2017 rejection is the older text's |
-| `tolerated_spelling` | 5 | the same row passes under `sv_2023_tolerant` only — a spelling of the opt-in profile's closed list |
+| `edition_2023` | 1 | the same row passes under the `sv_2023` reading — the 2017 rejection is the older text's |
+| `tolerated_spelling` | 2 | the same row passes under `sv_2023_tolerant` only — a spelling of the opt-in profile's closed list |
 | `edition_2023_moves` | 0 | the 2023 reading stops further: the construct at this stop is the 2023 text's, a later barrier remains |
 | `tolerated_moves` | 0 | the tolerant reading stops further than the 2023 one: a tolerated spelling here, a later barrier remains |
 | `error_test` | 0 | an intended-invalid test by name — the rejection is the expected verdict |
@@ -73,18 +73,17 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `Surelog` | 4 |
 | `uvm-core` | 1 |
 
-## `edition_2023` — 4 rows, by suite
+## `edition_2023` — 1 rows, by suite
 
 | suite | rows |
 |---|---:|
-| `opentitan` | 3 |
 | `friscv` | 1 |
 
-## `tolerated_spelling` — 5 rows, by suite
+## `tolerated_spelling` — 2 rows, by suite
 
 | suite | rows |
 |---|---:|
-| `opentitan` | 5 |
+| `opentitan` | 2 |
 
 ## `edition_2023_moves` — 0 rows, by suite
 

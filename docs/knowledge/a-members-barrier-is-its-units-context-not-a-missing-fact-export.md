@@ -34,7 +34,8 @@ answer key's (`SV-CORPUS-GRAD.59`); 7 are in units that FAIL on their own text, 
 editions (`SV-CORPUS-GRAD.60`): `[]` in a parameter's dimension is 2017-illegal and 2023-legal (an edition contrast
 the sv_2023 reading already cashes), an event trigger on a select has no derivation in either edition yet the
 grammar's 2023 variant accepts it (to settle), a hierarchical `cross` item and a lifetime in a method prototype are
-derived in neither edition (pin candidates).
+derived in neither edition — and are members of the director's opt-in tolerance list already (`.41` / `.43`), so the
+strict readings reject them by decision (corrected by `SV-CORPUS-GRAD.60`, which keyed the two contrasts).
 
 **What is left.** Six rows whose demanded name a predecessor of the SAME derived unit declares: verilator's
 `t_sv_cpu` three, `t_hier_block_import_subsub.v`, Surelog's `AllBinding/dut.sv`, VeeR's `dccm_memtest.sv`. The

@@ -17,8 +17,8 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 | sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `b987f55646f24f63f5de40f4faecec6860dd9a0cafa9becc0214a4f34c9795bf` |
 | sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `f3ba226fbd83dbd8456198c299ea8b8fa943e8b5ec4be2f08e1c0205e52624c9` |
 | unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023.tsv` | `acac7a118b3cfe26a207b0d1bf64e5758093b730c825a75122d3c7fb1b6c3c6c` |
-| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `c7ca12d65daf222ae0087319c30062d38fa05195b4b79d00b309207e513b66e6` |
-| sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `c217fd567d2a759802dbc245837f90874ee70b38d1fb8404bd173a8884405f2c` |
+| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `0c7b858d99b53133b756b1c508837e492cbf0db8d5b2fa4aafb572dec71edc3f` |
+| sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `91d04e28dae5cd2b2772a924b5cf06eb1cd259d9f194b088ee35777e1876b7aa` |
 
 The 2023 run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6` `files=16336`.
 
@@ -82,9 +82,9 @@ The stop is the REJECTING reading's own origin and the source line there; the 20
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/sv_type_param_restrict_union2.v` | `sv_type_param_restrict_union2.v:14:17` | `parameter type union T = T0` | `must_reject:match_under_expansion` | `must_accept / divergence:explained_svpp_macro_use` |
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/sv_type_param_restrict_union_fail1.v` | `sv_type_param_restrict_union_fail1.v:8:17` | `parameter type union T = struct_t` | `must_reject:match_under_expansion` | `must_accept / match` |
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/sv_type_param_restrict_union_fail2.v` | `sv_type_param_restrict_union_fail2.v:13:17` | `parameter type union T = union_t` | `must_reject:match_under_expansion` | `must_accept / match` |
-| `2023_only_pass` | `opentitan` | `hw/top_darjeeling/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv` | `rstmgr_env_pkg.sv:37:34` | `parameter string LIST_OF_LEAFS[] = {` | `chained:rejects_own_file` | `chained_must_accept / deferred:chained_only` |
-| `2023_only_pass` | `opentitan` | `hw/top_earlgrey/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv` | `rstmgr_env_pkg.sv:37:34` | `parameter string LIST_OF_LEAFS[] = {` | `chained:rejects_own_file` | `chained_must_accept / deferred:chained_only` |
-| `2023_only_pass` | `opentitan` | `hw/top_englishbreakfast/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv` | `rstmgr_env_pkg.sv:37:34` | `parameter string LIST_OF_LEAFS[] = {` | `chained:rejects_own_file` | `chained_must_accept / deferred:chained_only` |
+| `2023_only_pass` | `opentitan` | `hw/top_darjeeling/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv` | `rstmgr_env_pkg.sv:37:34` | `parameter string LIST_OF_LEAFS[] = {` | `must_reject:match_under_expansion` | `must_accept / divergence:explained_svpp_include` |
+| `2023_only_pass` | `opentitan` | `hw/top_earlgrey/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv` | `rstmgr_env_pkg.sv:37:34` | `parameter string LIST_OF_LEAFS[] = {` | `must_reject:match_under_expansion` | `must_accept / divergence:explained_svpp_include` |
+| `2023_only_pass` | `opentitan` | `hw/top_englishbreakfast/ip_autogen/rstmgr/dv/env/rstmgr_env_pkg.sv` | `rstmgr_env_pkg.sv:37:34` | `parameter string LIST_OF_LEAFS[] = {` | `must_reject:match_under_expansion` | `must_accept / divergence:explained_svpp_include` |
 | `2023_only_pass` | `slang` | `tests/regression/all.sv` | `all.sv:255:48` | `default disable iff 1 dist { [1:2] :/ 3, 2, default :/ 4 };` | `must_reject:match_under_expansion` | `must_accept / match` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_array_event.v` | `t_array_event.v:15:26` | `->write_events[index];` | `must_reject:match_under_expansion` | `must_accept / match` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_class_extends_default.v` | `t_class_extends_default.v:14:26` | `class Cls1 extends Base1(default);` | `must_reject:match_under_expansion` | `must_accept / match` |

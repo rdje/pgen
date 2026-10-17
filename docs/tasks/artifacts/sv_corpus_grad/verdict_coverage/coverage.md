@@ -6,7 +6,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `0a787f15151fe297936617f1c2800760cad49b7cb2d3247888df963442db5cbd` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `de6b716edf8a9de2b6f74e79a48aa622c8f3e329fabe3eacb70ec6ebef59390e` |
 | v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `e6eef5b48a81b6a36ce80da012d27e8b8afbc683ce454682331eabe8a24b680c` |
 
 ## The headline
@@ -125,7 +125,7 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 | class | rows | reason (the row's own `basis`) |
 |---|---:|---|
-| `deferred:chained_only` | 4,609 | design corpus: a shipping design's file is valid as part of its unit (the DESIGN_SUITES convention; cashed by the pipeline read… |
+| `deferred:chained_only` | 4,603 | design corpus: a shipping design's file is valid as part of its unit (the DESIGN_SUITES convention; cashed by the pipeline read… |
 | `deferred:chained_only` | 18 | verilator: compiled as part of test t_sv_cpu (driver t_sv_cpu.py expects success) - flag-list source; test_regress/driver.py:77… |
 | `deferred:chained_only` | 17 | Surelog: multi-file test unit (3 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
 | `deferred:chained_only` | 11 | Surelog: multi-file test unit (4 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
@@ -154,6 +154,7 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:chained_only` | 3 | Surelog: multi-file test unit (3 sources); golden log UnitDefParam.log completes with no [SNT:]/[FTL:] and the driver names thi… |
 | `deferred:chained_only` | 3 | Surelog: multi-file test unit (3 sources); its driver is config-driven (-map/-cfg/-batch decide the compiled set) - dir-level c… |
 | `deferred:chained_only` | 3 | Surelog: multi-file test unit (5 sources); golden log SplitFile.log completes with no [SNT:]/[FTL:] and the driver names this f… |
+| `deferred:chained_only` | 3 | pinned SV-CORPUS-GRAD.60: line 37 'parameter string LIST_OF_LEAFS[] = {' - an UNSIZED dimension '[ ]' on a parameter: an EDITIO… |
 | `deferred:chained_only` | 3 | sv2v: .svh include payload, not a standalone unit |
 | `deferred:chained_only` | 3 | verilator: compiled as part of test t_hier_block_import (driver t_hier_block_import.py expects success) - -f command file t/t_h… |
 | `deferred:chained_only` | 3 | verilator: compiled as part of test t_uvm_dpi_v2017_1_0 (driver t_uvm_dpi_v2017_1_0.py expects success) - include of t/uvm/v201… |
@@ -181,6 +182,7 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:chained_only` | 2 | Surelog: multi-file test unit (3 sources); golden log TimeUnit.log completes with no [SNT:]/[FTL:] and the driver names this fi… |
 | `deferred:chained_only` | 2 | Surelog: multi-file test unit (4 sources); golden log OneAnd.log completes with no [SNT:]/[FTL:] and the driver names this file… |
 | `deferred:chained_only` | 2 | Surelog: multi-file test unit (6 sources); the driver does not name this file (a -y library member or an unnamed sibling) - not… |
+| `deferred:chained_only` | 2 | pinned SV-CORPUS-GRAD.60: line 38 'parameter string LIST_OF_READ_SEED_FORCE_PATHS[] = {' - an UNSIZED dimension '[ ]' on a para… |
 | `deferred:chained_only` | 2 | verilator: compiled as part of test t_embed1 (driver t_embed1.py expects success) - module-name resolution (-y) of t/t_embed1.v… |
 | `deferred:chained_only` | 2 | verilator: compiled as part of test t_inst_first (driver t_inst_first.py expects success) - module-name resolution (-y) of t/t_… |
 | `deferred:chained_only` | 2 | verilator: compiled as part of test t_order (driver t_order.py expects success) - module-name resolution (-y) of t/t_order.v; t… |
@@ -223,6 +225,7 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:chained_only` | 1 | ivtest: a '-y' LIBRARY companion (.52) - vvp_tests/br_gh1323.json runs br_gh1323_top.v with '-yivltests', the top instantiates … |
 | `deferred:chained_only` | 1 | pinned .3.56: lines 11-12 'example line 10;' 'example line 11;' at the top level - placeholder text the driver's +pipe-filter r… |
 | `deferred:chained_only` | 1 | pinned .57a: line 15 'modport tb (clocking cb, input clk);' inside 'for (genvar i = 0; i < 2; i++) begin : mod_gen' of a genera… |
+| `deferred:chained_only` | 1 | pinned SV-CORPUS-GRAD.60: line 38 'parameter string LIST_OF_READ_SEED_FORCE_PATHS[] = {' - an UNSIZED dimension '[ ]' on a para… |
 | `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: line 9 'wire do;' - 'do' is a reserved keyword in every SystemVerilog edition (IEEE 1800-2017 Table… |
 | `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: origin line 35 'string s = 'FOO;' expands to a legal string literal ('FOO -> 'BAR -> '__FILE__, dat… |
 | `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: the same body - a bare 'begin end' at module-item level after 'string s = 'FOO;' (A.1.4; the .3.56 … |
@@ -344,19 +347,19 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 ## Under the PIPELINE — the same rows re-read through preprocess→parse (SVPP-EXPANSION.6c.1)
 
-> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`c7ca12d65daf222ae0087319c30062d38fa05195b4b79d00b309207e513b66e6`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
+> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`0c7b858d99b53133b756b1c508837e492cbf0db8d5b2fa4aafb572dec71edc3f`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
 
-**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11656/2943/1737/1232/0`** (raw: `7733/2943/5660/3812/0`).
+**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `11662/2943/1731/1226/0`** (raw: `7733/2943/5660/3812/0`).
 
-- **ADJUDICATED: 11,656 rows (71.4 %)** (raw 7,733, +3,923)
+- **ADJUDICATED: 11,662 rows (71.4 %)** (raw 7,733, +3,929)
 - **ROUTED: 2,943 rows (18.0 %)** (raw 2,943, +0)
-- **NO VERDICT: 1,737 rows (10.6 %)** (raw 5,660, -3,923)
+- **NO VERDICT: 1,731 rows (10.6 %)** (raw 5,660, -3,929)
 
 | bucket | class under the pipeline | rows | % | why |
 |---|---|---:|---:|---|
 | ADJUDICATED | `match` | 5,931 | 36.3 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `pipeline:corroborated` | 1,334 | 8.2 % | a must-accept row the raw lane explained away by preprocessing PASSES once preprocessed — the explanation held; the row testifies FOR the parser |
-| ADJUDICATED | `pipeline:must_reject:match_under_expansion` | 460 | 2.8 % | a row the key expects rejected IS rejected in its own text under the pipeline — the raw lane could not reach the construct |
+| ADJUDICATED | `pipeline:must_reject:match_under_expansion` | 466 | 2.9 % | a row the key expects rejected IS rejected in its own text under the pipeline — the raw lane could not reach the construct |
 | ADJUDICATED | `pipeline:svpp_owned:corroborated` | 94 | 0.6 % | a svpp-owned row whose own header says must_accept (sv-tests :type: preprocessing, no :should_fail_because:) PASSES under the pipeline — the preprocessor lane answering the question the raw key deferred to it by design (SVPP-EXPANSION.6c.3) |
 | ADJUDICATED | `divergence:explained_store_gate` | 54 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
 | ADJUDICATED | `pipeline:must_reject:refused_engine` | 22 | 0.1 % | a must-reject row the PREPROCESSOR refuses by a rule of its own (E_SVPP_* / an invalid directive, each naming its clause) — the rejection the key expects, at the expansion stage (SVPP-EXPANSION.6c.3) |
@@ -365,7 +368,7 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | NO VERDICT | `pipeline:chained:refused_context` | 367 | 2.2 % | an include the derived context cannot supply |
 | NO VERDICT | `deferred:not_source_text` | 350 | 2.1 % | the file is not SystemVerilog source text at all (a $readmemh memory image, a bare string literal, a tool command line) - it testifies to nothing about the parser; a CORPUS-COMPOSITION fact, stated per row (SV-CORPUS-GRAD.13c.1) |
 | NO VERDICT | `pipeline:chained:unreached_in_unit` | 337 | 2.1 % | DARK UNDER THE PIPELINE: a member whose every including unit rejects elsewhere (.6d.2) — the unit's own origin row carries the verdict |
-| NO VERDICT | `pipeline:chained:rejects_own_file` | 304 | 1.9 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |
+| NO VERDICT | `pipeline:chained:rejects_own_file` | 298 | 1.8 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |
 | NO VERDICT | `deferred:impl_varying` | 90 | 0.6 % | LRM leaves the behaviour implementation-defined |
 | NO VERDICT | `deferred:verilog_ams_lane` | 25 | 0.2 % | Verilog-AMS, a different language family |
 | NO VERDICT | `pipeline:svpp_owned:refused_engine` | 24 | 0.1 % | conformance owned by the preprocessor lane |

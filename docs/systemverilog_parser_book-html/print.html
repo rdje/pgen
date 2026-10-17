@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8fc07428.js";
+            window.path_to_searchindex_js = "searchindex-3d1dc773.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -275,13 +275,13 @@ inapplicable one.</li>
 <tr><th>Lane</th><th style="text-align: right">Rows</th><th style="text-align: right">Adjudicated</th><th style="text-align: right">Permanently unadjudicable (named, bounded)</th><th style="text-align: right"><strong>Still awaiting a verdict</strong></th><th style="text-align: right">Unexplained</th><th style="text-align: right">Bar rows</th><th><code>full_pass</code></th></tr>
 </thead>
 <tbody>
-<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 656</td><td style="text-align: right">479</td><td style="text-align: right"><strong>1 258</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 662</td><td style="text-align: right">479</td><td style="text-align: right"><strong>1 252</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
 <tr><td><code>verilog_2005</code> — the routed rows, read raw under IEEE 1364-2005</td><td style="text-align: right">2 943</td><td style="text-align: right">2 896</td><td style="text-align: right">33</td><td style="text-align: right"><strong>14</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
-<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">14 552</td><td style="text-align: right">512</td><td style="text-align: right"><strong>1 272</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">14 558</td><td style="text-align: right">512</td><td style="text-align: right"><strong>1 266</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>The three row counts sum to the denominator (14 552 + 512 + 1 272 = 16 336). <strong>1 272 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
+<p>The three row counts sum to the denominator (14 558 + 512 + 1 266 = 16 336). <strong>1 266 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -1506,7 +1506,7 @@ under the pipeline. The second is the first with the re-adjudication table appli
 rows corroborated, 1 704 design-corpus files accepted under their derived context and library (must-accept by the
 suite’s own convention — a shipping design compiles), 448 must-reject rows rejected where the raw lane
 never reached the construct (28 of them the key questions of the disposition table, pinned with the
-clause and a reproducer each, 3 the rows a file’s own driver define reaches — <code>.4c.1</code>, and 11 the pipeline-routed parser questions re-read at the furthest token — <code>SV-CORPUS-GRAD.12b.1</code>), and 5 must-accept rows still refused in their own text (three of <code>.12b.1</code>’s four grammar families shipped: the spaced <code>@ ( * )</code> as <code>1.0.228</code> — nine pipeline rows <code>fail → pass</code> — and the <code>$</code>-indexed receiver with the sv_2023 <code>+%-</code> range as <code>1.0.229</code>, whose streaming-slice row proved the standard’s own refusal and is pinned) — the bar’s
+clause and a reproducer each, 3 the rows a file’s own driver define reaches — <code>.4c.1</code>, and 11 the pipeline-routed parser questions re-read at the furthest token — <code>SV-CORPUS-GRAD.12b.1</code>; since 2026-10-17 six more are <code>SV-CORPUS-GRAD.60</code>’s edition contrast — an unsized <code>[ ]</code> parameter dimension in six OpenTitan package files, refused under IEEE 1800-2017 and derived by IEEE 1800-2023, so the sv_2023 reading expects them accepted), and 5 must-accept rows still refused in their own text (three of <code>.12b.1</code>’s four grammar families shipped: the spaced <code>@ ( * )</code> as <code>1.0.228</code> — nine pipeline rows <code>fail → pass</code> — and the <code>$</code>-indexed receiver with the sv_2023 <code>+%-</code> range as <code>1.0.229</code>, whose streaming-slice row proved the standard’s own refusal and is pinned) — the bar’s
 members, each with its clause, until the corpus tree rules them. 2 935 rows are dark under the pipeline
 on a declaration another file holds; that is the library design’s population. The report also re-reads every row the key expects <strong>rejected</strong> — including
 a pin the raw lane could not cash because its parse stopped on a macro use above the construct: 34 verilator

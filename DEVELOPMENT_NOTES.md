@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.60 (`PGEN-SV-CORPUS-GRAD-0454`): read the decisions before proposing a ruling
+
+- **A shape a strict profile rejects may already be a decision, not a question.** Two of the four shapes I routed as pin candidates were the director's tolerance-list members of 2026-10-02; the strict readings reject them by that decision. `docs/decisions/` and the `.41` census answered in one grep what I had queued as a leaf. Read the decisions register before writing "pin candidate".
+- **Both editions, both productions, both measured — then the pin writes itself.** The `[ ]` parameter dimension read as a defect until the 2023 Annex A line was beside the 2017 one; the edition-contrast form (`.12b.1`) then keyed it on both lanes with no new mechanism.
+- **A pin the raw lane cannot position is not the key's ruling — it is a match for the wrong reason.** The member row rejects at its class header, not at the pinned line; the raw lane called that a `match` and the 2023 lane an unexplained divergence. The chain read it back before the commit, and the pin was withdrawn: a member is keyed by its unit's reading, which `.43` named and nobody has built.
+
 ## 2026-10-17 — SVPP-EXPANSION.6d.9 (`PGEN-SVPP-EXPANSION-0052`): measure the premise before building the instrument
 
 - **A route's population is a hypothesis until the owning mechanism is read.** `.6d.9` carried "223 rows the library pass did not carry facts to"; reading the mechanism (facts flow only through a file's own `import`) turned the question into "why is the row not read through its unit", and the answer was four populations, none of them a missing export. Three hours of lane readings were not spent on a premise one grep refuted.
