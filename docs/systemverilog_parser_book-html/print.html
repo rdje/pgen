@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a0b276af.js";
+            window.path_to_searchindex_js = "searchindex-4efb8e62.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -275,13 +275,13 @@ inapplicable one.</li>
 <tr><th>Lane</th><th style="text-align: right">Rows</th><th style="text-align: right">Adjudicated</th><th style="text-align: right">Permanently unadjudicable (named, bounded)</th><th style="text-align: right"><strong>Still awaiting a verdict</strong></th><th style="text-align: right">Unexplained</th><th style="text-align: right">Bar rows</th><th><code>full_pass</code></th></tr>
 </thead>
 <tbody>
-<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 651</td><td style="text-align: right">479</td><td style="text-align: right"><strong>1 263</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><code>sv_2017</code> — the corpus, raw rows read under the pipeline where it re-read them</td><td style="text-align: right">16 336</td><td style="text-align: right">11 653</td><td style="text-align: right">479</td><td style="text-align: right"><strong>1 261</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
 <tr><td><code>verilog_2005</code> — the routed rows, read raw under IEEE 1364-2005</td><td style="text-align: right">2 943</td><td style="text-align: right">2 896</td><td style="text-align: right">33</td><td style="text-align: right"><strong>14</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
-<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">14 547</td><td style="text-align: right">512</td><td style="text-align: right"><strong>1 277</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
+<tr><td><strong>Both lanes — the corpus</strong></td><td style="text-align: right">16 336</td><td style="text-align: right">14 549</td><td style="text-align: right">512</td><td style="text-align: right"><strong>1 275</strong></td><td style="text-align: right">0</td><td style="text-align: right">0</td><td><code>false</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>The three row counts sum to the denominator (14 547 + 512 + 1 277 = 16 336). <strong>1 277 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
+<p>The three row counts sum to the denominator (14 549 + 512 + 1 275 = 16 336). <strong>1 275 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -1322,7 +1322,19 @@ unit — not only the top, as the <code>.4c.2</code> arm had it — reads after 
 quoted items of a flag list tokenized in order so a string naming several files yields its unit. Measured:
 <code>pipeline_context_units.tsv</code> 44 → 222 rows on 17 → 46 files, eleven option-file defines; re-run on the whole lane under
 the three readings, <strong>exactly 2 movers on each of the three readings, both pre-registered</strong> (<code>subB.v</code> <code>pp_fail → pass</code>, <code>subsub.v</code> <code>pp_fail → fail</code> on the <code>param_t</code> declaration barrier inside its included <code>.vh</code>), none other. The include fragment’s own-row context — 266 of the lane’s refused-context rows
-are include targets, 123 of them OpenTitan’s and 118 UVM’s — is a lever of its own, routed as <code>.4c.6</code>.</p>
+are include targets, 123 of them OpenTitan’s and 118 UVM’s — is <code>.4c.6</code>, below.</p>
+<p><strong>The include fragment’s own row (<code>.4c.6</code>).</strong> A file another file <code>`include</code>s has, on its own row, exactly the context
+its includer gives it: the includer’s text before the <code>include</code> line, and the includer’s own context. The derived
+context now carries that per fragment — a fifth table, <code>pipeline_context_fragments.tsv</code>, the chain of (includer, line,
+open conditional regions) up to the root — and the lane materializes each prefix as a unit file (its definitions carry
+over, its text is discarded, the fragment’s own guard untouched) after the root includer’s own units, include dirs and
+defines. The header-guard idiom puts nearly every include inside an <code>ifndef</code>; the probe refuses a unit file whose
+conditional is left open and accepts it closed, with the same macro state, so the table counts the regions open at the
+cut and the lane closes them. A prefix that itself refuses to preprocess — the includer’s own context gap — is recorded
+beside the dump and the row keeps its standalone reading, never the includer’s refusal. A fragment several files include
+is a tie, reported, never applied (83 — <code>dv_macros.svh</code> by 222 files among them); a cycle is reported; a package is a
+unit of its own; a file its own harness compiles as a top keeps its own harness’s reading. Measured: 3,611 rows on 2,292 files, <code>rom.sv</code>
+parsing under its includer’s prefix; re-run on the whole lane under the three readings, <strong>143 movers on each of the three readings, all fragment files, all <code>pp_fail</code> at HEAD, none moved down</strong> — 138 <code>pp_fail → fail</code> (the macro barrier removed, the declaration barrier exposed: 113 at a class header) and 5 <code>pp_fail → pass</code> (<code>rom.sv</code> among them); 279 rows per reading fell back to their standalone reading on their includer’s own gap, recorded.</p>
 <p><strong>A suite’s unit predecessors (<code>.6d.6</code>).</strong> IEEE 1800-2017 §22.5.1 makes a macro unit-wide once defined, and
 OpenTitan’s dvsim builds one unit: <code>{UVM_HOME}/src/uvm_pkg.sv</code> first (it includes <code>uvm_macros.svh</code>), then
 <code>dv_utils_pkg.sv</code> (which includes <code>dv_macros.svh</code>), the RTL (<code>prim_assert.sv</code>) and only then the DV env and

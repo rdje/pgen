@@ -286,7 +286,13 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   parsed after every listed file; `+define+A+B=V` plus-args into the top's defines) and every listed member of a
   unit reads after the files its command line compiles before it; a glob, a `--siloed` run, a pair two
   declarations order differently, an absent or unreadable option file, a run-time environment name and a
-  QUOTED `+define+` value are REPORTED (`unit` lines), never applied. A `-DNAME` the same command line `-U`s again is not a define the driver passes. OpenTitan's PER-IP build defines are read from the IP's own `dv/*_sim_cfg.hjson` (`SVPP-EXPANSION.4c.3`): a cfg nobody imports is a run cfg (a cfg another imports is a base run through its importers), its default build carries the import chain's top-level `build_opts` plus its `en_build_modes`, and each `build_mode:` a test picks is one more build; a define is applied to the files the cfg directory owns ONLY when every build of the directory carries it with one value, a name the builds disagree on is REPORTED per build (`variant` lines; `define_variant_dirs` / `define_variant_names`), never applied, and a templated value is `computed`. Every directory
+  QUOTED `+define+` value are REPORTED (`unit` lines), never applied. An include FRAGMENT (`SVPP-EXPANSION.4c.6`,
+  `pipeline_context_fragments.tsv`) is read as its includer compiles it: the chain of includer prefixes — the text
+  before each `include` line, the conditional regions open at the cut closed with `endif`s (the probe refuses an open
+  one) — materialized by the lane under `rust/target/pipeline_prefix/` as unit files, root first, with the root's own
+  context — the suite's flow predecessors first; a prefix that refuses to preprocess sends the row to its standalone
+  reading and is recorded beside the dump (`fragment_fallbacks=` in the lane line); a tie (several includers), a cycle
+  and a package target are REPORTED (`fragment` lines), never applied. A `-DNAME` the same command line `-U`s again is not a define the driver passes. OpenTitan's PER-IP build defines are read from the IP's own `dv/*_sim_cfg.hjson` (`SVPP-EXPANSION.4c.3`): a cfg nobody imports is a run cfg (a cfg another imports is a base run through its importers), its default build carries the import chain's top-level `build_opts` plus its `en_build_modes`, and each `build_mode:` a test picks is one more build; a define is applied to the files the cfg directory owns ONLY when every build of the directory carries it with one value, a name the builds disagree on is REPORTED per build (`variant` lines; `define_variant_dirs` / `define_variant_names`), never applied, and a templated value is `computed`. Every directory
   under `stimuli/sv/subs/` is a suite (`--list-suites`; the runner takes `all`). `SVPP-EXPANSION.4`/`.4b`.
   ⭐ THE LIBRARY PASS (`SVPP-EXPANSION.6d.1`, `stimuli/sv/pipeline_library.py`, run by the lane before
   the per-file rows): a design suite's file imports typedefs, classes and parameters a PACKAGE in
@@ -305,7 +311,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   picks, the lane does not guess). A rejecting or refused file exports nothing (the engine writes no facts
   for a rejected parse), so every package importing it stays dark on its names — measured, not papered
   over. Then EVERY row runs with `--lib-in` of the result (`pipeline_context_args.sh`, the ONE place the
-  four context tables and the library become probe flags; the lane and the builder both source it). The
+  five context tables and the library become probe flags; the lane and the builder both source it). The
   per-package outcome is the dump `pipeline_library.tsv` (`.gitignore`d, rebuilt every run); the report's
   *"The library the lane built"* section is its published summary. `PGEN_PIPELINE_LIBRARY=0` skips the pass.
   ⭐ THE UNIT-MEMBERSHIP READING (`.6d.2`): an `` `include ``d class file has no `import` of its own, so
@@ -317,7 +323,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   unit including it rejects elsewhere (the bytes were never judged; the unit's origin is named). The
   `unit` column of `pipeline_readjudication.tsv` names the unit; the coverage census counts
   `accepted_in_unit` as ADJUDICATED in the design suites, exactly as `accepted_under_expansion`.
-  ⭐ All four tracked tables, the tracked report, the re-adjudication, the rejects-own-file census and the two
+  ⭐ All five tracked tables, the tracked report, the re-adjudication, the rejects-own-file census and the two
   profile censuses (six arms since `SV-CORPUS-GRAD.58b`) are held to a fresh derivation on every commit by the
   `PIPELINE-LANE-CURRENCY` doctrine (`scripts/check_pipeline_lane_currency.sh`; the dumps being
   `.gitignore`d, a tree without them is NOT EVALUATED, loudly).

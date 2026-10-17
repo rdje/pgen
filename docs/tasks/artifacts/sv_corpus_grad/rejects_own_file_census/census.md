@@ -7,18 +7,18 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 
 | input | path | sha256 |
 |---|---|---|
-| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `969dc9dab41468532e5e99ef1ced862a45fdec1917fd6a913fa1d6c9254e9752` |
-| sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `0f05e65c9e8be4e9953be35ed189aa267abc5832af7727ed1a4add15aa16261e` |
-| sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `a5bfe12d3ef1b56767fe95e52326091251138893736028ccacf6dbc67d4287ba` |
-| sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `b6869df90588e34acfa408a54ec263234cc96aec64add1a81397aa78ad88476c` |
+| re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `f00053fb0c7ee71a9b67bf3880b8eb5ab4574d647c4883c099cdf6cf9a9c66f7` |
+| sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `7b1ac7eaa01fe7b4646878b2ae9117b82bb11b1650f46927cb26742c266d8274` |
+| sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `b987f55646f24f63f5de40f4faecec6860dd9a0cafa9becc0214a4f34c9795bf` |
+| sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `044ea4ba169dddafacf231ae91326204a8695f904a3c1d9d4d18ff343c01645d` |
 | expansion binary | `rust/target/debug/ast_pipeline` | `9382dff7f4f2a60f0e0f74aa9b61d563fce05064f7becf9fffed6a6e93cd3614` |
 
-## The classes — 303 rows
+## The classes — 314 rows
 
 | class | rows | what it means |
 |---|---:|---|
 | `raw_backtick` | 0 | the expanded text at the stop begins with a backtick: an undefined macro reached the parser — CONTEXT, not syntax |
-| `base_class` | 222 | a class header with a base class the parser has not seen declared — the cross-file declaration barrier |
+| `base_class` | 233 | a class header with a base class the parser has not seen declared — the cross-file declaration barrier |
 | `edition_2023` | 4 | the same row passes under the `sv_2023` reading — the 2017 rejection is the older text's |
 | `tolerated_spelling` | 5 | the same row passes under `sv_2023_tolerant` only — a spelling of the opt-in profile's closed list |
 | `edition_2023_moves` | 0 | the 2023 reading stops further: the construct at this stop is the 2023 text's, a later barrier remains |
@@ -41,7 +41,7 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 |---|---:|---|
 | `SATP_MODE` | 13 | `Cores-VeeR-EL2` `tools/riscv-dv/riscv_core_setting.sv` (6) |
 | `xbar_devices` | 11 | `opentitan` `hw/top_darjeeling/dv/autogen/xbar_env_pkg__params.sv` (9) |
-| `clk_rst_if_main` | 3 | `opentitan` `hw/top_darjeeling/dv/autogen/tb__xbar_connect.sv` (30) |
+| `<expansion failed>` | 5 | `black-parrot` `bp_me/src/include/bp_me_cce_pkgdef.svh` (19) |
 | `#` | 2 | `opentitan` `hw/ip/sram_ctrl/dv/env/sram_ctrl_env_cfg.sv` (6) |
 | `assign` | 2 | `Cores-VeeR-EL2` `design/include/el2_dec_csr_equ_m.svh` (86) |
 | `initial` | 2 | `opentitan` `hw/ip/prim/rtl/prim_util_memload.svh` (54) |
@@ -49,9 +49,7 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `$display` | 1 | `iverilog` `ivtest/ivltests/line_directive_inc.v` (1) |
 | `,` | 1 | `opentitan` `hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv` (2) |
 | `NUM_ALERTS` | 1 | `opentitan` `hw/top_englishbreakfast/dv/env/autogen/chip_env_pkg__params.sv` (7) |
-| `num_dev` | 1 | `opentitan` `hw/ip/tlul/generic_dv/env/xbar_env_cov.sv` (6) |
-| `state` | 1 | `black-parrot` `bp_me/src/include/bp_me_cce_pkgdef.svh` (19) |
-| `type_id` | 1 | `opentitan` `hw/ip/tlul/generic_dv/env/xbar_scoreboard.sv` (15) |
+| `clk_rst_if_main` | 1 | `opentitan` `hw/top_englishbreakfast/dv/autogen/tb__xbar_connect.sv` (30) |
 
 ## `undeclared_type` — 10 rows, by the type the parser never saw
 
@@ -68,12 +66,14 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | `uvm_component` | 1 | Surelog:top.v |
 | `uvm_packer` | 1 | Surelog:top_1.sv |
 
-## `base_class` — 222 rows, by suite
+## `base_class` — 233 rows, by suite
 
 | suite | rows |
 |---|---:|
-| `opentitan` | 218 |
+| `opentitan` | 221 |
+| `Cores-VeeR-EL2` | 7 |
 | `Surelog` | 4 |
+| `uvm-core` | 1 |
 
 ## `edition_2023` — 4 rows, by suite
 

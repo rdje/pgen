@@ -24,31 +24,32 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 | context | `stimuli/sv/pipeline_context.tsv` | `7da1ee0e0aa1b66dd57c7b70dd711c7e34e6eb9ba01c6e969794bd9c80b3779f` |
 | context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `72d1969494e96fbcec75e3a6504a57f2d86ac45fa397a65b10c700b17b6a8384` |
 | context (per-file unit predecessors) | `stimuli/sv/pipeline_context_units.tsv` | `b074739dca938b719b7d8d389b63e694efd01b757386a06fd5d6bbe28d2485cd` |
-| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `2dd05ddc238c372a39e01120a43990d3eeeb4dc54bd7240022c8015821f4f78f` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `0f05e65c9e8be4e9953be35ed189aa267abc5832af7727ed1a4add15aa16261e` |
+| context (per-file include fragments) | `stimuli/sv/pipeline_context_fragments.tsv` | `375ff910bce93b1c2f677d9396718ef2ee0f1f59576df3eef55ebc47848bc727` |
+| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `9d7a747740e604a81c3793eb6e0c041913aa7e050de878789ae867c3668c0ae5` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `7b1ac7eaa01fe7b4646878b2ae9117b82bb11b1650f46927cb26742c266d8274` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
 
-Measured at `HEAD` = `c98b0a427+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `81c7b18d4+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
 | suite | rows | raw pass | raw fail | raw timeout | pipeline pass | pipeline fail | pp_fail | timeout | crash | Δ pass |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Cores-VeeR-EL2 | 102 | 19 | 83 | 0 | 85 | 6 | 11 | 0 | 0 | +66 |
+| Cores-VeeR-EL2 | 102 | 19 | 83 | 0 | 85 | 15 | 2 | 0 | 0 | +66 |
 | Surelog | 828 | 718 | 110 | 0 | 751 | 56 | 21 | 0 | 0 | +33 |
 | black-parrot | 205 | 37 | 168 | 0 | 33 | 1 | 171 | 0 | 0 | -4 |
-| friscv | 441 | 38 | 403 | 0 | 62 | 347 | 32 | 0 | 0 | +24 |
+| friscv | 441 | 38 | 403 | 0 | 63 | 347 | 31 | 0 | 0 | +25 |
 | ispras-sv-tests | 1266 | 1125 | 141 | 0 | 1256 | 10 | 0 | 0 | 0 | +131 |
 | iverilog | 3799 | 3214 | 585 | 0 | 3628 | 154 | 17 | 0 | 0 | +414 |
-| opentitan | 3983 | 987 | 2996 | 0 | 1853 | 1965 | 165 | 0 | 0 | +866 |
+| opentitan | 3983 | 987 | 2996 | 0 | 1853 | 1979 | 151 | 0 | 0 | +866 |
 | scr1 | 50 | 8 | 42 | 0 | 49 | 1 | 0 | 0 | 0 | +41 |
 | slang | 92 | 72 | 20 | 0 | 72 | 14 | 6 | 0 | 0 | +0 |
 | sv-tests | 1028 | 856 | 172 | 0 | 1000 | 21 | 7 | 0 | 0 | +144 |
 | sv2v | 953 | 713 | 240 | 0 | 805 | 118 | 30 | 0 | 0 | +92 |
-| uvm-core | 174 | 33 | 141 | 0 | 31 | 25 | 118 | 0 | 0 | -2 |
+| uvm-core | 174 | 33 | 141 | 0 | 34 | 140 | 0 | 0 | 0 | +1 |
 | verible | 152 | 121 | 31 | 0 | 130 | 20 | 2 | 0 | 0 | +9 |
-| verilator | 3263 | 2081 | 1182 | 0 | 2950 | 260 | 53 | 0 | 0 | +869 |
-| **total** | 16336 | 10022 | 6314 | 0 | 12705 | 2998 | 633 | 0 | 0 | +2683 |
+| verilator | 3263 | 2081 | 1182 | 0 | 2951 | 260 | 52 | 0 | 0 | +870 |
+| **total** | 16336 | 10022 | 6314 | 0 | 12710 | 3136 | 490 | 0 | 0 | +2688 |
 
 ## Transitions — raw status → pipeline status
 
@@ -56,8 +57,8 @@ Measured at `HEAD` = `c98b0a427+dirty`; the parse binary is a **debug** build (t
 |---|---|---:|
 | Cores-VeeR-EL2 | `fail` → `pass` | 67 |
 | Cores-VeeR-EL2 | `pass` → `pass` | 18 |
-| Cores-VeeR-EL2 | `fail` → `pp_fail` | 10 |
-| Cores-VeeR-EL2 | `fail` → `fail` | 6 |
+| Cores-VeeR-EL2 | `fail` → `fail` | 15 |
+| Cores-VeeR-EL2 | `fail` → `pp_fail` | 1 |
 | Cores-VeeR-EL2 | `pass` → `pp_fail` | 1 |
 | Surelog | `pass` → `pass` | 717 |
 | Surelog | `fail` → `fail` | 56 |
@@ -71,8 +72,8 @@ Measured at `HEAD` = `c98b0a427+dirty`; the parse binary is a **debug** build (t
 | black-parrot | `fail` → `fail` | 1 |
 | friscv | `fail` → `fail` | 347 |
 | friscv | `pass` → `pass` | 38 |
-| friscv | `fail` → `pp_fail` | 32 |
-| friscv | `fail` → `pass` | 24 |
+| friscv | `fail` → `pp_fail` | 31 |
+| friscv | `fail` → `pass` | 25 |
 | ispras-sv-tests | `pass` → `pass` | 1124 |
 | ispras-sv-tests | `fail` → `pass` | 132 |
 | ispras-sv-tests | `fail` → `fail` | 9 |
@@ -82,12 +83,12 @@ Measured at `HEAD` = `c98b0a427+dirty`; the parse binary is a **debug** build (t
 | iverilog | `fail` → `fail` | 154 |
 | iverilog | `fail` → `pp_fail` | 14 |
 | iverilog | `pass` → `pp_fail` | 3 |
-| opentitan | `fail` → `fail` | 1905 |
+| opentitan | `fail` → `fail` | 1917 |
 | opentitan | `fail` → `pass` | 963 |
 | opentitan | `pass` → `pass` | 890 |
-| opentitan | `fail` → `pp_fail` | 128 |
-| opentitan | `pass` → `fail` | 60 |
-| opentitan | `pass` → `pp_fail` | 37 |
+| opentitan | `fail` → `pp_fail` | 116 |
+| opentitan | `pass` → `fail` | 62 |
+| opentitan | `pass` → `pp_fail` | 35 |
 | scr1 | `fail` → `pass` | 41 |
 | scr1 | `pass` → `pass` | 8 |
 | scr1 | `fail` → `fail` | 1 |
@@ -107,19 +108,18 @@ Measured at `HEAD` = `c98b0a427+dirty`; the parse binary is a **debug** build (t
 | sv2v | `fail` → `pass` | 114 |
 | sv2v | `pass` → `pp_fail` | 22 |
 | sv2v | `fail` → `pp_fail` | 8 |
-| uvm-core | `fail` → `pp_fail` | 113 |
-| uvm-core | `pass` → `pass` | 28 |
-| uvm-core | `fail` → `fail` | 25 |
-| uvm-core | `pass` → `pp_fail` | 5 |
-| uvm-core | `fail` → `pass` | 3 |
+| uvm-core | `fail` → `fail` | 136 |
+| uvm-core | `pass` → `pass` | 29 |
+| uvm-core | `fail` → `pass` | 5 |
+| uvm-core | `pass` → `fail` | 4 |
 | verible | `pass` → `pass` | 121 |
 | verible | `fail` → `fail` | 20 |
 | verible | `fail` → `pass` | 9 |
 | verible | `fail` → `pp_fail` | 2 |
 | verilator | `pass` → `pass` | 2062 |
-| verilator | `fail` → `pass` | 888 |
+| verilator | `fail` → `pass` | 889 |
 | verilator | `fail` → `fail` | 256 |
-| verilator | `fail` → `pp_fail` | 38 |
+| verilator | `fail` → `pp_fail` | 37 |
 | verilator | `pass` → `pp_fail` | 15 |
 | verilator | `pass` → `fail` | 4 |
 
@@ -133,12 +133,12 @@ Measured at `HEAD` = `c98b0a427+dirty`; the parse binary is a **debug** build (t
 | friscv | 0 | 0 |
 | ispras-sv-tests | 0 | 1 |
 | iverilog | 0 | 0 |
-| opentitan | 60 | 0 |
+| opentitan | 62 | 0 |
 | scr1 | 0 | 0 |
 | slang | 2 | 1 |
 | sv-tests | 0 | 0 |
 | sv2v | 0 | 0 |
-| uvm-core | 0 | 0 |
+| uvm-core | 4 | 0 |
 | verible | 0 | 0 |
 | verilator | 2 | 2 |
 
@@ -147,7 +147,7 @@ Measured at `HEAD` = `c98b0a427+dirty`; the parse binary is a **debug** build (t
 | adjudication class | rows | pipeline pass | pipeline fail | pp_fail | timeout | crash |
 |---|---:|---:|---:|---:|---:|---:|
 | `match` | 6313 | 5928 | 382 | 3 | 0 | 0 |
-| `deferred:chained_only` | 4934 | 2380 | 2029 | 525 | 0 | 0 |
+| `deferred:chained_only` | 4934 | 2385 | 2167 | 382 | 0 | 0 |
 | `deferred:v2005_profile_lane` | 2943 | 2858 | 71 | 14 | 0 | 0 |
 | `divergence:explained_svpp_macro_use` | 1029 | 1006 | 4 | 19 | 0 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 350 | 0 | 0 | 0 |
@@ -169,13 +169,13 @@ Measured at `HEAD` = `c98b0a427+dirty`; the parse binary is a **debug** build (t
 
 | construct at the origin line | rows | one example (origin — line) |
 |---|---:|---|
-| class header with a base class (`extends`) | 1825 | `stimuli/sv/subs/Surelog/tests/Escape/top.v:8:26` — `class env extends uvm_env;` |
+| class header with a base class (`extends`) | 1929 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4:63` — `class dccm_transaction_sequence_item extends uvm_sequence_item;` |
 | other | 980 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
-| a parameter port list `#(` | 81 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
-| a `typedef` | 44 | `stimuli/sv/subs/Surelog/tests/NetType/dut.sv:18:24` — `typedef some_other_type myalias;` |
-| a function / task header | 29 | `stimuli/sv/subs/Surelog/tests/BitSelectHier/dut.sv:37:32` — `extern function uvm_mem_mam_cfg reconfigure(uvm_mem_mam_cfg cfg = null);` |
-| a `::`-scoped name | 18 | `stimuli/sv/subs/Surelog/tests/Assignments/dut.sv:5:44` — `function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);` |
-| a `uvm_*` name (typed, not a macro) | 12 | `stimuli/sv/subs/Surelog/tests/ForeachClassParent/dut.sv:4:22` — `protected uvm_phase m_type_overrides[$];` |
+| a parameter port list `#(` | 97 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
+| a `typedef` | 49 | `stimuli/sv/subs/Surelog/tests/NetType/dut.sv:18:24` — `typedef some_other_type myalias;` |
+| a function / task header | 31 | `stimuli/sv/subs/Surelog/tests/BitSelectHier/dut.sv:37:32` — `extern function uvm_mem_mam_cfg reconfigure(uvm_mem_mam_cfg cfg = null);` |
+| a `uvm_*` name (typed, not a macro) | 22 | `stimuli/sv/subs/Surelog/tests/ForeachClassParent/dut.sv:4:22` — `protected uvm_phase m_type_overrides[$];` |
+| a `::`-scoped name | 19 | `stimuli/sv/subs/Surelog/tests/Assignments/dut.sv:5:44` — `function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);` |
 | `import` of a package | 5 | `stimuli/sv/subs/sv2v/test/nosim/dpi.sv:35:28` — `import "DPI-C" function bit [15:0] getStimulus(input integer x);` |
 | a `new(…)` initializer / construction | 3 | `stimuli/sv/subs/iverilog/ivtest/ivltests/sv_named_arg_new_fail4.v:14:19` — `c = new(.a(2), 1); // This should fail. Positional arguments must precede` |
 | a `constraint` / `rand` | 1 | `stimuli/sv/subs/verilator/test_regress/t/t_constraint_operators.v:52:25` — `constraint unary { !(-~c == 'h22); }` |
@@ -188,12 +188,14 @@ Measured at `HEAD` = `c98b0a427+dirty`; the parse binary is a **debug** build (t
 | origin file | rejections landing in it |
 |---|---:|
 | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh` | 3 |
+| `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv` | 3 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_tl_seq_item.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/seq_lib/csrng_base_seq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/flash_phy_prim_agent/seq_lib/flash_phy_prim_base_seq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/i2c_agent/seq_lib/i2c_base_seq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/jtag_riscv_agent/seq_lib/jtag_riscv_base_seq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/key_sideload_agent/seq_lib/key_sideload_base_seq.sv` | 2 |
+| `stimuli/sv/subs/opentitan/hw/dv/sv/kmac_app_agent/seq_lib/kmac_app_base_seq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/push_pull_agent/seq_lib/push_pull_base_seq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/rng_agent/seq_lib/rng_base_seq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/sec_cm/sec_cm_base_if_proxy.sv` | 2 |
@@ -210,20 +212,20 @@ Measured at `HEAD` = `c98b0a427+dirty`; the parse binary is a **debug** build (t
 | `stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/seq_lib/dma_base_vseq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/ip/hmac/dv/env/seq_lib/hmac_base_vseq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/ip/i2c/dv/env/seq_lib/i2c_base_vseq.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/ip/keymgr/dv/env/seq_lib/keymgr_base_vseq.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/ip/keymgr_dpe/dv/env/seq_lib/keymgr_dpe_base_vseq.sv` | 2 |
 
 ## Top 25 ORIGIN LINES
 
 | origin file:line | rejections |
 |---|---:|
 | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh:182` | 3 |
+| `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4` | 3 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_tl_seq_item.sv:6` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/seq_lib/csrng_base_seq.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/flash_phy_prim_agent/seq_lib/flash_phy_prim_base_seq.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/i2c_agent/seq_lib/i2c_base_seq.sv:14` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/jtag_riscv_agent/seq_lib/jtag_riscv_base_seq.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/key_sideload_agent/seq_lib/key_sideload_base_seq.sv:7` | 2 |
+| `stimuli/sv/subs/opentitan/hw/dv/sv/kmac_app_agent/seq_lib/kmac_app_base_seq.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/push_pull_agent/seq_lib/push_pull_base_seq.sv:7` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/rng_agent/seq_lib/rng_base_seq.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/spi_agent/seq_lib/spi_base_seq.sv:5` | 2 |
@@ -240,38 +242,36 @@ Measured at `HEAD` = `c98b0a427+dirty`; the parse binary is a **debug** build (t
 | `stimuli/sv/subs/opentitan/hw/ip/keymgr/dv/env/seq_lib/keymgr_base_vseq.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/ip/keymgr_dpe/dv/env/seq_lib/keymgr_dpe_base_vseq.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/ip/kmac/dv/env/seq_lib/kmac_base_vseq.sv:8` | 2 |
-| `stimuli/sv/subs/opentitan/hw/ip/mbx/dv/env/seq_lib/mbx_tl_device_seq.sv:5` | 2 |
-| `stimuli/sv/subs/opentitan/hw/ip/otbn/dv/uvm/env/seq_lib/otbn_base_vseq.sv:9` | 2 |
 
 ## Preprocessor refusals (`pp_fail`) by reason
 
 | reason (paths and numbers normalised) | rows |
 |---|---:|
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/include/b` | 149 |
-| `` `uvm_object_utils is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/u `` | 26 |
 | `` `RNG_BUS_WIDTH is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs `` | 21 |
 | `` `EN_GCM is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/openti `` | 20 |
 | `` `NUM_END_POINTS is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/sub `` | 14 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/friscv/dep/hardfloat/test/source/tes` | 13 |
-| `` `uvm_object_param_utils is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimul `` | 12 |
 | `` `EN_MASKING is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/op `` | 11 |
-| `` `uvm_error is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/uvm/uvm- `` | 10 |
 | `` `error is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilat `` | 10 |
-| `` `uvm_component_param_utils is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/sti `` | 9 |
 | `` `DRIVE_CLK is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/ope `` | 8 |
-| `` `uvm_object_utils_begin is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimul `` | 7 |
-| `` `uvm_component_utils is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/s `` | 6 |
 | `unterminated conditional block in '…'` | 6 |
 | ```a macro-string or paste token (`", `\`", ``) outside macro text at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/iv``` | 6 |
-| `` `CONNECT_DATA_WIDTH is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv `` | 6 |
-| `` `uvm_info is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/uvm/uvm-c `` | 6 |
-| `` `uvm_object_abstract_utils is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/sti `` | 6 |
-| `` `uvm_warning is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/uvm/uv `` | 6 |
 | `E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMa` | 5 |
 | `E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros` | 5 |
 | `` `SEC_VOLATILE_RAW_UNLOCK_EN is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/st `` | 5 |
 | `` `SRAM_WORD_ADDR_WIDTH is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/ `` | 5 |
 | `` `DEFINE_INSTR is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/ `` | 5 |
+| ```a macro-string or paste token (`", `\`", ``) outside macro text at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv``` | 5 |
+| `` `SRAM_TYPE is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/ope `` | 4 |
+| `` `DEFINE_FP_INSTR is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/su `` | 4 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_me/src/v/network/bp_` | 3 |
+| `` `INSTR_EXEC is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/op `` | 3 |
+| `` `VERILATOR_TEST_STATUS_ADDR is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/st `` | 3 |
+| `` `VECTOR_INCLUDE is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/sub `` | 3 |
+| `` `DEFINE_C_INSTR is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/sub `` | 3 |
+| `E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-N/N.N.N--defi` | 3 |
+| `` `systemc_header is neither a defined macro nor a compiler directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/sub `` | 3 |
 
 ## The library the lane built (the design suites' packages, in dependency order)
 
@@ -388,3 +388,29 @@ A package file's row here is its verdict AS A UNIT (its own text plus what it in
 | slang | 3 | 4 | `test2.sv` ← `test.sv` |
 | sv2v | 2 | 2 | `module.sv` ← `package.svh` |
 | verilator | 41 | 216 | `t_config_default.v` ← `t_config_work__liba.v` |
+
+### Per-file include fragments (the file as its includer compiles it)
+
+| suite | fragments | chain rows | e.g. |
+|---|---:|---:|---|
+| Cores-VeeR-EL2 | 16 | 28 | `el2_dec_csr_equ_m.svh` ← `el2_dec_tlu_ctl.sv:504` |
+| Surelog | 9 | 11 | `mode.vh` ← `my_incl.vh:13` |
+| black-parrot | 21 | 21 | `bp_be_ctl_pkgdef.svh` ← `bp_be_pkg.sv:100` |
+| friscv | 6 | 6 | `friscv_control_h.sv` ← `friscv_control.sv:8` |
+| ispras-sv-tests | 1 | 1 | `count.v` ← `test_19_05_00_1.v:8` |
+| iverilog | 6 | 9 | `else3.v` ← `include3.v:22` |
+| opentitan | 2017 | 3176 | `alert_base_driver.sv` ← `alert_esc_agent_pkg.sv:56` |
+| scr1 | 2 | 2 | `scr1_scu.svh` ← `scr1_scu.sv:30` |
+| slang | 5 | 7 | `another_systemverilog.sv` ← `map-keyword-version.sv:9` |
+| sv-tests | 1 | 1 | `preproc_test_2.svh` ← `preproc_test_2.sv:16` |
+| sv2v | 13 | 13 | `cast_top_item.sv` ← `cast_top_item.v:2` |
+| uvm-core | 167 | 307 | `uvm_compat_macros.svh` ← `uvm_compat_pkg.sv:40` |
+| verible | 3 | 3 | `included-file-1.svh` ← `included-file-2.svh:6` |
+| verilator | 25 | 26 | `t_debug_inputs_a.v` ← `t_debug_inputs.v:8` |
+
+2,270 rows of this dump carry a fragment context; **279** of them were read STANDALONE after their includer's prefix refused to preprocess (the includer's own context gap — recorded in `rust/target/pipeline_lane/fragment_fallbacks.tsv`, derived with the dump):
+
+| suite | rows read standalone | the prefix's refusal, most often |
+|---|---:|---|
+| black-parrot | 19 | `failed to resolve include 'bsg_defines.sv'` (15) |
+| opentitan | 260 | `` `NAME is neither a defined macro nor a compiler directive `` (142) |

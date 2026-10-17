@@ -695,7 +695,20 @@ unit — not only the top, as the `.4c.2` arm had it — reads after the files i
 quoted items of a flag list tokenized in order so a string naming several files yields its unit. Measured:
 `pipeline_context_units.tsv` 44 → 222 rows on 17 → 46 files, eleven option-file defines; re-run on the whole lane under
 the three readings, **exactly 2 movers on each of the three readings, both pre-registered** (`subB.v` `pp_fail → pass`, `subsub.v` `pp_fail → fail` on the `param_t` declaration barrier inside its included `.vh`), none other. The include fragment's own-row context — 266 of the lane's refused-context rows
-are include targets, 123 of them OpenTitan's and 118 UVM's — is a lever of its own, routed as `.4c.6`.
+are include targets, 123 of them OpenTitan's and 118 UVM's — is `.4c.6`, below.
+
+**The include fragment's own row (`.4c.6`).** A file another file `` `include ``s has, on its own row, exactly the context
+its includer gives it: the includer's text before the `include` line, and the includer's own context. The derived
+context now carries that per fragment — a fifth table, `pipeline_context_fragments.tsv`, the chain of (includer, line,
+open conditional regions) up to the root — and the lane materializes each prefix as a unit file (its definitions carry
+over, its text is discarded, the fragment's own guard untouched) after the root includer's own units, include dirs and
+defines. The header-guard idiom puts nearly every include inside an `ifndef`; the probe refuses a unit file whose
+conditional is left open and accepts it closed, with the same macro state, so the table counts the regions open at the
+cut and the lane closes them. A prefix that itself refuses to preprocess — the includer's own context gap — is recorded
+beside the dump and the row keeps its standalone reading, never the includer's refusal. A fragment several files include
+is a tie, reported, never applied (83 — `dv_macros.svh` by 222 files among them); a cycle is reported; a package is a
+unit of its own; a file its own harness compiles as a top keeps its own harness's reading. Measured: 3,611 rows on 2,292 files, `rom.sv`
+parsing under its includer's prefix; re-run on the whole lane under the three readings, **143 movers on each of the three readings, all fragment files, all `pp_fail` at HEAD, none moved down** — 138 `pp_fail → fail` (the macro barrier removed, the declaration barrier exposed: 113 at a class header) and 5 `pp_fail → pass` (`rom.sv` among them); 279 rows per reading fell back to their standalone reading on their includer's own gap, recorded.
 
 **A suite's unit predecessors (`.6d.6`).** IEEE 1800-2017 §22.5.1 makes a macro unit-wide once defined, and
 OpenTitan's dvsim builds one unit: `{UVM_HOME}/src/uvm_pkg.sv` first (it includes `uvm_macros.svh`), then

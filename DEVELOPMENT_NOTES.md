@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SVPP-EXPANSION.4c.6 (`PGEN-SVPP-EXPANSION-0051`): close the cut, do not refuse it
+
+- **A derived refusal is still a refusal; measure before accepting it.** The first derivation reported 170 fragments as "inside a conditional region, not applied" — a rule I wrote because a prefix cut inside an `ifndef` looked unsafe. One synthetic pair through the probe said what unsafe meant (rc 3 `unterminated`) and what safe meant (close the region: rc 0, the same macro state). The rule became a column and a loop of `endif`s; 131 UVM fragments and `rom.sv` came back in.
+- **An includer's gap is the includer's; record it, do not inherit it.** The first full reading turned 329 rows into refusals that belonged to their includers — a variant-only define, a library the corpus does not hold — and would have erased the parser's testimony on files it accepts. The fallback keeps the fragment's own reading and writes the includer's refusal down beside the dump; the number is in the lane line, not in a lost verdict.
+- **The prefix goes after the flow's predecessors, because that is where the compiler puts it.** The first flag order preprocessed the includer's prefix before OpenTitan's UVM predecessor and read a perfectly good `uvm_object_utils` call as incomplete; the engine was suspected until a synthetic unit file preprocessed fine. Order is a derivation too.
+- **A context the probe cannot name is materialized, never tracked.** The prefix of a file is nothing a flag can point at; the lane writes it under `rust/target/pipeline_prefix/` from the tracked `(includer, line, close)`, atomically, and the tracked table stays a derivation of the corpus.
+- **Pre-register by table, read by census.** 2,270 fragment rows with a lane row, 246 of them `pp_fail`: the macro barrier the context removes — the census reads the movers against that list, so the 1,915 `fail` rows that stay `fail` (the class-base barrier) are not a disappointment but the `.6d` population, counted.
+
 ## 2026-10-17 — SV-CORPUS-GRAD.57c re-scoped (`PGEN-SV-CORPUS-GRAD-0452`): size a route with the tables you already have
 
 - **Two tracked columns decided a half-day leaf in a minute.** The audit's `NAME @ file` and the members dump's unit list answer "declared in the row's unit?" for every fact-gated row; the route had estimated 229 rows and an expanded-text prover, the join says three rows and no prover. Join before you build.

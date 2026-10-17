@@ -11,6 +11,7 @@ pipeline recognises that the raw lane could not (and the reverse):
     stimuli/sv/pipeline_context.tsv                    the context the lane ran under
     stimuli/sv/pipeline_context_defines.tsv            the per-file defines the files' own drivers pass (SVPP-EXPANSION.4c.1)
     stimuli/sv/pipeline_context_units.tsv              the per-file unit predecessors the files' own harness compiles first (SVPP-EXPANSION.4c.2)
+    stimuli/sv/pipeline_context_fragments.tsv          the include fragments read as their includer compiles them — the chain of prefixes (SVPP-EXPANSION.4c.6)
     stimuli/sv/characterization/pipeline_library.tsv   the LIBRARY PASS's per-package outcome (SVPP-EXPANSION.6d.1; a dump, .gitignored)
 
 ⛔ Every number here is a JOIN, never a copy: a row is counted only where the pipeline dump holds
@@ -156,6 +157,10 @@ def main() -> int:
     ap.add_argument("--context", default=str(ROOT / "stimuli" / "sv" / "pipeline_context.tsv"))
     ap.add_argument("--context-defines", default=str(ROOT / "stimuli" / "sv" / "pipeline_context_defines.tsv"))
     ap.add_argument("--context-units", default=str(ROOT / "stimuli" / "sv" / "pipeline_context_units.tsv"))
+    ap.add_argument("--context-fragments", default=str(ROOT / "stimuli" / "sv" / "pipeline_context_fragments.tsv"))
+    ap.add_argument("--fragment-fallbacks", default="",
+                    help="the lane's sidecar of fragment rows read standalone after their includer's prefix refused "
+                         "(default: rust/target/pipeline_lane/fragment_fallbacks<suffix>.tsv, the suffix the dump's)")
     ap.add_argument("--library", default=str(CHAR / "pipeline_library.tsv"))
     ap.add_argument("--library-members", default=str(CHAR / "pipeline_library_members.tsv"))
     ap.add_argument("--probe", default=str(ROOT / "rust" / "target" / "release" / "parseability_probe"))
@@ -276,6 +281,9 @@ def main() -> int:
     ctx_units = pathlib.Path(args.context_units)
     if ctx_units.exists():
         L.append(f"| context (per-file unit predecessors) | `{rel(ctx_units)}` | `{sha256(ctx_units)}` |")
+    ctx_fragments = pathlib.Path(args.context_fragments)
+    if ctx_fragments.exists():
+        L.append(f"| context (per-file include fragments) | `{rel(ctx_fragments)}` | `{sha256(ctx_fragments)}` |")
     library = pathlib.Path(args.library)
     if library.exists():
         L.append(f"| library pass dump | `{rel(library)}` | `{sha256(library)}` |")
@@ -398,6 +406,43 @@ def main() -> int:
             L.append(f"| {suite} | {len({r[1] for r in mine})} | {len(mine)} | {code(first[1].rsplit('/', 1)[-1])} ← {code(first[3].rsplit('/', 1)[-1])} |")
         if not urows:
             L.append("| (none) | 0 | 0 | |")
+    # SVPP-EXPANSION.4c.6 — an include FRAGMENT read as its includer compiles it: the chain of includer prefixes
+    # (the text before each `include line) applied as unit files, root first; a tie, a conditional include, a
+    # cycle and a package target are reported by the deriver, never guessed
+    if ctx_fragments.exists():
+        frows = [r for r in read_tsv(ctx_fragments, 6)[1:] if r[0] in suites]
+        L.append("\n### Per-file include fragments (the file as its includer compiles it)\n")
+        L.append("| suite | fragments | chain rows | e.g. |\n|---|---:|---:|---|")
+        for suite in sorted({r[0] for r in frows}):
+            mine = [r for r in frows if r[0] == suite]
+            first = mine[0]
+            L.append(f"| {suite} | {len({r[1] for r in mine})} | {len(mine)} | {code(first[1].rsplit('/', 1)[-1])} ← {code(first[3].rsplit('/', 1)[-1] + ':' + first[4])} |")
+        if not frows:
+            L.append("| (none) | 0 | 0 | |")
+        # the lane's fallback: a fragment whose includer's PREFIX refused to preprocess (the includer's own context gap)
+        # is read standalone, and the refusal recorded beside the dump — derived at lane time, never tracked
+        fb_path = pathlib.Path(args.fragment_fallbacks) if args.fragment_fallbacks else (
+            ROOT / "rust" / "target" / "pipeline_lane" / ("fragment_fallbacks" + pathlib.Path(args.pipeline).stem.replace("pipeline_results", "") + ".tsv"))
+        in_dump = {(r[0], r[1]) for r in frows}
+        rows_with_context = sum(1 for r in pipeline if (r[0], r[2]) in in_dump)
+        if fb_path.exists():
+            fb = [r for r in read_tsv(fb_path, 3) if r[0] in suites]
+            L.append(f"\n{rows_with_context:,} rows of this dump carry a fragment context; **{len(fb):,}** of them were read "
+                     f"STANDALONE after their includer's prefix refused to preprocess (the includer's own context gap — recorded "
+                     f"in `{rel(fb_path)}`, derived with the dump):\n")
+            if fb:
+                L.append("| suite | rows read standalone | the prefix's refusal, most often |\n|---|---:|---|")
+                for suite in sorted({r[0] for r in fb}):
+                    mine = [r for r in fb if r[0] == suite]
+                    kinds: dict[str, int] = {}
+                    for r in mine:
+                        k = re.sub(r"`[A-Za-z_]\w*", "`NAME", r[2].split(" at ")[0])[:90]
+                        kinds[k] = kinds.get(k, 0) + 1
+                    top = max(kinds.items(), key=lambda kv: kv[1])
+                    L.append(f"| {suite} | {len(mine)} | {code(top[0])} ({top[1]}) |")
+        else:
+            L.append(f"\n{rows_with_context:,} rows of this dump carry a fragment context; the fallback sidecar `{rel(fb_path)}` is absent — "
+                     "fallbacks NOT EVALUATED (run the lane).")
 
     out = pathlib.Path(args.out)
     out.write_text("\n".join(L) + "\n")

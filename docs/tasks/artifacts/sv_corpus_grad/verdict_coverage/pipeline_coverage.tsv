@@ -1,14 +1,14 @@
 bucket	class	rows	pct
 ADJUDICATED	match	5931	36.31
 ROUTED	deferred:v2005_profile_lane	2943	18.02
-ADJUDICATED	pipeline:chained:accepted_under_expansion	1501	9.19
-ADJUDICATED	pipeline:chained:accepted_in_unit	1501	9.19
+ADJUDICATED	pipeline:chained:accepted_under_expansion	1498	9.17
+ADJUDICATED	pipeline:chained:accepted_in_unit	1498	9.17
 ADJUDICATED	pipeline:corroborated	1334	8.17
 ADJUDICATED	pipeline:must_reject:match_under_expansion	460	2.82
-NO VERDICT	pipeline:chained:refused_context	382	2.34
+NO VERDICT	pipeline:chained:refused_context	367	2.25
 NO VERDICT	deferred:not_source_text	350	2.14
 NO VERDICT	pipeline:chained:unreached_in_unit	337	2.06
-NO VERDICT	pipeline:chained:rejects_own_file	296	1.81
+NO VERDICT	pipeline:chained:rejects_own_file	307	1.88
 ADJUDICATED	pipeline:svpp_owned:corroborated	94	0.58
 NO VERDICT	deferred:impl_varying	90	0.55
 ADJUDICATED	divergence:explained_store_gate	54	0.33
@@ -17,9 +17,9 @@ NO VERDICT	pipeline:svpp_owned:refused_engine	24	0.15
 NO VERDICT	pipeline:refused_context	22	0.13
 ADJUDICATED	pipeline:must_reject:refused_engine	22	0.13
 NO VERDICT	pipeline:chained:refused_engine	15	0.09
+NO VERDICT	pipeline:chained:hollow	14	0.09
 NO VERDICT	deferred:ni_unimplemented	14	0.09
 NO VERDICT	pipeline:must_reject:refused_context	13	0.08
-NO VERDICT	pipeline:chained:hollow	12	0.07
 NO VERDICT	pipeline:svpp_owned:refused_context	7	0.04
 NO VERDICT	pipeline:svpp_owned:rejects_own_file	7	0.04
 NO VERDICT	pipeline:refuted:vendor_identity_branch	5	0.03
@@ -30,4 +30,4 @@ NO VERDICT	pipeline:svpp_owned:accepted_under_expansion	2	0.01
 NO VERDICT	pipeline:svpp_owned:refuted:key_question	2	0.01
 NO VERDICT	pipeline:refuted:preprocessor_item	1	0.01
 NO VERDICT	pipeline:must_reject:hollow	1	0.01
-TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	11651/2943/1742/1237/0	
+TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	11653/2943/1740/1235/0	

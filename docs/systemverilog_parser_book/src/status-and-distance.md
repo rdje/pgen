@@ -60,11 +60,11 @@ Only **7 733 rows (47.3 %)** were asked a question they could answer, and **3 81
 
 | Lane | Rows | Adjudicated | Permanently unadjudicable (named, bounded) | **Still awaiting a verdict** | Unexplained | Bar rows | `full_pass` |
 |---|---:|---:|---:|---:|---:|---:|---|
-| `sv_2017` — the corpus, raw rows read under the pipeline where it re-read them | 16 336 | 11 651 | 479 | **1 263** | 0 | 0 | `false` |
+| `sv_2017` — the corpus, raw rows read under the pipeline where it re-read them | 16 336 | 11 653 | 479 | **1 261** | 0 | 0 | `false` |
 | `verilog_2005` — the routed rows, read raw under IEEE 1364-2005 | 2 943 | 2 896 | 33 | **14** | 0 | 0 | `false` |
-| **Both lanes — the corpus** | 16 336 | 14 547 | 512 | **1 277** | 0 | 0 | `false` |
+| **Both lanes — the corpus** | 16 336 | 14 549 | 512 | **1 275** | 0 | 0 | `false` |
 
-The three row counts sum to the denominator (14 547 + 512 + 1 277 = 16 336). **1 277 rows still stand between this corpus and leg 3** — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-`.3f` bit (`no_verdict == 0` on the raw lane, unreachable by construction) reads `false` and is kept by name as `full_pass_raw_lane`.
+The three row counts sum to the denominator (14 549 + 512 + 1 275 = 16 336). **1 275 rows still stand between this corpus and leg 3** — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-`.3f` bit (`no_verdict == 0` on the raw lane, unreachable by construction) reads `false` and is kept by name as `full_pass_raw_lane`.
 
 **What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. **4 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 

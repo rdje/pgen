@@ -63,9 +63,16 @@ case "$PROFILE" in
   *) echo "pipeline-lane: unknown profile '$PROFILE' (sv_2017 | sv_2023 | sv_2023_tolerant)" >&2; exit 2 ;;
 esac
 OUT="${PGEN_PIPELINE_OUT:-stimuli/sv/characterization/pipeline_results${PROFILE_SUFFIX}.tsv}"
+# SVPP-EXPANSION.4c.6 — a fragment row whose includer's PREFIX refuses to preprocess (the includer's own context gap:
+# an undefined variant-only define, an unresolvable include) is re-read standalone, and the refusal is recorded here,
+# beside the dump's provenance (derived, never tracked): one line per row — suite, path, the prefix's refusal
+FALLBACKS="${PGEN_PIPELINE_FRAGMENT_FALLBACKS:-rust/target/pipeline_lane/fragment_fallbacks${PROFILE_SUFFIX}.tsv}"
+mkdir -p "$(dirname "$FALLBACKS")"; : > "$FALLBACKS"
+export FALLBACKS
 MAX_FILES="${PGEN_PIPELINE_MAX_FILES:-0}"
 # the per-file context → probe flags lives in ONE sourceable place (SVPP-EXPANSION.6d.1), shared with the library builder:
-# the four derived tables (.4 suite rows, .4b per-file includes, .4c.1 per-file defines, .4c.2 per-file unit predecessors)
+# the five derived tables (.4 suite rows, .4b per-file includes, .4c.1 per-file defines, .4c.2 per-file unit predecessors,
+# .4c.6 include fragments read as their includer compiles them — the prefixes materialized under rust/target/pipeline_prefix/)
 # shellcheck source=stimuli/sv/pipeline_context_args.sh
 source stimuli/sv/pipeline_context_args.sh
 LIB_DIR="${PGEN_PIPELINE_LIB_DIR:-stimuli/sv/characterization/pipeline_library${PROFILE_SUFFIX}}"   # SVPP-EXPANSION.6d.1: the library the lane builds
@@ -121,6 +128,16 @@ parse_one() {
   t0="$(_now_ms)"
   err="$(timeout "$TIMEOUT_S" "$PROBE" --parse systemverilog "$f" --profile "$PROFILE" --preprocess "${args[@]}" 2>&1 >/dev/null)"
   rc=$?
+  # SVPP-EXPANSION.4c.6 — the includer's PREFIX refused: the fragment has no compile context in the corpus as held, so
+  # its own text is read standalone (the reading every row had before .4c.6) and the includer's gap is recorded
+  if [ "$rc" -eq 3 ] && [[ "$err" == *"compilation unit file "*"('rust/target/pipeline_prefix/"* ]]; then
+    local reason="${err#*failed to preprocess: }"; reason="${reason%%$'\n'*}"; reason="${reason//$'\t'/ }"
+    local -a args2=()
+    while IFS=$'\t' read -r flag value; do [ -n "$flag" ] && args2+=("$flag" "$value"); done < <(PGEN_PIPELINE_NO_FRAGMENTS=1 context_args "$suite" "$rel")
+    err="$(timeout "$TIMEOUT_S" "$PROBE" --parse systemverilog "$f" --profile "$PROFILE" --preprocess "${args2[@]}" 2>&1 >/dev/null)"
+    rc=$?
+    printf '%s\t%s\t%s\n' "$suite" "$rel" "${reason:0:240}" >> "$FALLBACKS"
+  fi
   t1="$(_now_ms)"
   ms=$((t1 - t0)); [ "$ms" -ge 0 ] || ms=0
   case "$rc" in
@@ -176,6 +193,6 @@ tmp = pathlib.Path(f"{side}.tmp.{os.getpid()}")
 tmp.write_text("".join(f"{k}\t{v}\n" for k, v in rows))
 tmp.replace(side)
 PY
-awk -F'\t' -v total="$total" -v secs="$((t_end - t_start))" -v probe="$PROBE" -v timeout="$TIMEOUT_S" -v jobs="$JOBS" -v profile="$PROFILE" '
+awk -F'\t' -v total="$total" -v secs="$((t_end - t_start))" -v probe="$PROBE" -v timeout="$TIMEOUT_S" -v jobs="$JOBS" -v profile="$PROFILE" -v fb="$(wc -l < "$FALLBACKS" | tr -d ' ')" '
   {c[$2]++}
-  END { printf "PIPELINE-LANE: files=%d pass=%d fail=%d pp_fail=%d timeout=%d crash=%d wall_s=%d probe=%s timeout_s=%s jobs=%s profile=%s\n", total, c["pass"], c["fail"], c["pp_fail"], c["timeout"], c["crash"], secs, probe, timeout, jobs, profile }' "$OUT"
+  END { printf "PIPELINE-LANE: files=%d pass=%d fail=%d pp_fail=%d timeout=%d crash=%d wall_s=%d probe=%s timeout_s=%s jobs=%s profile=%s fragment_fallbacks=%d\n", total, c["pass"], c["fail"], c["pp_fail"], c["timeout"], c["crash"], secs, probe, timeout, jobs, profile, fb }' "$OUT"

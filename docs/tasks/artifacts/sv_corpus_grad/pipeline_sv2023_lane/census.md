@@ -12,12 +12,12 @@ Both readings run the SAME rows — every `.sv` / `.svh` / `.v` file under `stim
 |---|---|---|
 | parse binary | `rust/target/debug/parseability_probe` | `bdbff2e534f87c5a52cbb582d21929db020b818ac0c8c587ee71c86280a7f380` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `e880d4d69928f48d2241c644b461285015741317a849009b39c92cd4da9779d6` |
-| sv_2017 pipeline results | `stimuli/sv/characterization/pipeline_results.tsv` | `0f05e65c9e8be4e9953be35ed189aa267abc5832af7727ed1a4add15aa16261e` |
-| sv_2017 library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `2dd05ddc238c372a39e01120a43990d3eeeb4dc54bd7240022c8015821f4f78f` |
-| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `a5bfe12d3ef1b56767fe95e52326091251138893736028ccacf6dbc67d4287ba` |
-| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `090d9982dcf231c3e037d72152d5c3407fc71152e72c42dfbff815292a0711e9` |
+| sv_2017 pipeline results | `stimuli/sv/characterization/pipeline_results.tsv` | `7b1ac7eaa01fe7b4646878b2ae9117b82bb11b1650f46927cb26742c266d8274` |
+| sv_2017 library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `9d7a747740e604a81c3793eb6e0c041913aa7e050de878789ae867c3668c0ae5` |
+| sv_2023 pipeline results | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `b987f55646f24f63f5de40f4faecec6860dd9a0cafa9becc0214a4f34c9795bf` |
+| sv_2023 library pass dump | `stimuli/sv/characterization/pipeline_library_sv2023.tsv` | `f3ba226fbd83dbd8456198c299ea8b8fa943e8b5ec4be2f08e1c0205e52624c9` |
 | unit membership (both readings, byte-identical) | `stimuli/sv/characterization/pipeline_library_members_sv2023.tsv` | `acac7a118b3cfe26a207b0d1bf64e5758093b730c825a75122d3c7fb1b6c3c6c` |
-| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `969dc9dab41468532e5e99ef1ced862a45fdec1917fd6a913fa1d6c9254e9752` |
+| sv_2017 re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `f00053fb0c7ee71a9b67bf3880b8eb5ab4574d647c4883c099cdf6cf9a9c66f7` |
 | sv_2023 answer key | `stimuli/sv/characterization/adjudication_manifest_sv2023.tsv` | `c217fd567d2a759802dbc245837f90874ee70b38d1fb8404bd173a8884405f2c` |
 
 The 2023 run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6` `files=16336`.
@@ -26,15 +26,15 @@ The 2023 run's own parameters (its provenance sidecar): `timeout_s=600` `jobs=6`
 
 | reading | `pass` | `fail` | `pp_fail` | `timeout` | `crash` |
 |---|---:|---:|---:|---:|---:|
-| `sv_2017` | 12705 | 2998 | 633 | 0 | 0 |
-| `sv_2023` | 12746 | 2957 | 633 | 0 | 0 |
+| `sv_2017` | 12710 | 3136 | 490 | 0 | 0 |
+| `sv_2023` | 12751 | 3095 | 490 | 0 | 0 |
 
 Rows joined: **16336**; only in the sv_2017 reading: **0**; only in the sv_2023 reading: **0** (a non-zero here is a population breach, not a verdict).
 
 | cell | rows | meaning |
 |---|---:|---|
-| `both_pass` | 12705 | parses under both editions |
-| `both_nonpass` | 3590 | parses under neither |
+| `both_pass` | 12710 | parses under both editions |
+| `both_nonpass` | 3585 | parses under neither |
 | `2023_only_pass` | 41 | text the 2017 profile rejects and the 2023 profile accepts — adjudicated where the standard admits it |
 | `2017_only_pass` | 0 | a 2023-profile REGRESSION candidate — a parser question until adjudicated |
 
@@ -42,9 +42,9 @@ Rows joined: **16336**; only in the sv_2017 reading: **0**; only in the sv_2023 
 
 | sv_2017 | sv_2023 | rows |
 |---|---|---:|
-| `pass` | `pass` | 12705 |
-| `fail` | `fail` | 2957 |
-| `pp_fail` | `pp_fail` | 633 |
+| `pass` | `pass` | 12710 |
+| `fail` | `fail` | 3095 |
+| `pp_fail` | `pp_fail` | 490 |
 | `fail` | `pass` | 41 |
 
 ### Every row whose verdict differs
@@ -131,7 +131,7 @@ A member file's verdict under the pipeline is its package unit's (`SVPP-EXPANSIO
 | 2017 reading | rows | under `sv_2023` |
 |---|---:|---|
 | `unreached_in_unit` | 337 | **51** are included by a unit that PASSES — reached |
-| `accepted_in_unit` | 1501 | **0** have no passing unit — a regression candidate |
+| `accepted_in_unit` | 1498 | **0** have no passing unit — a regression candidate |
 
 The members the 2023 reading reaches, by the passing unit that includes them (the per-member rows are in `census.tsv`, kind `member`):
 

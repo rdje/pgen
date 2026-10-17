@@ -108,6 +108,11 @@ DEFINES_TSV = ROOT / "stimuli" / "sv" / "pipeline_context_defines.tsv"
 # unit unless `--siloed`). Derived, never guessed: a `-f` list, a glob, a `--siloed` run and a file two
 # declarations order differently are REPORTED, not applied. Applied by the lane as `--sv-unit-file`, in order.
 UNITS_TSV = ROOT / "stimuli" / "sv" / "pipeline_context_units.tsv"
+FRAGMENTS_TSV = ROOT / "stimuli" / "sv" / "pipeline_context_fragments.tsv"   # SVPP-EXPANSION.4c.6: an include fragment's own-row context
+INCLUDE_LINE_RE = re.compile(r'^[ \t]*`include[ \t]+"([^"]+)"')
+COND_LINE_RE = re.compile(r'^[ \t]*`(ifdef|ifndef|endif)\b')
+PACKAGE_DECL_RE = re.compile(r"^[ \t]*package[ \t]+(?:automatic[ \t]+|static[ \t]+)?[A-Za-z_]", re.M)
+MAX_FRAGMENT_CHAIN = 8
 # Rows the derivation cannot produce: predefined macros a suite is compiled with. Hand-curated,
 # each with its source. SVPP-EXPANSION.6d.4: OpenTitan's dvsim flow compiles every DV build with
 # `+define+UVM` (hw/dv/tools/dvsim/common_sim_cfg.hjson:65, under "Standard UVM defines"); three DV
@@ -860,6 +865,119 @@ def derive_defines(suite: str, base: pathlib.Path):
     return sorted(set(rows)), computed, ties, variants
 
 
+def harness_tops(suite: str, base: pathlib.Path) -> set[str]:
+    """The files a suite's harness compiles as TOPS (repo-relative): verilator — every `t_*.py` driver's top
+    (`top_filename`, else the same-stem `.v`). A top has a context of its own (its driver's defines and unit list);
+    when such a file is also `` `include ``d by another test, its own harness's reading wins (SVPP-EXPANSION.4c.6:
+    `t_mailbox.v`, a test of its own AND the body `t_mailbox_class.v` includes under another `MAILBOX_T`)."""
+    tops: set[str] = set()
+    if suite == "verilator":
+        tdir = base / "test_regress" / "t"
+        if tdir.is_dir():
+            for py in tdir.glob("t_*.py"):
+                m = re.search(r'top_filename\s*=\s*"t/([^"]+)"', py.read_text(errors="replace"))
+                target = tdir / (m.group(1) if m else py.stem + ".v")
+                if target.is_file():
+                    tops.add(target.relative_to(ROOT).as_posix())
+    return tops
+
+
+def derive_fragments(suite: str, base: pathlib.Path, dirs: dict, per_file: list, own_context: frozenset = frozenset()):
+    """SVPP-EXPANSION.4c.6 — an INCLUDE FRAGMENT's own-row context: the file is read as its includer compiles it.
+    Returns (rows [(suite, relpath, order, includer, line, close)], reported {relpath: [notes]}). For every source
+    file of the suite that is `` `include ``d: the includer's text BEFORE the `include` line is the macro state the
+    fragment is compiled in (the lane materializes that prefix and preprocesses it as a unit file: its definitions
+    carry over, its text is discarded — the fragment's own guard is untouched), and the includer's own context
+    (units, include dirs, defines) is the fragment's. `close` is the number of conditional regions (`ifdef` /
+    `ifndef`) still open at the `include` line — the header-guard idiom puts nearly every include inside one — and
+    the lane closes the prefix with that many `` `endif `` lines: the probe refuses a unit file whose conditional is
+    left open (measured: rc 3 `unterminated`), and closing it preserves the macro state at the cut exactly. The
+    chain goes up: an includer that is itself a fragment contributes its own includer's prefix first (order 1 = the
+    root). ⛔ Derived, never guessed: a fragment several files include (their prefixes differ) is a TIE, reported; a
+    cycle or a chain deeper than MAX_FRAGMENT_CHAIN is reported; a file that declares a `package` is a unit of its
+    own, never a fragment; a file its own harness compiles as a TOP or lists in a unit (`own_context`: the harness's
+    tops and the unit tables' listed files) keeps its own harness's reading — reported, not a fragment; an include name
+    that resolves to no single candidate (`.4b`'s ambiguity) yields no row."""
+    base_rel = base.relative_to(ROOT).as_posix()
+    files = source_files(base)
+    population = {p.relative_to(ROOT).as_posix() for p in files}
+    pf_dir = {(i, n): d for i, d, n in per_file}
+    suite_dirs = [d for d in dirs if not d.startswith("__")]
+    includers: dict[str, list[tuple[str, int, int]]] = {}
+    for p in files:
+        try:
+            text = p.read_text(errors="replace")
+        except OSError:
+            continue
+        if "`include" not in text:
+            continue
+        rel = p.relative_to(ROOT).as_posix()
+        depth = 0
+        for lineno, line in enumerate(text.split("\n"), 1):
+            m = COND_LINE_RE.match(line)
+            if m:
+                depth += 1 if m.group(1) != "endif" else -1
+                continue
+            mi = INCLUDE_LINE_RE.match(line)
+            if not mi:
+                continue
+            name = mi.group(1)
+            name_posix = pathlib.PurePosixPath(name).as_posix()
+            target = None
+            if (p.parent / name_posix).is_file():
+                target = (p.parent / name_posix).resolve()
+            elif (rel, name) in pf_dir:
+                target = (ROOT / pf_dir[(rel, name)] / name_posix).resolve()
+            else:
+                hits = [d for d in suite_dirs if (ROOT / d / name_posix).is_file()]
+                if len(hits) == 1:
+                    target = (ROOT / hits[0] / name_posix).resolve()
+            if target is None:
+                continue
+            try:
+                trel = target.relative_to(ROOT.resolve()).as_posix()
+            except ValueError:
+                continue
+            if trel in population:
+                includers.setdefault(trel, []).append((rel, lineno, max(depth, 0)))
+    rows, reported = [], {}
+    single: dict[str, tuple[str, int, int]] = {}
+    for trel, incs in sorted(includers.items()):
+        try:
+            head = (ROOT / trel).read_text(errors="replace")[:20000]
+        except OSError:
+            continue
+        if PACKAGE_DECL_RE.search(head):
+            continue                                   # a package is a unit of its own, never a fragment
+        if trel in own_context:
+            reported[trel] = [f"a file its own harness compiles (a test's top, or a listed unit member) — its own context wins; the `include by {sorted({i for i, _, _ in incs})[0]} is not applied"]
+            continue
+        distinct = sorted({i for i, _, _ in incs})
+        if len(distinct) > 1:
+            reported[trel] = [f"included by {len(distinct)} files ({' '.join(distinct[:3])}{' …' if len(distinct) > 3 else ''}); their prefixes differ — a tie, not applied"]
+            continue
+        inc, lineno, depth = incs[0]
+        single[trel] = (inc, lineno, depth)
+    for trel, (inc, lineno, depth) in sorted(single.items()):
+        chain = [(inc, lineno, depth)]
+        seen = {trel, inc}
+        cur = inc
+        ok = True
+        while cur in single:
+            up, upline, updepth = single[cur]
+            if up in seen or len(chain) >= MAX_FRAGMENT_CHAIN:
+                reported[trel] = [f"the include chain above it cycles or exceeds {MAX_FRAGMENT_CHAIN} levels at {up}; not applied"]
+                ok = False
+                break
+            chain.append((up, upline, updepth)); seen.add(up); cur = up
+        if not ok:
+            continue
+        chain.reverse()                                # order 1 = the root includer
+        for order, (i, l, d) in enumerate(chain, 1):
+            rows.append((suite, trel, order, i, l, d))
+    return rows, reported
+
+
 def rows_for(suite: str, base: pathlib.Path):
     dirs, ambiguous, absent, stats, per_file = derive(base)
     ordered = sorted(dirs.items(), key=lambda kv: (-kv[1][0], kv[0]))
@@ -878,7 +996,12 @@ def rows_for(suite: str, base: pathlib.Path):
     stats["unit_rows"] = len(unit_rows)
     stats["unit_reported"] = unit_reported
     stats["unit_ties"] = unit_ties
-    return rows, ambiguous, absent, stats, file_rows, define_rows, unit_rows
+    own_context = frozenset(harness_tops(suite, base)) | frozenset(r[1] for r in unit_rows)
+    fragment_rows, fragment_reported = derive_fragments(suite, base, dirs, per_file, own_context)
+    stats["fragment_rows"] = len(fragment_rows)
+    stats["fragment_files"] = len({r[1] for r in fragment_rows})
+    stats["fragment_reported"] = fragment_reported
+    return rows, ambiguous, absent, stats, file_rows, define_rows, unit_rows, fragment_rows
 
 
 def report(suite: str, rows, ambiguous, absent, stats, out=sys.stdout):
@@ -893,7 +1016,9 @@ def report(suite: str, rows, ambiguous, absent, stats, out=sys.stdout):
         f"define_ties={len(stats.get('define_ties', {}))} define_variant_dirs={len(stats.get('define_variants', {}))} "
         f"define_variant_names={sum(len(v) for v in stats.get('define_variants', {}).values())} "
         f"unit_rows={stats.get('unit_rows', 0)} unit_reported={len(stats.get('unit_reported', {}))} "
-        f"unit_ties={len(stats.get('unit_ties', {}))}",
+        f"unit_ties={len(stats.get('unit_ties', {}))} "
+        f"fragment_rows={stats.get('fragment_rows', 0)} fragment_files={stats.get('fragment_files', 0)} "
+        f"fragment_reported={len(stats.get('fragment_reported', {}))}",
         file=out,
     )
     for name in sorted(ambiguous):
@@ -918,6 +1043,8 @@ def report(suite: str, rows, ambiguous, absent, stats, out=sys.stdout):
         print(f"  unit      {rel}: {'; '.join(stats['unit_reported'][rel])}", file=out)
     for rel in sorted(stats.get("unit_ties", {})):
         print(f"  unit-tie  {rel}: {' '.join(stats['unit_ties'][rel])} (several variant drivers name predecessors; none applied)", file=out)
+    for rel in sorted(stats.get("fragment_reported", {})):
+        print(f"  fragment  {rel}: {'; '.join(stats['fragment_reported'][rel])}", file=out)
 
 
 def render(all_rows) -> str:
@@ -948,6 +1075,13 @@ def render_units(unit_rows) -> str:
     return "\n".join(lines) + "\n"
 
 
+def render_fragments(fragment_rows) -> str:
+    lines = ["suite\trelpath\torder\tincluder\tline\tclose"]
+    for r in fragment_rows:
+        lines.append("\t".join(str(x) for x in r))
+    return "\n".join(lines) + "\n"
+
+
 def refuse_if_shadowed(suite: str, stats) -> None:
     """`.4d`: a context table with a back-door guess in it is not written and does not pass --check."""
     if stats.get("shadowed"):
@@ -960,6 +1094,7 @@ def derive_all(suites=None):
     all_file_rows = []
     all_define_rows = []
     all_unit_rows = []
+    all_fragment_rows = []
     for suite, rel in SUITES.items():
         if suites and suite not in suites:
             continue
@@ -967,14 +1102,15 @@ def derive_all(suites=None):
         if not base.exists():
             print(f"PIPELINE-CONTEXT: suite={suite} NOT EVALUATED (missing {rel})", file=sys.stderr)
             continue
-        rows, ambiguous, absent, stats, file_rows, define_rows, unit_rows = rows_for(suite, base)
+        rows, ambiguous, absent, stats, file_rows, define_rows, unit_rows, fragment_rows = rows_for(suite, base)
         report(suite, rows, ambiguous, absent, stats)
         refuse_if_shadowed(suite, stats)
         all_rows.extend(rows)
         all_file_rows.extend(file_rows)
         all_define_rows.extend(define_rows)
         all_unit_rows.extend(unit_rows)
-    return all_rows, all_file_rows, all_define_rows, all_unit_rows
+        all_fragment_rows.extend(fragment_rows)
+    return all_rows, all_file_rows, all_define_rows, all_unit_rows, all_fragment_rows
 
 
 def self_test() -> int:
@@ -1108,6 +1244,23 @@ def self_test() -> int:
             (sdata / n).write_text("module x; endmodule\n")
         (sdata / "u1.f").write_text("--library l a.sv b.sv -DX\n"); (sdata / "u2.f").write_text("b.sv -F u3.f -v lib.sv\n"); (sdata / "u3.f").write_text("c.sv\n")
         (sdata / "u4.f").write_text("c.sv b.sv\n")   # b after c here, c after b in u2 → a conflict
+        # SVPP-EXPANSION.4c.6 — include fragments: a two-level chain (root → mid → leaf), a tie, a conditional include,
+        # a package target (never a fragment), a local include resolved beside the includer
+        fr = base / "frag"; fr.mkdir()
+        (fr / "root.sv").write_text('`define X 1\n`include "mid.svh"\n`ifdef Q\n`include "cond.svh"\n`endif\n`include "tie.svh"\n`include "p.sv"\nmodule r; endmodule\n')
+        (fr / "mid.svh").write_text('`define Y 2\n`include "leaf.svh"\n')
+        (fr / "leaf.svh").write_text('localparam int L = `X + `Y;\n')
+        (fr / "cond.svh").write_text('// cond\n'); (fr / "tie.svh").write_text('// tie\n'); (fr / "other.sv").write_text('`include "tie.svh"\n')
+        (fr / "p.sv").write_text('package p; endpackage\n')
+        (fr / "own.sv").write_text('module own; endmodule\n'); (fr / "incl.sv").write_text('`include "own.sv"\n')
+        fdirs, _a, _b, _st, fpf = derive(base)
+        frows, freported = derive_fragments("x", base, fdirs, fpf, frozenset({(fr / "own.sv").relative_to(ROOT).as_posix()}))
+        fchain = {r[1].rsplit("/", 1)[1]: [(r[2], r[3].rsplit("/", 1)[1], r[4]) for r in frows if r[1] == r[1]] for r in frows}
+        fby = {}
+        fclose = {}
+        for r in frows:
+            fby.setdefault(r[1].rsplit("/", 1)[1], []).append((r[2], r[3].rsplit("/", 1)[1], r[4]))
+            fclose.setdefault(r[1].rsplit("/", 1)[1], []).append(r[5])
         srows, sreported, _ = derive_units("slang", base)
         srel = [(r[1].rsplit("/", 1)[1], r[2], r[3].rsplit("/", 1)[1]) for r in srows]
         vd = base / "test" / "x"; vd.mkdir(parents=True)
@@ -1135,6 +1288,12 @@ def self_test() -> int:
             ("verilator: a define the driver -U's again is not emitted", lit == ["KEEP"]),
             ("slang: .f units are unioned in order, -F expanded, -v skipped", ("b.sv", 1, "a.sv") in srel and ("lib.sv", 1, "b.sv") not in srel and not any(r[0] == "lib.sv" for r in srel)),
             ("slang: a pair two .f files order differently is a conflict, reported", not any(r[0] == "c.sv" for r in srel) and any(k.endswith("c.sv") for k in sreported)),
+            ("fragments: a leaf reads after its includer's prefix, the root's first (.4c.6)", fby.get("leaf.svh") == [(1, "root.sv", 2), (2, "mid.svh", 2)] and fby.get("mid.svh") == [(1, "root.sv", 2)]),
+            ("fragments: a file two includers reach is a tie, reported, not applied (.4c.6)", "tie.svh" not in fby and any(k.endswith("tie.svh") and "tie" in v[0] for k, v in freported.items())),
+            ("fragments: an include inside a conditional region is applied with the open region counted, for the lane to close (.4c.6)",
+             fby.get("cond.svh") == [(1, "root.sv", 4)] and fclose.get("cond.svh") == [1] and fclose.get("leaf.svh") == [0, 0]),
+            ("fragments: a package is a unit of its own, never a fragment (.4c.6)", "p.sv" not in fby and not any(k.endswith("p.sv") for k in freported)),
+            ("fragments: a file its own harness compiles keeps its own reading — reported, not a fragment (.4c.6)", "own.sv" not in fby and any(k.endswith("own.sv") and "own context wins" in v[0] for k, v in freported.items())),
             ("sv2v: an explicit multi-file convert names predecessors; --siloed and a glob are reported", vrel == [("m.sv", 1, "p.svh")] and any("siloed" in n for v in vreported.values() for n in v) and any("glob" in n for v in vreported.values() for n in v)),
         ]
         for label, ok in checks3:
@@ -1206,19 +1365,21 @@ def main() -> int:
         return 0
     if args.self_test:
         return self_test()
-    all_rows, all_file_rows, all_define_rows, all_unit_rows = derive_all(args.suite)
+    all_rows, all_file_rows, all_define_rows, all_unit_rows, all_fragment_rows = derive_all(args.suite)
     if args.write:
         TSV.write_text(render(all_rows))
         FILES_TSV.write_text(render_files(all_file_rows))
         DEFINES_TSV.write_text(render_defines(all_define_rows))
         UNITS_TSV.write_text(render_units(all_unit_rows))
-        print(f"PIPELINE-CONTEXT: wrote {TSV.relative_to(ROOT)} rows={len(all_rows)}, {FILES_TSV.relative_to(ROOT)} rows={len(all_file_rows)}, {DEFINES_TSV.relative_to(ROOT)} rows={len(all_define_rows)} and {UNITS_TSV.relative_to(ROOT)} rows={len(all_unit_rows)}")
+        FRAGMENTS_TSV.write_text(render_fragments(all_fragment_rows))
+        print(f"PIPELINE-CONTEXT: wrote {TSV.relative_to(ROOT)} rows={len(all_rows)}, {FILES_TSV.relative_to(ROOT)} rows={len(all_file_rows)}, {DEFINES_TSV.relative_to(ROOT)} rows={len(all_define_rows)} and {UNITS_TSV.relative_to(ROOT)} rows={len(all_unit_rows)}, {FRAGMENTS_TSV.relative_to(ROOT)} rows={len(all_fragment_rows)}")
     if args.check:
         current = TSV.read_text() if TSV.exists() else ""
         current_files = FILES_TSV.read_text() if FILES_TSV.exists() else ""
         current_defines = DEFINES_TSV.read_text() if DEFINES_TSV.exists() else ""
         current_units = UNITS_TSV.read_text() if UNITS_TSV.exists() else ""
-        if current != render(all_rows) or current_files != render_files(all_file_rows) or current_defines != render_defines(all_define_rows) or current_units != render_units(all_unit_rows):
+        current_fragments = FRAGMENTS_TSV.read_text() if FRAGMENTS_TSV.exists() else ""
+        if current != render(all_rows) or current_files != render_files(all_file_rows) or current_defines != render_defines(all_define_rows) or current_units != render_units(all_unit_rows) or current_fragments != render_fragments(all_fragment_rows):
             print(f"PIPELINE-CONTEXT: DRIFT — the tracked context differs from a fresh derivation; run --write", file=sys.stderr)
             return 1
         print("PIPELINE-CONTEXT: OK — the tracked context equals a fresh derivation")
