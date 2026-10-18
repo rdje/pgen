@@ -55,3 +55,13 @@ binding counters separate them, which is the case for measuring cost BEFORE the 
 after (`costs are REJECTED, not traded` — [[project_north_star]]). Related:
 [[a-deterministic-counter-cannot-see-a-per-entry-cost-rise]],
 [[a-widening-arm-probes-its-sibling-sites-before-the-corpus-does]].
+
+## A second instance — the preprocessor grammar (2026-10-18, `SV-CORPUS-GRAD.13c.2v.13`)
+
+The `systemverilog_preprocessor` grammar's next release added a fallback for a conditional group: a line that does not
+parse as a directive is recorded as a `malformed_directive` item. Written as `pp_group_item := pp_item |
+pp_malformed_directive` under the default `longest_match`, the fallback — a whole lexical line — would OUTLENGTH a
+valid directive that a line's text follows (`` `timescale 1ns/1ps wire w; `` inside a group) and win. The same
+release had a second case of the same misreading: an escaped-name macro usage (`` `\name ``) outlengthing the
+`` `\`" `` escape it shares a prefix with. Both were written as if `|` were first-match; this card already said why
+not. The fallback took `@branch_policy: ordered`; the escaped name may not begin with a backtick.

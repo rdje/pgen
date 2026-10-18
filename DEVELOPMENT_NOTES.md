@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-18 — SV-CORPUS-GRAD.13c.2v.13 (`PGEN-SV-CORPUS-GRAD-0463`): `|` is a tournament here, and the card already said so
+
+- **Two of my alternations assumed first-match.** The grammar's default branch policy is `longest_match`: a fallback that reads a whole line outlengths a valid directive the line's text follows, and an escaped-name usage outlengthed the `` `\`" `` escape. Both were caught by a moved tree, not by review; `docs/knowledge/a-fallback-arm-goes-inside-the-shared-rule-as-an-ordered-last-alternative.md` had stated the rule since 1.0.243. Promoted: a second instance recorded on that card — the retrieval failure was mine (I did not search before writing an alternation).
+- **A string terminal is not a regex terminal.** `@whitespace_sensitive: { regex_tokens: true }` makes REGEX tokens layout-exact; a string terminal still takes the default skip, newlines and comments included — which is why a `define body could run on (`SVPP-0014`). In a line-oriented grammar every terminal that must not cross a line is a regex.
+- **A prototype addition is withdrawn when its own corpus reading says so.** The escaped-identifier atom in macro text read sv2v's `\blk``expr` as one name; the suite pastes inside it. No leaf required the atom; it went.
+
 ## 2026-10-18 — SV-CORPUS-GRAD.13c.2v.13 (`PGEN-SV-CORPUS-GRAD-0459`): test the neighbours of the input you were asked about
 
 - **The ruled input was one case; its neighbours held two defects.** Designing "a malformed directive in a skipped group is skipped", I tried the adjacent inputs by hand — an unterminated block comment, then an unterminated string, inside the same dead group — and both were ACCEPTED by the released parser, one with a wrong tree. Neither was in any census, because the census adjudicates refusals only. Promoted: `docs/knowledge/a-census-of-refusals-cannot-see-an-over-acceptance.md`.

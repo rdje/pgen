@@ -14119,6 +14119,42 @@ Two of the `.13c.2v.10` files (`t_preproc.v`, sv2v `string_macro.sv`) now stop E
 text (the stage's refusal too), so `dead.sv` carries the skipped-group proof. The residuals of `p1` are read row by
 row before `p2`.
 
+**Prototypes `p2` – `p6`** (`rust/target/svpp9/p{2..6}.ebnf`; each over all 16,336 files on the interpreter against
+the `1.0.8` grammar, every mover and every new refusal read — the same discipline as `p1`):
+
+- `p2` — the 1800-2017 reading completed: `` `elsif `` takes an identifier (or a macro usage) and hands what follows
+  to the group; a `(` after a define's name always opens the list (no object-like fallback); the formal list's layout
+  white space only, newlines included; macro usages in every fixed-syntax parameter; Syntax 22-7's nettype values;
+  the 2017 `version_specifier` list. ⛔ Reading it surfaced `SVPP-0014` — every punctuation terminal was a STRING
+  terminal whose default layout skip crosses newlines and comments (a define body ran on into a next line opening
+  with `(`); all of them are regexes now, and `quoted_string` holds one line. Then `p2b`: an EMPTY default
+  (`WITH_C_=`, `SFX=` — 1800-2017 S17:146-150) and a newline before a formal's `=` (sv2v `test/lex/macro.sv`), both
+  refused by `p2` in error; measured: fail→pass 13, pass→fail 35, every row read (17 suite error tests, 9 `` `" `` /
+  ``` `` ``` outside macro text the stage refuses too, 4 split strings, 2 comments between formals, 2 1800-2023 forms
+  under 1800-2017, and verilator's `` `define foo8() `` — an empty formal list, BNF-invalid; the stage's acceptance is
+  `SVPP-EXPANSION.5`(ab)); 63 moved trees, 15 of them `1.0.8`'s object-like misreads now function-like (UVM-core's
+  `uvm_declare_type_alias(TYPE,NAME,SFX=)` among them).
+- `p3` — the PROFILES (`@profile_alias` as `grammars/systemverilog.ebnf` spells them, `@default_profile: sv_2017`):
+  `` `undefineall ``, `` `include <…> ``, formal defaults and `` `" `` / `` `\`" `` / ``` `` ``` IEEE 1800 only;
+  triple-quoted strings, `( ifdef_macro_expression )` and the 2023 `version_specifier` 1800-2023 only; the line
+  discipline per edition. Every contrast row of the matrix verified under each profile on the interpreter.
+- `p4` — macro names: simple or escaped; never a directive's name, per edition's list; 1800-2023's single white
+  space before an escaped name's formals; a directive inside macro text a `directive` fragment; and macro text's own
+  trivia — a block comment there crosses a line only where its newline is backslash-preceded under 1364-2005 /
+  1800-2017 (BlackParrot's `bp_common_core_if.svh` does exactly that), anywhere under 1800-2023; a define ends at a
+  line end, never mid-line. One `p4` addition WITHDRAWN on its corpus reading: an escaped identifier as one atom in
+  macro text swallowed a token paste (sv2v `test/basic/simplify_binop.sv`'s `` \blk``expr `` — the suite pastes
+  inside the name) and `` `\`" ``.
+- `p5` — a group line that does not parse is recorded whatever opens it (a misplaced mid-line directive in a dead
+  group is lexically valid); the 2023 expression takes a macro usage as an operand.
+- `p6` — ⛔ two choices written as if `|` were first-match: the grammar's DEFAULT branch policy is `longest_match`
+  (`docs/ebnf_parser_book/src/rules-and-expressions.md`), so an escaped-name macro usage outlengthed `` `\`" ``
+  (`p4` read `` `"x: `\`"y`\`"`" `` as one `macro_reference`) and a recorded group line would outlength a valid
+  directive followed by text. Fixed: an escaped macro name may not begin with a backtick; `pp_group_item` is
+  `@branch_policy: ordered`. The lesson was ALREADY a card
+  (`docs/knowledge/a-fallback-arm-goes-inside-the-shared-rule-as-an-ordered-last-alternative.md`) — recorded there
+  as a second instance. The bank: 118 cases (66 → 116 → 118), 19 under a named profile, all as keyed on `p6`.
+
 Plan: prototypes on the interpreter, each measured over all 16,336 files against the `1.0.8` parser (movers both
 ways, every moved tree attributed), the bank grown with each new acceptance's refusal twin, then the generated
 parser, the svpp ceremony and the SV identity re-key (sequential, under the guard).
