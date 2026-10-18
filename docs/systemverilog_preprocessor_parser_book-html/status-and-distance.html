@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a1562d5b.js";
+            window.path_to_searchindex_js = "searchindex-90b6f601.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-89867f1a.js"></script>
@@ -342,6 +342,32 @@ written down in <code>residual_dispositions.tsv</code>, which the census refuses
 </div>
 <p>The census is not yet this family’s leg-3 assertion (the derived block above still reads NOT MEASURED); wiring it is
 <code>SV-CORPUS-GRAD.13c.2v.10</code>.</p>
+<h3 id="two-wrong-verdicts-the-census-could-not-see-found-2026-10-18"><a class="header" href="#two-wrong-verdicts-the-census-could-not-see-found-2026-10-18">Two wrong verdicts the census could not see (found 2026-10-18)</a></h3>
+<p>The census above reads the files this parser REFUSES. A file it wrongly ACCEPTS never reaches the disposition table, and
+designing the next release found two such defects in <code>1.0.8</code>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>defect</th><th>what <code>1.0.8</code> does</th><th>measured</th></tr>
+</thead>
+<tbody>
+<tr><td><code>SVPP-0010</code> — a block comment spanning lines is not opaque</td><td>reads a directive keyword on a line inside the comment as a directive</td><td>4 corpus files accepted with a wrong tree; Surelog <code>tests/PPComment/dut.sv</code> gets an <code>else_branch</code> its source comments out</td></tr>
+<tr><td><code>SVPP-0011</code> — a passthrough line is not lexed</td><td>accepts a string literal left open at its line end</td><td>7 suite error tests accepted (sv2v <code>test/error/string_literal_eof.sv</code>, verilator <code>t_parse_eof_str_bad.v</code>, …)</td></tr>
+</tbody>
+</table>
+</div>
+<p>An example of the first — the release’s tree for this input has an <code>else</code> branch:</p>
+<pre><code class="language-systemverilog">`define USE_BOOTMODE_TEST
+`ifdef USE_BOOTMODE_TEST
+   assign c= d;/*
+`else
+   assign c= 1'b0;*/
+`endif
+</code></pre>
+<p>IEEE 1800-2023 §22.2: <em>“Directives are not recognized within comments or string literals”</em> — the <code>`else</code> is comment text,
+so the conditional has one branch. Both defects are fixed by the next release’s lexically-aware text run (task leaf
+<code>SV-CORPUS-GRAD.13c.2v.13</code>), and that release’s census reads the other half too: every row the SystemVerilog answer key
+expects to be refused, joined to this parser’s verdict.</p>
 
                     </main>
 

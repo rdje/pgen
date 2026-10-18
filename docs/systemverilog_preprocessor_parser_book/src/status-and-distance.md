@@ -152,3 +152,29 @@ written down in `residual_dispositions.tsv`, which the census refuses to run wit
 
 The census is not yet this family's leg-3 assertion (the derived block above still reads NOT MEASURED); wiring it is
 `SV-CORPUS-GRAD.13c.2v.10`.
+
+### Two wrong verdicts the census could not see (found 2026-10-18)
+
+The census above reads the files this parser REFUSES. A file it wrongly ACCEPTS never reaches the disposition table, and
+designing the next release found two such defects in `1.0.8`:
+
+| defect | what `1.0.8` does | measured |
+|---|---|---|
+| `SVPP-0010` — a block comment spanning lines is not opaque | reads a directive keyword on a line inside the comment as a directive | 4 corpus files accepted with a wrong tree; Surelog `tests/PPComment/dut.sv` gets an `else_branch` its source comments out |
+| `SVPP-0011` — a passthrough line is not lexed | accepts a string literal left open at its line end | 7 suite error tests accepted (sv2v `test/error/string_literal_eof.sv`, verilator `t_parse_eof_str_bad.v`, …) |
+
+An example of the first — the release's tree for this input has an `else` branch:
+
+```systemverilog
+`define USE_BOOTMODE_TEST
+`ifdef USE_BOOTMODE_TEST
+   assign c= d;/*
+`else
+   assign c= 1'b0;*/
+`endif
+```
+
+IEEE 1800-2023 §22.2: *"Directives are not recognized within comments or string literals"* — the `` `else `` is comment text,
+so the conditional has one branch. Both defects are fixed by the next release's lexically-aware text run (task leaf
+`SV-CORPUS-GRAD.13c.2v.13`), and that release's census reads the other half too: every row the SystemVerilog answer key
+expects to be refused, joined to this parser's verdict.

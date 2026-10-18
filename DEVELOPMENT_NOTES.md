@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-18 — SV-CORPUS-GRAD.13c.2v.13 (`PGEN-SV-CORPUS-GRAD-0459`): test the neighbours of the input you were asked about
+
+- **The ruled input was one case; its neighbours held two defects.** Designing "a malformed directive in a skipped group is skipped", I tried the adjacent inputs by hand — an unterminated block comment, then an unterminated string, inside the same dead group — and both were ACCEPTED by the released parser, one with a wrong tree. Neither was in any census, because the census adjudicates refusals only. Promoted: `docs/knowledge/a-census-of-refusals-cannot-see-an-over-acceptance.md`.
+- **Decide where a property lives before deciding how to compute it.** Liveness looked like something the grammar's store could approximate (`define X` then `ifdef X`); measuring the pipeline showed the stage already decides it exactly with the environment the parser never has, and a partial in-parser evaluation would make the same text's verdict depend on where a definition lives.
+- **Delegate an extraction, verify its citations.** The three-edition matrix came from an agent instructed to cite every line; nine of its load-bearing citations were re-read against the LRM before a row was written, and every one held.
+
 ## 2026-10-18 — SV-SPEED (`PGEN-SV-SPEED-0001`): a vendored checkout is not its object store
 
 - **Measure the store before promising a build from it.** I told the director slang *"is already vendored … the benchmark leaf can build it from there"* from the fact that the submodule exists. Its working tree is a sparse `tests/` checkout — which looked like a refutation — and only `git rev-list --objects --missing=print HEAD` under `GIT_NO_LAZY_FETCH=1` settled it: 733 objects, 0 missing. Six of the thirteen stores are blob-filtered partial clones with objects missing; an export from one of those would lazy-fetch, a write into another repository. Promoted: `docs/knowledge/a-vendored-corpus-checkout-is-not-its-object-store.md`.

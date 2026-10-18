@@ -58,6 +58,14 @@ A backslash immediately before the newline inside `` `define `` macro text: the 
 
 `docs/tasks/artifacts/sv_corpus_grad/svpp_corpus_census/census.py`: the GENERATED parser inside the release `parseability_probe`, run over every file the SystemVerilog lanes read, each rejection classed by the backtick word that opens the line where the parse stopped and joined to a written disposition (`residual_dispositions.tsv`); `--before BIN` adds transitions and AST identity against another binary; `--bank` runs the clause-22 reproducer bank. See [Status and Distance](status-and-distance.md#the-systemverilog-corpus-read-by-this-parser-2026-10-17).
 
+## Over-acceptance
+
+A file the parser ACCEPTS that its requirement refuses — the opposite of a rejection, and invisible to a census that reads only
+rejections, because an accepted file never reaches the disposition table. Two were found in release `1.0.8` this way (ledger
+`SVPP-0010`, `SVPP-0011`; see [Status and Distance](status-and-distance.md#two-wrong-verdicts-the-census-could-not-see-found-2026-10-18)).
+Measuring it needs an answer key that says which files must be refused: the next release joins the SystemVerilog answer key's
+`must_reject` and `deferred:svpp_owned` rows to this parser's verdict.
+
 ## Parser release version
 
 The parser library's release identity, currently `1.0.8`. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed) — the `1.0.2` `SVPP-0001` fix carries schema `2`, the `1.0.3` POST-SV-AUDIT `macro_formals` Category-A fix carries schema `3`, `1.0.5` (`condition_text -> $text`) carries schema `4`, the `1.0.6` `SVPP-0003` acceptance fix keeps schema `4`, and the `1.0.7` `SVPP-0004` macro-default correction carries schema `5`. Recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". See [Schema Versioning](schema-versioning.md).

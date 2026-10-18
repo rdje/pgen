@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a1562d5b.js";
+            window.path_to_searchindex_js = "searchindex-90b6f601.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-89867f1a.js"></script>
@@ -210,6 +210,12 @@
 <p>A backslash immediately before the newline inside <code>`define</code> macro text: the text continues on the next line (§22.5.1). It surfaces as a bare <code>{kind: "line_continuation"}</code> fragment between the two lines’ fragments. Through <code>1.0.7</code> the body ended at the first newline (<code>SVPP-0006</code>). A backslash followed by white space is NOT a continuation.</p>
 <h2 id="corpus-census-this-parser-over-the-systemverilog-corpus"><a class="header" href="#corpus-census-this-parser-over-the-systemverilog-corpus">Corpus census (this parser over the SystemVerilog corpus)</a></h2>
 <p><code>docs/tasks/artifacts/sv_corpus_grad/svpp_corpus_census/census.py</code>: the GENERATED parser inside the release <code>parseability_probe</code>, run over every file the SystemVerilog lanes read, each rejection classed by the backtick word that opens the line where the parse stopped and joined to a written disposition (<code>residual_dispositions.tsv</code>); <code>--before BIN</code> adds transitions and AST identity against another binary; <code>--bank</code> runs the clause-22 reproducer bank. See <a href="status-and-distance.html#the-systemverilog-corpus-read-by-this-parser-2026-10-17">Status and Distance</a>.</p>
+<h2 id="over-acceptance"><a class="header" href="#over-acceptance">Over-acceptance</a></h2>
+<p>A file the parser ACCEPTS that its requirement refuses — the opposite of a rejection, and invisible to a census that reads only
+rejections, because an accepted file never reaches the disposition table. Two were found in release <code>1.0.8</code> this way (ledger
+<code>SVPP-0010</code>, <code>SVPP-0011</code>; see <a href="status-and-distance.html#two-wrong-verdicts-the-census-could-not-see-found-2026-10-18">Status and Distance</a>).
+Measuring it needs an answer key that says which files must be refused: the next release joins the SystemVerilog answer key’s
+<code>must_reject</code> and <code>deferred:svpp_owned</code> rows to this parser’s verdict.</p>
 <h2 id="parser-release-version"><a class="header" href="#parser-release-version">Parser release version</a></h2>
 <p>The parser library’s release identity, currently <code>1.0.8</code>. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed) — the <code>1.0.2</code> <code>SVPP-0001</code> fix carries schema <code>2</code>, the <code>1.0.3</code> POST-SV-AUDIT <code>macro_formals</code> Category-A fix carries schema <code>3</code>, <code>1.0.5</code> (<code>condition_text -&gt; $text</code>) carries schema <code>4</code>, the <code>1.0.6</code> <code>SVPP-0003</code> acceptance fix keeps schema <code>4</code>, and the <code>1.0.7</code> <code>SVPP-0004</code> macro-default correction carries schema <code>5</code>. Recorded in <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. See <a href="schema-versioning.html">Schema Versioning</a>.</p>
 <h2 id="pp_item-dispatch"><a class="header" href="#pp_item-dispatch">pp_item dispatch</a></h2>

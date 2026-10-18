@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a1562d5b.js";
+            window.path_to_searchindex_js = "searchindex-90b6f601.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-89867f1a.js"></script>
@@ -357,6 +357,32 @@ written down in <code>residual_dispositions.tsv</code>, which the census refuses
 </div>
 <p>The census is not yet this family’s leg-3 assertion (the derived block above still reads NOT MEASURED); wiring it is
 <code>SV-CORPUS-GRAD.13c.2v.10</code>.</p>
+<h3 id="two-wrong-verdicts-the-census-could-not-see-found-2026-10-18"><a class="header" href="#two-wrong-verdicts-the-census-could-not-see-found-2026-10-18">Two wrong verdicts the census could not see (found 2026-10-18)</a></h3>
+<p>The census above reads the files this parser REFUSES. A file it wrongly ACCEPTS never reaches the disposition table, and
+designing the next release found two such defects in <code>1.0.8</code>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>defect</th><th>what <code>1.0.8</code> does</th><th>measured</th></tr>
+</thead>
+<tbody>
+<tr><td><code>SVPP-0010</code> — a block comment spanning lines is not opaque</td><td>reads a directive keyword on a line inside the comment as a directive</td><td>4 corpus files accepted with a wrong tree; Surelog <code>tests/PPComment/dut.sv</code> gets an <code>else_branch</code> its source comments out</td></tr>
+<tr><td><code>SVPP-0011</code> — a passthrough line is not lexed</td><td>accepts a string literal left open at its line end</td><td>7 suite error tests accepted (sv2v <code>test/error/string_literal_eof.sv</code>, verilator <code>t_parse_eof_str_bad.v</code>, …)</td></tr>
+</tbody>
+</table>
+</div>
+<p>An example of the first — the release’s tree for this input has an <code>else</code> branch:</p>
+<pre><code class="language-systemverilog">`define USE_BOOTMODE_TEST
+`ifdef USE_BOOTMODE_TEST
+   assign c= d;/*
+`else
+   assign c= 1'b0;*/
+`endif
+</code></pre>
+<p>IEEE 1800-2023 §22.2: <em>“Directives are not recognized within comments or string literals”</em> — the <code>`else</code> is comment text,
+so the conditional has one branch. Both defects are fixed by the next release’s lexically-aware text run (task leaf
+<code>SV-CORPUS-GRAD.13c.2v.13</code>), and that release’s census reads the other half too: every row the SystemVerilog answer key
+expects to be refused, joined to this parser’s verdict.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="quickstart-for-downstream-consumers"><a class="header" href="#quickstart-for-downstream-consumers">Quickstart for Downstream Consumers</a></h1>
 <p>A minimal “compile this, walk that” recipe for embedding the PGEN sv_preprocessor parser. This parser models the SystemVerilog preprocessor directive surface — every IEEE 1800 clause-22 directive (<code>`define</code> / <code>`include</code> / conditional compilation / <code>`timescale</code> / <code>`pragma</code> / <code>`line</code> / <code>`begin_keywords</code> / …) plus the source lines between them. Read <a href="#build-recipe">Build Recipe</a> and <a href="#public-api-surface">Public API Surface</a> for the long-form versions of each step.</p>
@@ -2463,6 +2489,12 @@ match SVPP_AST_SCHEMA_VERSION {
 <p>A backslash immediately before the newline inside <code>`define</code> macro text: the text continues on the next line (§22.5.1). It surfaces as a bare <code>{kind: "line_continuation"}</code> fragment between the two lines’ fragments. Through <code>1.0.7</code> the body ended at the first newline (<code>SVPP-0006</code>). A backslash followed by white space is NOT a continuation.</p>
 <h2 id="corpus-census-this-parser-over-the-systemverilog-corpus"><a class="header" href="#corpus-census-this-parser-over-the-systemverilog-corpus">Corpus census (this parser over the SystemVerilog corpus)</a></h2>
 <p><code>docs/tasks/artifacts/sv_corpus_grad/svpp_corpus_census/census.py</code>: the GENERATED parser inside the release <code>parseability_probe</code>, run over every file the SystemVerilog lanes read, each rejection classed by the backtick word that opens the line where the parse stopped and joined to a written disposition (<code>residual_dispositions.tsv</code>); <code>--before BIN</code> adds transitions and AST identity against another binary; <code>--bank</code> runs the clause-22 reproducer bank. See <a href="#the-systemverilog-corpus-read-by-this-parser-2026-10-17">Status and Distance</a>.</p>
+<h2 id="over-acceptance"><a class="header" href="#over-acceptance">Over-acceptance</a></h2>
+<p>A file the parser ACCEPTS that its requirement refuses — the opposite of a rejection, and invisible to a census that reads only
+rejections, because an accepted file never reaches the disposition table. Two were found in release <code>1.0.8</code> this way (ledger
+<code>SVPP-0010</code>, <code>SVPP-0011</code>; see <a href="#two-wrong-verdicts-the-census-could-not-see-found-2026-10-18">Status and Distance</a>).
+Measuring it needs an answer key that says which files must be refused: the next release joins the SystemVerilog answer key’s
+<code>must_reject</code> and <code>deferred:svpp_owned</code> rows to this parser’s verdict.</p>
 <h2 id="parser-release-version"><a class="header" href="#parser-release-version">Parser release version</a></h2>
 <p>The parser library’s release identity, currently <code>1.0.8</code>. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed) — the <code>1.0.2</code> <code>SVPP-0001</code> fix carries schema <code>2</code>, the <code>1.0.3</code> POST-SV-AUDIT <code>macro_formals</code> Category-A fix carries schema <code>3</code>, <code>1.0.5</code> (<code>condition_text -&gt; $text</code>) carries schema <code>4</code>, the <code>1.0.6</code> <code>SVPP-0003</code> acceptance fix keeps schema <code>4</code>, and the <code>1.0.7</code> <code>SVPP-0004</code> macro-default correction carries schema <code>5</code>. Recorded in <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. See <a href="#schema-versioning">Schema Versioning</a>.</p>
 <h2 id="pp_item-dispatch-2"><a class="header" href="#pp_item-dispatch-2">pp_item dispatch</a></h2>
