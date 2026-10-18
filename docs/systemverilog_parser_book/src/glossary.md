@@ -37,6 +37,9 @@ Tracks the AST output shape. Bumped only when the output shape changes in a way 
 ## Slice
 The unit of work in the annotation campaign. One slice = one rule (or a small family of related rules) annotated, the manifest updated, the contract bumped, the book amended, and a regression-lock test landed.
 
+## Speed ratio
+PGEN's wall time divided by a reference tool's wall time for the same file, on the same host, doing the same work (PGEN `--parse … --preprocess` against slang `--parse-only` or `-E`, Verilator `-E` or `--lint-only` — the mode is always named). Below 1, PGEN is faster; 2.5 means PGEN takes 2.5 times as long. Per corpus suite and overall it is the geometric mean of the per-file ratios. Parity is a ratio at or below 1 against the FASTER reference. A ratio, never a second count, because a second count moves with the hardware. See [Speed](speed.md).
+
 ## Stable surface
 The set of public entry points downstream consumers can rely on across patch / minor releases. Defined in `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` § "Stable Integration Surface".
 

@@ -130,7 +130,7 @@ the tree it is derived from.
 | [`rtl_const_expr`](../../rtl_const_expr_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
 | [`rtl_frontend`](../../rtl_frontend_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 0 |
 | [`semantic_annotation`](../../semantic_annotation_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
-| [`systemverilog`](../../systemverilog_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⚠️ | ⛔ | 4 |
+| [`systemverilog`](../../systemverilog_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⚠️ | ⛔ | 5 |
 | [`systemverilog_preprocessor`](../../systemverilog_preprocessor_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⚠️ | ⛔ | 1 |
 | [`vhdl`](../../vhdl_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⚠️ | ⛔ | 0 |
 
@@ -153,18 +153,18 @@ Leg 1 is the stimuli-generator proof, leg 2 is *gates green and invoked* — eve
 
 ⛔ in a numeric cell means **NOT MEASURED**: there is no count. That is not the same as a count of zero, and it is not the same as nothing being wrong — it is the absence of an instrument, which is itself the work the named leaf owes.
 
-**What remains, across the whole index.** The task-tree index carries 114 trees and **63 are OPEN**. Every row is adjudicated to exactly one bucket — the producer refuses to render at all if a row carries no attribution or an attribution names no row — so the buckets below are a partition, and they sum to that total.
+**What remains, across the whole index.** The task-tree index carries 115 trees and **64 are OPEN**. Every row is adjudicated to exactly one bucket — the producer refuses to render at all if a row carries no attribution or an attribution names no row — so the buckets below are a partition, and they sum to that total.
 
 | Where the open work sits | Open trees | What that bucket is |
 |---|---:|---|
-| Attributed to one family | 15 | one of the `families` keys of done_bar_family_register_v0.json - this tree's remaining work is work on THAT parser |
+| Attributed to one family | 16 | one of the `families` keys of done_bar_family_register_v0.json - this tree's remaining work is work on THAT parser |
 | `cross-cutting` | 26 | engine, codegen, annotation, stimuli or corpus-doctrine work that can gate ANY family. Counted for every family, but reported as a COUNT rather than inlined, so a family's own list stays readable |
 | `process` | 15 | governance, continuity, documentation, ops and repo hygiene. Real work, but not on any parser's path to `Done` |
 | `future-family` | 4 | a parser family PGEN does not ship yet (Phase S and later). No current family's bar depends on it |
 | `platform` | 3 | platform expansion around the parsers - a linter, an elaborator workbench, MCP control - rather than a parser |
-| **Total** | **63** | of the 114 trees the index carries |
+| **Total** | **64** | of the 115 trees the index carries |
 
-⚠️ **These counts are an UPPER BOUND, and the reason is measured.** A tree's status is prose in two places — the index row and the tree file's own metadata — and they DISAGREE on 4 of the 114 rows while 3 index rows carry no status word this reader recognises. Every one of those is counted OPEN, because over-reporting how much is left is the only safe direction for a page that says how much is left. Reconciling them is `DONE-BAR-VISIBILITY.8`; raising the item from a TREE to a LEAF is `DONE-BAR-VISIBILITY.7`.
+⚠️ **These counts are an UPPER BOUND, and the reason is measured.** A tree's status is prose in two places — the index row and the tree file's own metadata — and they DISAGREE on 4 of the 115 rows while 3 index rows carry no status word this reader recognises. Every one of those is counted OPEN, because over-reporting how much is left is the only safe direction for a page that says how much is left. Reconciling them is `DONE-BAR-VISIBILITY.8`; raising the item from a TREE to a LEAF is `DONE-BAR-VISIBILITY.7`.
 
 <!-- END DERIVED -->
 

@@ -5,6 +5,7 @@
 # Status
 
 - [Status and Distance to `Done`](status-and-distance.md)
+- [Speed: the Bar After the Nexsim Release](speed.md)
 
 # Building & Running
 

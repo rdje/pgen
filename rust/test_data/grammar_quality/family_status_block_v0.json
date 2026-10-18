@@ -385,6 +385,7 @@
       "SV-OVER-REJECTION-FIDELITY": "systemverilog",
       "SV-PARSE-STRICT": "systemverilog",
       "SV-REPLAY-DEBT": "systemverilog",
+      "SV-SPEED": "systemverilog",
       "SV-SVA-PROPERTY-FIDELITY": "systemverilog",
       "SVPP-CONTRACT-BODY": "systemverilog_preprocessor",
       "SVPP-EXPANSION": "systemverilog_preprocessor",

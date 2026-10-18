@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8ecc6fa7.js";
+            window.path_to_searchindex_js = "searchindex-8945eb69.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-8e3bd504.js"></script>
+        <script src="toc-d19d7c2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -282,7 +282,7 @@ inapplicable one.</li>
 </table>
 </div>
 <p>The three row counts sum to the denominator (14 481 + 717 + 1 138 = 16 336). <strong>1 138 rows still stand between this corpus and leg 3</strong> — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-<code>.3f</code> bit (<code>no_verdict == 0</code> on the raw lane, unreachable by construction) reads <code>false</code> and is kept by name as <code>full_pass_raw_lane</code>.</p>
-<p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 114 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
+<p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 115 trees the index carries. <strong>5 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -293,6 +293,7 @@ inapplicable one.</li>
 <tr><td><code>SV-EXH-PROOF</code></td><td>open</td><td><a href="../../tasks/SV-EXH-PROOF.html"><code>docs/tasks/SV-EXH-PROOF.md</code></a></td></tr>
 <tr><td><code>SV-PARSE-STRICT</code></td><td>open</td><td><a href="../../tasks/SV-PARSE-STRICT.html"><code>docs/tasks/SV-PARSE-STRICT.md</code></a></td></tr>
 <tr><td><code>SV-REPLAY-DEBT</code></td><td>open</td><td><a href="../../tasks/SV-REPLAY-DEBT.html"><code>docs/tasks/SV-REPLAY-DEBT.md</code></a></td></tr>
+<tr><td><code>SV-SPEED</code></td><td>open</td><td><a href="../../tasks/SV-SPEED.html"><code>docs/tasks/SV-SPEED.md</code></a></td></tr>
 </tbody>
 </table>
 </div>
@@ -355,6 +356,79 @@ distance is worse than reporting nothing</strong>: the number had read 10 → 20
 <code>Done</code>, because its open-leaf census had stopped under-counting, and the sum added a done-bar leg, a corpus row and a
 tracker leaf as if they were one unit. The three-leg bar above is the only distance this book publishes — each leg a
 defined, measured condition — and the corpus table says how many rows still await a verdict.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="speed-the-bar-after-the-nexsim-release"><a class="header" href="#speed-the-bar-after-the-nexsim-release">Speed: the Bar After the Nexsim Release</a></h1>
+<p><strong>No speed number is published yet.</strong> Speed work on SystemVerilog starts once the parser is released to Nexsim. This
+page fixes the bar and how it will be measured now, so that every number published later is read against the same
+protocol. The work is tracked as task tree <code>SV-SPEED</code> (<code>docs/tasks/SV-SPEED.md</code>).</p>
+<h2 id="the-directive"><a class="header" href="#the-directive">The directive</a></h2>
+<p>The director, 2026-10-18:</p>
+<blockquote>
+<p>After the SV parser is released to NEXSIM we will focus on speed and the SystemVerilog run as fast as it possibly
+can, as we need to be on par with commercial parsers and be lighting fast.</p>
+</blockquote>
+<blockquote>
+<p>I can’t access commercial tool, so we will have to be on par or even beat slang and Verilator and go beyond.</p>
+</blockquote>
+<h2 id="the-reference-tools"><a class="header" href="#the-reference-tools">The reference tools</a></h2>
+<p>Commercial tools are not available here, so the bar is set by the two leading open-source SystemVerilog front ends.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Tool</th><th>Revision</th><th>Modes compared</th><th>Note</th></tr>
+</thead>
+<tbody>
+<tr><td>slang</td><td><code>4106501b</code>, the revision vendored at <code>stimuli/sv/subs/slang</code> (its CMake declares version 11.0)</td><td><code>-E</code> (preprocess only), <code>--parse-only</code> (<em>“Stop after parsing input files, don’t perform elaboration or type checking”</em>)</td><td>built from that revision’s own source, exported read-only from the submodule to <code>rust/target/</code></td></tr>
+<tr><td>Verilator</td><td>5.050 (host install)</td><td><code>-E</code> (<em>“Preprocess, but do not compile”</em>), <code>--lint-only</code></td><td>has no parse-only mode: <code>--lint-only</code> also elaborates, so it is reported as its own column and never as a parse time</td></tr>
+<tr><td>PGEN</td><td>the released <code>parseability_probe</code></td><td><code>--parse systemverilog … --preprocess</code></td><td>preprocess → parse, the pipeline Nexsim runs (see <a href="#the-preprocessparse-pipeline">The Preprocess→Parse Pipeline</a>)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="the-bar"><a class="header" href="#the-bar">The bar</a></h2>
+<p>The quantity is the <a href="#speed-ratio">speed ratio</a>: PGEN’s wall time divided by a reference tool’s wall time
+for the same file, on the same host, doing the same work. Below 1, PGEN is faster.</p>
+<ul>
+<li><strong>Parity</strong> is a ratio at or below 1 against the FASTER of slang and Verilator — per file, per corpus suite (the
+geometric mean of its files) and over the whole corpus.</li>
+<li><strong>Beyond</strong> is the director’s word: reaching parity opens the next, stricter bar; it does not end the campaign.</li>
+<li>Peak memory (RSS) is measured the same way, as a ratio.</li>
+</ul>
+<p>A ratio, never a raw second count: the same parser reads faster on a faster machine without changing at all, while a
+ratio on one host compares the parsers rather than the hardware.</p>
+<p><strong>Reading an example</strong> (illustrative numbers, not a measurement). If one file takes PGEN 0.30 s, slang <code>--parse-only</code>
+0.12 s and Verilator <code>-E</code> 0.20 s, the faster reference is slang, and the file’s ratio is 0.30 ÷ 0.12 = <strong>2.5</strong>: PGEN
+is 2.5 times slower than the bar on that file. Parity on that file means 0.12 s or less.</p>
+<h2 id="the-commands-side-by-side"><a class="header" href="#the-commands-side-by-side">The commands, side by side</a></h2>
+<p>For one file with one include directory (the leaf <code>SV-SPEED.1</code> fixes how each corpus file’s include directories and
+defines reach each tool — the same ones the pipeline gives it):</p>
+<pre><code class="language-bash"># PGEN — preprocess + parse, the released probe
+rust/target/release/parseability_probe --parse systemverilog top.sv --profile sv_2017 --preprocess --include-dir rtl/include
+
+# slang — preprocess + parse, no elaboration
+slang --parse-only -I rtl/include top.sv
+
+# Verilator — preprocess only (a separate column: --lint-only elaborates too)
+verilator -E -Irtl/include top.sv &gt; /dev/null
+</code></pre>
+<h2 id="the-floor-correctness-is-never-traded"><a class="header" href="#the-floor-correctness-is-never-traded">The floor: correctness is never traded</a></h2>
+<p>A change that makes the parser faster and moves anything it decides does not land, however large the gain. Before and
+after every speed change, the same identity checks a release re-key runs must come back unchanged: every corpus verdict
+(<code>REKEY-MOVERS: IDENTICAL</code>), every accepted tree (<code>AST-IDENTITY-SWEEP … ast_moved=0</code>), the adjudication manifests, and
+the certificate (<code>fully_certified</code>).</p>
+<h2 id="the-order-of-work"><a class="header" href="#the-order-of-work">The order of work</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Leaf</th><th>What it delivers</th></tr>
+</thead>
+<tbody>
+<tr><td><code>SV-SPEED.1</code></td><td>the benchmark: the reference builds, each tool’s mode, the population, include directories and defines, repeat count and statistic, allocator parity (slang links <code>mimalloc</code> by default)</td></tr>
+<tr><td><code>SV-SPEED.2</code></td><td>the first reading: per-file ratios, per-suite and overall geometric means, the worst files, peak memory, and <code>uvm_pkg.sv</code> on its own</td></tr>
+<tr><td><code>SV-SPEED.3</code></td><td>attribution: a profiler’s account of where PGEN spends its time (preprocessing, macro expansion, parsing, building the tree, I/O), ranked</td></tr>
+<tr><td><code>SV-SPEED.4</code></td><td>the changes themselves, one leaf each, each landing only with the floor green and its before → after ratio measured</td></tr>
+</tbody>
+</table>
+</div>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="quickstart-for-downstream-consumers"><a class="header" href="#quickstart-for-downstream-consumers">Quickstart for Downstream Consumers</a></h1>
 <p>A minimal “compile this, walk that” recipe for embedding the PGEN SystemVerilog parser. Read <a href="#build-recipe">Build Recipe</a> and <a href="#public-api-surface">Public API Surface</a> for the long-form versions of each step.</p>
@@ -3550,6 +3624,8 @@ grammar defect and is fixed in the grammar.</li>
 <p>Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to. Currently <code>1</code>. See <a href="#schema-versioning">Schema Versioning</a>.</p>
 <h2 id="slice"><a class="header" href="#slice">Slice</a></h2>
 <p>The unit of work in the annotation campaign. One slice = one rule (or a small family of related rules) annotated, the manifest updated, the contract bumped, the book amended, and a regression-lock test landed.</p>
+<h2 id="speed-ratio"><a class="header" href="#speed-ratio">Speed ratio</a></h2>
+<p>PGEN’s wall time divided by a reference tool’s wall time for the same file, on the same host, doing the same work (PGEN <code>--parse … --preprocess</code> against slang <code>--parse-only</code> or <code>-E</code>, Verilator <code>-E</code> or <code>--lint-only</code> — the mode is always named). Below 1, PGEN is faster; 2.5 means PGEN takes 2.5 times as long. Per corpus suite and overall it is the geometric mean of the per-file ratios. Parity is a ratio at or below 1 against the FASTER reference. A ratio, never a second count, because a second count moves with the hardware. See <a href="#speed-the-bar-after-the-nexsim-release">Speed</a>.</p>
 <h2 id="stable-surface"><a class="header" href="#stable-surface">Stable surface</a></h2>
 <p>The set of public entry points downstream consumers can rely on across patch / minor releases. Defined in <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> § “Stable Integration Surface”.</p>
 <h2 id="stress-sample"><a class="header" href="#stress-sample">Stress sample</a></h2>

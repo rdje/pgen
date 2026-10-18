@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-18 — SV-SPEED (`PGEN-SV-SPEED-0001`): a vendored checkout is not its object store
+
+- **Measure the store before promising a build from it.** I told the director slang *"is already vendored … the benchmark leaf can build it from there"* from the fact that the submodule exists. Its working tree is a sparse `tests/` checkout — which looked like a refutation — and only `git rev-list --objects --missing=print HEAD` under `GIT_NO_LAZY_FETCH=1` settled it: 733 objects, 0 missing. Six of the thirteen stores are blob-filtered partial clones with objects missing; an export from one of those would lazy-fetch, a write into another repository. Promoted: `docs/knowledge/a-vendored-corpus-checkout-is-not-its-object-store.md`.
+- **A bar against a tool with no matching mode is stated per mode.** Verilator has no parse-only mode; its `--lint-only` elaborates, so a PGEN-vs-Verilator number is published per mode and never as a parse time — the protocol leaf (`SV-SPEED.1`) fixes the modes before any number exists.
+
 ## 2026-10-17 — SV-CORPUS-GRAD.13c.2v.2 (`PGEN-SV-CORPUS-GRAD-0458`): the systemverilog_preprocessor release 1.0.8
 
 - **Prototype on the interpreter, confirm on the generated parser.** Three successive prototypes (v8, v10, v11 — a v9 sweep was stopped when v10 superseded it) were each measured over the whole 16,336-file corpus with `--interpret-parse` (≈ 7 min a sweep, no build) before one regeneration; the generated parser then named the identical rejection set and the identical 69-file mover set. The interpreter is the design loop; the generated census is the claim.
