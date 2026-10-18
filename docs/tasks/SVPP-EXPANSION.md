@@ -264,6 +264,7 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 | — | `.6f` | ✅ `done` | `PGEN-SVPP-EXPANSION-0044`: a backtick that SURVIVES expansion outside a comment or string is refused by the stage with its clause — an undefined name (§22.5.1; lands CONTEXT), a function-like macro used bare or with an unclosed argument list, a stray macro-string token, an unmatched `` `end_keywords `` (ENGINE); `undefined_macro_policy=keep` restores the passthrough. Found through `.6c.4`'s join of the svpp-owned rows with their suites' conventions: the SV grammar's raw-lane residue (`compiler_directive` → `opaque`) ACCEPTED a top-level leftover, so 38 rows read `pass` over unresolved text (25 riscv-dv fragments) and 318 failing rows carried one. 366 rows into `pp_fail` under each of the three readings (45 from `pass`, 321 from `fail`), none the other way; eleven packages refuse at their per-IP define instead of failing; the tuple `11232/2606/2498/1314/0` (adjudicated −38: the false passes corrected); the rejects census's `raw_backtick` class 42 → 0; twelve stale dispositions dropped. Section below |
 | — | `.6g` | ✅ `done` | `PGEN-SVPP-EXPANSION-0047`: the closed loop and the per-sample stage replay GENERATED raw-lane text, whose `opaque_directive_line` residue the stage's `.6f` default refuses by design; the gate now passes `undefined_macro_policy=$generated_text_undefined_macro_policy` (contract: `keep`, the stage's consumer-resolves mode) at exactly those three stages; the realistic cases and every corpus lane keep `error`; both SV umbrellas green again; ZERO Rust / grammar bytes |
 | — | `.6h` | ✅ `done` | `PGEN-SVPP-EXPANSION-0048`: the `.6f` scan tested only an identifier or a macro-string successor — a backtick before a line end, white space, the end of the text, a digit or punctuation reached the parser as an opaque line, and an escaped identifier's bytes were scanned one by one (`` \a`b `` refused as a usage of `b`); now refused with §22.2 / Syntax 22-3, stepped over by §5.6.1, and `` `\name `` looked up by name; ZERO corpus movers on the three readings (the expanded-text census over all 16 336 rows predicted it) |
+| — | `.6i` | ✅ `done` | `PGEN-SV-CORPUS-GRAD-0466`: the `.6g` contract tier missed the BOUNDED cross-family contract — the push mirror's SV stimuli-quality stage died silently (an absent key read by `jq -e` under `set -e`) since 2026-10-08; the key added (`keep`); the silent refusal owed as `.6i`(b) |
 | — | `.5`(s) | ✅ `done` | `PGEN-SVPP-EXPANSION-0043`: macro text that leaves a plain STRING LITERAL open at its end is refused naming §22.5.1 (*"shall not be split across … String literals"*, the standard's own `first_half` example, `docs/systemverilog/2017/md/section-22-compiler-directives.md:275-281, :295-297`); the scan is the stage's own (comments, `` `"…`" `` and `\"` honoured); numbers / identifiers / keywords / operators cut at the text's end are NOT judged (a stated bound). sv-tests `_21` `pass → pp_fail` (now `must_reject:refused_engine`). Section below |
 | — | `.5`(t) | ✅ `done` | `PGEN-SVPP-EXPANSION-0043`: a compiler directive cannot be redefined as a macro name AND is a defined name to the conditionals (§22.5.1 *"All compiler directives shall be considered predefined macro names; it shall be illegal to redefine …"*, `docs/systemverilog/2017/md/section-22-compiler-directives.md:139-140`); the set is the edition's own (1364-2005's nineteen; + `undefineall`, `__FILE__`, `__LINE__` under 1800); the first GREEN caught the `` `ifndef `` arm testing presence by itself (ispras `22.13_01.sv`'s guard). sv-tests `_23`, verilator `t_pp_defkwd_bad.v`, sv2v `macro_illegal_name.sv` `pass → pp_fail`, Surelog `TestMacros.v` `fail → pp_fail`. Section below |
 | — | `.5`(u) | ✅ `done` (rode with (s)) | `PGEN-SVPP-EXPANSION-0043`: a backslash-newline INSIDE a string literal of the macro text omits both characters under the 2023 reading (1800-2023 §22.5.1 `docs/systemverilog/2023/md/section-22-compiler-directives.md:182-184`) and becomes a newline under 2017 (a two-line literal the parser rejects); found when a control pin of (s) I had written wrong REJECTED on every profile. Edition twin pins. Section below |
@@ -3249,6 +3250,35 @@ answer here; a silent routing is not.
   - [x] **LOCKSTEP** — this section + the row (`.6h` done), three pins + `MANIFEST.tsv` (949), the SV book's pipeline chapter (the option-table row and a bullet), the SV integration contract's post-condition paragraph, the derived reports of the three readings re-rendered (byte-identical where nothing moved), `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
   - [x] **NEUTRALITY TIER** — family component: `rust/src/families/systemverilog/` names its own family by path; the engine moved no byte (`engine-neutrality` in the doctrines run).
   - promotion: declined (the generalizable lessons — a stage's post-condition versus the raw lane's residue, and which side moves for generated text — are the `.6f` and `.6g` cards; this slice is the successor-case enumeration those cards implied, and its census lesson is a sentence in `DEVELOPMENT_NOTES.md`).
+
+## `.6i` the `.6g` contract tier missed the BOUNDED cross-family contract — the push mirror's SV stimuli-quality stage has died silently since 2026-10-08 — ✅ done 2026-10-19 (`PGEN-SV-CORPUS-GRAD-0466`; CONTRACT tier, one key)
+
+- **Found** by the push mirror (`make -C rust ci_workflow_local_gate`, 2026-10-18, the first run since the 2026-08-25 push): `error:
+  workflow local parity failed: stimuli-cross-family-platform-gate` — `fail: sv_stimuli_quality_bounded` with an EMPTY stage log
+  (`rust/target/ci_workflow_local_gate/run.HOoExd/…/sv_stimuli_quality_bounded.log`, 0 bytes); the regex and VHDL stages pass.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+- [x] **REPRODUCE / ISSUE** — `make -C rust stimuli_cross_family_platform_gate` directly: rc 2, the same empty log, 126 s; the stage
+  under `bash -x` with the gate's own environment (`rust/target/svpp9/svq/trace.log`): the last line `jq -er
+  '.preprocess.generated_text_undefined_macro_policy | strings' …/systemverilog_stimuli_cross_family_platform_contract_v0.json`,
+  then nothing — `jq -e` on an absent key exits non-zero inside `$(…)` under `set -e`, a death with no message.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json`'s
+  `preprocess` block lacked `generated_text_undefined_macro_policy`, which `rust/scripts/sv_stimuli_quality_gate.sh:1692` reads
+  refuse-on-absence since `.6g` (`PGEN-SVPP-EXPANSION-0047`, 2026-10-08). WHY: `.6g`'s contract tier added the key to the FULL
+  contract (`systemverilog_core_v0_contract.json`, value `keep`) and not to the bounded one, whose only reader is the cross-family
+  platform gate, which runs only in the push mirror — last run 2026-08-25, 400 commits earlier. The same class as
+  `SV-CORPUS-GRAD.13c.2v.20`: a gate that runs only at a push stays red unseen between pushes.
+- [x] **FIX** — CONTRACT tier: the key added with the core contract's value (`"generated_text_undefined_macro_policy": "keep"`) — the
+  bounded run is the same closed loop over GENERATED text, whose undefined macro names are the generator's by design (`.6g`).
+- [x] **ADDRESSED (verified)** — `make -C rust stimuli_cross_family_platform_gate` → `pass: regex_family_stimuli_quality`, `pass:
+  vhdl_stimuli_quality_bounded`, `pass: sv_stimuli_quality_bounded`, `✅ stimuli cross-family platform gate passed` (rc 0).
+- [x] **NO REGRESSION** — the bounded contract has one reader (this gate); the core contract and the gate script are untouched, so
+  the full `sv_stimuli_quality_gate` is unchanged; the push mirror re-run on the committed branch before the push.
+- ⚠️ **Owed, logged (`.6i`(b))**: the gate's contract reads are bare `$(jq -er …)` under `set -e` — a missing key is a refusal with NO
+  MESSAGE, against the gate's own rule that a check which cannot run must say so. Every such read (a dozen in
+  `sv_stimuli_quality_gate.sh`) takes a `require_key` helper that names the key and the file; a GATE-tier slice of its own.
+- promotion: PROMOTED — a second instance on `docs/knowledge/a-ceremony-that-lists-its-family-gates-misses-a-gate-that-reads-the-grammar.md`.
 
 ## Verification log
 

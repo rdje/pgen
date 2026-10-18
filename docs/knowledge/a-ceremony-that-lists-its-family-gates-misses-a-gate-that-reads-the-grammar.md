@@ -42,3 +42,11 @@ release ceremony ran the svpp gates.**
   before anything was changed.
 
 Related: [[a-filtered-acceptance-run-is-not-the-module]], [[a-generated-sample-the-parser-refuses-is-a-boundary-or-a-defect]].
+
+## A second instance, the same push (2026-10-19, `SVPP-EXPANSION.6i`)
+
+The mirror's next job after the dual-run, `stimuli-cross-family-platform-gate`, was red too — since 2026-10-08, from a
+different commit: `.6g` added a refuse-on-absence contract key to the full SV stimuli contract and not to the BOUNDED
+cross-family one, whose only reader is this mirror job. Two gates nothing else runs, red from two commits, both found at
+one push. The rule above is not about grammars alone: it is about every gate whose only invocation is the push mirror —
+derive that set (`GATE-REACHABILITY` knows it) and run it on each release that touches a gate's inputs.

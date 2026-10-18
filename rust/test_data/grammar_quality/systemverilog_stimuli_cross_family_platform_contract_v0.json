@@ -103,7 +103,8 @@
     "macro_redefine_policy": "warn",
     "conditional_symbol_policy": "assume_false_warn",
     "conditional_expr_policy": "identifier_or_defined",
-    "strict_warning_codes": "none"
+    "strict_warning_codes": "none",
+    "generated_text_undefined_macro_policy": "keep"
   },
   "semantic_contracts": {
     "declared_identifier_suite_path": "rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json",
