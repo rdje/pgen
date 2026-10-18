@@ -156,11 +156,14 @@ The census is not yet this family's leg-3 assertion (the derived block above sti
 ### Two wrong verdicts the census could not see (found 2026-10-18)
 
 The census above reads the files this parser REFUSES. A file it wrongly ACCEPTS never reaches the disposition table, and
-designing the next release found two such defects in `1.0.8`:
+designing the next release found four such defects in `1.0.8` (the last two by measuring its first prototype over the
+corpus, which compares every accepted tree):
 
 | defect | what `1.0.8` does | measured |
 |---|---|---|
-| `SVPP-0010` — a block comment spanning lines is not opaque | reads a directive keyword on a line inside the comment as a directive | 4 corpus files accepted with a wrong tree; Surelog `tests/PPComment/dut.sv` gets an `else_branch` its source comments out |
+| `SVPP-0010` — a block comment spanning lines is not opaque when it opens after code | reads a directive keyword on a line inside the comment as a directive | 1 corpus file accepted with a wrong tree: Surelog `tests/PPComment/dut.sv` gets an `else_branch` its source comments out (first counted as 4 — a comment opening at a line's start was already read correctly) |
+| `SVPP-0012` — text after a conditional directive on its line | records `` `ifdef X  code `` 's code as the directive's `tail`, and after `` `elsif X `` as part of the condition | verilator `t_preproc_ifdef.v` accepted with a wrong tree; the same root refuses a one-line conditional |
+| `SVPP-0013` — a formal list over several lines | reads `` `define EXHAUST(typ, `` / `left1, …) \` as an object-like macro with text `(typ,` | sv2v `test/core/dimensions.v`, OpenTitan `cip_base_vseq__tl_errors.svh` |
 | `SVPP-0011` — a passthrough line is not lexed | accepts a string literal left open at its line end | 7 suite error tests accepted (sv2v `test/error/string_literal_eof.sv`, verilator `t_parse_eof_str_bad.v`, …) |
 
 An example of the first — the release's tree for this input has an `else` branch:

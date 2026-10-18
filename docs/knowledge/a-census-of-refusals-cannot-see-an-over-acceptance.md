@@ -19,7 +19,9 @@ generated `systemverilog_preprocessor` parser and adjudicates each REJECTION in 
 refuses to run while one is unadjudicated. Release `1.0.8` was published on it with *"zero `pass → fail`, every residual
 adjudicated"*. Both statements were true, and the release still accepted seven suite error tests for an unterminated
 string (sv2v `test/error/string_literal_eof.sv`, verilator `t_parse_eof_str_bad.v`, `t_preproc_stringend_bad.v`, …) and
-read a directive inside a block comment as real in four files (Surelog `tests/PPComment/dut.sv`, …). Nothing in the
+read a directive inside a block comment as real (Surelog `tests/PPComment/dut.sv` — first counted as four files by a
+scan that could not tell a comment opened at a line's start, which the release reads correctly, from one opened after
+code; the prototype's tree comparison settled it at one). Nothing in the
 census could see either: an accepted file never reaches the disposition table, and *"pass → fail = 0"* compares the
 release with its predecessor, so a defect BOTH releases share is invisible to it.
 

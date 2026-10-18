@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6c03de2c.js";
+            window.path_to_searchindex_js = "searchindex-e3208bd5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-89867f1a.js"></script>
@@ -359,14 +359,17 @@ written down in <code>residual_dispositions.tsv</code>, which the census refuses
 <code>SV-CORPUS-GRAD.13c.2v.10</code>.</p>
 <h3 id="two-wrong-verdicts-the-census-could-not-see-found-2026-10-18"><a class="header" href="#two-wrong-verdicts-the-census-could-not-see-found-2026-10-18">Two wrong verdicts the census could not see (found 2026-10-18)</a></h3>
 <p>The census above reads the files this parser REFUSES. A file it wrongly ACCEPTS never reaches the disposition table, and
-designing the next release found two such defects in <code>1.0.8</code>:</p>
+designing the next release found four such defects in <code>1.0.8</code> (the last two by measuring its first prototype over the
+corpus, which compares every accepted tree):</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>defect</th><th>what <code>1.0.8</code> does</th><th>measured</th></tr>
 </thead>
 <tbody>
-<tr><td><code>SVPP-0010</code> — a block comment spanning lines is not opaque</td><td>reads a directive keyword on a line inside the comment as a directive</td><td>4 corpus files accepted with a wrong tree; Surelog <code>tests/PPComment/dut.sv</code> gets an <code>else_branch</code> its source comments out</td></tr>
+<tr><td><code>SVPP-0010</code> — a block comment spanning lines is not opaque when it opens after code</td><td>reads a directive keyword on a line inside the comment as a directive</td><td>1 corpus file accepted with a wrong tree: Surelog <code>tests/PPComment/dut.sv</code> gets an <code>else_branch</code> its source comments out (first counted as 4 — a comment opening at a line’s start was already read correctly)</td></tr>
+<tr><td><code>SVPP-0012</code> — text after a conditional directive on its line</td><td>records <code>`ifdef X  code</code> ’s code as the directive’s <code>tail</code>, and after <code>`elsif X</code> as part of the condition</td><td>verilator <code>t_preproc_ifdef.v</code> accepted with a wrong tree; the same root refuses a one-line conditional</td></tr>
+<tr><td><code>SVPP-0013</code> — a formal list over several lines</td><td>reads <code>`define EXHAUST(typ,</code> / <code>left1, …) \</code> as an object-like macro with text <code>(typ,</code></td><td>sv2v <code>test/core/dimensions.v</code>, OpenTitan <code>cip_base_vseq__tl_errors.svh</code></td></tr>
 <tr><td><code>SVPP-0011</code> — a passthrough line is not lexed</td><td>accepts a string literal left open at its line end</td><td>7 suite error tests accepted (sv2v <code>test/error/string_literal_eof.sv</code>, verilator <code>t_parse_eof_str_bad.v</code>, …)</td></tr>
 </tbody>
 </table>
