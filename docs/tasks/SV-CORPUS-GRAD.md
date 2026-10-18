@@ -14021,6 +14021,20 @@ prototype is written:
    passes the pipeline under `verilog_2005`, `sv_2017` and `sv_2023`). The decision record's example of it as a 1800-2023
    form (`feedback_every_parser_meets_its_full_requirements_no_documented_limits`) was mine and is corrected by this.
 
+   ⭐ **A third difference, found measuring the first prototype (`p1`) over the corpus — the LINE DISCIPLINE.** 1800-2023
+   §22.2: *"Unless specified below as supporting multiple lines, compiler directives shall be all on one line"*
+   (S23:75) — only the macro text (§22.5.1) and a conditional's `block_of_text` (§22.6) are so specified. 1800-2017 and
+   1364-2005 have no such sentence (their overviews S17:52-57, V05:7-10), so a directive's TOKENS may be separated by
+   newlines there, a `` `define `` formal list included; `` `include `` (§22.4: *"Only white space or a comment may appear
+   on the same line"*) and `` `line `` (§22.12) stay anchored to their line in every edition. The corpus holds both
+   readings' witnesses: iverilog `br_gh782b.v` (a `` `timescale `` written one token per line, each with comments —
+   `must_accept` in the SV key; `br_gh782c` / `e` / `f` the same shape for other directives), sv2v
+   `test/core/dimensions.v` and OpenTitan `hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__tl_errors.svh` (a formal list over
+   several lines). Release `1.0.8` refused the first group citing the 1800-2023 sentence for every reading, and
+   accepted the second only by reading the define as object-like with the text `(typ,` — a wrong tree. So: the
+   newline-tolerant reading under `verilog_2005` / `sv_2017`, the one-line reading under `sv_2023`. The stage is
+   directive-inconsistent here — `SVPP-EXPANSION.5`(aa).
+
    Identical in all three — no tag: the `` `pragma ``, `` `timescale ``, `` `default_nettype `` (`uwire` and `none`
    included), `` `line `` (white space only on its line, every parameter required, number positive, level 0 / 1 / 2)
    and `` `undef `` productions; `` `include ``'s *"Only white space or a comment may appear on the same line"*
