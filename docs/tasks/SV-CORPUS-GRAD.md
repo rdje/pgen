@@ -14002,12 +14002,24 @@ prototype is written:
    | `` `include `MACRO `` | not in the production | *"can be followed by a macro"* (S17:341-343) | shown (S23:409-411) |
    | formal default `= default_text` | none (V05:104-107) | yes (S17:129-130) | yes (S23:138) |
    | `` `" `` `` `\`" `` ``` `` ``` in macro text | none | yes (S17:320) | yes, plus `` `""" `` (S23:368-372) |
-   | escaped macro name and its formals | `identifier` only | `identifier` only — an escaped name ends at white space, so a `(` after it opens macro TEXT | stated (S23:130); its formals follow *"only the single white space character terminating the identifier name"* (S23:164-168) |
+   | an escaped macro name's formals | — (an escaped name ends at its white space, so a `(` after it opens macro TEXT) | the same | after *"only the single white space character terminating the identifier name"* (S23:164-168) |
    | a triple-quoted string `"""…"""` | — | — (`""` then `"`) | yes (§5.9), in text and macro text (S23:149-152, 188-189) |
    | macro text: a block comment spanning lines, `// … \` continuing | `//` only (V05:120-121) | `//` only (S17:151-152) | both (S23:175-179) |
    | `` `ifdef `` / `` `ifndef `` / `` `elsif `` condition | `text_macro_identifier` (V05:244-258) | the same (S17:376-388) | identifier or `( ifdef_macro_expression )` with `! && \|\| -> <->` (S23:442-456) |
-   | macro usage inside a directive's parameters | silent | silent | *"Macro expansion shall occur within a compiler directive"* (S23:58-69) |
    | `version_specifier` | four `1364-*` (V05:637-643) | adds `1800-2005` … `1800-2017` (S17:755-765) | adds `1800-2023` (S23:844-855) |
+
+   ⛔ Two rows of the first extraction were WRONG and are corrected here, each re-read: (a) an ESCAPED macro name is
+   valid in every edition — `text_macro_identifier ::= identifier` and `identifier ::= simple_identifier |
+   escaped_identifier` (1800-2017 `docs/systemverilog/2017/txt/section-41-data-read-api.txt:2126-2128`, 1800-2023
+   `docs/systemverilog/2023/txt/section-Annex_A-normative-formal-syntax.txt:2141`, 1364-2005
+   `docs/verilog/2005/md/section-Annex_A-normative-formal-syntax-definition.md:1265-1267`); 1800-2023 only
+   says so in prose (S23:130) and fixes where its formals start; (b) a MACRO USAGE inside a directive's parameters is
+   licensed in every edition — a defined macro *"can be used anywhere in a source description"* (V05:131) / *"anywhere
+   in the compilation unit where it is defined"* (S17:227, S23:278); 1800-2023 §22.2 states the directive case
+   explicitly. So the corpus's `` `line `new_line_num `foo(line) 1 `` / `` `timescale `time_scale_units / `time_scale_prec ``
+   derive under every profile, as the stage already reads them (`SVPP-EXPANSION.5`(n); measured: `` `line `N "f.sv" 0 ``
+   passes the pipeline under `verilog_2005`, `sv_2017` and `sv_2023`). The decision record's example of it as a 1800-2023
+   form (`feedback_every_parser_meets_its_full_requirements_no_documented_limits`) was mine and is corrected by this.
 
    Identical in all three — no tag: the `` `pragma ``, `` `timescale ``, `` `default_nettype `` (`uwire` and `none`
    included), `` `line `` (white space only on its line, every parameter required, number positive, level 0 / 1 / 2)
@@ -14019,15 +14031,23 @@ prototype is written:
    S17:774-775, `` `unconnected_drive `` S17:640-641) need the element's boundaries, which exist only after expansion
    (a macro can produce a `module`); sv-tests `22.3--resetall_illegal.sv` is such a row. Who refuses them is
    `.13c.2v.10`'s leg-3 key to settle, measured, before the release claims them either way.
-5. **Macro names** (closes `.13c.2v.8`): an escaped-identifier name and usage (§22.5.1); a compiler directive's
+5. **Macro names** (closes `.13c.2v.8`): an escaped-identifier name and usage (every edition, by Annex A); a compiler directive's
    name refused as a macro name, per edition (the stage's set since `SVPP-EXPANSION.5`(t)); and a directive keyword
    INSIDE macro text recorded as a directive word, not a `macro_reference` (the `1.0.8` dump of OpenTitan
    `lowrisc_ibex/dv/formal/check/top.sv:181` reads `` `ifndef `` as a `macro_reference` named `` `ifndef ``).
 6. **The corpus reading two-sided.** `census.py` gains the over-acceptance half: every row the SV answer key keys
    `must_reject` or `deferred:svpp_owned` joined to the directive parser's verdict, so a release can show it moved
    no correct refusal and name every over-acceptance it closes or leaves (the start of `.13c.2v.10`'s leg-3 key).
-7. **Rides:** `SVPP-EXPANSION.5`(w) (`` `line 0 ``) and `.5`(x) (lexical conventions in an ignored group) — both
-   expansion-stage Rust, in the SystemVerilog binaries this release rebuilds anyway.
+7. **Rides:** `SVPP-EXPANSION.5`(w) (`` `line 0 ``), `.5`(x) (lexical conventions in an ignored group), and the
+   stage's own EDITION gaps measured while building the matrix (the release probe, `--preprocess`, each form under
+   `verilog_2005` / `sv_2017` / `sv_2023`): `.5`(y) — `` `ifdef (A) `` and `` `elsif (A || C) `` PASS under `sv_2017`
+   and `verilog_2005`, where the condition is a `text_macro_identifier` (V05:244-258, S17:376-388); `.5`(z) — a
+   formal default (`` `define M(a=1) a ``) and `` `" `` (`` `define S(x) `"x`" ``) PASS under `verilog_2005`, which has
+   neither (V05:104-107; no `` `" `` in clause 19). Controls that already match the edition: `` `include <a.v> ``
+   refused and `` `undefineall `` refused under `verilog_2005`; a triple-quoted string refused under `sv_2017`. All
+   four are expansion-stage Rust in the SystemVerilog binaries this release rebuilds; (y) and (z) MOVE pipeline
+   verdicts on the `sv_2017` lane (verilator's `t_preproc_ifexpr*.v` among them), so the re-key is a re-measure
+   with every mover adjudicated, not an identity check.
 
 Plan: prototypes on the interpreter, each measured over all 16,336 files against the `1.0.8` parser (movers both
 ways, every moved tree attributed), the bank grown with each new acceptance's refusal twin, then the generated

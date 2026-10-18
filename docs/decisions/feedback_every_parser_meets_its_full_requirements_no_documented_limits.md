@@ -56,3 +56,9 @@ conditional written on one line; a malformed directive in an ignored group).
   `text_macro_identifier`) hold under the 2017 one. Owned by `SV-CORPUS-GRAD.13c.2v.9`, ORDERED.
 - Release `1.0.8`'s contract, book and disposition table describe the three as **known gaps ordered fixed**, never as a
   stated limit of the parser's promise.
+- ⛔ **Correction (2026-10-18, `PGEN-SV-CORPUS-GRAD-0460`) to an example in (3), which was mine, not the director's:** a
+  macro usage inside a directive's parameters is NOT a 1800-2023-only form. Every edition licenses it — a defined macro
+  *"can be used anywhere in a source description"* (1364-2005 §19.3.1) / *"anywhere in the compilation unit where it is
+  defined"* (1800-2017 and 1800-2023 §22.5.1); 1800-2023 §22.2 only states the directive case. It derives under every
+  profile. `` `ifdef ( ifdef_macro_expression ) `` (§22.6) stays the 1800-2023 form the ruling's example names. Recorded
+  in `docs/tasks/SV-CORPUS-GRAD.md` leaf `.13c.2v.13`.

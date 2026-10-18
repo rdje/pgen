@@ -2,7 +2,7 @@
 stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/top_1.v	refused_by_clause	`default_nettype with no value (Syntax 22-7)
 stimuli/sv/subs/Surelog/tests/PragmaProtect/top.sv	refused_by_clause	`pragma protect key_block encoding = (...): two pragma_expressions without the comma Syntax 22-8 requires (clause 34's own examples use it)
 stimuli/sv/subs/Surelog/tests/PreProcMacroFunc/dut.sv	refused_by_clause	an `endif with no open conditional in the file (Syntax 22-5)
-stimuli/sv/subs/Surelog/tests/PreprocLine/dut.sv	routed_gap:SV-CORPUS-GRAD.13c.2v.9	a macro usage inside a directive's parameters: IEEE 1800-2023 §22.2 'Macro expansion shall occur within a compiler directive'
+stimuli/sv/subs/Surelog/tests/PreprocLine/dut.sv	routed_gap:SV-CORPUS-GRAD.13c.2v.9	a macro usage inside a directive's parameters: licensed in every edition - a defined macro 'can be used anywhere' (1364-2005 19.3.1, 1800-2017/2023 22.5.1); 1800-2023 22.2 states the directive case
 stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/top_1.v	refused_by_clause	`default_nettype with no value (Syntax 22-7)
 stimuli/sv/subs/Surelog/tests/TestMacros/TestMacros.v	refused_by_clause	`define with no macro name (Syntax 22-2)
 stimuli/sv/subs/iverilog/ivtest/ivltests/begin_keywords_vams_2_3.v	refused_by_clause	a Verilog-AMS version_specifier: no IEEE 1800 Syntax 22-10 entry; §22.14 'It shall be an error if an implementation does not recognize the version_specifier'
@@ -36,7 +36,7 @@ stimuli/sv/subs/sv2v/test/error/unmatched_elsif_end.sv	suite_error_test	sv2v tes
 stimuli/sv/subs/sv2v/test/error/unmatched_endif.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
 stimuli/sv/subs/sv2v/test/error/unmatched_ifdef.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
 stimuli/sv/subs/sv2v/test/error/unmatched_ifndef.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
-stimuli/sv/subs/sv2v/test/lex/line.sv	routed_gap:SV-CORPUS-GRAD.13c.2v.9	a macro usage inside a directive's parameters: IEEE 1800-2023 §22.2 'Macro expansion shall occur within a compiler directive'
+stimuli/sv/subs/sv2v/test/lex/line.sv	routed_gap:SV-CORPUS-GRAD.13c.2v.9	a macro usage inside a directive's parameters: licensed in every edition - a defined macro 'can be used anywhere' (1364-2005 19.3.1, 1800-2017/2023 22.5.1); 1800-2023 22.2 states the directive case
 stimuli/sv/subs/sv2v/test/lex/string_macro.sv	routed_gap:SV-CORPUS-GRAD.13c.2v.10	a malformed directive inside a group the compiler ignores: §22.6 requires only lexical validity there; the directive must be SKIPPED, not rejected (director ruling 2026-10-18)
 stimuli/sv/subs/verilator/test_regress/t/t_clk_2in.v	routed_gap:SV-CORPUS-GRAD.13c.2v.10	a conditional written on one line (`ifdef X ... `endif): IEEE 1800-2023 §22.2 lets a directive with a defined end be followed by text on its line
 stimuli/sv/subs/verilator/test_regress/t/t_dpi_vams.v	refused_by_clause	a Verilog-AMS version_specifier: no IEEE 1800 Syntax 22-10 entry; §22.14 'It shall be an error if an implementation does not recognize the version_specifier'
@@ -44,7 +44,7 @@ stimuli/sv/subs/verilator/test_regress/t/t_func_dotted.v	routed_gap:SV-CORPUS-GR
 stimuli/sv/subs/verilator/test_regress/t/t_interface2.v	routed_gap:SV-CORPUS-GRAD.13c.2v.10	a conditional written on one line (`ifdef X ... `endif): IEEE 1800-2023 §22.2 lets a directive with a defined end be followed by text on its line
 stimuli/sv/subs/verilator/test_regress/t/t_interface_modport.v	routed_gap:SV-CORPUS-GRAD.13c.2v.10	a conditional written on one line (`ifdef X ... `endif): IEEE 1800-2023 §22.2 lets a directive with a defined end be followed by text on its line
 stimuli/sv/subs/verilator/test_regress/t/t_lint_pragma_protected_bad.v	suite_error_test	verilator _bad test: `pragma with no pragma_name (Syntax 22-8)
-stimuli/sv/subs/verilator/test_regress/t/t_lint_warn_line_bad.v	routed_gap:SV-CORPUS-GRAD.13c.2v.9	a macro usage inside a directive's parameters: IEEE 1800-2023 §22.2 'Macro expansion shall occur within a compiler directive'
+stimuli/sv/subs/verilator/test_regress/t/t_lint_warn_line_bad.v	routed_gap:SV-CORPUS-GRAD.13c.2v.9	a macro usage inside a directive's parameters: licensed in every edition - a defined macro 'can be used anywhere' (1364-2005 19.3.1, 1800-2017/2023 22.5.1); 1800-2023 22.2 states the directive case
 stimuli/sv/subs/verilator/test_regress/t/t_pp_line_bad.v	suite_error_test	verilator _bad test: `line with no parameters (Syntax 22-9: all parameters are required)
 stimuli/sv/subs/verilator/test_regress/t/t_pp_pragma_bad.v	suite_error_test	verilator _bad test: `pragma with no pragma_name (Syntax 22-8)
 stimuli/sv/subs/verilator/test_regress/t/t_preproc.v	routed_gap:SV-CORPUS-GRAD.13c.2v.10	a malformed directive inside a group the compiler ignores: §22.6 requires only lexical validity there; the directive must be SKIPPED, not rejected (director ruling 2026-10-18)
@@ -57,7 +57,7 @@ stimuli/sv/subs/verilator/test_regress/t/t_preproc_kwd.v	refused_by_clause	a Ver
 stimuli/sv/subs/verilator/test_regress/t/t_preproc_preproczero_bad.v	routed_gap:SV-CORPUS-GRAD.13c.2v.9	IEEE 1800-2023 §22.6 `ifdef ( ifdef_macro_expression ) - valid 2023 text the grammar does not derive (the _bad file's verilator output is a warning)
 stimuli/sv/subs/verilator/test_regress/t/t_preproc_undefineall.v	routed_gap:SV-CORPUS-GRAD.13c.2v.10	a conditional written on one line (`ifdef X ... `endif): IEEE 1800-2023 §22.2 lets a directive with a defined end be followed by text on its line
 stimuli/sv/subs/verilator/test_regress/t/t_split_var_3_wreal.v	refused_by_clause	a Verilog-AMS version_specifier: no IEEE 1800 Syntax 22-10 entry; §22.14 'It shall be an error if an implementation does not recognize the version_specifier'
-stimuli/sv/subs/verilator/test_regress/t/t_time_vpi.v	routed_gap:SV-CORPUS-GRAD.13c.2v.9	a macro usage inside a directive's parameters: IEEE 1800-2023 §22.2 'Macro expansion shall occur within a compiler directive'
+stimuli/sv/subs/verilator/test_regress/t/t_time_vpi.v	routed_gap:SV-CORPUS-GRAD.13c.2v.9	a macro usage inside a directive's parameters: licensed in every edition - a defined macro 'can be used anywhere' (1364-2005 19.3.1, 1800-2017/2023 22.5.1); 1800-2023 22.2 states the directive case
 stimuli/sv/subs/verilator/test_regress/t/t_timescale_parse_bad.v	suite_error_test	verilator _bad test: `timescale frump (Syntax 22-6)
 stimuli/sv/subs/verilator/test_regress/t/t_unconnected_bad.v	suite_error_test	verilator _bad test: `unconnected_drive with no argument (§22.9: pull1 or pull0)
 stimuli/sv/subs/verilator/test_regress/t/t_vams_basic.v	refused_by_clause	a Verilog-AMS version_specifier: no IEEE 1800 Syntax 22-10 entry; §22.14 'It shall be an error if an implementation does not recognize the version_specifier'

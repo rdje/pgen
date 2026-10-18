@@ -270,6 +270,8 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 | — | `.5`(v) | ✅ `done` (rode with (s)) | `PGEN-SVPP-EXPANSION-0043`: `parse_macro_parameter_list`'s closing scan honours string literals — `(a="==)",b="((((",c=() )` closed inside `"==)"` and handed the rest of the list to the macro text (verilator `t_preproc_def09.v:56`); surfaced by the pre-screen as a wrong-reason refusal of (s). The sibling scanners were string-aware already. Section below |
 | ⚠️ | `.5`(w) | `todo` (opened 2026-10-17 by `SV-CORPUS-GRAD.13c.2v.1`, `PGEN-SV-CORPUS-GRAD-0457`) | the stage CONSUMES `` `line 0 "f.sv" 0 `` — `parse_line_directive` parses the number as a `usize` and accepts 0, while §22.12 (both editions) says *"The number parameter shall be a positive integer"*; the `systemverilog_preprocessor` grammar's release `1.0.8` refuses it, so the two components would disagree. One `if number == 0` and a RED-first unit test; lands with the next SystemVerilog binary rebuild |
 | ⚠️ | `.5`(x) | `todo` (opened 2026-10-18 by `SV-CORPUS-GRAD.13c.2v.13`, `PGEN-SV-CORPUS-GRAD-0459`) | an IGNORED group is not checked against the lexical conventions — a string literal left open inside a dead `` `ifdef `` group passes the pipeline; §22.6 requires the ignored text to follow them; rides the next build of the SystemVerilog binaries |
+| ⚠️ | `.5`(y) | `todo` (opened 2026-10-18 by `SV-CORPUS-GRAD.13c.2v.13`, `PGEN-SV-CORPUS-GRAD-0460`) | a PARENTHESIZED conditional (`` `ifdef (A) ``, `` `elsif (A \|\| C) ``) passes under `sv_2017` and `verilog_2005`, whose conditions are a `text_macro_identifier`; IEEE 1800-2023 §22.6 alone adds `( ifdef_macro_expression )`; moves `sv_2017` pipeline verdicts |
+| ⚠️ | `.5`(z) | `todo` (opened 2026-10-18 by `SV-CORPUS-GRAD.13c.2v.13`, `PGEN-SV-CORPUS-GRAD-0460`) | under `verilog_2005` a formal DEFAULT (`` `define M(a=1) a ``) and the `` `" `` token pass; IEEE 1364-2005 clause 19 has neither |
 | — | `.6c.3` | ✅ `done` | `PGEN-SVPP-EXPANSION-0042`: the 94 sv-tests `:type: preprocessing` rows the raw key deferred to the preprocessor lane BY DESIGN are judged by their own header through the key's own function in its pipeline mode (`should_fail_because` → must_reject, absent → must_accept): 86 `svpp_owned:corroborated`, 4 refused as expected (`must_reject:refused_engine`, now ADJUDICATED), 2 rejected as expected, and TWO the pipeline ACCEPTS against a should-fail header — the standard's own split-string example and `` `define define `` — on the bar under the pipeline (tuple `11270/2606/2460/1261/2`) until `.5`(s)/(t) land. Section below |
 | — | `.5`(r) | ✅ `done` (a RULING) | `PGEN-SVPP-EXPANSION-0041`: the comment-backslash continuation 1800-2023 §22.5.1 names outright (`docs/systemverilog/2023/md/section-22-compiler-directives.md:200-201`) already reads as licensed on both profiles (measured before any change); the Surelog `TestMacros/macros.v:5` line writes a TAB and spaces AFTER its backslash, which no edition licenses (2017 `docs/systemverilog/2017/md/section-22-compiler-directives.md:171-172` "preceded by a backslash", 2023 `docs/systemverilog/2023/md/section-22-compiler-directives.md:173-175` "immediately preceded", 1364-2005 `docs/verilog/2005/md/section-19-compiler-directives.md:107-108`); the corpus writes that shape at two sites, both tests (verilator's own `t_lint_bsspace_bad.v` is its lint-error test for it). Two pins, both SV profiles; no stage option; no row moved. Section below |
 | — | `.4d` | ✅ `done` | `PGEN-SVPP-EXPANSION-0038`: the lane's refused-context rows grouped by what the context fails to supply — 168 black-parrot rows name BaseJump STL (not vendored; honestly absent), the rest top-specific files, build outputs and error tests, AND 25 rows name a file the tree holds: the derivation's include-candidate population was the SOURCE suffixes only (a `.vi` / `.vams` header held once was "absent"), and a tie of byte-identical copies was "ambiguous". Both fixed in `stimuli/sv/pipeline_context.py`; the fix's first cut was REFUSED by the shadow guard written beside it (a suite directory chosen for one name held two ambiguous ones) and redesigned per file. Five rows left `pp_fail` under each of the three readings — four to `pass` (two HardFloat `specialize.v`, iverilog `test_va_math.v` / `test_vams_math.v`), one to `fail` (the friscv testbench) — the five named in writing before the chain, none the other way; the 20 HardFloat `source` rows now stop at the honest three-way tie behind the resolved header. Section below |
@@ -2204,6 +2206,32 @@ it waits on the `.5`(d) ruling.
   error the clause names) with the clause; a RED-first unit test on the snippet above; the corpus census of the
   rows it moves (expected: the suites' own error tests only). Expansion-stage Rust: it rides the SystemVerilog
   binaries the next `systemverilog_preprocessor` release rebuilds.
+
+## `.5`(y) a parenthesized conditional outside 1800-2023, `.5`(z) SystemVerilog macro features under 1364-2005 — ⚠️ `todo` (opened 2026-10-18 by `SV-CORPUS-GRAD.13c.2v.13`, `PGEN-SV-CORPUS-GRAD-0460`)
+
+- **The finding.** Building the three-edition matrix for the `systemverilog_preprocessor` grammar's profiles, every
+  contested form was run through the stage on the release probe (`parseability_probe --parse systemverilog <f>
+  --profile <p> --preprocess`, scratch `rust/target/svpp9/t_*.sv`) under `verilog_2005`, `sv_2017` and `sv_2023`:
+
+  | form | `verilog_2005` | `sv_2017` | `sv_2023` | the editions |
+  |---|---|---|---|---|
+  | `` `define A `` / `` `ifdef (A) `` | pass | pass | pass | 1364-2005 §19.4 and 1800-2017 §22.6: `` `ifdef text_macro_identifier ``; 1800-2023 §22.6 adds `( ifdef_macro_expression )` |
+  | `` `elsif (A \|\| C) `` | pass | pass | pass | the same productions for `` `elsif `` |
+  | `` `define M(a=1) a `` + `` `M() `` | pass | pass | pass | 1364-2005 §19.3.1: `formal_argument_identifier ::= simple_identifier` — no default |
+  | `` `define S(x) `"x`" `` | pass | pass | pass | 1364-2005 clause 19 has no `` `" ``; 1800-2017 §22.5.1 adds it |
+  | `` `include <a.v> `` (control) | refused | pass | pass | 1364-2005 §19.5: `` `include "filename" `` only |
+  | `` `undefineall `` (control) | refused | pass | pass | not a 1364-2005 directive |
+  | a triple-quoted string (control) | refused | refused | pass | 1800-2023 §5.9 |
+
+- **(y)**: the stage's conditional reader admits the parenthesized expression under every profile. **(z)**: the
+  `` `define `` reader admits a default and the macro-string tokens under `verilog_2005`. Both are edition
+  over-acceptances; the controls show the stage already selects other readings by the profile's edition
+  (`SVPP-EXPANSION.5`(p)).
+- **Owed.** Each reading selected by the edition behind the profile (`version_for_profile`), refused with the edition's
+  production named; RED-first unit tests per form and profile; the `sv_2017` and `verilog_2005` pipeline movers
+  adjudicated (verilator `t_preproc_ifexpr*.v` read `pass` on the `sv_2017` lane today — under the strict profile
+  they are an edition contrast, the `.12b.1` pin form). Expansion-stage Rust: rides the SystemVerilog binaries the
+  next `systemverilog_preprocessor` release rebuilds.
 
 ## `.6d.8` VeeR's flow predecessors — ✅ done 2026-10-06 (`PGEN-SVPP-EXPANSION-0040`): the generated configuration header the Makefile compiles first, which no file includes, supplied as the suite's unit predecessor; three rows reach the parser's acceptance
 

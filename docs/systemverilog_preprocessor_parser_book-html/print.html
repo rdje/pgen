@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-90b6f601.js";
+            window.path_to_searchindex_js = "searchindex-6c03de2c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-89867f1a.js"></script>
@@ -350,7 +350,7 @@ written down in <code>residual_dispositions.tsv</code>, which the census refuses
 <tbody>
 <tr><td>the suite’s own error test</td><td style="text-align: right">34</td><td>sv2v <code>test/error/*</code>, sv-tests <code>*-illegal</code> / <code>*-invalid</code>, verilator <code>*_bad</code>, iverilog <code>CE</code> — refused at the construct the suite names</td></tr>
 <tr><td>refused by a clause</td><td style="text-align: right">16</td><td>a Verilog-AMS <code>begin_keywords</code> specifier (§22.14), a directive spread over lines (IEEE 1800-2023 §22.2: <em>“compiler directives shall be all on one line”</em>), a directive with a missing argument, a <code>pragma</code> whose expressions lack Syntax 22-8’s comma</td></tr>
-<tr><td>valid text the parser must accept — ordered fixed</td><td style="text-align: right">12</td><td>IEEE 1800-2023 directive forms (<code>`ifdef ( expr )</code>, a macro inside <code>`line</code> / <code>`timescale</code> — <code>.13c.2v.9</code>), an escaped-identifier macro name (<code>.8</code>), a conditional on one line (<code>.10</code>)</td></tr>
+<tr><td>valid text the parser must accept — ordered fixed</td><td style="text-align: right">12</td><td>IEEE 1800-2023’s <code>`ifdef ( expr )</code> and a macro inside <code>`line</code> / <code>`timescale</code> (licensed in every edition: a defined macro <em>“can be used anywhere”</em>) — <code>.13c.2v.9</code>; an escaped-identifier macro name (<code>.8</code>); a conditional on one line (<code>.10</code>)</td></tr>
 <tr><td>a malformed directive inside a skipped group</td><td style="text-align: right">2</td><td>§22.6 asks only lexical validity there: the directive must be SKIPPED, not rejected — a gap ordered fixed by the director (2026-10-18), <code>.10</code></td></tr>
 </tbody>
 </table>

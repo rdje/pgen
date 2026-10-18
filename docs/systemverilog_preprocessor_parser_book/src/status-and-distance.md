@@ -147,7 +147,7 @@ written down in `residual_dispositions.tsv`, which the census refuses to run wit
 |---|---:|---|
 | the suite's own error test | 34 | sv2v `test/error/*`, sv-tests `*-illegal` / `*-invalid`, verilator `*_bad`, iverilog `CE` — refused at the construct the suite names |
 | refused by a clause | 16 | a Verilog-AMS `begin_keywords` specifier (§22.14), a directive spread over lines (IEEE 1800-2023 §22.2: *"compiler directives shall be all on one line"*), a directive with a missing argument, a `pragma` whose expressions lack Syntax 22-8's comma |
-| valid text the parser must accept — ordered fixed | 12 | IEEE 1800-2023 directive forms (`` `ifdef ( expr ) ``, a macro inside `` `line `` / `` `timescale `` — `.13c.2v.9`), an escaped-identifier macro name (`.8`), a conditional on one line (`.10`) |
+| valid text the parser must accept — ordered fixed | 12 | IEEE 1800-2023's `` `ifdef ( expr ) `` and a macro inside `` `line `` / `` `timescale `` (licensed in every edition: a defined macro *"can be used anywhere"*) — `.13c.2v.9`; an escaped-identifier macro name (`.8`); a conditional on one line (`.10`) |
 | a malformed directive inside a skipped group | 2 | §22.6 asks only lexical validity there: the directive must be SKIPPED, not rejected — a gap ordered fixed by the director (2026-10-18), `.10` |
 
 The census is not yet this family's leg-3 assertion (the derived block above still reads NOT MEASURED); wiring it is
