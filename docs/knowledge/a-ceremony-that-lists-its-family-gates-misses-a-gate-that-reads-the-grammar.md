@@ -50,3 +50,10 @@ different commit: `.6g` added a refuse-on-absence contract key to the full SV st
 cross-family one, whose only reader is this mirror job. Two gates nothing else runs, red from two commits, both found at
 one push. The rule above is not about grammars alone: it is about every gate whose only invocation is the push mirror —
 derive that set (`GATE-REACHABILITY` knows it) and run it on each release that touches a gate's inputs.
+
+## A third instance, the same push (`DONE-BAR.5h`)
+
+`sota-exit-gate`'s first prerequisite, the silent-success sentinel gate, took `target/debug/ast_pipeline` as found; the
+mirror's preceding jobs leave it built without the generated parsers, so it refused every family — since 2026-09-30, the day
+it was wired as the prerequisite, which was after the previous push. Three mirror-only gates, three commits, one push.
+Deriving the mirror-only set and running it per release is `CI-PARITY-GATE-ROT.119`.

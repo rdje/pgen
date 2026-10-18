@@ -94,6 +94,18 @@ shopt -u nullglob
 (( ${#generated_parsers[@]} > 0 )) || refuse \
     "no generated/*_parser.rs artifacts — regenerate with 'make -C rust regenerate_generated_parsers'"
 
+# DONE-BAR.5h (2026-10-19): the two binaries are BUILT HERE with the generated parsers compiled in, never
+# merely found. `target/debug/ast_pipeline` is whatever the LAST build left — and the push mirror's
+# `performance-gate` / `fixed-point-gate` / `lib-unit-test-gate` build it with no feature flag right
+# before `sota-exit-gate`, whose first prerequisite is this gate: a feature-less binary refuses every
+# `--generate-stimuli-module` (`REFUSED: … built WITHOUT --features generated_parsers`), so the sweep
+# read REFUSE_GENERATION_FAILED for all nine families and the aggregate was red from the day the
+# prerequisite was wired (2026-09-30), unseen until the 2026-10-19 push. The `-x` checks below only
+# proved a file existed. The feature set is the ceremony's (`generated_parsers ebnf_dual_run`), so a
+# gate that follows this one finds the pair it expects and cargo rebuilds nothing.
+echo "==> building ast_pipeline + parseability_probe with the generated parsers compiled in"
+(cd "$RUST_DIR" && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe >"$RUST_DIR/target/silent_success_sentinel_build.log" 2>&1) \
+    || refuse "cargo build --features \"generated_parsers ebnf_dual_run\" failed (see $RUST_DIR/target/silent_success_sentinel_build.log)"
 [[ -x "$AST_PIPELINE" ]] || refuse "missing binary $AST_PIPELINE (build with --features generated_parsers)"
 [[ -x "$PARSE_PROBE"  ]] || refuse "missing binary $PARSE_PROBE (build with --features generated_parsers)"
 

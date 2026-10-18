@@ -1896,6 +1896,34 @@ fails to reproduce.
 - [x] **LOCKSTEP** — this correction, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, the knowledge card `a-positive-control-built-on-a-live-defect-rots-when-the-defect-is-fixed` (new; the map regenerated), `docs/book/src/quality-and-closure-model.md` (the *Silent success* section's calibration paragraph rewritten around the serializer-level control, a new paragraph on the founding control that rotted, and the entry-relative paragraph re-tensed; `mdbook_docs_gate` rc 0).
 - [x] **NEUTRALITY TIER** — N/A: a gate instrument; the calibration names no language.
 
+##### `.5h` — the sentinel gate found its binaries instead of building them: red in the push mirror since the day it became `sota_exit_gate`'s prerequisite (✅ done 2026-10-19, `PGEN-SV-CORPUS-GRAD-0467`; GATE tier)
+
+- **Found** by the push mirror's third run of 2026-10-19 (`make -C rust ci_workflow_local_gate`, `rust/target/svpp9/ci_gate3.log`):
+  `error: workflow local parity failed: sota-exit-gate` — `silent_success_sentinel_gate: REFUSE`, every family
+  `REFUSE_GENERATION_FAILED`, while the same gate passes in the main repo.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+- [x] **REPRODUCE / ISSUE** — the export's `rust/target/debug/ast_pipeline`, run by hand with the sweep helper's own command
+  (`--generate-stimuli-module … --validate-parseability` on `generated/json.json`): `REFUSED: … this binary was built WITHOUT
+  --features generated_parsers and is not running in --bootstrap-mode`. RED control in the main repo: `cargo build --bin
+  ast_pipeline` (no feature), then `make -C rust silent_success_sentinel_gate` → rc 2, the mirror's refusal verbatim
+  (`rust/target/svpp9/sentinel_red.log`).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `rust/scripts/silent_success_sentinel_gate.sh` took `$RUST_DIR/target/debug/ast_pipeline`
+  and `parseability_probe` as found, checking `-x` only. WHY: that path holds whatever the LAST build left, and the mirror's
+  `performance-gate`, `fixed-point-gate` and `lib-unit-test-gate` build it with no feature flag right before
+  `sota-exit-gate`, whose first prerequisite is this gate (`.5c`, 2026-07-29; wired as the prerequisite in its 2026-09-30
+  correction — after the 2026-08-25 push, so the mirror had never run it). The helper's `detail` is the binary's own
+  stderr tail, which is how the cause was readable at all.
+- [x] **FIX** — the gate BUILDS both binaries with the ceremony's feature set (`generated_parsers ebnf_dual_run`) before use
+  and refuses, naming the build log, if the build fails; the `-x` checks stay behind it.
+- [x] **ADDRESSED (verified)** — on the RED control's feature-less binary, the fixed gate rebuilds and passes: `CAL-1 … CAL-3 ✅`,
+  `✅ silent_success_sentinel_gate passed` (`rust/target/svpp9/sentinel_green.log`); the ceremony binaries restored after.
+- [x] **NO REGRESSION** — a feature-built pair is what every later gate in a chain expects, so cargo rebuilds nothing there; the
+  sweep, the contract and the calibration arms are untouched; the push mirror re-run on the committed branch before the push.
+- **Routed**: the third push-only-gate instance of one push (`SV-CORPUS-GRAD.13c.2v.20`, `SVPP-EXPANSION.6i`, this) —
+  deriving the mirror-only gate set and running it per release is `CI-PARITY-GATE-ROT.119`.
+
 #### `.5b` — zero open ledger entries, as a status-gate criterion (`done`, 2026-07-29 session #224, `PGEN-DONE-BAR-0013`)
 
 - ⭐ **DESIGN DECISION, recorded:** this is NOT a pre-commit doctrine. A genuinely open ledger entry
