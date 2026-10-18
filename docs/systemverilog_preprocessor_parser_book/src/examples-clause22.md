@@ -106,7 +106,9 @@ refusal at `1.0.7`: 4,182 of the 4,477 corpus files it rejected stopped at such 
                              "comment": [[], []]}}
 ```
 
-`arguments` is the balanced `( … )` span as one string, or `[]` for a bare `` `include `NAME ``. The other two path
+`arguments` is the `( … )` span as one string, or `[]` for a bare `` `include `NAME ``. The span is lexed per §22.5.1
+(release `1.0.9`, ledger `SVPP-0015`): a `)` inside a string, a block comment, an escaped identifier or a `[ ]` / `{ }`
+pair does not end it — `` `include `M(")") `` is one usage whose `arguments` is `"(\")\")"`. The other two path
 kinds are `{kind: "quoted", text}` and `{kind: "angle", text}`.
 
 ## A walker for these kinds

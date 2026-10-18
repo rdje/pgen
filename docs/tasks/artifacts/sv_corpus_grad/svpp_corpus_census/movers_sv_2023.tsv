@@ -1,0 +1,131 @@
+# path	before	after	tree (both accept: same / MOVED)
+stimuli/sv/subs/Cores-VeeR-EL2/design/lib/mem_lib.sv	pass	pass	MOVED
+stimuli/sv/subs/Cores-VeeR-EL2/testbench/tb_top.sv	pass	pass	MOVED
+stimuli/sv/subs/Surelog/tests/AssumeProp/dut.sv	pass	pass	MOVED
+stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/top_2.v	pass	fail	
+stimuli/sv/subs/Surelog/tests/PPComment/dut.sv	pass	pass	MOVED
+stimuli/sv/subs/Surelog/tests/PreProcMacro/dut.sv	pass	pass	MOVED
+stimuli/sv/subs/Surelog/tests/PreprocLine/dut.sv	fail	pass	
+stimuli/sv/subs/Surelog/tests/PreprocUhdmCov/prim_assert.sv	pass	pass	MOVED
+stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/top_2.v	pass	fail	
+stimuli/sv/subs/Surelog/tests/SplitFile/svaunit_pkg.sv	pass	pass	MOVED
+stimuli/sv/subs/black-parrot/bp_be/src/v/bp_be_calculator/bp_be_pipe_fma.sv	pass	pass	MOVED
+stimuli/sv/subs/black-parrot/bp_common/src/include/bp_common_aviary_defines.svh	pass	pass	MOVED
+stimuli/sv/subs/black-parrot/bp_top/test/common/bsg_nonsynth_waveform_tracer.sv	pass	pass	MOVED
+stimuli/sv/subs/friscv/test/common/friscv_testbench.sv	pass	fail	
+stimuli/sv/subs/friscv/test/sv/icache_testbench.sv	pass	fail	
+stimuli/sv/subs/ispras-sv-tests/ieee-1364-2005/test_19_03_01_2.v	pass	fail	
+stimuli/sv/subs/ispras-sv-tests/ieee-1364-2005/test_19_04_00_3.v	pass	pass	MOVED
+stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/05/05.09_01.sv	pass	pass	MOVED
+stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/22/22.06_03.sv	pass	pass	MOVED
+stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/22/22.13_01.sv	pass	pass	MOVED
+stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh105a.v	pass	pass	MOVED
+stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh105b.v	pass	pass	MOVED
+stimuli/sv/subs/iverilog/ivtest/ivltests/elsif_test.v	pass	pass	MOVED
+stimuli/sv/subs/iverilog/ivtest/ivltests/escaped_macro_name.v	fail	pass	
+stimuli/sv/subs/iverilog/ivtest/ivltests/macro_str_esc.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/macro_with_args.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1741212.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1912112.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1925360.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr2002443.v	pass	pass	MOVED
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr622.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr639.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/string12.v	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__tl_errors.svh	pass	fail	
+stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_reg/dv_base_reg.sv	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/dv/sv/dv_utils/dv_fcov_macros.svh	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/ip/dma/dv/env/dma_env_cov.sv	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/ip/otbn/rtl/otbn_rf_bignum_fpga.sv	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/ip/prim/rtl/prim_assert.sv	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/ip/prim/rtl/prim_assert_sec_cm.svh	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/ip/prim/rtl/prim_assert_standard_macros.svh	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/ip/prim/rtl/prim_flop_macros.sv	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/ip/uart/dv/env/uart_scoreboard.sv	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/top_darjeeling/dv/autogen/tb__xbar_connect.sv	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/top_earlgrey/dv/autogen/tb__xbar_connect.sv	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/top_englishbreakfast/dv/autogen/tb__xbar_connect.sv	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/formal/check/top.sv	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/dv_defines.svh	pass	pass	MOVED
+stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/riscv_instr_pkg.sv	pass	pass	MOVED
+stimuli/sv/subs/scr1/src/core/pipeline/scr1_pipe_mprf.sv	pass	pass	MOVED
+stimuli/sv/subs/scr1/src/includes/scr1_arch_description.svh	pass	pass	MOVED
+stimuli/sv/subs/scr1/src/top/scr1_dp_memory.sv	pass	pass	MOVED
+stimuli/sv/subs/sv-tests/tests/chapter-22/22.4--include_via_define.sv	pass	pass	MOVED
+stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_21.sv	pass	fail	
+stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_23.sv	pass	fail	
+stimuli/sv/subs/sv-tests/tests/chapter-22/22.6--ifdef-chained-nested.sv	pass	pass	MOVED
+stimuli/sv/subs/sv-tests/tests/chapter-5/5.6.4--compiler-directives-define.sv	pass	pass	MOVED
+stimuli/sv/subs/sv-tests/tests/chapter-5/5.9-string-broken-line.sv	pass	pass	MOVED
+stimuli/sv/subs/sv-tests/tests/generic/class/class_test_66.sv	pass	pass	MOVED
+stimuli/sv/subs/sv-tests/tests/generic/class/class_test_67.sv	pass	pass	MOVED
+stimuli/sv/subs/sv-tests/tests/generic/class/class_test_68.sv	pass	pass	MOVED
+stimuli/sv/subs/sv-tests/tests/generic/class/class_test_69.sv	pass	pass	MOVED
+stimuli/sv/subs/sv-tests/tests/generic/desc/desc_test_16.sv	pass	pass	MOVED
+stimuli/sv/subs/sv-tests/tests/generic/desc/desc_test_4.sv	pass	pass	MOVED
+stimuli/sv/subs/sv-tests/tests/generic/desc/desc_test_5.sv	pass	pass	MOVED
+stimuli/sv/subs/sv-tests/tests/generic/preproc/preproc_test_8.sv	pass	pass	MOVED
+stimuli/sv/subs/sv2v/test/core/default_nettype.sv	pass	pass	MOVED
+stimuli/sv/subs/sv2v/test/core/default_nettype.v	pass	pass	MOVED
+stimuli/sv/subs/sv2v/test/core/dimensions.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/non_ansi_port_decl.sv	pass	pass	MOVED
+stimuli/sv/subs/sv2v/test/error/block_comment_eof.sv	pass	fail	
+stimuli/sv/subs/sv2v/test/error/default_nettype_invalid.sv	pass	fail	
+stimuli/sv/subs/sv2v/test/error/macro_arg_bad_eq.sv	pass	fail	
+stimuli/sv/subs/sv2v/test/error/macro_arg_bad_name.sv	pass	fail	
+stimuli/sv/subs/sv2v/test/error/macro_args_empty.sv	pass	fail	
+stimuli/sv/subs/sv2v/test/error/macro_illegal_name.sv	pass	fail	
+stimuli/sv/subs/sv2v/test/error/stray_escaped_vendor_comment.sv	pass	fail	
+stimuli/sv/subs/sv2v/test/error/string_literal_eof.sv	pass	fail	
+stimuli/sv/subs/sv2v/test/lex/cond.sv	pass	pass	MOVED
+stimuli/sv/subs/sv2v/test/lex/include_self.sv	pass	pass	MOVED
+stimuli/sv/subs/sv2v/test/lex/line.sv	fail	pass	
+stimuli/sv/subs/sv2v/test/lex/macro.sv	pass	fail	
+stimuli/sv/subs/sv2v/test/lex/macro_arg_comment.sv	pass	fail	
+stimuli/sv/subs/sv2v/test/lex/macro_ifdef.sv	pass	pass	MOVED
+stimuli/sv/subs/verible/verible/verilog/tools/lint/testdata/forbid_line_continuations.sv	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_array_pattern_concat.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_assert_inside_cond.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_clk_2in.v	fail	pass	
+stimuli/sv/subs/verilator/test_regress/t/t_display.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_display_qqq.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_flag_parameter_hier.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_func_dotted.v	fail	pass	
+stimuli/sv/subs/verilator/test_regress/t/t_fuzz_eof_bad.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_gen_missing.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_interface2.v	fail	pass	
+stimuli/sv/subs/verilator/test_regress/t/t_interface_modport.v	fail	pass	
+stimuli/sv/subs/verilator/test_regress/t/t_lint_warn_line_bad.v	fail	pass	
+stimuli/sv/subs/verilator/test_regress/t/t_parse_eof_qqq_bad.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_parse_eof_str_bad.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_pp_defkwd_bad.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_pp_defnettype_bad.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_pp_display.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_cmtend_bad.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_debugi.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_def09.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof1_bad.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof2_bad.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof4_bad.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof_qqq_bad.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_ifdef.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_preproczero_bad.v	fail	pass	
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_stringend_bad.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_undefineall.v	fail	pass	
+stimuli/sv/subs/verilator/test_regress/t/t_property_until.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_time_vpi.v	fail	pass	
+stimuli/sv/subs/verilator/test_regress/t/t_timing_split.v	pass	fail	
+stimuli/sv/subs/verilator/test_regress/t/t_trace_two_a.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_tri_gate.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_unroll_nested.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_unroll_pragma.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_vlt_match_error.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_vpi_force.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_vpi_forceable_bad.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_vpi_module.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/t_vpi_public_depth.v	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/uvm/uvm_pkg_all_v2017_1_0_nodpi.svh	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/uvm/uvm_pkg_all_v2020_3_1_dpi.svh	pass	pass	MOVED
+stimuli/sv/subs/verilator/test_regress/t/uvm/uvm_pkg_all_v2020_3_1_nodpi.svh	pass	pass	MOVED
+stimuli/sv/uvm/uvm-core-2020.3.1/src/macros/uvm_object_defines.svh	pass	pass	MOVED

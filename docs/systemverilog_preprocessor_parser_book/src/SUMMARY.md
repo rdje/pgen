@@ -9,6 +9,7 @@
 # Building & Running
 
 - [Quickstart for Downstream Consumers](quickstart.md)
+- [Editions and Profiles](profiles.md)
 - [Build Recipe](build-recipe.md)
 - [Public API Surface](public-api.md)
 
@@ -27,6 +28,7 @@
 - [Single Define](examples-single-define.md)
 - [Conditional Compilation](examples-conditional.md)
 - [Clause-22 Directives, a Macro-Usage Line, a Continued Define](examples-clause22.md)
+- [Groups, Comments and Lines That Do Not Parse](examples-groups.md)
 
 # Migration
 

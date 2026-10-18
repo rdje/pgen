@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-aa59a798.js";
+            window.path_to_searchindex_js = "searchindex-0dae82da.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-89867f1a.js"></script>
+        <script src="toc-b48efc63.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -363,78 +363,81 @@ pragma_value := pragma_value_list -&gt; {kind: "list", expressions: $1}
               | identifier        -&gt; {kind: "identifier", name: $1}
 </code></pre>
 <p>So <code>`pragma protect encoding = (enctype = "BASE64", line_length = 76), begin</code> reads as <code>name</code> <code>protect</code> and two expressions: a <code>keyword_value</code> whose value is a <code>list</code> of two <code>keyword_value</code>s (a <code>string</code> and a <code>number</code>), then the bare <code>keyword</code> <code>begin</code>. <code>pragma_number</code> is A.8.7’s <code>number</code> — a real (<code>3.5e-2</code>), a sized or unsized based integral number (<code>4'b10_1x</code>, <code>8 'sd 255</code>, <code>'hFF</code>) or an unsigned decimal.</p>
-<h2 id="family-conditional-compilation-tree-5-nodes--the-pp_if_keyword-polarity-rule"><a class="header" href="#family-conditional-compilation-tree-5-nodes--the-pp_if_keyword-polarity-rule">Family: conditional-compilation tree (5 nodes + the pp_if_keyword polarity rule)</a></h2>
-<pre><code class="language-ebnf">pp_conditional := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif
-               -&gt; {if_branch: $1, elsif_branches: $2, else_branch: $3}
-pp_if_keyword := kw_ifdef  -&gt; {kind: "ifdef"}
-              |  kw_ifndef -&gt; {kind: "ifndef"}
-pp_if_branch := pp_if_keyword macro_name directive_tail? newline pp_item*
-             -&gt; {keyword: $1, macro: $2, tail: $3, items: $5}
-pp_elsif_branch := kw_elsif condition_expr newline pp_item*
-                -&gt; {condition: $2, items: $4}
-pp_else_branch := kw_else directive_tail? newline pp_item*
-               -&gt; {tail: $2, items: $4}
-pp_endif := kw_endif directive_tail? newline?
-         -&gt; {tail: $2}
-</code></pre>
-<p><code>pp_if_keyword</code> is the <code>1.0.2</code> <code>SVPP-0001</code> correctness fix: the
-previously-inline <code>(kw_ifdef | kw_ifndef)</code> alternation lifted into a
-named 2-branch <code>kind</code>-tagged rule (the proven <code>rtl_const_expr</code>
-RTL-CE-Slice-2 / <code>systemverilog.ebnf</code> idiom) so <code>pp_if_branch</code>’s bare
-<code>keyword: $1</code> captures cleanly. Its 2 branches are the +2 entries that
-took the surface to 66 annotations / 28 distinct rules at release <code>1.0.2</code>
-(now 68 / 31 at release <code>1.0.7</code> / schema <code>5</code>, after <code>condition_text -&gt; $text</code>
-and the <code>SVPP-0004</code> <code>macro_default_paren_group</code> / <code>macro_default_group_atom</code> additions).</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Rule</th><th>Shape</th><th>Notes</th></tr>
-</thead>
-<tbody>
-<tr><td><code>pp_conditional</code></td><td><code>{if_branch, elsif_branches, else_branch}</code></td><td><code>elsif_branches</code> is the <code>pp_elsif_branch*</code> array (<code>[]</code> when none); <code>else_branch</code> is <code>[]</code> when there is no <code> `else</code>. The terminating <code>pp_endif</code> is matched (<code>$4</code>) but <strong>not</strong> surfaced in the annotation.</td></tr>
-<tr><td><code>pp_if_keyword</code></td><td><code>{kind: "ifdef"}</code> (branch 0) / <code>{kind: "ifndef"}</code> (branch 1)</td><td>The 2-branch <code> `ifdef</code>/<code> `ifndef</code> polarity discriminator landed by the <code>1.0.2</code> <code>SVPP-0001</code> fix. Both branches <code>return_object</code>.</td></tr>
-<tr><td><code>pp_if_branch</code></td><td><code>{keyword, macro, tail, items}</code></td><td><code>keyword</code> is <code>$1</code>, the typed <code>pp_if_keyword</code> polarity object — <strong><code>{kind: "ifdef"}</code> or <code>{kind: "ifndef"}</code></strong> as of the <code>1.0.2</code> <code>SVPP-0001</code> fix (was the malformed <code>&lt;invalid_sequence_access&gt;</code> object at <code>1.0.1</code> / schema <code>1</code>; see <a href="examples-conditional.html">Conditional Compilation</a> and <a href="schema-versioning.html">Schema Versioning</a>). Read the polarity from <code>if_branch.keyword.kind</code>. <code>macro</code> is the macro-name envelope; <code>tail</code> is the optional <code>directive_tail</code> (<code>[]</code> when absent); <code>items</code> is the recursively-nested <code>pp_item*</code> body of the branch.</td></tr>
-<tr><td><code>pp_elsif_branch</code></td><td><code>{condition, items}</code></td><td><code>condition</code> is the typed <code>condition_expr</code>; <code>items</code> is the nested <code>pp_item*</code> body.</td></tr>
-<tr><td><code>pp_else_branch</code></td><td><code>{tail, items}</code></td><td><code>tail</code> is the optional <code>directive_tail</code> (<code>[]</code> when absent); <code>items</code> is the nested <code>pp_item*</code> body.</td></tr>
-<tr><td><code>pp_endif</code></td><td><code>{tail}</code></td><td><code>tail</code> is the optional <code>directive_tail</code> (<code>[]</code> when absent).</td></tr>
-</tbody>
-</table>
-</div>
-<p>The branch bodies (<code>items</code>) are themselves <code>pp_item*</code> arrays, so the conditional tree nests recursively: a <code>pp_conditional</code> can appear inside any branch’s <code>items</code>.</p>
-<h2 id="family-condition-expression-12-kind-atom"><a class="header" href="#family-condition-expression-12-kind-atom">Family: condition expression (12-kind atom)</a></h2>
-<pre><code class="language-ebnf">condition_expr := condition_atom+
-               -&gt; {atoms: $1}
-condition_atom := macro_token_paste -&gt; {kind: "token_paste"}
-                | macro_stringize   -&gt; {kind: "stringize"}
-                | macro_reference   -&gt; {kind: "macro_reference", body: $1}
-                | condition_text    -&gt; {kind: "text",     body: $1}
-                | lparen            -&gt; {kind: "lparen"}
-                | rparen            -&gt; {kind: "rparen"}
-                | comma             -&gt; {kind: "comma"}
-                | question          -&gt; {kind: "question"}
-                | colon             -&gt; {kind: "colon"}
-                | logical_or        -&gt; {kind: "logical_or"}
-                | logical_and       -&gt; {kind: "logical_and"}
-                | bang              -&gt; {kind: "bang"}
+<h2 id="family-conditional-compilation-tree-release-109"><a class="header" href="#family-conditional-compilation-tree-release-109">Family: conditional-compilation tree (release <code>1.0.9</code>)</a></h2>
+<p>The <code>pp_item</code> <code>"conditional"</code> branch carries a <code>body</code> that is the typed <code>pp_conditional</code> object, the root of the
+<code> `ifdef</code> / <code> `ifndef</code> … <code> `elsif</code> … <code> `else</code> … <code> `endif</code> tree. Per <code>grammars/systemverilog_preprocessor.ebnf</code>
+(release <code>1.0.9</code>):</p>
+<pre><code class="language-ebnf">pp_conditional  := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif
+                -&gt; {if_branch: $1, elsif_branches: $2, else_branch: $3}
+pp_if_keyword   := kw_ifdef  -&gt; {kind: "ifdef"}
+                 | kw_ifndef -&gt; {kind: "ifndef"}
+pp_if_branch    := pp_if_keyword if_condition conditional_tail? newline? pp_group_item*
+                -&gt; {keyword: $1, macro: $2, tail: $3, items: $5}
+pp_elsif_branch := kw_elsif if_condition conditional_tail? newline? pp_group_item*
+                -&gt; {macro: $2, tail: $3, items: $5}
+pp_else_branch  := kw_else conditional_tail? newline? pp_group_item*
+                -&gt; {tail: $2, items: $4}
+pp_endif        := kw_endif conditional_tail? newline?
+                -&gt; {tail: $2}
+@branch_policy: ordered
+pp_group_item   := pp_item
+                 | pp_malformed_directive -&gt; {kind: "malformed_directive", body: $1}
 </code></pre>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Rule</th><th>Shape</th></tr>
+<tr><th>field</th><th>holds</th></tr>
 </thead>
 <tbody>
-<tr><td><code>condition_expr</code></td><td><code>{atoms}</code> — <code>atoms</code> is the recursive-envelope <code>condition_atom+</code> array (at least one).</td></tr>
-<tr><td><code>condition_atom</code> (12 kinds)</td><td><code>{kind, body}</code> for <code>"macro_reference"</code> and <code>"text"</code>; bare <code>{kind}</code> for <code>"token_paste"</code>, <code>"stringize"</code>, <code>"lparen"</code>, <code>"rparen"</code>, <code>"comma"</code>, <code>"question"</code>, <code>"colon"</code>, <code>"logical_or"</code>, <code>"logical_and"</code>, <code>"bang"</code>.</td></tr>
+<tr><td><code>if_branch.keyword</code> / <code>.macro</code></td><td>the polarity (<code>{kind: "ifdef"}</code> / <code>{kind: "ifndef"}</code>) and the CONDITION (below)</td></tr>
+<tr><td><code>elsif_branches[i].macro</code></td><td>the <code>`elsif</code> condition — the same three forms (schema <code>7</code>: through schema <code>6</code> this was <code>condition: {atoms}</code>, a run to the line end)</td></tr>
+<tr><td><code>.tail</code> (if / elsif / else / endif)</td><td>a trailing <code>//</code> comment on the directive’s line (<code>[[" "], "// FOO"]</code>), or <code>[]</code>. Any other text after the directive on its line is the group’s FIRST ITEM — 1800-2023 §22.6: the block of text ends at the next <code>`elsif</code> / <code>`else</code> / <code>`endif</code>, and <em>“White space is not considered when determining termination”</em>. A conditional on one line (<code>`ifdef A wire w; `endif</code>) is one <code>conditional</code> whose <code>if_branch.items[0]</code> is the text.</td></tr>
+<tr><td><code>.items</code></td><td>the group: <code>pp_item</code> kinds, plus <code>{kind: "malformed_directive", body: {text}}</code> — a line inside the group that does not parse, recorded whole. An ignored group need only be lexically valid (§22.6), and whether a group is ignored is the expansion stage’s to decide; the text is still lexed, so an unclosed string or comment refuses the file. At the top level the same line is refused. The conditional keywords are never recorded so.</td></tr>
 </tbody>
 </table>
 </div>
-<p>This is a <strong>flat token list</strong>, not a parsed boolean expression. The <code> `elsif</code> condition is surfaced as an ordered sequence of atoms; the consumer is responsible for any expression evaluation. The <code>body</code> of the <code>"macro_reference"</code> atom is the un-annotated <code>macro_reference</code> (backtick-identifier) envelope; the <code>body</code> of the <code>"text"</code> atom is the un-annotated <code>condition_text</code> envelope.</p>
+<p><strong>The condition</strong> (<code>macro</code>) takes one of three shapes:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>shape</th><th>when</th><th>example</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[[trivia], "NAME"]</code> — the identifier envelope</td><td>a <code>text_macro_identifier</code>, every profile</td><td><code>`ifdef DEBUG</code> → <code>[[" "], "DEBUG"]</code></td></tr>
+<tr><td><code>{kind: "macro_usage", name: [[trivia], "`M"], arguments}</code></td><td>a macro usage, every profile (a defined macro <em>“can be used anywhere”</em>)</td><td><code>`ifdef `M</code></td></tr>
+<tr><td><code>{kind: "expression", expression: &lt;node&gt;}</code></td><td><code>( ifdef_macro_expression )</code>, <code>sv_2023</code> / <code>sv_2023_tolerant</code> only</td><td><code>`ifdef (A &amp;&amp; !B)</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The expression <code>node</code> is <code>{kind: "identifier", name}</code>, <code>{kind: "not", operand}</code>, <code>{kind: "binary", operator, left, right}</code> (<code>operator</code> one of <code>"&amp;&amp;"</code>, <code>"||"</code>, <code>"-&gt;"</code>, <code>"&lt;-&gt;"</code>; <code>!</code> binds tightest, then <code>&amp;&amp;</code>, <code>||</code>, and <code>-&gt;</code> / <code>&lt;-&gt;</code>
+lowest, right-associative), <code>{kind: "group", expression}</code> for a parenthesized sub-expression, or a <code>macro_usage</code>.</p>
+<p><strong>Consumer walk.</strong> Dispatch a <code>pp_item</code> on <code>kind == "conditional"</code>; read <code>body.if_branch.keyword.kind</code> and its
+<code>macro</code>, dispatching the condition on its shape (an array is the identifier envelope, an object has a <code>kind</code>); recurse
+<code>items</code>, handling <code>malformed_directive</code> as an opaque line; iterate <code>body.elsif_branches</code>; then <code>body.else_branch</code> (<code>[]</code>
+when absent). The tree records every group — this parser does not evaluate conditions.</p>
+<h2 id="family-the-1800-2023-condition-expression-sv_2023--sv_2023_tolerant"><a class="header" href="#family-the-1800-2023-condition-expression-sv_2023--sv_2023_tolerant">Family: the 1800-2023 condition expression (<code>sv_2023</code> / <code>sv_2023_tolerant</code>)</a></h2>
+<p>Through schema <code>6</code> the <code>`elsif</code> condition was <code>condition_expr</code>, a flat 12-kind atom list running to the line end;
+it is GONE in schema <code>7</code>. The condition is now one of the three shapes in the table above; the third, an
+<code>( ifdef_macro_expression )</code>, derives only under the 1800-2023 profiles:</p>
+<pre><code class="language-ebnf">ifdef_paren_expression := lparen ifdef_implication rparen -&gt; {kind: "expression", expression: $2}
+ifdef_implication := ifdef_or implication_op ifdef_implication -&gt; {kind: "binary", operator: $2, left: $1, right: $3}
+                   | ifdef_or -&gt; $1
+ifdef_or  := ifdef_and logical_or ifdef_or   -&gt; {kind: "binary", operator: "||", left: $1, right: $3} | ifdef_and -&gt; $1
+ifdef_and := ifdef_unary logical_and ifdef_and -&gt; {kind: "binary", operator: "&amp;&amp;", left: $1, right: $3} | ifdef_unary -&gt; $1
+ifdef_unary := bang ifdef_unary -&gt; {kind: "not", operand: $2} | ifdef_primary -&gt; $1
+ifdef_primary := lparen ifdef_implication rparen -&gt; {kind: "group", expression: $2}
+               | identifier -&gt; {kind: "identifier", name: $1}
+               | p_macro_usage -&gt; $1
+</code></pre>
+<p><code>`ifdef (A &amp;&amp; !B || C -&gt; D)</code> (the release probe, <code>--profile sv_2023</code>) gives
+<code>{kind: "binary", operator: "-&gt;", left: {kind: "binary", operator: "||", left: {kind: "binary", operator: "&amp;&amp;", …}, …}, right: {kind: "identifier", name: [[" "], "D"]}}</code> — <code>!</code> binds tightest, then <code>&amp;&amp;</code>, <code>||</code>, and <code>-&gt;</code> / <code>&lt;-&gt;</code> lowest.</p>
 <h2 id="family-macro-formals--default-values-7-kind-atom--the-balanced-group"><a class="header" href="#family-macro-formals--default-values-7-kind-atom--the-balanced-group">Family: macro formals + default values (7-kind atom + the balanced group)</a></h2>
-<pre><code class="language-ebnf">macro_formals := formals_open macro_formal (comma macro_formal)* rparen
+<pre><code class="language-ebnf">macro_formals := formals_open macro_formal (formal_comma macro_formal)* formal_rparen
               -&gt; [$2, $3::2*]
 formals_open := /\(/
-macro_formal := macro_name (assign macro_default_value)?
+macro_formal := formal_name formal_default?
              -&gt; {name: $1, default: $2}
+formal_default := formal_assign macro_default_value?   # @profiles: the IEEE 1800 editions
 macro_default_value := macro_default_atom+
                     -&gt; {atoms: $1}
 macro_default_atom := macro_token_paste -&gt; {kind: "token_paste"}
@@ -462,20 +465,27 @@ macro_default_group_atom := macro_default_atom -&gt; $1
 </tbody>
 </table>
 </div>
-<h2 id="family-macro-body-11-kind-fragment"><a class="header" href="#family-macro-body-11-kind-fragment">Family: macro body (11-kind fragment)</a></h2>
+<p>⭐ <strong>Release <code>1.0.9</code></strong> (ledger <code>SVPP-0013</code>): a <code>(</code> right after the name ALWAYS opens the list — a list that does not
+parse makes the define malformed, never object-like (through <code>1.0.8</code> it fell back to an object-like define whose text
+began <code>(</code>: UVM-core’s <code>`define uvm_declare_type_alias(TYPE,NAME,SFX=)</code> among 15 corpus files). The list’s layout is
+white space ONLY — a comment between formals is refused (§22.5.1: <em>“separated by commas and optionally white space”</em>) —
+and a newline is white space under <code>sv_2017</code> / <code>verilog_2005</code>, not under <code>sv_2023</code> (§22.2’s one-line rule). An EMPTY
+default (<code>b=)</code>) is a default with no atoms; a default of any kind is IEEE 1800 only.</p>
+<h2 id="family-macro-body-12-kind-fragment"><a class="header" href="#family-macro-body-12-kind-fragment">Family: macro body (12-kind fragment)</a></h2>
 <pre><code class="language-ebnf">macro_body := macro_body_fragment+
            -&gt; {fragments: $1}
 macro_body_fragment := macro_line_continuation -&gt; {kind: "line_continuation"}
                      | macro_token_paste -&gt; {kind: "token_paste"}
                      | macro_stringize   -&gt; {kind: "stringize"}
                      | macro_escaped_quote -&gt; {kind: "escaped_quote"}
+                     | macro_directive_word -&gt; {kind: "directive", body: $1}
                      | macro_reference   -&gt; {kind: "macro_reference", body: $1}
                      | macro_body_text   -&gt; {kind: "text",   body: $1}
-                     | lparen            -&gt; {kind: "lparen"}
-                     | rparen            -&gt; {kind: "rparen"}
-                     | comma             -&gt; {kind: "comma"}
-                     | question          -&gt; {kind: "question"}
-                     | colon             -&gt; {kind: "colon"}
+                     | macro_lparen      -&gt; {kind: "lparen"}
+                     | macro_rparen      -&gt; {kind: "rparen"}
+                     | macro_comma       -&gt; {kind: "comma"}
+                     | macro_question    -&gt; {kind: "question"}
+                     | macro_colon       -&gt; {kind: "colon"}
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -484,7 +494,7 @@ macro_body_fragment := macro_line_continuation -&gt; {kind: "line_continuation"}
 </thead>
 <tbody>
 <tr><td><code>macro_body</code></td><td><code>{fragments}</code></td><td><code>fragments</code> is the recursive-envelope <code>macro_body_fragment+</code> array (the macro replacement text, tokenized).</td></tr>
-<tr><td><code>macro_body_fragment</code> (11 kinds)</td><td><code>{kind, body}</code> for <code>"macro_reference"</code> / <code>"text"</code>; bare <code>{kind}</code> for <code>"line_continuation"</code>, <code>"token_paste"</code>, <code>"stringize"</code>, <code>"escaped_quote"</code>, <code>"lparen"</code>, <code>"rparen"</code>, <code>"comma"</code>, <code>"question"</code>, <code>"colon"</code>. The macro-body atom set adds <code>"comma"</code>, <code>"line_continuation"</code> and <code>"escaped_quote"</code> (vs the 8-kind <code>macro_default_atom</code>) but, like the default-atom set, has no <code>"logical_or"</code> / <code>"logical_and"</code> / <code>"bang"</code>.</td><td></td></tr>
+<tr><td><code>macro_body_fragment</code> (12 kinds)</td><td><code>{kind, body}</code> for <code>"macro_reference"</code> / <code>"text"</code>; bare <code>{kind}</code> for <code>"line_continuation"</code>, <code>"token_paste"</code>, <code>"stringize"</code>, <code>"escaped_quote"</code>, <code>"lparen"</code>, <code>"rparen"</code>, <code>"comma"</code>, <code>"question"</code>, <code>"colon"</code>. The macro-body atom set adds <code>"comma"</code>, <code>"line_continuation"</code> and <code>"escaped_quote"</code> (vs the 8-kind <code>macro_default_atom</code>) but, like the default-atom set, has no <code>"logical_or"</code> / <code>"logical_and"</code> / <code>"bang"</code>.</td><td></td></tr>
 </tbody>
 </table>
 </div>
@@ -495,11 +505,23 @@ macro_body_fragment := macro_line_continuation -&gt; {kind: "line_continuation"}
 <li><strong>A plain string literal is ONE text atom</strong> — §22.5.1 <em>“Macro substitution and argument substitution shall not occur within string literals”</em>: <code>$display("got </code>%b<code>, (%0d)", v)</code> keeps <code>"got </code>%b<code>, (%0d)"</code> whole, where the run used to stop at the backtick (refusing the define) or split at <code>(</code>, <code>,</code>, <code>:</code>. <code>`define BACKTICK "`"</code> no longer reads its <code>`"</code> as a stringize marker.</li>
 <li><strong>A <code>//</code> comment is ONE text atom</strong>, up to — not including — a continuation backslash (IEEE 1800-2023: <em>“If a one-line comment is followed by a backslash and newline character, the comment ends before the backslash and the macro text continues on the next line”</em>).</li>
 </ul>
-<h2 id="family-passthrough-lines"><a class="header" href="#family-passthrough-lines">Family: passthrough lines</a></h2>
-<pre><code class="language-ebnf">pp_non_directive_line := !directive_keyword non_directive_text newline?
-                      -&gt; {text: $2}
-pp_blank_line := newline
-              -&gt; {kind: "blank"}
+<p>⭐ <strong>Release <code>1.0.9</code></strong> (schema <code>6</code> → <code>7</code>): a DIRECTIVE inside macro text — <code>`define X `ifdef A 1 `endif</code> — is a
+<code>{kind: "directive", body: [[trivia], "`ifdef"]}</code> fragment, processed where the macro is used (1800-2023: <em>“Any compiler
+directives appearing within the macro text shall be ignored until the macro is used”</em>); through <code>1.0.8</code> it was a
+<code>macro_reference</code> named <code>`ifndef</code> (23 corpus files’ trees move, OpenTitan’s <code>prim_assert_standard_macros.svh</code> among
+them). The fragments’ leading layout is macro text’s own: a block comment there crosses a line only where each newline
+is backslash-preceded under <code>sv_2017</code> / <code>verilog_2005</code>, anywhere under <code>sv_2023</code> (BlackParrot’s
+<code>bp_common_core_if.svh</code> continues its comments so). A define ends at its line end, never mid-line, and the
+punctuation fragments are regex terminals — through <code>1.0.8</code> their default layout skip let a body run on into a next
+line opening with <code>(</code> (<code>SVPP-0014</code>). <code>`"</code>, <code>`\`"</code> and <code>``</code> are IEEE 1800 only.</p>
+<h2 id="family-passthrough-text-release-109"><a class="header" href="#family-passthrough-text-release-109">Family: passthrough text (release <code>1.0.9</code>)</a></h2>
+<pre><code class="language-ebnf">pp_non_directive_line := !directive_keyword non_directive_text text_run_end -&gt; {text: $2}
+non_directive_text := inline_trivia text_run
+text_run := text_lexeme+ -&gt; $text
+text_lexeme := text_block_comment | text_triple_string | text_line_comment | text_string
+             | text_escaped_identifier | text_macro_usage | text_chars | text_slash
+text_run_end := newline | &amp;mid_line_directive | end_of_input
+pp_blank_line := newline -&gt; {kind: "blank"}
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -507,30 +529,31 @@ pp_blank_line := newline
 <tr><th>Rule</th><th>Shape</th><th>Notes</th></tr>
 </thead>
 <tbody>
-<tr><td><code>pp_non_directive_line</code></td><td><code>{text}</code></td><td>Any source line that is not a preprocessor directive — since <code>1.0.8</code> including a line that OPENS with a text macro usage (<code>`uvm_object_utils(c)</code>, <code>`ASSERT(…)</code>, <code>`__FILE__</code>; §22.5.1 Syntax 22-3, §22.13). <code>text</code> is the un-annotated <code>non_directive_text</code> envelope. ⛔ <code>!directive_keyword</code> — the twenty §22.1 directive keywords — keeps a MALFORMED directive refused: <code>`timescale 1ns</code> or a stray <code>`else</code> is not re-read as a macro-usage line.</td></tr>
-<tr><td><code>pp_blank_line</code></td><td><code>{kind: "blank"}</code></td><td>A blank line. At the <code>pp_item</code> dispatch level this surfaces as <code>{kind: "blank_line"}</code> (the <code>pp_blank_line</code> rule’s own <code>{kind: "blank"}</code> body is dropped by the <code>pp_item</code> annotation, exactly like <code>pp_celldefine</code> / <code>pp_endcelldefine</code>).</td></tr>
+<tr><td><code>pp_non_directive_line</code></td><td><code>{text}</code></td><td>Text that is not a directive, LEXED: a block comment (it may span lines), a line comment, a string (one line, or continued by a backslash-newline, §5.9), a triple-quoted string (<code>sv_2023</code>), an escaped identifier (A.9.3; the empty one included), a text macro usage, other characters. A directive word inside a comment or string is text; an unclosed string or comment refuses the file. The item ends at a line end, at the end of input, or before a directive that may stand mid-line — so <code>assign a = `ifdef X 1 `else 0 `endif ;</code> is a <code>non_directive_line</code> (<code>"assign a = "</code>), a <code>conditional</code>, and another <code>non_directive_line</code> (<code>" ;"</code>). <code>`include</code> and <code>`line</code> own their line. <code>text</code> is still ONE string (<code>$text</code>), as the <code>1.0.8</code> line was.</td></tr>
+<tr><td><code>pp_blank_line</code></td><td><code>{kind: "blank"}</code></td><td>A blank line; <code>{kind: "blank_line"}</code> at the <code>pp_item</code> dispatch.</td></tr>
+<tr><td><code>pp_group_item</code> → <code>malformed_directive</code></td><td><code>{kind: "malformed_directive", body: {text}}</code></td><td>Inside a conditional group only: a line that does not parse, recorded whole (§22.6; see the conditional family above).</td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="atom-set-summary"><a class="header" href="#atom-set-summary">Atom-set summary</a></h2>
-<p>The three atom families differ only in which punctuation/operator branches they admit. All three share <code>"token_paste"</code>, <code>"stringize"</code>, <code>"macro_reference"</code>, <code>"text"</code>, <code>"lparen"</code>, <code>"rparen"</code>, <code>"question"</code>, <code>"colon"</code>:</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Rule</th><th>Branches</th><th>Extra branches beyond the shared 8</th></tr>
+<tr><th>Rule</th><th>Branches</th></tr>
 </thead>
 <tbody>
-<tr><td><code>condition_atom</code></td><td>12</td><td><code>"comma"</code>, <code>"logical_or"</code>, <code>"logical_and"</code>, <code>"bang"</code></td></tr>
-<tr><td><code>macro_body_fragment</code></td><td>11</td><td><code>"comma"</code>, <code>"line_continuation"</code>, <code>"escaped_quote"</code></td></tr>
-<tr><td><code>macro_default_atom</code></td><td>8</td><td><em>(none — exactly the shared 8)</em></td></tr>
+<tr><td><code>macro_body_fragment</code></td><td>12 — <code>line_continuation</code>, <code>token_paste</code>, <code>stringize</code>, <code>escaped_quote</code>, <code>directive</code>, <code>macro_reference</code>, <code>text</code>, <code>lparen</code>, <code>rparen</code>, <code>comma</code>, <code>question</code>, <code>colon</code></td></tr>
+<tr><td><code>macro_default_atom</code></td><td>6 kinds + the balanced <code>paren_group</code></td></tr>
 </tbody>
 </table>
 </div>
+<p>(<code>condition_atom</code>, the third atom family through schema <code>6</code>, is gone: the <code>`elsif</code> condition is an identifier, a
+macro usage or a 2023 expression.)</p>
 <h2 id="total-surface-and-the-machine-checkable-source"><a class="header" href="#total-surface-and-the-machine-checkable-source">Total surface and the machine-checkable source</a></h2>
-<p>The full typed surface as of contract <code>1.0.8</code> is <strong>100 return annotations across 46 distinct rules</strong> — <strong>94 <code>annotation_type: "return_object"</code> + 4 <code>return_scalar</code> + 2 <code>return_array</code></strong> (the arrays are <code>macro_formals</code> and, since <code>1.0.8</code>, <code>pragma_expression_list</code>; the scalars are <code>condition_text -&gt; $text</code>, <code>macro_default_group_atom -&gt; $1</code>, and, since <code>1.0.8</code>, <code>macro_usage_arguments -&gt; $text</code> and <code>pragma_value_list -&gt; $2</code>). The history: 64 / 27 at SVPP-Slice-1, 66 / 28 after <code>1.0.2</code>’s <code>pp_if_keyword</code>, 67 / 29 at <code>1.0.5</code>, 68 / 31 at <code>1.0.7</code>, and <strong>+32 / +15 at <code>1.0.8</code></strong> — the eight new <code>pp_item</code> branches, the eight directive rules and their <code>pull_drive</code> / <code>pragma_*</code> value grammar, <code>include_macro_usage</code>, and the two new <code>macro_body_fragment</code> kinds. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
+<p>The full typed surface as of contract <code>1.0.9</code> is <strong>112 return annotations across 60 distinct rules</strong> — <strong>95 <code>annotation_type: "return_object"</code> + 14 <code>return_scalar</code> + 3 <code>return_array</code></strong> (the arrays are <code>macro_formals</code>, <code>pragma_expression_list</code> since <code>1.0.8</code>, and <code>macro_simple_name</code> since <code>1.0.9</code> — its <code>[$1, $3]</code> rebuilds the name envelope around the lookahead that refuses a directive’s name; the 14 scalars are <code>$text</code> / passthrough results: <code>text_run</code>, <code>group_lexical_line</code>, <code>macro_text_run_line</code>, <code>macro_text_run_2023</code>, <code>macro_usage_arguments</code>, <code>pragma_value_list</code>, <code>macro_default_group_atom</code>, the five <code>ifdef_*</code> levels and <code>implication_op</code>’s two). The history: 64 / 27 at SVPP-Slice-1, 66 / 28 after <code>1.0.2</code>’s <code>pp_if_keyword</code>, 67 / 29 at <code>1.0.5</code>, 68 / 31 at <code>1.0.7</code>, <strong>+32 / +15 at <code>1.0.8</code></strong> — the eight new <code>pp_item</code> branches, the eight directive rules and their <code>pull_drive</code> / <code>pragma_*</code> value grammar, <code>include_macro_usage</code>, and the two new <code>macro_body_fragment</code> kinds — and <strong>+12 / +14 at <code>1.0.9</code></strong> (19 rules added — the group fallback, the text run, the 2023 expression, the parameter macro usages, the escaped-formals define, <code>macro_simple_name</code> — and 5 removed: <code>condition_expr</code> / <code>condition_atom</code> / <code>condition_text</code>, <code>pull_drive</code>, <code>time_literal</code>). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
 <ul>
-<li><code>generated/systemverilog_preprocessor_return_annotations.json</code> — the live return-annotation inventory (<code>version: 1</code>, <code>grammar: "systemverilog_preprocessor"</code>, <code>annotation_count: 100</code>).</li>
-<li><code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (<code>declared_annotation_inventory.annotations</code>, 100 entries; identical tuples — the contract-embedded copy omits only the cosmetic <code>raw_text</code> field), beside thirteen samples whose JSON-pointer claims pin the trees <code>1.0.8</code> changed or added.</li>
+<li><code>generated/systemverilog_preprocessor_return_annotations.json</code> — the live return-annotation inventory (<code>version: 1</code>, <code>grammar: "systemverilog_preprocessor"</code>, <code>annotation_count: 112</code>).</li>
+<li><code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (<code>declared_annotation_inventory.annotations</code>, 112 entries; identical tuples — the contract-embedded copy omits only the cosmetic <code>raw_text</code> field), beside thirteen samples whose JSON-pointer claims pin the trees <code>1.0.8</code> changed or added.</li>
 </ul>
 <p>If this chapter and either artifact disagree, the artifact wins — and the integration contract <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code> wins over both.</p>
 <h2 id="how-to-follow-per-slice-changes"><a class="header" href="#how-to-follow-per-slice-changes">How to follow per-slice changes</a></h2>

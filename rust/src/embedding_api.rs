@@ -80,7 +80,20 @@ use std::str::FromStr;
 /// address space, not a practical limit.
 /// ⛔ No API surface or schema change, and the generated artifacts are byte-identical — the
 /// change is one clamp in `dedicated_parse_stack::derive_parse_stack_reservation`.
-pub const EMBEDDING_API_VERSION: &str = "2.1.0";
+///
+/// `2.2.0` (`SV-CORPUS-GRAD.13c.2v.16`, with `systemverilog_preprocessor` release `1.0.9`): two
+/// registered families now declare the same profile spellings — the preprocessor reads the
+/// SystemVerilog family's editions (`sv_2017`, `sv_2023`, `sv_2023_tolerant`, `verilog_2005`, and
+/// their aliases). (1) `GrammarParseOutcome` / `GrammarAstDumpOutcome` read their `profile` back
+/// WITHIN their own `grammar`; the wire shape is unchanged, and an unprofiled family's outcome now
+/// round-trips (it did not: its `null` profile had no family to resolve in). Without this an SV
+/// outcome naming `"sv_2023"` would not read back at all. (2) The family-less
+/// `GrammarProfile::from_str` keeps its rule — a spelling must resolve in exactly one family — so a
+/// SystemVerilog edition's spelling is now AMBIGUOUS there and the diagnostic names both families;
+/// resolve within the family (`GrammarFamily::from_str("systemverilog")?.profile("sv_2023")?`), the
+/// form every parser book has documented since `2.0.0`. ⚠️ That is a behaviour change for a caller
+/// of the family-less form with one of those spellings. No parse, verdict or AST changes.
+pub const EMBEDDING_API_VERSION: &str = "2.2.0";
 
 /// Stable schema version for serialized embedding API metadata.
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 3;
@@ -434,7 +447,10 @@ impl FromStr for GrammarProfile {
     type Err = ParseDiagnostic;
 
     /// A family-less resolution: the spelling is looked up in every registered family's declared
-    /// profiles and aliases; it must resolve in exactly one family.
+    /// profiles and aliases; it must resolve in exactly one family. Since `2.2.0` a spelling two
+    /// families declare — the SystemVerilog editions, which `systemverilog_preprocessor` reads too —
+    /// is ambiguous here: resolve it within its family (`family.profile(spelling)`), as the public API
+    /// has documented since `2.0.0`.
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         let mut hits: Vec<GrammarProfile> = Vec::new();
         for family in GrammarFamily::registered() {
@@ -476,6 +492,7 @@ impl<'de> Deserialize<'de> for GrammarProfile {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "GrammarParseOutcomeWire")]
 pub struct GrammarParseOutcome {
     pub api_version: String,
     pub grammar: GrammarFamily,
@@ -485,6 +502,7 @@ pub struct GrammarParseOutcome {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "GrammarAstDumpOutcomeWire")]
 pub struct GrammarAstDumpOutcome {
     pub api_version: String,
     pub grammar: GrammarFamily,
@@ -492,6 +510,65 @@ pub struct GrammarAstDumpOutcome {
     pub status: ParseStatus,
     pub diagnostic: Option<ParseDiagnostic>,
     pub ast_dump: Option<AstDumpPayload>,
+}
+
+// `2.2.0` (SV-CORPUS-GRAD.13c.2v.16): a typed outcome reads its `profile` back WITHIN its own `grammar` — a
+// profile spelling names an edition of one family, and two families may declare the same spelling (the
+// SystemVerilog preprocessor reads the SystemVerilog family's editions). The wire shape is unchanged.
+#[derive(Deserialize)]
+struct GrammarParseOutcomeWire {
+    api_version: String,
+    grammar: GrammarFamily,
+    profile: Option<String>,
+    status: ParseStatus,
+    diagnostic: Option<ParseDiagnostic>,
+}
+
+#[derive(Deserialize)]
+struct GrammarAstDumpOutcomeWire {
+    api_version: String,
+    grammar: GrammarFamily,
+    profile: Option<String>,
+    status: ParseStatus,
+    diagnostic: Option<ParseDiagnostic>,
+    ast_dump: Option<AstDumpPayload>,
+}
+
+/// An outcome's profile spelling resolved within its family; `None` is the family's unprofiled
+/// dialect, and is refused for a family that declares profiles (its outcomes always name one).
+fn outcome_profile(grammar: GrammarFamily, spelling: Option<String>) -> Result<GrammarProfile, String> {
+    match spelling {
+        Some(spelling) => grammar.profile(&spelling).map_err(|err| err.message),
+        None if grammar.profiles().is_empty() => Ok(GrammarProfile { family: grammar, name: None }),
+        None => Err(format!("an outcome of the profiled family '{grammar}' names no profile")),
+    }
+}
+
+impl TryFrom<GrammarParseOutcomeWire> for GrammarParseOutcome {
+    type Error = String;
+    fn try_from(wire: GrammarParseOutcomeWire) -> Result<Self, String> {
+        Ok(Self {
+            profile: outcome_profile(wire.grammar, wire.profile)?,
+            api_version: wire.api_version,
+            grammar: wire.grammar,
+            status: wire.status,
+            diagnostic: wire.diagnostic,
+        })
+    }
+}
+
+impl TryFrom<GrammarAstDumpOutcomeWire> for GrammarAstDumpOutcome {
+    type Error = String;
+    fn try_from(wire: GrammarAstDumpOutcomeWire) -> Result<Self, String> {
+        Ok(Self {
+            profile: outcome_profile(wire.grammar, wire.profile)?,
+            api_version: wire.api_version,
+            grammar: wire.grammar,
+            status: wire.status,
+            diagnostic: wire.diagnostic,
+            ast_dump: wire.ast_dump,
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1731,11 +1808,22 @@ mod tests {
                 .as_str(),
             "regex"
         );
+        // 2.2.0: the SystemVerilog editions' spellings are declared by two families
+        // (`systemverilog_preprocessor` reads the same editions), so they resolve within a family, and a
+        // family-less read names both instead of choosing one.
         assert_eq!(
-            GrammarProfile::from_str("ieee1800-2023")
+            GrammarFamily::from_str("systemverilog")
+                .expect("family")
+                .profile("ieee1800-2023")
                 .expect("profile alias")
                 .as_str(),
             "sv_2023"
+        );
+        let ambiguous = GrammarProfile::from_str("ieee1800-2023").expect_err("a spelling two families declare");
+        assert!(
+            ambiguous.message.contains("systemverilog") && ambiguous.message.contains("systemverilog_preprocessor"),
+            "the family-less read names both families: {}",
+            ambiguous.message
         );
         // 2.0.0: `regex` and `regex_default` are grammar-declared aliases of the regex grammar's
         // own default profile, so a resolved value carries the CANONICAL spelling `pcre2`.
@@ -5310,6 +5398,42 @@ mod tests {
         assert!(outcome.diagnostic.is_none());
     }
 
+    /// SV-CORPUS-GRAD.13c.2v.16: a typed outcome reads its `profile` back WITHIN its own `grammar`.
+    /// Since `systemverilog_preprocessor` 1.0.9 two families declare the SystemVerilog editions'
+    /// spellings (the preprocessor reads the same editions), so a family-less read of `"sv_2023"` is
+    /// ambiguous — and an outcome that carries its family must not depend on that read.
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn a_typed_outcome_round_trips_its_profile_within_its_grammar() {
+        for family_name in ["systemverilog", "systemverilog_preprocessor"] {
+            let family = GrammarFamily::from_str(family_name).expect("registered family");
+            let profile = family.profile("ieee1800-2023").expect("the family declares the alias");
+            let outcome = GrammarParseOutcome {
+                api_version: EMBEDDING_API_VERSION.to_string(),
+                grammar: family,
+                profile,
+                status: ParseStatus::Success,
+                diagnostic: None,
+            };
+            let wire = serde_json::to_string(&outcome).expect("serialize");
+            let back: GrammarParseOutcome = serde_json::from_str(&wire)
+                .unwrap_or_else(|err| panic!("{family_name}: the outcome must read back: {err} ({wire})"));
+            assert_eq!(back, outcome, "{family_name}: the round trip keeps family and profile");
+            let dump = GrammarAstDumpOutcome {
+                api_version: EMBEDDING_API_VERSION.to_string(),
+                grammar: family,
+                profile,
+                status: ParseStatus::Success,
+                diagnostic: None,
+                ast_dump: None,
+            };
+            let wire = serde_json::to_string(&dump).expect("serialize");
+            let back: GrammarAstDumpOutcome = serde_json::from_str(&wire)
+                .unwrap_or_else(|err| panic!("{family_name}: the dump outcome must read back: {err} ({wire})"));
+            assert_eq!(back, dump);
+        }
+    }
+
     /// `PROFILE-ALIAS.2` (D6 drift gate): the `GrammarProfile::FromStr` alias
     /// spellings are a hand-copy of the grammar-declared `@profile_alias` map
     /// (the typed embedding enum must parse without the generated artifact, so
@@ -5328,8 +5452,11 @@ mod tests {
             !SystemverilogParser::GRAMMAR_PROFILE_ALIASES.is_empty(),
             "systemverilog.ebnf should declare @profile_alias spellings"
         );
+        // 2.2.0: resolved within the family — `systemverilog_preprocessor` declares the same
+        // spellings, so a family-less read of them is ambiguous by design.
+        let family = GrammarFamily::from_str("systemverilog").expect("family");
         for (alias, canonical) in SystemverilogParser::GRAMMAR_PROFILE_ALIASES {
-            let parsed: GrammarProfile = alias.parse().unwrap_or_else(|err| {
+            let parsed: GrammarProfile = family.profile(alias).unwrap_or_else(|err| {
                 panic!(
                     "embedding GrammarProfile must accept the grammar-declared alias '{alias}': {err:?}"
                 )

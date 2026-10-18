@@ -1,67 +1,139 @@
-# file	expect	the clause that decides it	the case's first line (SV-CORPUS-GRAD.13c.2v.1 - .7)
-acc_backslash_ident_in_body.sv	ACCEPT	§5.6.1 escaped identifier in macro text	`define M \foo + 1
-acc_begin_keywords.sv	ACCEPT	§22.14 Syntax 22-10	`begin_keywords "1800-2017"
-acc_begin_keywords_2023.sv	ACCEPT	§22.14 Syntax 22-10	`begin_keywords "1800-2023" // c
-acc_begin_keywords_noconfig.sv	ACCEPT	§22.14 Syntax 22-10	`begin_keywords "1364-2001-noconfig"
-acc_body_line_comment_backtick.sv	ACCEPT	§22.5.1 comments are not substituted	`define M(a) \
-acc_body_string_backtick.sv	ACCEPT	§22.5.1 strings opaque in macro text	`define CHECK(val) \
-acc_body_unterminated_quote_char.sv	ACCEPT	§22.5.1 (a lone quote character is ordinary text in the run)	`define M x "unterminated
-acc_continuation.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define M(a) a + \
-acc_continuation_comment.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define M a // c \
-acc_continuation_empty_first.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define M \
-acc_continuation_paste.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define CP(name) \
-acc_continuation_stringize.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define CHECK(val) \
-acc_default_string_comma.sv	ACCEPT	§22.5.1 quoted comma in a default	`define M(a="x,y", b=(1)) a b
-acc_define_control.sv	ACCEPT	§22.5.1 (control)	`define X 1
-acc_define_prefix_macro.sv	ACCEPT	§22.5.1 (a macro name that merely starts with a directive word)	`define_thing
-acc_escaped_quote.sv	ACCEPT	§22.5.1 `\`"	`define msg(x,y) `"x: `\`"y`\`"`"
-acc_file_line_macros.sv	ACCEPT	§22.13 (predefined macros)	`__FILE__
-acc_formals_tight.sv	ACCEPT	§22.5.1 formals	`define M(x) x
-acc_include_comment_eof.sv	ACCEPT	§22.4 / §22.5.1	`include "a.sv" // c
-acc_include_macro_args.sv	ACCEPT	§22.4 / §22.5.1	`define home(filename) `"/home/mydir/filename`"
-acc_include_macro_bare.sv	ACCEPT	§22.4 / §22.5.1	`include `TESTFILE // c
-acc_include_macro_nested.sv	ACCEPT	§22.4 / §22.5.1	`include `MY_FILE(ivltests, br(gh)484.vh)
-acc_line.sv	ACCEPT	§22.12 Syntax 22-9	`line 5 "f.sv" 0
-acc_line_eof.sv	ACCEPT	§22.12 Syntax 22-9	`line 3 "orig.v" 2
-acc_line_levels.sv	ACCEPT	§22.12 Syntax 22-9	`line 1 "a" 1
-acc_line_tight.sv	ACCEPT	§22.12 Syntax 22-9	`line 12"a b.sv"1  
-acc_macro_use_in_ifdef.sv	ACCEPT	§22.5.1 Syntax 22-3 text_macro_usage	`ifdef X
-acc_macro_use_line.sv	ACCEPT	§22.5.1 Syntax 22-3 text_macro_usage	  `uvm_info("a", "b", UVM_LOW)
-acc_macro_use_line2.sv	ACCEPT	§22.5.1 Syntax 22-3 text_macro_usage	`uvm_component_utils(my_comp)
-acc_nounconnected.sv	ACCEPT	§22.9	`nounconnected_drive
-acc_pragma_bare.sv	ACCEPT	§22.11 Syntax 22-8	`pragma foo
-acc_pragma_encoding.sv	ACCEPT	§22.11 Syntax 22-8	`pragma protect encoding = (enctype = "BASE64", line_length = 76, bytes = 1234)
-acc_pragma_keyowner.sv	ACCEPT	§22.11 Syntax 22-8	`pragma protect key_keyowner="Cadence Design Systems.", key_keyname="CDS_RSA_KEY
-acc_pragma_numbers.sv	ACCEPT	§22.11 Syntax 22-8	`pragma p a = 4'b10_1x, b = 3.5e-2, c = 'hFF, d = 12, e = 8 'sd 255
-acc_pragma_protect_begin.sv	ACCEPT	§22.11 Syntax 22-8	`pragma protect begin
-acc_pragma_value_first.sv	ACCEPT	§22.11 Syntax 22-8	`pragma p 5, "s", (x, y = z)
-acc_resetall.sv	ACCEPT	§22.3	`resetall
-acc_resetall_comment.sv	ACCEPT	§22.3	/* c */ `resetall // why
-acc_space_before_paren_object_like.sv	ACCEPT	§22.5.1 'no space in between'	`define M (x) y
-acc_unconnected_pull0.sv	ACCEPT	§22.9	`unconnected_drive pull0
-acc_unconnected_pull1.sv	ACCEPT	§22.9	`unconnected_drive pull1 // c
-acc_undefineall.sv	ACCEPT	§22.5.3	`undefineall
-rej_bare_backtick_line.sv	REJECT	§22.2 (a grave accent introduces a directive or a macro)	` x
-rej_begin_keywords_missing.sv	REJECT	§22.14 Syntax 22-10	`begin_keywords
-rej_begin_keywords_unknown.sv	REJECT	§22.14 Syntax 22-10	`begin_keywords "1800-2010"
-rej_begin_keywords_unquoted.sv	REJECT	§22.14 Syntax 22-10	`begin_keywords 1800-2017
-rej_include_directive_word.sv	REJECT	§22.4 / §22.5.1	`include `else
-rej_include_macro_trailing.sv	REJECT	§22.4 / §22.5.1	`include `F x
-rej_include_trailing_text.sv	REJECT	§22.4 / §22.5.1	`include "a.sv" x
-rej_line_block_comment_before.sv	REJECT	§22.12 Syntax 22-9	/* c */ `line 5 "f.sv" 0
-rej_line_comment.sv	REJECT	§22.12 Syntax 22-9	`line 5 "f.sv" 0 // c
-rej_line_level3.sv	REJECT	§22.12 Syntax 22-9	`line 5 "f.sv" 3
-rej_line_missing_level.sv	REJECT	§22.12 Syntax 22-9	`line 5 "f.sv"
-rej_line_trailing_text.sv	REJECT	§22.12 Syntax 22-9	`line 5 "f.sv" 0 x
-rej_line_zero.sv	REJECT	§22.12 Syntax 22-9	`line 0 "f.sv" 0
-rej_malformed_define.sv	REJECT	Syntax 22-2	`define
-rej_malformed_include.sv	REJECT	Syntax 22-1	`include foo.sv
-rej_malformed_timescale.sv	REJECT	Syntax 22-6	`timescale 1ns
-rej_pragma_bad_value.sv	REJECT	§22.11 Syntax 22-8	`pragma p a = 
-rej_pragma_missing_name.sv	REJECT	§22.11 Syntax 22-8	`pragma
-rej_pragma_trailing_comma.sv	REJECT	§22.11 Syntax 22-8	`pragma p a,
-rej_stray_else.sv	REJECT	Syntax 22-5	`else
-rej_stray_endif.sv	REJECT	Syntax 22-5	`endif
-rej_unconnected_bad.sv	REJECT	§22.9	`unconnected_drive pullup
-rej_unconnected_missing.sv	REJECT	§22.9	`unconnected_drive
-rej_unterminated_ifdef.sv	REJECT	Syntax 22-5	`ifdef X
+# file	expect	the clause that decides it	the case's first line	profile (blank = the grammar's default, IEEE 1800-2017) (SV-CORPUS-GRAD.13c.2v.1 - .7, .13c.2v.8 - .14)
+acc_backslash_ident_in_body.sv	ACCEPT	§5.6.1 escaped identifier in macro text	`define M \foo + 1	
+acc_begin_keywords.sv	ACCEPT	§22.14 Syntax 22-10	`begin_keywords "1800-2017"	
+acc_begin_keywords_2023.sv	ACCEPT	§22.14 Syntax 22-10	`begin_keywords "1800-2023" // c	sv_2023
+acc_begin_keywords_noconfig.sv	ACCEPT	§22.14 Syntax 22-10	`begin_keywords "1364-2001-noconfig"	
+acc_body_line_comment_backtick.sv	ACCEPT	§22.5.1 comments are not substituted	`define M(a) \	
+acc_body_string_backtick.sv	ACCEPT	§22.5.1 strings opaque in macro text	`define CHECK(val) \	
+acc_body_unterminated_quote_char.sv	ACCEPT	§22.5.1 (a lone quote character is ordinary text in the run)	`define M x "unterminated	
+acc_comment_hides_else.sv	ACCEPT	1800-2023 §22.2 directives are not recognized within comments	`define T	
+acc_continuation.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define M(a) a + \	
+acc_continuation_comment.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define M a // c \	
+acc_continuation_empty_first.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define M \	
+acc_continuation_paste.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define CP(name) \	
+acc_continuation_stringize.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define CHECK(val) \	
+acc_default_string_comma.sv	ACCEPT	§22.5.1 quoted comma in a default	`define M(a="x,y", b=(1)) a b	
+acc_define_body_ends_at_newline.sv	ACCEPT	§22.5.1 the first newline not preceded by a backslash ends the macro text	`define X a	
+acc_define_control.sv	ACCEPT	§22.5.1 (control)	`define X 1	
+acc_define_prefix_macro.sv	ACCEPT	§22.5.1 (a macro name that merely starts with a directive word)	`define_thing	
+acc_define_undefineall_2005.sv	ACCEPT	1364-2005 §19.3.1 directives are predefined macro names (its list)	`define undefineall 1	verilog_2005
+acc_directive_in_macro_text.sv	ACCEPT	1800-2023 §22.5.1 directives in macro text are processed where it is used	`define X `ifdef A 1 `endif	
+acc_directive_multiline.sv	ACCEPT	1800-2017 has no line rule for a directive's tokens	`timescale 1ns	
+acc_elsif_expr_2023.sv	ACCEPT	1800-2023 Syntax 22-5 `elsif ifdef_condition	`ifdef X	sv_2023
+acc_elsif_following_text.sv	ACCEPT	1800-2023 §22.6 the block_of_text after `elsif	`ifdef A	
+acc_empty_escaped_ident.sv	ACCEPT	A.9.3 escaped_identifier ::= \ { ... } white_space	wire a = b \ ;	
+acc_escaped_formals_2023.sv	ACCEPT	1800-2023 §22.5.1 the single white space ending an escaped name	`define \M@CRO3 (a=5) a	sv_2023
+acc_escaped_ident_backtick.sv	ACCEPT	§5.6.1 any printable character but white space	wire \a`b ;	
+acc_escaped_macro_name.sv	ACCEPT	A.9.3 identifier ::= simple_identifier | escaped_identifier	`define \esc 1	
+acc_escaped_name_backtick.sv	ACCEPT	A.9.3 an escaped identifier may begin with a backtick; outside macro text no `\`" token exists	`define \`name "backtick name"	
+acc_escaped_quote.sv	ACCEPT	§22.5.1 `\`"	`define msg(x,y) `"x: `\`"y`\`"`"	
+acc_file_line_macros.sv	ACCEPT	§22.13 (predefined macros)	`__FILE__	
+acc_formal_empty_default.sv	ACCEPT	§22.5.1 an = followed by a comma or right parenthesis	`define M(a, b=) a b	
+acc_formal_eq_newline.sv	ACCEPT	1800-2017 has no line rule for a directive's tokens	`define M( s	
+acc_formals_multiline.sv	ACCEPT	1800-2017 has no line rule for a directive's tokens	`define M(a,	
+acc_formals_tight.sv	ACCEPT	§22.5.1 formals	`define M(x) x	
+acc_ifdef_expr_2023.sv	ACCEPT	1800-2023 Syntax 22-5 ( ifdef_macro_expression )	`ifdef (A && !B) wire w; `endif	sv_2023
+acc_include_comment_eof.sv	ACCEPT	§22.4 / §22.5.1	`include "a.sv" // c	
+acc_include_macro_args.sv	ACCEPT	§22.4 / §22.5.1	`define home(filename) `"/home/mydir/filename`"	
+acc_include_macro_bare.sv	ACCEPT	§22.4 / §22.5.1	`include `TESTFILE // c	
+acc_include_macro_nested.sv	ACCEPT	§22.4 / §22.5.1	`include `MY_FILE(ivltests, br(gh)484.vh)	
+acc_inline_conditional.sv	ACCEPT	1800-2023 §22.2 a language element before a directive	assign a = `ifdef X 1 `else 0 `endif ;	
+acc_line.sv	ACCEPT	§22.12 Syntax 22-9	`line 5 "f.sv" 0	
+acc_line_eof.sv	ACCEPT	§22.12 Syntax 22-9	`line 3 "orig.v" 2	
+acc_line_levels.sv	ACCEPT	§22.12 Syntax 22-9	`line 1 "a" 1	
+acc_line_macro.sv	ACCEPT	a defined macro can be used anywhere	`define N 5	
+acc_line_tight.sv	ACCEPT	§22.12 Syntax 22-9	`line 12"a b.sv"1  	
+acc_macro_comment_multiline_2023.sv	ACCEPT	1800-2023 §22.5.1 a multi-line block comment in macro text	`define M a /* one	sv_2023
+acc_macro_use_in_ifdef.sv	ACCEPT	§22.5.1 Syntax 22-3 text_macro_usage	`ifdef X	
+acc_macro_use_line.sv	ACCEPT	§22.5.1 Syntax 22-3 text_macro_usage	  `uvm_info("a", "b", UVM_LOW)	
+acc_macro_use_line2.sv	ACCEPT	§22.5.1 Syntax 22-3 text_macro_usage	`uvm_component_utils(my_comp)	
+acc_malformed_in_group.sv	ACCEPT	§22.6 an ignored group need only be lexically valid	`ifdef DNE	
+acc_misplaced_directive_in_group.sv	ACCEPT	§22.6 an ignored group need only be lexically valid	`ifdef DNE	
+acc_nettype_values.sv	ACCEPT	Syntax 22-7 default_nettype_value	`default_nettype uwire	
+acc_nounconnected.sv	ACCEPT	§22.9	`nounconnected_drive	
+acc_oneline_conditional.sv	ACCEPT	1800-2023 §22.2/§22.6 a block_of_text ends at `endif	`ifdef A wire w; `endif	
+acc_pragma_bare.sv	ACCEPT	§22.11 Syntax 22-8	`pragma foo	
+acc_pragma_encoding.sv	ACCEPT	§22.11 Syntax 22-8	`pragma protect encoding = (enctype = "BASE64", line_length = 76, bytes = 1234)	
+acc_pragma_keyowner.sv	ACCEPT	§22.11 Syntax 22-8	`pragma protect key_keyowner="Cadence Design Systems.", key_keyname="CDS_RSA_KEY	
+acc_pragma_numbers.sv	ACCEPT	§22.11 Syntax 22-8	`pragma p a = 4'b10_1x, b = 3.5e-2, c = 'hFF, d = 12, e = 8 'sd 255	
+acc_pragma_protect_begin.sv	ACCEPT	§22.11 Syntax 22-8	`pragma protect begin	
+acc_pragma_value_first.sv	ACCEPT	§22.11 Syntax 22-8	`pragma p 5, "s", (x, y = z)	
+acc_resetall.sv	ACCEPT	§22.3	`resetall	
+acc_resetall_comment.sv	ACCEPT	§22.3	/* c */ `resetall // why	
+acc_space_before_paren_object_like.sv	ACCEPT	§22.5.1 'no space in between'	`define M (x) y	
+acc_string_continued.sv	ACCEPT	§5.9 a newline preceded by a backslash	initial $display("a \	
+acc_string_hides_directive.sv	ACCEPT	1800-2023 §22.2 ... or string literals	initial $display("`ifdef X");	
+acc_timescale_macro.sv	ACCEPT	a defined macro can be used anywhere	`timescale `U / `P	
+acc_triple_string_2023.sv	ACCEPT	1800-2023 §5.9 triple-quoted string	string s = """a	sv_2023
+acc_unconnected_pull0.sv	ACCEPT	§22.9	`unconnected_drive pull0	
+acc_unconnected_pull1.sv	ACCEPT	§22.9	`unconnected_drive pull1 // c	
+acc_undefineall.sv	ACCEPT	§22.5.3	`undefineall	
+acc_undefineall_is_a_macro_2005.sv	ACCEPT	`undefineall is not a 1364-2005 directive	`undefineall	verilog_2005
+rej_angle_include_2005.sv	REJECT	1364-2005 Syntax 19-6 `include "filename"	`include <a.v>	verilog_2005
+rej_backtick_quote_outside_macro.sv	REJECT	§22.5.1 `" belongs to macro text	wire w = `" ;	
+rej_bare_backtick_line.sv	REJECT	§22.2 (a grave accent introduces a directive or a macro)	` x	
+rej_begin_keywords_1800_2005.sv	REJECT	1364-2005 Syntax 19-10 version_specifier	`begin_keywords "1800-2005"	verilog_2005
+rej_begin_keywords_2023_under_2017.sv	REJECT	1800-2017 Syntax 22-10 version_specifier	`begin_keywords "1800-2023"	sv_2017
+rej_begin_keywords_missing.sv	REJECT	§22.14 Syntax 22-10	`begin_keywords	
+rej_begin_keywords_unknown.sv	REJECT	§22.14 Syntax 22-10	`begin_keywords "1800-2010"	
+rej_begin_keywords_unquoted.sv	REJECT	§22.14 Syntax 22-10	`begin_keywords 1800-2017	
+rej_comment_unterminated_in_group.sv	REJECT	§22.6 an ignored group still follows the lexical conventions	`ifdef DNE	
+rej_define_directive_name.sv	REJECT	§22.5.1 a compiler directive is not a macro name	`define resetall 1	
+rej_directive_multiline_2023.sv	REJECT	1800-2023 §22.2 compiler directives shall be all on one line	`timescale 1ns	sv_2023
+rej_elsif_expr_2017.sv	REJECT	1800-2017 Syntax 22-5 `elsif text_macro_identifier	`ifdef X	sv_2017
+rej_formal_default_2005.sv	REJECT	1364-2005 Syntax 19-2 formal_argument_identifier	`define M(a=1) a	verilog_2005
+rej_formals_bad_no_fallback.sv	REJECT	§22.5.1 a ( after the name opens the formal list	`define M(#) x	
+rej_formals_comment.sv	REJECT	§22.5.1 formals separated by commas and optionally white space	`define M(a /* c */, b) a	
+rej_formals_empty.sv	REJECT	Syntax 22-2 list_of_formal_arguments has a formal	`define M() x	
+rej_formals_multiline_2023.sv	REJECT	1800-2023 §22.2 compiler directives shall be all on one line	`define M(a,	sv_2023
+rej_ifdef_expr_2017.sv	REJECT	1800-2017 Syntax 22-5 `ifdef text_macro_identifier	`ifdef (A) wire w; `endif	sv_2017
+rej_include_directive_word.sv	REJECT	§22.4 / §22.5.1	`include `else	
+rej_include_macro_trailing.sv	REJECT	§22.4 / §22.5.1	`include `F x	
+rej_include_trailing_text.sv	REJECT	§22.4 / §22.5.1	`include "a.sv" x	
+rej_lexical_error_in_group.sv	REJECT	§22.6 an ignored group still follows the lexical conventions	`ifdef DNE	
+rej_line_block_comment_before.sv	REJECT	§22.12 Syntax 22-9	/* c */ `line 5 "f.sv" 0	
+rej_line_comment.sv	REJECT	§22.12 Syntax 22-9	`line 5 "f.sv" 0 // c	
+rej_line_level3.sv	REJECT	§22.12 Syntax 22-9	`line 5 "f.sv" 3	
+rej_line_missing_level.sv	REJECT	§22.12 Syntax 22-9	`line 5 "f.sv"	
+rej_line_trailing_text.sv	REJECT	§22.12 Syntax 22-9	`line 5 "f.sv" 0 x	
+rej_line_zero.sv	REJECT	§22.12 Syntax 22-9	`line 0 "f.sv" 0	
+rej_macro_comment_multiline_2017.sv	REJECT	1800-2017 §22.5.1 the first newline not preceded by a backslash	`define M a /* one	sv_2017
+rej_malformed_define.sv	REJECT	Syntax 22-2	`define	
+rej_malformed_include.sv	REJECT	Syntax 22-1	`include foo.sv	
+rej_malformed_timescale.sv	REJECT	Syntax 22-6	`timescale 1ns	
+rej_malformed_top_level.sv	REJECT	§22.4 a top-level directive is live in every compilation	`include NOT_DEFINED_INC	
+rej_mid_line_include.sv	REJECT	§22.4 only white space or a comment on the line	wire w; `include "a.v"	
+rej_mid_line_line.sv	REJECT	§22.12 only white space on the line	wire w; `line 5 "f.sv" 0	
+rej_nettype_invalid.sv	REJECT	Syntax 22-7 default_nettype_value	`default_nettype foo	
+rej_pragma_bad_value.sv	REJECT	§22.11 Syntax 22-8	`pragma p a = 	
+rej_pragma_missing_name.sv	REJECT	§22.11 Syntax 22-8	`pragma	
+rej_pragma_trailing_comma.sv	REJECT	§22.11 Syntax 22-8	`pragma p a,	
+rej_quoted_string_newline.sv	REJECT	§5.9 a string literal on one line	`include "a	
+rej_stray_else.sv	REJECT	Syntax 22-5	`else	
+rej_stray_endif.sv	REJECT	Syntax 22-5	`endif	
+rej_string_unterminated.sv	REJECT	§5.9 a string literal on one line	initial $display("open);	
+rej_string_unterminated_in_group.sv	REJECT	§22.6 lexical conventions in an ignored group	`ifdef DNE	
+rej_stringize_2005.sv	REJECT	no `" in 1364-2005 clause 19	`define S(x) `"x`"	verilog_2005
+rej_triple_string_2017.sv	REJECT	no triple-quoted string before 1800-2023	string s = """a	sv_2017
+rej_unconnected_bad.sv	REJECT	§22.9	`unconnected_drive pullup	
+rej_unconnected_missing.sv	REJECT	§22.9	`unconnected_drive	
+rej_unterminated_ifdef.sv	REJECT	Syntax 22-5	`ifdef X	
+acc_define_eof_trailing_space.sv	ACCEPT	§22.5.1 the macro text is optional; white space may end the file (SV-CORPUS-GRAD.13c.2v.16)	`define A 	
+acc_define_eof_trailing_comment.sv	ACCEPT	§22.5.1 a function-like define with no text, a comment ending the file (SV-CORPUS-GRAD.13c.2v.16)	`define A(x) /*c*/	
+acc_actual_string_paren.sv	ACCEPT	§22.5.1 a ) inside double quotes is not the actuals' end (SVPP-0015)	`include `M(")")	
+acc_actual_bracket_paren.sv	ACCEPT	§22.5.1 a ) inside matched [] is not the actuals' end (SVPP-0015)	`include `M(a[)])	
+acc_actual_brace_paren.sv	ACCEPT	§22.5.1 a ) inside matched {} is not the actuals' end (SVPP-0015)	`include `M({)})	
+acc_actual_escaped_paren.sv	ACCEPT	§22.5.1 a ) inside an escaped identifier is not the actuals' end (SVPP-0015)	`include `M(\a) )	
+acc_actual_comment_paren.sv	ACCEPT	§22.5.1 a comment is a comment: its ) is not the actuals' end (SVPP-0015)	`include `M(/*)*/ a)	
+acc_timescale_actual_string.sv	ACCEPT	§22.5.1 actuals of a macro usage in a directive parameter (SVPP-0015)	`timescale `M(")") / 1ps	
+acc_default_comment_only.sv	ACCEPT	§22.5.1 a formal default that is a comment (SVPP-0013; SV-CORPUS-GRAD.13c.2v.16)	`define M(a=/*c*/) x	
+acc_default_comment_then_formal.sv	ACCEPT	§22.5.1 a comment default followed by a formal (SV-CORPUS-GRAD.13c.2v.16)	`define M(a=/*c*/ , b) x	
+acc_timescale_comment_lines_2017.sv	ACCEPT	1800-2017 has no one-line rule: a comment between a directive's tokens may cross a line	`timescale 1ns /* a	
+acc_timescale_comment_2023.sv	ACCEPT	1800-2023 §22.2 a one-line comment between a directive's tokens	`timescale 1ns /* a */ / 1ps	sv_2023
+acc_group_bare_define.sv	ACCEPT	§22.6 a group line that does not parse is recorded (a bare `define)	`ifdef X	
+rej_actual_unclosed_string.sv	REJECT	§5.9 a string literal left open in a macro usage's actuals (SVPP-0015)	`include `M("unclosed)	
+rej_actual_escaped_takes_paren.sv	REJECT	§5.6.1 an escaped identifier runs to white space, so it takes both ) (SVPP-0015)	`include `M(\a))	
+rej_timescale_comment_lines_2023.sv	REJECT	1800-2023 §22.2 a directive all on one line: a comment crossing a line between its tokens	`timescale 1ns /* a	sv_2023
+rej_define_name_comment_lines_2023.sv	REJECT	1800-2023 §22.2 a comment crossing a line between `define and its name	`define /* a	sv_2023
+rej_ifdef_expr_comment_lines_2023.sv	REJECT	1800-2023 §22.2 a comment crossing a line inside an ifdef_macro_expression	`ifdef (A /* a	sv_2023
+acc_include_comment_multiline_2023.sv	ACCEPT	1800-2023 §22.4 a comment AFTER the directive may cross the line (iverilog br_gh782a.v; SV-CORPUS-GRAD.13c.2v.16)	`include "a.vi"  /* a comment	sv_2023

@@ -21,6 +21,56 @@ The main SystemVerilog parser's changelog index is long because its return-annot
 
 This book is **live** and tracks current main HEAD. The schema entries below mirror the "Schema Versioning" table in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`; the contract is authoritative for the live state. The newest release (`1.0.6`, `SVPP-0003`) is schema-neutral — it shares schema `4` with `1.0.5` (no new schema row), recorded as the `1.0.6` addendum to the schema-`4` entry; `1.0.5` was the release that bumped the AST-dump schema to `4`.
 
+### Release 1.0.9 — per-edition profiles, lexed text, directives anywhere on a line, five corrected trees (AST-dump schema `6` → `7`; 112 annotations / 60 rules)
+
+Landed 2026-10-18 (`PGEN-SV-CORPUS-GRAD-0464`, leaves `SV-CORPUS-GRAD.13c.2v.8` – `.16`), the release the director
+ordered on 2026-10-18 (`docs/decisions/feedback_every_parser_meets_its_full_requirements_no_documented_limits.md`).
+
+- **Release:** parser release `1.0.9`, contract `1.0.9`. **AST-dump schema: `7`** (was `6`).
+- **New — per-edition PROFILES:** `sv_2017` (the default), `sv_2023`, `sv_2023_tolerant`, `verilog_2005`, the
+  SystemVerilog family's own names and aliases. 1800-2023's `` `ifdef ( expr ) `` / `` `elsif ( expr ) `` and
+  triple-quoted strings derive under `sv_2023` only; 1364-2005 has no `` `undefineall ``, `` `include <…> ``, formal
+  defaults or `` `" `` tokens; each edition has its own `version_specifier` list and LINE DISCIPLINE (1800-2023 puts a
+  directive on one line, the earlier editions do not). See [Editions and Profiles](profiles.md).
+- **New — the ordered gaps closed:** a conditional on one line is accepted; a line inside a conditional group that does
+  not parse is RECORDED (`malformed_directive`), not refused — liveness is the expansion stage's; a macro name may be an
+  escaped identifier and may not be a directive's name; a macro usage may stand in any directive parameter; a
+  directive may begin mid-line (`` `include `` and `` `line `` excepted).
+- **Corrected trees (breaking):** passthrough text is LEXED — a comment or string hides a directive word (`SVPP-0010`;
+  Surelog `PPComment/dut.sv`), an unclosed string or comment is refused (`SVPP-0011`), a backslash-continued string is
+  one item; text after a conditional directive is the group's first item and `` `elsif `` takes an identifier
+  (`SVPP-0012`; `{macro, tail, items}`, was `{condition: {atoms}}`); a formal list never falls back to an object-like
+  define — 15 corpus files' defines are now function-like, UVM-core's `uvm_declare_type_alias(TYPE,NAME,SFX=)` among
+  them (`SVPP-0013`); a define body no longer runs on into the next line (`SVPP-0014`); a directive inside macro text is
+  a `directive` fragment.
+- **Measured** — the census of the GENERATED parser against the `1.0.8` probe, each reading's every refusal written
+  down (`docs/tasks/artifacts/sv_corpus_grad/svpp_corpus_census/`):
+
+  | reading | files | fail → pass | pass → fail | refused, each adjudicated | trees moved (each attributed) |
+  |---|---:|---:|---:|---:|---:|
+  | default (IEEE 1800-2017) | 16,336 | 14 | 38 | 88 | 82 |
+  | `sv_2023` | 16,336 | 11 | 42 | 95 | 77 |
+  | `verilog_2005` (its lane) | 2,943 | 3 | 55 | 56 | 4 |
+
+  The 38 default `pass → fail` are the suites' own error tests (unterminated strings and comments, bad formals, invalid
+  nettypes), strings split between a macro and its usage (§22.5.1), `` `" `` / ``` `` ``` outside macro text (the stage
+  refuses all nine), comments between formals, an empty formal list, and two 1800-2023 forms under 1800-2017 — none
+  valid under its reading. The census reads the other half too: of the 82 preprocessor-themed suite error tests it
+  selects, the default reading refuses 47 and every one of the 35 it accepts carries a written reason (the error is
+  the expansion stage's or SystemVerilog's).
+- **Found on the way and fixed:** the stimuli generator's gap report counted a COVERED branch as unreachable (its
+  reachability was counted after the coverage skip), inflating every syntax-closure gate's "unreachable from the
+  entry"; a RED-first unit test pins the fix.
+- **Found by the certificate, fixed before the release** (`.13c.2v.16`): the first `1.0.9` build was NOT fully
+  certified — 4 rules UNKNOWN and 101 generated samples refused over 32 seeds, where `1.0.8` was clean. Every sample
+  was read: most were token boundaries the grammar never declared for generation (a `/` before `/*`, an escaped
+  identifier before `(`, a `//` comment before the next item, a zero-width end of input drawn mid-file), now declared
+  as follow restrictions or read by the generator; three were PARSER defects no corpus file holds, fixed: a define
+  ending the file after white space, a formal default that is only a comment, and macro actuals in a directive
+  parameter read without lexing (`` `include `M(")") `` — ledger `SVPP-0015`, present since `1.0.8`). Under `sv_2023` a
+  block comment crossing a line inside a directive is now refused. On the release grammar the certificate is clean at its bar — seed 0, 40 samples: **201 rules · 192 witness · 9 proof · 0 unknown, fully certified, 0 refused samples** — and the union of the three profiles is fully certified. Over 32 seeds every one is fully certified with 0 UNKNOWN; one seed (21) reports one refused sample, read: the parser is right (a macro usage's actual list one `)` short), the hazard is generation's — owned,
+`SV-CORPUS-GRAD.13c.2v.18`.
+
 ### Release 1.0.8 — every clause-22 directive, macro-usage lines, three corrected trees (AST-dump schema `5` → `6`; 100 annotations / 46 rules)
 
 Landed 2026-10-17 (`PGEN-SV-CORPUS-GRAD-0458`, leaves `SV-CORPUS-GRAD.13c.2v.1` – `.7`), found by the first corpus reading of

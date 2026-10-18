@@ -5,13 +5,13 @@ Define the current downstream integration contract for PGEN's `systemverilog_pre
 
 ## Contract Identity
 - Contract version:
-  - `1.0.8`
+  - `1.0.9`
 - Parser release version:
-  - `1.0.8`
+  - `1.0.9`
 - systemverilog_preprocessor AST-dump schema version:
-  - `6` (first release `1.0.8`; **every IEEE 1800 clause-22 directive, a line that opens with a text macro usage, and three corrected trees** — found by the first corpus reading of this parser, which refused 4,477 of the 16,336 SystemVerilog corpus files at `1.0.7` (`SV-CORPUS-GRAD.13c.2v.1` – `.7`, ledger `SVPP-0005` – `SVPP-0009`). Breaking for the corrected classes: a backslash-continued define body, a `` `define NAME (…) `` with a space before the parenthesis, a string literal or `//` comment in macro text holding punctuation, and the branch indices of `pp_item` / `macro_body_fragment`. See the schema-`6` row and [Resolved Defects — `SVPP-0005` … `SVPP-0009`](#resolved-defects--svpp-0005--svpp-0009-fixed-in-release-108-schema-5--6).)
+  - `7` (first release `1.0.9`; **per-edition profiles, lexed passthrough text, directives anywhere on a line, a conditional group's unparsable line recorded, and five corrected trees** — `SV-CORPUS-GRAD.13c.2v.8` – `.14`, ledger `SVPP-0010` – `SVPP-0014`; see [Editions and Profiles](#editions-and-profiles-release-109) and the schema-`7` row). Schema `6` (first release `1.0.8`) derived every IEEE 1800 clause-22 directive.
 - Annotation count:
-  - `100` (94 `return_object` + 4 `return_scalar` + 2 `return_array`; 46 distinct rules) — `1.0.8` adds the eight `pp_item` kinds and their directive rules (`pp_resetall`, `pp_undefineall`, `pp_unconnected_drive` + `pull_drive`, `pp_nounconnected_drive`, `pp_pragma` + `pragma_expression_list` / `pragma_expression` / `pragma_value` / `pragma_value_list`, `pp_line`, `pp_begin_keywords`, `pp_end_keywords`), `include_path`'s `macro` kind + `include_macro_usage` / `macro_usage_arguments`, and `macro_body_fragment`'s `line_continuation` / `escaped_quote`; `pp_non_directive_line` reads `{text: $2}` (a lookahead occupies its first slot).
+  - `112` (95 `return_object` + 14 `return_scalar` + 3 `return_array`; 60 distinct rules) — `1.0.9` adds the group fallback (`pp_group_item`, `pp_malformed_directive`, `group_lexical_line`), the lexed text run (`text_run`), the 2023 expression (`ifdef_paren_expression` … `implication_op`), the parameter macro usages (`p_macro_usage`, `line_macro_usage`), `p_time_literal` / `p_pull_drive`, the escaped-formals define, `macro_simple_name` and the macro-text runs, and removes `condition_expr` / `condition_atom` / `condition_text`, `pull_drive` and `time_literal`. `1.0.8` was `100` over 46 rules.
 - Current grammar family label:
   - `systemverilog_preprocessor`
 - Per-family mdBook:
@@ -25,11 +25,12 @@ Define the current downstream integration contract for PGEN's `systemverilog_pre
 
 The systemverilog_preprocessor parser carries two version axes:
 
-1. **Parser release version** (`1.0.8`). Tracks the parser library's release identity.
-2. **AST-dump schema version** (`6`). Tracks the AST output shape. Schema `6` (first release `1.0.8`) derives every clause-22 directive and corrects three trees (see the schema-`6` row). Schema `5` (first release `1.0.7`) is the `SVPP-0004` macro-default balanced-parentheses correction. Schema `4` (first release `1.0.5`) annotated `condition_text -> $text`; release `1.0.6` kept schema `4`. Schema `3` spanned releases `1.0.3`–`1.0.4`.
+1. **Parser release version** (`1.0.9`). Tracks the parser library's release identity.
+2. **AST-dump schema version** (`7`). Tracks the AST output shape. Schema `7` (first release `1.0.9`) adds the per-edition profiles and corrects five trees (see the schema-`7` row). Schema `6` (first release `1.0.8`) derives every clause-22 directive and corrects three trees (see the schema-`6` row). Schema `5` (first release `1.0.7`) is the `SVPP-0004` macro-default balanced-parentheses correction. Schema `4` (first release `1.0.5`) annotated `condition_text -> $text`; release `1.0.6` kept schema `4`. Schema `3` spanned releases `1.0.3`–`1.0.4`.
 
 | Schema version | First parser release | Notable changes |
 |---|---|---|
+| 7 | 1.0.9 | **Per-edition profiles, lexed passthrough text, directives anywhere on a line, and five corrected trees (`SV-CORPUS-GRAD.13c.2v.8` – `.14`; ledger `SVPP-0010` – `SVPP-0014`).** Breaking for conditionals and macro text: an `` `elsif `` branch is `{macro, tail, items}` (was `{condition: {atoms}}`); a conditional's `tail` holds only a trailing comment; a group line that does not parse is a `malformed_directive` item; a condition may be a `macro_usage` or (under `sv_2023`) an `expression`; a directive in macro text is a `directive` fragment; a formal list never falls back to an object-like define; a `non_directive_line` may end before a mid-line directive. See [Editions and Profiles](#editions-and-profiles-release-109) and [Resolved Defects — SVPP-0010 … SVPP-0014](#resolved-defects--svpp-0010--svpp-0014-and-the-ordered-gaps-fixed-in-release-109-schema-6--7). |
 | 6 | 1.0.8 | **Every IEEE 1800 clause-22 directive, a line that opens with a macro usage, and three corrected trees (`SV-CORPUS-GRAD.13c.2v.1` – `.7`; ledger `SVPP-0005` – `SVPP-0009`).** Found by the first corpus reading of this parser (`docs/tasks/artifacts/sv_corpus_grad/svpp_corpus_census/`): the generated parser refused **4,477 of 16,336** SystemVerilog corpus files at `1.0.7`, 4,182 of them at a line that OPENS with a text macro usage. **Additive:** `pp_item` kinds `resetall`, `undefineall`, `unconnected_drive` (`{drive: {kind: "pull0"\|"pull1"}, comment}`), `nounconnected_drive`, `pragma` (`{name, expressions, comment}`, Syntax 22-8's `keyword_value` / `keyword` / `value` forms and nested lists), `line` (`{number, filename, level}`), `begin_keywords` (`{version, comment}`), `end_keywords`; `include_path` kind `macro` (`{name, arguments}`); a `non_directive_line` may open with a macro usage. **Breaking (the bump):** a backslash-continued define body is ONE define with `{kind: "line_continuation"}` fragments (was cut at its first line, the rest stray passthrough items — `SVPP-0006`); `` `define M (x) y `` is object-like (was function-like — `SVPP-0008`); a plain string literal and a `//` comment are each one `text` fragment of macro text, and `` `\`" `` is `{kind: "escaped_quote"}` (`SVPP-0009`); `` `include "a.sv" x `` is REFUSED (was accepted — `SVPP-0007`); the branch indices of `pp_item` and `macro_body_fragment` shift. Measured with `census.py --before` the `1.0.7` probe: rejections `4,477 → 64` (every one adjudicated), zero `pass → fail`, 11,790 of the 11,859 previously accepted trees byte-identical and the 69 that moved each explained (38 continuation, 31 string atom). Inventory `68 → 100`, distinct rules `31 → 46`. |
 | 5 | 1.0.7 | **`SVPP-0004` macro-default balanced-parentheses correction (breaking for the buggy shapes, `GRAMMAR-WELLFORMED.H.9`; found by the `H.7.2` plannable-rule reach pass).** Per IEEE 1800 §22.5.1, macro default text may contain a comma or right parenthesis only *inside a balanced pair of parentheses* — but `macro_default_atom` modeled parens as bare `{kind:"lparen"}`/`{kind:"rparen"}` atoms, and the possessive `macro_default_atom+` swallowed the FORMALS' closing `)`. Consequence: a default on the **last** formal (`` `define M(a=x) y`` — legal SV; the LRM's own examples use it) made `macro_formals` fail, the `macro_formals?` optional backtracked to empty, and the directive mis-parsed to `formals: []` with the whole `(a=x) y` as macro-*body* fragments. Fixed by the LRM-faithful balanced group: `macro_default_paren_group := lparen macro_default_group_atom* rparen -> {kind: "paren_group", atoms: $2}` with `macro_default_group_atom := macro_default_atom -> $1 \| comma -> {kind: "comma"}` replacing the bare paren alternatives — an unbalanced `)` now correctly terminates the default, and commas are legal inside the group (and only there), both exactly per the LRM sentence. **Two consumer-visible shape changes (hence the schema bump):** (1) default-on-last-formal inputs now produce structured `formals` (e.g. `` `define M(a=x) y`` → `formals: [{name:"a", default:[…text "x"]}]`, body `"y"`) instead of the buggy empty-formals/body-text shape; (2) paren-bearing defaults that DID parse before (e.g. `a=(x),b`) now surface one `{kind:"paren_group", atoms:[…]}` atom instead of flat `lparen`/`rparen`/text atoms, and commas inside the group surface as `{kind:"comma"}` atoms (e.g. `a=(x,y)` → `paren_group{text "x", comma, text "y"}` — previously REJECTED-as-formals entirely). Annotation inventory `67 → 68` (adds `macro_default_paren_group` + the two `macro_default_group_atom` branches; removes the two bare paren branch annotations); distinct rules `29 → 31`. Verified by the decisive repro pair (`a=x` last-formal vs `a=x,b`), the svpp certificate-coverage sweep **`fully_certified=true` + `sample_parse_failures=0` at ALL 32 seeds 0–31** (this fix closed the 7 residual seeds), `sv_preprocessor_zero_plausible_gap_proof_gate` GREEN, and the new `macro_default_on_last_formal` sample in `systemverilog_preprocessor_v1.json`. Tracked `SVPP-0004` (`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`). |
 | 4 | 1.0.5 (also spans 1.0.6) | **`1.0.6` addendum — `SVPP-0003` `condition_text` comment-awareness fix (schema-neutral, non-breaking, `GRAMMAR-WELLFORMED.H.5.5`).** `condition_text := inline_trivia /[^`(),?:!\|&\r\n]+/` was **not comment-aware**: its content regex ate a comment's `/*` (both `/` and `*` are in its class) then halted at an operator char (`(`,`)`,`?`,`:`,`!`,`\|`,`&`) or backtick *inside* the `block_comment`, so `condition_expr` could not span the comment and a valid `` `ifdef``/`` `elsif`` condition containing such a comment (e.g. `` `elsif x /* a \|\| b */``) was wrongly rejected at `1.0.5` — the outer `pp_conditional` then could not close. Fixed in `1.0.6` by making the rule comment-aware with the proven `macro_body_text`/`macro_default_text` idiom (`/(?:\/\*([^*]\|\*+[^*\/])*\*+\/\|[^`(),?:!\|&\r\n])+/` — the `/*…*/` alt tried FIRST so a `/*` opener is consumed atomically; the unchanged char-branch still excludes the operators/backtick so they still split as their own atoms) AND **dropping the rule's now-redundant leading `inline_trivia`** (the comment-alt + char-class already admit comments/whitespace; keeping it would re-consume, as trivia, a comment the generator emits as content, breaking round-trip on a comment-only condition). **No schema bump**: `condition_text` stays `-> $text`, the annotation inventory is unchanged (67/29), and every input that parsed at `1.0.5` yields a byte-identical AST at `1.0.6` (the `$text` matched-SPAN is identical whether `inline_trivia` or the regex consumes a leading space — empirically `` `elsif abc`` → `body:" abc"` unchanged) — only previously-*erroring* comment-bearing conditions now succeed with the standard `{kind:"text", body}` shape (strictly more permissive). Tracked `SVPP-0003` (`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`); locked by the `condition_comment_special_char` sample in `systemverilog_preprocessor_v1.json`. **`1.0.5` (original schema-`4` change) — `condition_text` annotated `-> $text` (consumer-visible, `GRAMMAR-WELLFORMED.H.5.1.3.2`).** `condition_text := inline_trivia /[^`(),?:!\|&\r\n]+/` previously had **no** return annotation, so it produced the raw `inline_trivia`+content envelope; a `condition_atom` text atom `{kind:"text", body:$1}` therefore surfaced `body` as that envelope (e.g. for `` `elsif abc`` → `body` was `[[" "], "abc"]`). It now declares `-> $text`, so `body` is the **flat matched-text string** (`" abc"`). This realizes the long-anticipated "annotate the literal-text runs" schema milestone for `condition_text` specifically — `condition_text` is a flexible **same-line** `condition_atom+` list element (its grammatical successors are excluded-delimiter atoms that self-delimit, or another text run that merges harmlessly), so it needs no line terminator; the line-oriented runs `directive_tail` / `non_directive_text` (which DO need a terminating newline) deliberately remain raw-envelope. **Why now:** the un-annotated rule made PGEN's stimuli generator inject a spurious trailing `\n` after a generated `condition_text` (its `\n`-excluding content class drove the word-boundary trailing guard to emit a newline), which prematurely ended a `` `elsif`` line and stranded a following `` `"`` stringize at a `pp_item` boundary — the lone svpp certificate-coverage `sample_parse_failures` residual. The `$text` annotation marks the rule one atomic lexical span (LEXICAL-ANNOTATIONS.6), which suppresses that trailing guard. Generator-faithfulness fix expressed declaratively at fix-hierarchy Level 1 (no engine change). **Result:** svpp `--report-certificate-coverage` `sample_parse_failures` `1 → 0` (deterministic, seeds 0 and 7); annotation count `66 → 67` (the new `return_scalar`); distinct annotated rules `28 → 29`. Same accept set (no grammar acceptance change — only `condition_text`'s emitted shape). Gate-locked by the `condition_text` `return_scalar` entry in `systemverilog_preprocessor_v1.json`. |
@@ -199,6 +200,68 @@ The systemverilog_preprocessor parser carries two version axes:
 - **Consumer impact:** breaking ONLY for consumers that relied on the two buggy shapes (empty-formals
   body-text for default-on-last-formal; flat `lparen`/`rparen` atoms in paren-bearing defaults) —
   hence schema `4 → 5`. All other inputs are byte-identical.
+
+## Editions and Profiles (release 1.0.9)
+
+From release `1.0.9` the parser reads compiler directives the way a named IEEE edition reads them
+(`SV-CORPUS-GRAD.13c.2v.9`, by director ruling 2026-10-18: *"give the grammar per-edition profils"*). The profiles are
+the SystemVerilog family's own names, so a consumer hands this parser the profile it hands the SystemVerilog parser:
+
+| profile | edition | request spellings (`@profile_alias`) |
+|---|---|---|
+| `sv_2017` — **the default** (`@default_profile`) | IEEE 1800-2017 clause 22 | `2017`, `ieee1800-2017`, `ieee_1800_2017` |
+| `sv_2023` | IEEE 1800-2023 clause 22 | `2023`, `ieee1800-2023`, `ieee_1800_2023` |
+| `sv_2023_tolerant` | as `sv_2023` (no directive is tolerated beyond 1800-2023) | — |
+| `verilog_2005` | IEEE 1364-2005 clause 19 | `1364-2005`, `ieee1364-2005`, `ieee_1364_2005` |
+
+An unspecified profile reads IEEE 1800-2017, as the expansion stage's unprofiled reading does; the generated parser
+carries `DEFAULT_GRAMMAR_PROFILE = "sv_2017"`, and `set_grammar_profile(None)` restores it.
+
+**What differs** — every row a reproducer in the census bank (`docs/tasks/artifacts/sv_corpus_grad/svpp_corpus_census/bank/`,
+read under each profile it splits), every rule cited to the in-repo clause in `docs/tasks/SV-CORPUS-GRAD.md` leaf
+`.13c.2v.13`:
+
+| the form | `verilog_2005` | `sv_2017` | `sv_2023` |
+|---|---|---|---|
+| `` `ifdef ( expr ) `` / `` `elsif ( expr ) `` (`! && \|\| -> <->`) | refused | refused | derived |
+| a triple-quoted string `"""…"""` | refused | refused | derived |
+| `version_specifier` | the four `1364-*` | adds `1800-2005` … `1800-2017` | adds `1800-2023` |
+| a directive's tokens over several lines (a formal list included; a block comment crossing a line inside the directive counts) | derived | derived | refused (§22.2 *"all on one line"*) |
+| a block comment in macro text crossing a line without a backslash | refused | refused | derived |
+| an escaped macro name's formals after its terminating white space | macro text | macro text | formals |
+| `` `include <file> ``, formal defaults, `` `" `` / `` `\`" `` / ``` `` ``` | refused | derived | derived |
+| `` `undefineall `` | a macro usage | the directive | the directive |
+| a directive's name as a macro name | refused (its 19) | refused (its 22) | refused (its 22) |
+
+Identical in every profile: `` `pragma ``, `` `default_nettype `` (Syntax 22-7's eleven values), `` `line ``, `` `undef ``,
+`` `include ``'s line rule, and a macro usage in any directive parameter (a defined macro *"can be used anywhere"*).
+
+## Resolved Defects — `SVPP-0010` … `SVPP-0015`, and the ordered gaps (fixed in release 1.0.9, schema 6 → 7)
+
+| ledger | the `1.0.8` behaviour | `1.0.9` |
+|---|---|---|
+| `SVPP-0010` | a block comment opened after code on its line was not opaque — a directive word on a following line inside it was read as a directive (Surelog `tests/PPComment/dut.sv`) | passthrough text is lexed; the comment hides it |
+| `SVPP-0011` | a passthrough line was not lexed — a string left open at its line end passed (seven suite error tests) | an unclosed string or comment is refused in every group |
+| `SVPP-0012` | text after `` `ifdef X `` / `` `else `` / `` `endif `` on its line was the directive's `tail`, after `` `elsif X `` part of its condition | the group's first item; `tail` holds a trailing comment only |
+| `SVPP-0013` | a formal list that did not parse fell back to an OBJECT-LIKE define (`(typ,` as text) — multi-line lists, an empty default (UVM's `uvm_declare_type_alias(TYPE,NAME,SFX=)`), a comment between formals | a `(` right after the name always opens the list; newlines and empty defaults per edition; a comment there is refused |
+| `SVPP-0014` | the punctuation terminals were string terminals whose default skip crossed newlines and comments — a define body ran on into a next line opening with `(` | every punctuation terminal is a regex; a define ends at its line end |
+| `SVPP-0015` | a macro usage's actual arguments inside a directive parameter were plain runs between balanced parentheses: `` `include `M(")") `` was refused, a `)` inside a comment closed the list, and `` `M("unclosed) `` passed | the actuals are lexed per §22.5.1: a string, a block comment and an escaped identifier are atoms, a parenthesis inside `[ ]` / `{ }` is a character; an open string is refused |
+
+And the gaps release `1.0.8` listed as ordered fixed: a conditional written on one line is ACCEPTED (`.13c.2v.10`); a
+line inside a conditional group that does not parse is RECORDED as a `malformed_directive` item, not refused — liveness
+is the expansion stage's to decide (`.13c.2v.10`); the per-edition profiles above (`.13c.2v.9`); a macro name may be an
+escaped identifier and may not be a directive's name (`.13c.2v.8`). A directive may begin anywhere on a line (1800-2023
+§22.2), except `` `include `` and `` `line ``.
+
+**Found before the release, fixed in it** (`SV-CORPUS-GRAD.13c.2v.16`: the certificate's generated samples, which reach
+forms no corpus file holds, refused where the first `1.0.9` build did): a define with no macro text that ENDS THE FILE
+after white space or a comment (`` `define A `` with a trailing space and no newline) is accepted, as `1.0.8` did; a
+formal default that is ONLY a comment (`` `define M(a=/*c*/) x ``) is a function-like define's default — `1.0.8`
+accepted it only through `SVPP-0013`'s object-like fallback, with `formals: []`; and under `sv_2023` a block comment
+that crosses a line inside a directive — between its tokens, in a formal default, in a `` `pragma `` — is refused, as
+the edition table above says (the first build let a comment carry the directive onto a second line).
+
+**Measured on the generated parser** (`census.py`, the release probe, against the `1.0.8` probe): the default reading (IEEE 1800-2017) over the 16,336-file SystemVerilog corpus — `fail → pass 14`, `pass → fail 38` (the suites' own error tests, strings split between a macro and its usage, `` `" `` / ``` `` ``` outside macro text, comments between formals, an empty formal list, two 1800-2023 forms — none valid under its reading), 88 refusals each adjudicated in `residual_dispositions.tsv`, 82 previously accepted trees moved, each attributed; the `sv_2023` reading 95 refusals, the `verilog_2005` reading over its own 2,943-file lane 56, each adjudicated in its own table; the bank 119 / 119 (19 cases under a named profile); the error-test half: of the 82 preprocessor-themed suite error tests the default reading refuses 47, and each of the 35 it accepts carries a written reason (`error_test_dispositions.tsv`).
 
 ## Resolved Defects — `SVPP-0005` … `SVPP-0009` (fixed in release 1.0.8, schema 5 → 6)
 
@@ -669,6 +732,21 @@ passthrough lines (`pp_non_directive_line` → `{text}`, `pp_blank_line`
 full per-branch field lists are in
 `docs/systemverilog_preprocessor_parser_book/src/rules-top-level.md`.
 
+
+**Release `1.0.9` — parameters.** Any fixed-syntax directive's parameter may be a macro usage, since a defined macro
+*"can be used anywhere"* (1364-2005 §19.3.1, 1800-2017 / 1800-2023 §22.5.1): its value is then
+`` {kind: "macro_usage", name: [[trivia], "`M"], arguments: "(…)" | []} `` in place of the literal envelope — `` `line `N
+"f.sv" 0 ``'s `number`, `` `timescale `U / `P ``'s `unit` and `precision`, `` `undef `X ``'s `name`,
+`` `default_nettype `` / `` `unconnected_drive `` / `` `begin_keywords `` values. A `` `timescale `` whose WHOLE
+specification is one usage (`` `timescale `TS ``) is `{macro, comment}`. Under `sv_2017` / `verilog_2005` a
+directive's tokens may be separated by newlines (the parameter envelopes' trivia then hold the newline pieces); under
+`sv_2023` they may not. `` `default_nettype ``'s value is one of Syntax 22-7's eleven words (through `1.0.8` any
+identifier passed).
+A usage's `arguments` is its `( … )` span as one string, LEXED per §22.5.1 (*"Actual arguments and defaults shall not
+contain comma or right parenthesis characters outside matched pairs of left and right parentheses (), square brackets
+[], braces {}, double quotes "", or an escaped identifier"*): a string, a block comment and an escaped identifier are
+atoms, so `` `include `M(")") `` and `` `M(\a) ) `` close at the last `)`; a string left open refuses the directive
+(`SVPP-0015`, release `1.0.9`).
 ### Verified surface totals
 
 The full typed surface of contract `1.0.8` is **100 return annotations
@@ -737,99 +815,51 @@ truth: where this prose and the inventory disagree, the inventory wins.
 
 ### The conditional-compilation tree
 
-The `pp_item` `"conditional"` branch (branch 7 in the
-[`pp_item` dispatch](#the-10-branch-pp_item-dispatch)) carries a `body`
-that is the typed `pp_conditional` object. `pp_conditional` is the
-single-branch root of the `` `ifdef`` / `` `ifndef`` … `` `elsif`` …
-`` `else`` … `` `endif`` tree. Per
-`grammars/systemverilog_preprocessor.ebnf` (lines 61–80):
+The `pp_item` `"conditional"` branch carries a `body` that is the typed `pp_conditional` object, the root of the
+`` `ifdef`` / `` `ifndef`` … `` `elsif`` … `` `else`` … `` `endif`` tree. Per `grammars/systemverilog_preprocessor.ebnf`
+(release `1.0.9`):
 
 ```ebnf
 pp_conditional  := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif
                 -> {if_branch: $1, elsif_branches: $2, else_branch: $3}
 pp_if_keyword   := kw_ifdef  -> {kind: "ifdef"}
                  | kw_ifndef -> {kind: "ifndef"}
-pp_if_branch    := pp_if_keyword macro_name directive_tail? newline pp_item*
+pp_if_branch    := pp_if_keyword if_condition conditional_tail? newline? pp_group_item*
                 -> {keyword: $1, macro: $2, tail: $3, items: $5}
-pp_elsif_branch := kw_elsif condition_expr newline pp_item*
-                -> {condition: $2, items: $4}
-pp_else_branch  := kw_else directive_tail? newline pp_item*
+pp_elsif_branch := kw_elsif if_condition conditional_tail? newline? pp_group_item*
+                -> {macro: $2, tail: $3, items: $5}
+pp_else_branch  := kw_else conditional_tail? newline? pp_group_item*
                 -> {tail: $2, items: $4}
-pp_endif        := kw_endif directive_tail? newline?
+pp_endif        := kw_endif conditional_tail? newline?
                 -> {tail: $2}
+@branch_policy: ordered
+pp_group_item   := pp_item
+                 | pp_malformed_directive -> {kind: "malformed_directive", body: $1}
 ```
 
-`pp_if_keyword` is the `1.0.2` `SVPP-0001` correctness fix (the proven
-RTL-CE-Slice-2 / `systemverilog.ebnf` idiom): the previously-inline
-`(kw_ifdef | kw_ifndef)` alternation is lifted into this **named**
-2-branch rule so `pp_if_branch`'s bare `keyword: $1` captures cleanly.
-It is the **only** dispatch rule in the conditional tree — a 2-branch
-`kind`-tagged shape (`{kind: "ifdef"}` / `{kind: "ifndef"}`,
-`branch_index` 0–1, both `return_object`). The other five rules
-(`pp_conditional`, `pp_if_branch`, `pp_elsif_branch`, `pp_else_branch`,
-`pp_endif`) each have exactly **one** branch (`branch_index: 0`), each
-`annotation_type: "return_object"`, and carry no `type`/`kind`
-discriminator — they are fixed-shape positional objects reached
-structurally from the `pp_item` `"conditional"` `body`, not by tag
-dispatch.
+| field | holds |
+|---|---|
+| `if_branch.keyword` / `.macro` | the polarity (`{kind: "ifdef"}` / `{kind: "ifndef"}`) and the CONDITION (below) |
+| `elsif_branches[i].macro` | the `` `elsif `` condition — the same three forms (schema `7`: through schema `6` this was `condition: {atoms}`, a run to the line end) |
+| `.tail` (if / elsif / else / endif) | a trailing `//` comment on the directive's line (`[[" "], "// FOO"]`), or `[]`. Any other text after the directive on its line is the group's FIRST ITEM — 1800-2023 §22.6: the block of text ends at the next `` `elsif `` / `` `else `` / `` `endif ``, and *"White space is not considered when determining termination"*. A conditional on one line (`` `ifdef A wire w; `endif ``) is one `conditional` whose `if_branch.items[0]` is the text. |
+| `.items` | the group: `pp_item` kinds, plus `{kind: "malformed_directive", body: {text}}` — a line inside the group that does not parse, recorded whole. An ignored group need only be lexically valid (§22.6), and whether a group is ignored is the expansion stage's to decide; the text is still lexed, so an unclosed string or comment refuses the file. At the top level the same line is refused. The conditional keywords are never recorded so. |
 
-| Rule (`grammars/systemverilog_preprocessor.ebnf`) | Annotation | Branches | Fields | Meaning |
-|---|---|---|---|---|
-| `pp_conditional` (line 61) | `return_object` `{if_branch: $1, elsif_branches: $2, else_branch: $3}` | 1 | `if_branch`, `elsif_branches`, `else_branch` | `if_branch` is exactly one typed `pp_if_branch`. `elsif_branches` is an array (`[]` when there are no `` `elsif``) of typed `pp_elsif_branch`, in source order. `else_branch` is the single typed `pp_else_branch`, or `[]` when there is no `` `else`` (the `pp_else_branch?` optional). The closing `pp_endif` ($4) is **not** re-emitted as a field — it is consumed positionally and contributes only its `tail` semantics; there is no `endif` key on `pp_conditional`. |
-| `pp_if_keyword` (lines 71–72) | `return_object` `{kind: "ifdef"}` (branch 0) / `{kind: "ifndef"}` (branch 1) | 2 | `kind` | The `1.0.2` `SVPP-0001` named-rule fix. A 2-branch `kind`-tagged polarity discriminator: branch 0 matches `kw_ifdef` → `{kind: "ifdef"}`, branch 1 matches `kw_ifndef` → `{kind: "ifndef"}`. This is exactly what `pp_if_branch.keyword` now holds. The two branches are the +2 entries that took the annotation count `64 → 66` and the distinct-rule count `27 → 28`. |
-| `pp_if_branch` (line 74) | `return_object` `{keyword: $1, macro: $2, tail: $3, items: $5}` | 1 | `keyword`, `macro`, `tail`, `items` | `keyword` is `$1`, the typed `pp_if_keyword` polarity object — **`{kind: "ifdef"}` or `{kind: "ifndef"}`** as of the `1.0.2` `SVPP-0001` fix (was the malformed `<invalid_sequence_access>` object at `1.0.1` / schema `1` — see [Resolved defect — `SVPP-0001`](#resolved-defect--svpp-0001-fixed-in-102)). Read the conditional polarity from `if_branch.keyword.kind`. `macro` is the guard macro name (`macro_name`/`identifier` envelope). `tail` is the optional `directive_tail` envelope (`[]` when absent). `items` is a nested `pp_item*` array (`[]` when the branch body is empty) — recurse into the [`pp_item` dispatch](#the-10-branch-pp_item-dispatch) for each element. |
-| `pp_elsif_branch` (line 76) | `return_object` `{condition: $2, items: $4}` | 1 | `condition`, `items` | `condition` is the typed `condition_expr` object (`{atoms}`) — a `condition_atom+` stream (see the condition-atom note below). `items` is a nested `pp_item*` array (`[]` when empty). Note the positional gap: `kw_elsif` is `$1`, `condition_expr` is `$2`, `newline` is `$3`, `pp_item*` is `$4`; `$1`/`$3` are consumed but not re-emitted. |
-| `pp_else_branch` (line 78) | `return_object` `{tail: $2, items: $4}` | 1 | `tail`, `items` | `tail` is the optional `directive_tail` envelope (`[]` when absent). `items` is a nested `pp_item*` array (`[]` when empty). `kw_else` (`$1`) and `newline` (`$3`) are consumed positionally without their own fields. |
-| `pp_endif` (line 80) | `return_object` `{tail: $2}` | 1 | `tail` | `tail` is the optional `directive_tail` envelope (`[]` when absent). `pp_endif` is consumed positionally by `pp_conditional` ($4) and is **not** surfaced as a `pp_conditional` field — a consumer that needs the `` `endif`` trailing comment must obtain it through a path that retains the `pp_endif` shape (e.g. a raw/structured dump), not from the typed `pp_conditional` object. |
+**The condition** (`macro`) takes one of three shapes:
 
-**Consumer walk.** To reconstruct the
-`` `ifdef``/`` `ifndef`` … `` `elsif`` … `` `else`` … `` `endif``
-tree: dispatch a `pp_item` on `kind == "conditional"`, take
-`body` (the `pp_conditional`). Read `body.if_branch` — its `macro` is
-the guard identifier and its `keyword` distinguishes
-`` `ifdef`` (defined-true) from `` `ifndef`` (defined-false) via
-`body.if_branch.keyword.kind` (`"ifdef"` / `"ifndef"`), the typed
-`pp_if_keyword` polarity object landed by the `1.0.2` `SVPP-0001`
-fix (was defective at `1.0.1`; see
-[Resolved defect — `SVPP-0001`](#resolved-defect--svpp-0001-fixed-in-102)).
-Recurse `body.if_branch.items` as a `pp_item*` array for the if-true
-body. Iterate
-`body.elsif_branches` (possibly `[]`); for each, evaluate
-`elsif.condition` (a `condition_expr` `{atoms}`) and recurse
-`elsif.items`. If `body.else_branch` is not `[]`, recurse
-`body.else_branch.items` for the fallback body. The closing
-`` `endif`` is structurally implied (the tree is well-formed only when
-a `pp_endif` was consumed) and is not a field.
+| shape | when | example |
+|---|---|---|
+| `[[trivia], "NAME"]` — the identifier envelope | a `text_macro_identifier`, every profile | `` `ifdef DEBUG `` → `[[" "], "DEBUG"]` |
+| `` {kind: "macro_usage", name: [[trivia], "`M"], arguments} `` | a macro usage, every profile (a defined macro *"can be used anywhere"*) | `` `ifdef `M `` |
+| `{kind: "expression", expression: <node>}` | `( ifdef_macro_expression )`, `sv_2023` / `sv_2023_tolerant` only | `` `ifdef (A && !B) `` |
 
-#### `SVPP-0001` in the conditional-tree context (resolved in 1.0.2)
+The expression `node` is `{kind: "identifier", name}`, `{kind: "not", operand}`, `{kind: "binary", operator, left,
+right}` (`operator` one of `"&&"`, `"||"`, `"->"`, `"<->"`; `!` binds tightest, then `&&`, `||`, and `->` / `<->`
+lowest, right-associative), `{kind: "group", expression}` for a parenthesized sub-expression, or a `macro_usage`.
 
-`pp_if_branch.keyword` is now the typed `pp_if_keyword` polarity object
-**`{kind: "ifdef"}`** (or `{kind: "ifndef"}`). *Historical (release
-`1.0.1`, schema `1`):* `keyword` (the `$1` bound to the then-inline
-alternation `(kw_ifdef | kw_ifndef)`) surfaced, for any
-`` `ifdef``/`` `ifndef`` input, a malformed nested object containing
-three `"<invalid_sequence_access>"` strings instead of the keyword
-token — the inline-alternation-`$N` emit-time defect class
-(`SVPP-0001`). **Fixed in parser release `1.0.2` / schema `2`** by
-lifting `(kw_ifdef | kw_ifndef)` into the named `pp_if_keyword` rule
-(proven RTL-CE-Slice-2 playbook); the schema was bumped `1 → 2` because
-`pp_if_branch.keyword` changed shape in a consumer-visible way. Tracked
-(status `Released`) in
-`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`SVPP-0001`) and at
-the head of this contract under
-[Resolved Defects — `SVPP-0001`](#resolved-defects--svpp-0001-fixed-in-release-102-schema-2)
-and the
-[Resolved defect — `SVPP-0001`](#resolved-defect--svpp-0001-fixed-in-102)
-note of the AST-Envelope section. The fragment-specific consumer
-guidance: read the conditional polarity directly from
-`if_branch.keyword.kind` (`"ifdef"` = defined-true,
-`"ifndef"` = defined-false); the guard macro is at the outer
-`if_branch.macro`; `if_branch.tail`, `if_branch.items`, and every
-`pp_elsif_branch` / `pp_else_branch` / `pp_endif` field are correct.
-There is no longer any `<invalid_sequence_access>` anywhere in the
-conditional tree; consumers written against `1.0.1` that treated
-`if_branch.keyword` as opaque/text-only must repin to schema `2` and
-switch to the `keyword.kind` discriminator.
+**Consumer walk.** Dispatch a `pp_item` on `kind == "conditional"`; read `body.if_branch.keyword.kind` and its
+`macro`, dispatching the condition on its shape (an array is the identifier envelope, an object has a `kind`); recurse
+`items`, handling `malformed_directive` as an opaque line; iterate `body.elsif_branches`; then `body.else_branch` (`[]`
+when absent). The tree records every group — this parser does not evaluate conditions.
 
 ### The `macro_body` fragment kinds
 
@@ -846,21 +876,27 @@ macro_body_fragment := macro_line_continuation -> {kind: "line_continuation"}
                      | macro_token_paste -> {kind: "token_paste"}
                      | macro_stringize   -> {kind: "stringize"}
                      | macro_escaped_quote -> {kind: "escaped_quote"}
+                     | macro_directive_word -> {kind: "directive", body: $1}
                      | macro_reference   -> {kind: "macro_reference", body: $1}
                      | macro_body_text   -> {kind: "text",   body: $1}
-                     | lparen            -> {kind: "lparen"}
-                     | rparen            -> {kind: "rparen"}
-                     | comma             -> {kind: "comma"}
-                     | question          -> {kind: "question"}
-                     | colon             -> {kind: "colon"}
+                     | macro_lparen      -> {kind: "lparen"}
+                     | macro_rparen      -> {kind: "rparen"}
+                     | macro_comma       -> {kind: "comma"}
+                     | macro_question    -> {kind: "question"}
+                     | macro_colon       -> {kind: "colon"}
 ```
+
+Release `1.0.9` adds the twelfth kind, `` {kind: "directive", body: [[trivia], "`ifdef"]} `` — a compiler directive inside
+macro text, processed where the macro is used (through `1.0.8` a `macro_reference`) — and gives the fragments macro
+text's own layout (a block comment crosses a line only where its newline is backslash-preceded under `sv_2017` /
+`verilog_2005`, anywhere under `sv_2023`). The punctuation fragments are regex terminals (`SVPP-0014`).
 
 `macro_body` is a single-branch `return_object`
 (`{fragments: $1}`, line 112): `fragments` is a non-empty array (the
 `macro_body_fragment+`) of typed `macro_body_fragment` objects in
 source order. `macro_body_fragment` is a `kind`-tagged dispatcher. The
-inventory confirms exactly **11** `macro_body_fragment` branches
-(`branch_index` 0–10, every one `annotation_type: "return_object"`; 9 through `1.0.7`):
+inventory confirms exactly **12** `macro_body_fragment` branches
+(`branch_index` 0–11, every one `annotation_type: "return_object"`; 9 through `1.0.7`, 11 at `1.0.8`):
 
 | Branch | `kind` | Fields | Captured source text |
 |---|---|---|---|
@@ -1009,7 +1045,8 @@ Where this prose and the inventory disagree, the inventory wins.
 - If a downstream project needs a generic public embedding API for `systemverilog_preprocessor`, that should be treated as new product-surface work, not assumed from current internal registry availability.
 
 ## Validation / Release Gates
-- `python3 docs/tasks/artifacts/sv_corpus_grad/svpp_corpus_census/census.py --bank --probe rust/target/release/parseability_probe` — the clause-22 reproducer bank (66 cases, ACCEPT and REJECT, each with its clause); needs no corpus.
+- `python3 docs/tasks/artifacts/sv_corpus_grad/svpp_corpus_census/census.py --bank --probe rust/target/release/parseability_probe` — the reproducer bank (119 cases, ACCEPT and REJECT, each with its clause and, for 19, the profile it is read under); needs no corpus.
+- the same census under each edition: `--profile sv_2023`, and `--profile verilog_2005` over the v2005 lane's own population — each with its own disposition table, `--check-dispositions --profile P`; every reading prints `SVPP-CORPUS-CENSUS-ERROR-TESTS:` and refuses an accepted suite error test without a written reason.
 - `python3 docs/tasks/artifacts/sv_corpus_grad/svpp_corpus_census/census.py --probe rust/target/release/parseability_probe --before <the previous release's probe>` then `--check-dispositions` — the generated parser over the 16,336-file SystemVerilog corpus, transitions and AST identity against the previous release, every rejection adjudicated (run at every release of this family; it reads the SV raw lane's dump).
 - `make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate`
 - `make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate`
@@ -1078,28 +1115,27 @@ Where this prose and the inventory disagree, the inventory wins.
   family's corpus leg stays NOT MEASURED because no corpus of directive files is wired, and the expansion's
   corpus is the SystemVerilog family's.
 
-## Known Gaps — release 1.0.8 (each ORDERED fixed; none is a limit of this contract)
+## Known Gaps — release 1.0.9
 
-Release `1.0.8` does not yet meet these requirements. Each is a gap the parser will close, owned by the leaf named,
-by director ruling 2026-10-18 (`docs/decisions/feedback_every_parser_meets_its_full_requirements_no_documented_limits.md`:
-*"no changing the parsers' promises, doing this would be accepting a premature defeat"*) — never a stated limit:
+Open in this parser, owned by `SV-CORPUS-GRAD.13c.2v.17` and ordered fixed — defects, not a narrowed promise:
 
-- a conditional written on ONE line (`` `ifdef X `display_counts("x"); `endif ``) is refused — `pp_if_branch`'s tail takes the rest of the line, so the `` `endif `` is never seen. The form is legal and will be ACCEPTED (`SV-CORPUS-GRAD.13c.2v.10`; 5 corpus files);
-- a MALFORMED directive inside a group the compiler would ignore is refused, though §22.6 asks only lexical validity there. It will be SKIPPED, not rejected, while the same directive in a live group stays refused end to end (`.13c.2v.10`; 2 files);
-- a macro usage inside a directive's parameters is refused (`` `line `N "f.sv" 0 ``, `` `timescale `U / `P ``) — licensed in EVERY edition, since a defined macro *"can be used anywhere"* (1364-2005 §19.3.1, 1800-2017 / 1800-2023 §22.5.1; 1800-2023 §22.2 states the directive case), so it will derive under every profile (`` `include `MACRO `` IS derived already) (`SV-CORPUS-GRAD.13c.2v.9`; 4 files; corrected 2026-10-18 — first filed as a 1800-2023-only form);
-- IEEE 1800-2023's `` `ifdef ( expression ) `` / `` `elsif ( expression ) `` (§22.6) is not derived, and `` `elsif `` accepts the expression form under every reading — the grammar gains per-edition PROFILES so each edition's forms derive under its own profile (`SV-CORPUS-GRAD.13c.2v.9`; 2 files);
-- a macro name is `identifier`: an escaped-identifier name (§22.5.1) is refused and a directive word used as a macro name (`` `define resetall 1 ``, illegal by §22.5.1) is accepted — the expansion stage refuses the latter (`SV-CORPUS-GRAD.13c.2v.8`).
-- a block comment that spans lines is not opaque: a directive keyword on a line inside it is parsed as a directive (ledger `SVPP-0010`; when the comment opens after code on its line — a WRONG TREE in 1 corpus file `1.0.8` accepts, Surelog `PPComment/dut.sv`, which reads an `else_branch` the source comments out), and an `` `endif `` inside an open comment closes a conditional; IEEE 1800-2023 §22.2: *"Directives are not recognized within comments or string literals"* (`SV-CORPUS-GRAD.13c.2v.11`);
-- a passthrough line is not lexed: a string literal left open at its line end is ACCEPTED (ledger `SVPP-0011`; 7 suite error tests — sv2v `test/error/string_literal_eof.sv`, verilator `t_parse_eof_str_bad.v`, `t_preproc_stringend_bad.v`, …) and a directive word inside a string is not hidden (`SV-CORPUS-GRAD.13c.2v.12`);
-- text after `` `ifdef X `` / `` `ifndef X `` / `` `else `` / `` `endif `` on its line is recorded as the directive's `tail`, and after `` `elsif X `` as part of its CONDITION, instead of as the group's first item (ledger `SVPP-0012`; a wrong tree in verilator `t_preproc_ifdef.v`, whose `` `elsif A       $display("2A"); `` reads `$display` as condition atoms) — the same root as the refused one-line conditional (`SV-CORPUS-GRAD.13c.2v.10`);
-- a `` `define `` whose formal list spans lines is read as OBJECT-LIKE with the text `(typ,` (ledger `SVPP-0013`; sv2v `test/core/dimensions.v`, OpenTitan `cip_base_vseq__tl_errors.svh`) — 1364-2005 and 1800-2017 allow the newlines, 1800-2023 §22.2 does not (`SV-CORPUS-GRAD.13c.2v.14`);
-- a `` `define `` body runs on into the next line when that line opens with `(` `)` `,` `?` or `:`, and a comment between formals is skipped (ledger `SVPP-0014`: the punctuation terminals are string terminals, whose default layout skip crosses newlines and comments; 0 corpus files take the run-on shape).
+- a macro usage whose actuals continue onto the next line INSIDE a directive parameter (`` `timescale `T(1ns,⏎1ps) ``)
+  is read as a usage without actuals followed by text, under every profile; whether the `(` opens actuals depends on
+  the macro's definition, which this parser does not have, so the reading is that leaf's first deliverable;
+- under `sv_2023`, a block comment crossing a line inside such actuals is accepted the same way (the text after the
+  usage is read as the directive's following text).
 
-The next release's design — where liveness is decided (the expansion stage, which has the compilation's environment; this parser records a malformed directive inside a conditional group as an item and refuses it at the top level), a lexically-aware text run, directives anywhere on a line, the per-edition profiles and their matrix — is `SV-CORPUS-GRAD.13c.2v.13`.
+The PIPELINE's expansion stage carries seven edition and lexical findings made
+while designing this release — `SVPP-EXPANSION.5`(w) (`` `line 0 `` consumed), (x) (an ignored group not lexed), (y) (a
+parenthesized conditional outside 1800-2023), (z) (1800 macro features under `verilog_2005`), (aa) (the line discipline
+read per directive, not per edition), (ab) (an empty formal list accepted), (ac) (a macro usage's actuals closed at a
+`)` inside `[ ]` / `{ }` or an escaped identifier) — each ordered fixed in the stage's own release next, which measures
+the SystemVerilog pipeline movers they cause.
 
 ## Scope / Non-Goals
 - The EXPANSION stage is contracted in the SV integration contract (section above); this document contracts the directive parser's AST.
-- A directive with a defined end may be followed by text on its line (IEEE 1800-2023 §22.2); the tree records that text as a following `non_directive_line` item. `` `include ``, `` `line `` and `` `pragma `` must end their line.
+- A directive with a defined end may be followed by text on its line, and since `1.0.9` a directive may be PRECEDED by text on its line (IEEE 1800-2023 §22.2: *"A language element is allowed on the same line before a directive"*); the tree records such text as a `non_directive_line` item that ends where the directive begins. `` `include `` and `` `line `` own their line (§22.4, §22.12); `` `pragma `` and a `` `define ``'s text run to the line end.
+- This parser does not decide LIVENESS (which conditional groups a compilation compiles) — that needs the compilation's symbols and includes, and is the expansion stage's. It records every group's structure, and a line inside a group that does not parse as a `malformed_directive` item.
 - This document is intentionally explicit that `systemverilog_preprocessor` does not yet have the same published host-embedding shape as `systemverilog`, `vhdl`, or `regex`.
 - Downstream consumers should not couple themselves to internal generated parser modules as if they were already a stable public API.
 - If a downstream integrator still reports a reproducible preprocessor/runtime bug, use `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` and log accepted released-parser issues in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.

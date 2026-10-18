@@ -26,8 +26,9 @@ This matters especially for:
 
 ### Current API surface
 
-The embedding API version is **`2.1.0`**. The supported grammar families and their selectable
-profile strings are:
+The embedding API version is **`2.2.0`**. The supported grammar families and their selectable
+profile strings are (since `2.2.0` the SystemVerilog preprocessor declares the SystemVerilog editions as well, so resolve a profile
+within its family — `GrammarFamily::from_str("systemverilog")?.profile("sv_2023")?`):
 
 - **SystemVerilog** — `sv_2017`, `sv_2023`, and the strict **`verilog_2005`** (IEEE 1364-2005 Verilog
   subset) profile;

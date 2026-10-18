@@ -1,25 +1,36 @@
-# path	disposition	the text that makes it right (SV-CORPUS-GRAD.13c.2v.2; read one by one)
+# path	disposition	the text that makes it right (SV-CORPUS-GRAD.13c.2v.2, .13c.2v.13 - the default reading, IEEE 1800-2017; read one by one)
 stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/top_1.v	refused_by_clause	`default_nettype with no value (Syntax 22-7)
+stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/top_2.v	refused_by_clause	a string literal split between a macro's text and its usage (`first_half end of string"): §22.5.1 'The text specified for macro text shall not be split across ... string literals'; the stage refuses it (SVPP-EXPANSION.5(s))
 stimuli/sv/subs/Surelog/tests/PragmaProtect/top.sv	refused_by_clause	`pragma protect key_block encoding = (...): two pragma_expressions without the comma Syntax 22-8 requires (clause 34's own examples use it)
 stimuli/sv/subs/Surelog/tests/PreProcMacroFunc/dut.sv	refused_by_clause	an `endif with no open conditional in the file (Syntax 22-5)
-stimuli/sv/subs/Surelog/tests/PreprocLine/dut.sv	routed_gap:SV-CORPUS-GRAD.13c.2v.9	a macro usage inside a directive's parameters: licensed in every edition - a defined macro 'can be used anywhere' (1364-2005 19.3.1, 1800-2017/2023 22.5.1); 1800-2023 22.2 states the directive case
 stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/top_1.v	refused_by_clause	`default_nettype with no value (Syntax 22-7)
+stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/top_2.v	refused_by_clause	a string literal split between a macro's text and its usage (`first_half end of string"): §22.5.1 'The text specified for macro text shall not be split across ... string literals'; the stage refuses it (SVPP-EXPANSION.5(s))
 stimuli/sv/subs/Surelog/tests/TestMacros/TestMacros.v	refused_by_clause	`define with no macro name (Syntax 22-2)
+stimuli/sv/subs/friscv/test/common/friscv_testbench.sv	refused_by_clause	a macro-string or paste token (`" / ``) outside macro text: §22.5.1 gives these tokens meaning only in macro text; the stage refuses the same text (SVPP-EXPANSION.6f)
+stimuli/sv/subs/friscv/test/sv/icache_testbench.sv	refused_by_clause	a macro-string or paste token (`" / ``) outside macro text: §22.5.1 gives these tokens meaning only in macro text; the stage refuses the same text (SVPP-EXPANSION.6f)
+stimuli/sv/subs/ispras-sv-tests/ieee-1364-2005/test_19_03_01_2.v	refused_by_clause	a string literal split between a macro's text and its usage (`first_half end of string"): §22.5.1 'The text specified for macro text shall not be split across ... string literals'; the stage refuses it (SVPP-EXPANSION.5(s))
+stimuli/sv/subs/iverilog/ivtest/ivltests/begin_keywords_1800_2023.v	edition_contrast:sv_2023	`begin_keywords "1800-2023" is not a 1800-2017 version_specifier (Syntax 22-10); it derives under --profile sv_2023
 stimuli/sv/subs/iverilog/ivtest/ivltests/begin_keywords_vams_2_3.v	refused_by_clause	a Verilog-AMS version_specifier: no IEEE 1800 Syntax 22-10 entry; §22.14 'It shall be an error if an implementation does not recognize the version_specifier'
-stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh782b.v	refused_by_clause	a directive spread over several lines: IEEE 1800-2023 §22.2 'Unless specified below as supporting multiple lines, compiler directives shall be all on one line'
-stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh782c.v	refused_by_clause	a directive spread over several lines: IEEE 1800-2023 §22.2 'Unless specified below as supporting multiple lines, compiler directives shall be all on one line'
-stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh782e.v	refused_by_clause	a directive spread over several lines: IEEE 1800-2023 §22.2 'Unless specified below as supporting multiple lines, compiler directives shall be all on one line'
-stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh782f.v	refused_by_clause	a directive spread over several lines: IEEE 1800-2023 §22.2 'Unless specified below as supporting multiple lines, compiler directives shall be all on one line'
-stimuli/sv/subs/iverilog/ivtest/ivltests/escaped_macro_name.v	routed_gap:SV-CORPUS-GRAD.13c.2v.8	an escaped-identifier macro name (§22.5.1)
 stimuli/sv/subs/iverilog/ivtest/ivltests/ifdef_fail.v	suite_error_test	iverilog regress-vlg.list: ifdef_fail CE - conditionals with no macro name (Syntax 22-5)
+stimuli/sv/subs/iverilog/ivtest/ivltests/macro_str_esc.v	refused_by_clause	a macro-string or paste token (`" / ``) outside macro text: §22.5.1 gives these tokens meaning only in macro text; the stage refuses the same text (SVPP-EXPANSION.6f)
+stimuli/sv/subs/iverilog/ivtest/ivltests/macro_with_args.v	refused_by_clause	a comment between macro formals: §22.5.1 'The formal argument names shall be simple_identifiers, separated by commas and optionally white space' (SVPP-EXPANSION.5(o)); 1.0.8 accepted it only by reading the define as object-like
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1741212.v	refused_by_clause	a macro-string or paste token (`" / ``) outside macro text: §22.5.1 gives these tokens meaning only in macro text; the stage refuses the same text (SVPP-EXPANSION.6f)
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1912112.v	refused_by_clause	a macro-string or paste token (`" / ``) outside macro text: §22.5.1 gives these tokens meaning only in macro text; the stage refuses the same text (SVPP-EXPANSION.6f)
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1925360.v	refused_by_clause	a macro-string or paste token (`" / ``) outside macro text: §22.5.1 gives these tokens meaning only in macro text; the stage refuses the same text (SVPP-EXPANSION.6f)
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr622.v	refused_by_clause	a macro-string or paste token (`" / ``) outside macro text: §22.5.1 gives these tokens meaning only in macro text; the stage refuses the same text (SVPP-EXPANSION.6f)
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr639.v	refused_by_clause	a macro-string or paste token (`" / ``) outside macro text: §22.5.1 gives these tokens meaning only in macro text; the stage refuses the same text (SVPP-EXPANSION.6f)
 stimuli/sv/subs/sv-tests/tests/chapter-22/22.11--pragma-invalid.sv	suite_error_test	sv-tests :should_fail_because: - refused at the construct it names (Syntax 22-8 / 22-9 / §22.9)
 stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-1.sv	suite_error_test	sv-tests :should_fail_because: - refused at the construct it names (Syntax 22-8 / 22-9 / §22.9)
 stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-2.sv	suite_error_test	sv-tests :should_fail_because: - refused at the construct it names (Syntax 22-8 / 22-9 / §22.9)
 stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-3.sv	suite_error_test	sv-tests :should_fail_because: - refused at the construct it names (Syntax 22-8 / 22-9 / §22.9)
 stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-4.sv	suite_error_test	sv-tests :should_fail_because: - refused at the construct it names (Syntax 22-8 / 22-9 / §22.9)
 stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-5.sv	suite_error_test	sv-tests :should_fail_because: - refused at the construct it names (Syntax 22-8 / 22-9 / §22.9)
+stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_21.sv	refused_by_clause	a string literal split between a macro's text and its usage (`first_half end of string"): §22.5.1 'The text specified for macro text shall not be split across ... string literals'; the stage refuses it (SVPP-EXPANSION.5(s))
+stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_23.sv	refused_by_clause	`define define: 'it shall be illegal to redefine a compiler directive as a macro name' (§22.5.1)
 stimuli/sv/subs/sv-tests/tests/chapter-22/22.9--unconnected_drive-invalid-1.sv	suite_error_test	sv-tests :should_fail_because: - refused at the construct it names (Syntax 22-8 / 22-9 / §22.9)
 stimuli/sv/subs/sv-tests/tests/chapter-22/22.9--unconnected_drive-invalid-2.sv	suite_error_test	sv-tests :should_fail_because: - refused at the construct it names (Syntax 22-8 / 22-9 / §22.9)
+stimuli/sv/subs/sv2v/test/error/block_comment_eof.sv	suite_error_test	the suite's own error test, refused at the construct it names (line 2: /*)
+stimuli/sv/subs/sv2v/test/error/default_nettype_invalid.sv	suite_error_test	the suite's own error test, refused at the construct it names (line 2: `default_nettype invalid)
 stimuli/sv/subs/sv2v/test/error/double_backtick.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
 stimuli/sv/subs/sv2v/test/error/include_apos.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
 stimuli/sv/subs/sv2v/test/error/include_filename_eof.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
@@ -27,8 +38,14 @@ stimuli/sv/subs/sv2v/test/error/line_char1.sv	suite_error_test	sv2v test/error/ 
 stimuli/sv/subs/sv2v/test/error/line_char2.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
 stimuli/sv/subs/sv2v/test/error/line_eof.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
 stimuli/sv/subs/sv2v/test/error/line_level.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
+stimuli/sv/subs/sv2v/test/error/macro_arg_bad_eq.sv	suite_error_test	the suite's own error test, refused at the construct it names (line 2: `define MACRO(a#))
+stimuli/sv/subs/sv2v/test/error/macro_arg_bad_name.sv	suite_error_test	the suite's own error test, refused at the construct it names (line 2: `define MACRO(#))
+stimuli/sv/subs/sv2v/test/error/macro_args_empty.sv	suite_error_test	the suite's own error test, refused at the construct it names (line 2: `define MACRO())
+stimuli/sv/subs/sv2v/test/error/macro_illegal_name.sv	suite_error_test	the suite's own error test, refused at the construct it names (line 2: `define define)
+stimuli/sv/subs/sv2v/test/error/stray_escaped_vendor_comment.sv	suite_error_test	the suite's own error test, refused at the construct it names (line 4: /``* some awful garbage *``/)
 stimuli/sv/subs/sv2v/test/error/string_directive.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
 stimuli/sv/subs/sv2v/test/error/string_literal_backtick_eof.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
+stimuli/sv/subs/sv2v/test/error/string_literal_eof.sv	suite_error_test	the suite's own error test, refused at the construct it names (line 2: ")
 stimuli/sv/subs/sv2v/test/error/unmatched_else.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
 stimuli/sv/subs/sv2v/test/error/unmatched_else_end.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
 stimuli/sv/subs/sv2v/test/error/unmatched_elsif.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
@@ -36,29 +53,36 @@ stimuli/sv/subs/sv2v/test/error/unmatched_elsif_end.sv	suite_error_test	sv2v tes
 stimuli/sv/subs/sv2v/test/error/unmatched_endif.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
 stimuli/sv/subs/sv2v/test/error/unmatched_ifdef.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
 stimuli/sv/subs/sv2v/test/error/unmatched_ifndef.sv	suite_error_test	sv2v test/error/ - the suite's own error test; refused at the construct it names
-stimuli/sv/subs/sv2v/test/lex/line.sv	routed_gap:SV-CORPUS-GRAD.13c.2v.9	a macro usage inside a directive's parameters: licensed in every edition - a defined macro 'can be used anywhere' (1364-2005 19.3.1, 1800-2017/2023 22.5.1); 1800-2023 22.2 states the directive case
-stimuli/sv/subs/sv2v/test/lex/string_macro.sv	routed_gap:SV-CORPUS-GRAD.13c.2v.10	a malformed directive inside a group the compiler ignores: §22.6 requires only lexical validity there; the directive must be SKIPPED, not rejected (director ruling 2026-10-18)
-stimuli/sv/subs/verilator/test_regress/t/t_clk_2in.v	routed_gap:SV-CORPUS-GRAD.13c.2v.10	a conditional written on one line (`ifdef X ... `endif): IEEE 1800-2023 §22.2 lets a directive with a defined end be followed by text on its line
+stimuli/sv/subs/sv2v/test/lex/macro_arg_comment.sv	refused_by_clause	a comment between macro formals (§22.5.1; SVPP-EXPANSION.5(o)); the stage refuses it too (pipeline pp_fail)
+stimuli/sv/subs/sv2v/test/lex/string_macro.sv	refused_by_clause	a macro-string or paste token (`" / ``) outside macro text: §22.5.1 gives these tokens meaning only in macro text; the stage refuses the same text (SVPP-EXPANSION.6f); its directive in a SKIPPED group (sv2v :42, verilator :246) is now recorded, not refused
+stimuli/sv/subs/verilator/test_regress/t/t_display_qqq.v	edition_contrast:sv_2023	a triple-quoted string literal, new in 1800-2023 §5.9 (the SV key: must_reject on the sv_2017 lane); it derives under --profile sv_2023
 stimuli/sv/subs/verilator/test_regress/t/t_dpi_vams.v	refused_by_clause	a Verilog-AMS version_specifier: no IEEE 1800 Syntax 22-10 entry; §22.14 'It shall be an error if an implementation does not recognize the version_specifier'
-stimuli/sv/subs/verilator/test_regress/t/t_func_dotted.v	routed_gap:SV-CORPUS-GRAD.13c.2v.10	a conditional written on one line (`ifdef X ... `endif): IEEE 1800-2023 §22.2 lets a directive with a defined end be followed by text on its line
-stimuli/sv/subs/verilator/test_regress/t/t_interface2.v	routed_gap:SV-CORPUS-GRAD.13c.2v.10	a conditional written on one line (`ifdef X ... `endif): IEEE 1800-2023 §22.2 lets a directive with a defined end be followed by text on its line
-stimuli/sv/subs/verilator/test_regress/t/t_interface_modport.v	routed_gap:SV-CORPUS-GRAD.13c.2v.10	a conditional written on one line (`ifdef X ... `endif): IEEE 1800-2023 §22.2 lets a directive with a defined end be followed by text on its line
+stimuli/sv/subs/verilator/test_regress/t/t_fuzz_eof_bad.v	suite_error_test	the suite's own error test, refused at the construct it names (line 4: initial $lay(*Hello!=n");)
 stimuli/sv/subs/verilator/test_regress/t/t_lint_pragma_protected_bad.v	suite_error_test	verilator _bad test: `pragma with no pragma_name (Syntax 22-8)
-stimuli/sv/subs/verilator/test_regress/t/t_lint_warn_line_bad.v	routed_gap:SV-CORPUS-GRAD.13c.2v.9	a macro usage inside a directive's parameters: licensed in every edition - a defined macro 'can be used anywhere' (1364-2005 19.3.1, 1800-2017/2023 22.5.1); 1800-2023 22.2 states the directive case
+stimuli/sv/subs/verilator/test_regress/t/t_parse_eof_qqq_bad.v	suite_error_test	the suite's own error test, refused at the construct it names (line 7: """str)
+stimuli/sv/subs/verilator/test_regress/t/t_parse_eof_str_bad.v	suite_error_test	the suite's own error test, refused at the construct it names (line 7: localparam string STR = "str)
+stimuli/sv/subs/verilator/test_regress/t/t_pp_defkwd_bad.v	suite_error_test	the suite's own error test, refused at the construct it names (line 7: `define define 1)
+stimuli/sv/subs/verilator/test_regress/t/t_pp_defnettype_bad.v	suite_error_test	the suite's own error test, refused at the construct it names (line 7: `default_nettype bad_none_such)
+stimuli/sv/subs/verilator/test_regress/t/t_pp_display.v	refused_by_clause	a macro-string or paste token (`" / ``) outside macro text: §22.5.1 gives these tokens meaning only in macro text; the stage refuses the same text (SVPP-EXPANSION.6f)
 stimuli/sv/subs/verilator/test_regress/t/t_pp_line_bad.v	suite_error_test	verilator _bad test: `line with no parameters (Syntax 22-9: all parameters are required)
 stimuli/sv/subs/verilator/test_regress/t/t_pp_pragma_bad.v	suite_error_test	verilator _bad test: `pragma with no pragma_name (Syntax 22-8)
-stimuli/sv/subs/verilator/test_regress/t/t_preproc.v	routed_gap:SV-CORPUS-GRAD.13c.2v.10	a malformed directive inside a group the compiler ignores: §22.6 requires only lexical validity there; the directive must be SKIPPED, not rejected (director ruling 2026-10-18)
+stimuli/sv/subs/verilator/test_regress/t/t_preproc.v	refused_by_clause	a macro-string or paste token (`" / ``) outside macro text: §22.5.1 gives these tokens meaning only in macro text; the stage refuses the same text (SVPP-EXPANSION.6f); its directive in a SKIPPED group (sv2v :42, verilator :246) is now recorded, not refused
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_cmtend_bad.v	suite_error_test	the suite's own error test, refused at the construct it names (line 7: /*Blah)
 stimuli/sv/subs/verilator/test_regress/t/t_preproc_elsif_bad.v	suite_error_test	verilator _bad test: an `elsif with no matching `if (§22.6)
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof1_bad.v	suite_error_test	the suite's own error test, refused at the construct it names (line 7: /*)
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof2_bad.v	suite_error_test	the suite's own error test, refused at the construct it names (line 8: )
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof4_bad.v	suite_error_test	the suite's own error test, refused at the construct it names (line 7: "blah)
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof_qqq_bad.v	suite_error_test	the suite's own error test, refused at the construct it names (line 7: """str)
 stimuli/sv/subs/verilator/test_regress/t/t_preproc_ifdefend_bad.v	suite_error_test	verilator _bad test: `ifdef not terminated at EOF (§22.6)
-stimuli/sv/subs/verilator/test_regress/t/t_preproc_ifexpr.v	routed_gap:SV-CORPUS-GRAD.13c.2v.9	IEEE 1800-2023 §22.6 `ifdef ( ifdef_macro_expression ) - valid 2023 text the grammar does not derive (the _bad file's verilator output is a warning)
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_ifexpr.v	refused_by_clause	`begin_keywords "1800-2023" (line 8) is not a 1800-2017 version_specifier (Syntax 22-10); under --profile sv_2023 the file reads on to line 69, an `ifdef ( ZERO / -> / ONE ) written over three lines, which 1800-2023 §22.2's one-line rule refuses (verilator accepts it - a tool tolerance)
 stimuli/sv/subs/verilator/test_regress/t/t_preproc_ifexpr_bad.v	suite_error_test	verilator _bad test: an `elsif with no matching `if (§22.6)
 stimuli/sv/subs/verilator/test_regress/t/t_preproc_inc_fn_bad.v	suite_error_test	verilator _bad test: `include `else - a directive is not a filename (§22.4, §22.5.1)
 stimuli/sv/subs/verilator/test_regress/t/t_preproc_kwd.v	refused_by_clause	a Verilog-AMS version_specifier: no IEEE 1800 Syntax 22-10 entry; §22.14 'It shall be an error if an implementation does not recognize the version_specifier'
-stimuli/sv/subs/verilator/test_regress/t/t_preproc_preproczero_bad.v	routed_gap:SV-CORPUS-GRAD.13c.2v.9	IEEE 1800-2023 §22.6 `ifdef ( ifdef_macro_expression ) - valid 2023 text the grammar does not derive (the _bad file's verilator output is a warning)
-stimuli/sv/subs/verilator/test_regress/t/t_preproc_undefineall.v	routed_gap:SV-CORPUS-GRAD.13c.2v.10	a conditional written on one line (`ifdef X ... `endif): IEEE 1800-2023 §22.2 lets a directive with a defined end be followed by text on its line
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_preproczero_bad.v	edition_contrast:sv_2023	`begin_keywords "1800-2023" (line 8) is not a 1800-2017 version_specifier; under --profile sv_2023 the file derives, its `ifdef ( ONE ) included (1800-2023 Syntax 22-5)
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_stringend_bad.v	suite_error_test	the suite's own error test, refused at the construct it names (line 7: "Blah)
 stimuli/sv/subs/verilator/test_regress/t/t_split_var_3_wreal.v	refused_by_clause	a Verilog-AMS version_specifier: no IEEE 1800 Syntax 22-10 entry; §22.14 'It shall be an error if an implementation does not recognize the version_specifier'
-stimuli/sv/subs/verilator/test_regress/t/t_time_vpi.v	routed_gap:SV-CORPUS-GRAD.13c.2v.9	a macro usage inside a directive's parameters: licensed in every edition - a defined macro 'can be used anywhere' (1364-2005 19.3.1, 1800-2017/2023 22.5.1); 1800-2023 22.2 states the directive case
 stimuli/sv/subs/verilator/test_regress/t/t_timescale_parse_bad.v	suite_error_test	verilator _bad test: `timescale frump (Syntax 22-6)
+stimuli/sv/subs/verilator/test_regress/t/t_timing_split.v	refused_by_clause	an EMPTY formal list `define foo8(): Syntax 22-2's list_of_formal_arguments has at least one formal in every edition (sv2v keys the form as test/error/macro_args_empty.sv); the stage accepts it - SVPP-EXPANSION.5(ab)
 stimuli/sv/subs/verilator/test_regress/t/t_unconnected_bad.v	suite_error_test	verilator _bad test: `unconnected_drive with no argument (§22.9: pull1 or pull0)
 stimuli/sv/subs/verilator/test_regress/t/t_vams_basic.v	refused_by_clause	a Verilog-AMS version_specifier: no IEEE 1800 Syntax 22-10 entry; §22.14 'It shall be an error if an implementation does not recognize the version_specifier'
 stimuli/sv/subs/verilator/test_regress/t/t_vams_kwd_bad.v	refused_by_clause	a Verilog-AMS version_specifier: no IEEE 1800 Syntax 22-10 entry; §22.14 'It shall be an error if an implementation does not recognize the version_specifier'

@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-aa59a798.js";
+            window.path_to_searchindex_js = "searchindex-0dae82da.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-89867f1a.js"></script>
+        <script src="toc-b48efc63.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -342,7 +342,7 @@ written down in <code>residual_dispositions.tsv</code>, which the census refuses
 </div>
 <p>The census is not yet this family’s leg-3 assertion (the derived block above still reads NOT MEASURED); wiring it is
 <code>SV-CORPUS-GRAD.13c.2v.10</code>.</p>
-<h3 id="two-wrong-verdicts-the-census-could-not-see-found-2026-10-18"><a class="header" href="#two-wrong-verdicts-the-census-could-not-see-found-2026-10-18">Two wrong verdicts the census could not see (found 2026-10-18)</a></h3>
+<h3 id="wrong-verdicts-the-census-of-refusals-could-not-see-found-2026-10-18-fixed-in-release-109"><a class="header" href="#wrong-verdicts-the-census-of-refusals-could-not-see-found-2026-10-18-fixed-in-release-109">Wrong verdicts the census of refusals could not see (found 2026-10-18; FIXED in release <code>1.0.9</code>)</a></h3>
 <p>The census above reads the files this parser REFUSES. A file it wrongly ACCEPTS never reaches the disposition table, and
 designing the next release found five such defects in <code>1.0.8</code> (the last two by measuring its first prototype over the
 corpus, which compares every accepted tree):</p>
@@ -369,9 +369,52 @@ corpus, which compares every accepted tree):</p>
 `endif
 </code></pre>
 <p>IEEE 1800-2023 §22.2: <em>“Directives are not recognized within comments or string literals”</em> — the <code>`else</code> is comment text,
-so the conditional has one branch. Both defects are fixed by the next release’s lexically-aware text run (task leaf
-<code>SV-CORPUS-GRAD.13c.2v.13</code>), and that release’s census reads the other half too: every row the SystemVerilog answer key
-expects to be refused, joined to this parser’s verdict.</p>
+so the conditional has one branch. All five are fixed in release <code>1.0.9</code> (below), whose census reads the other half too: the corpus’s preprocessor-themed
+suite error tests, every one the parser accepts given a written reason.</p>
+<h2 id="release-109-measured-2026-10-18"><a class="header" href="#release-109-measured-2026-10-18">Release <code>1.0.9</code>, measured (2026-10-18)</a></h2>
+<p>Release <code>1.0.9</code> reads each IEEE edition through a profile (<a href="profiles.html">Editions and Profiles</a>), lexes passthrough
+text, lets a directive begin anywhere on a line, and records a conditional group’s line that does not parse instead
+of refusing it. The same census, on the GENERATED parser, against the <code>1.0.8</code> probe — one reading per edition:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>reading</th><th style="text-align: right">files</th><th style="text-align: right">accepted</th><th style="text-align: right">refused</th><th style="text-align: right">fail → pass</th><th style="text-align: right">pass → fail</th><th style="text-align: right">trees moved</th></tr>
+</thead>
+<tbody>
+<tr><td>default — IEEE 1800-2017</td><td style="text-align: right">16,336</td><td style="text-align: right">16,248</td><td style="text-align: right">88</td><td style="text-align: right">14</td><td style="text-align: right">38</td><td style="text-align: right">82</td></tr>
+<tr><td><code>sv_2023</code> — IEEE 1800-2023</td><td style="text-align: right">16,336</td><td style="text-align: right">16,241</td><td style="text-align: right">95</td><td style="text-align: right">11</td><td style="text-align: right">42</td><td style="text-align: right">77</td></tr>
+<tr><td><code>verilog_2005</code> — IEEE 1364-2005, over its own lane</td><td style="text-align: right">2,943</td><td style="text-align: right">2,887</td><td style="text-align: right">56</td><td style="text-align: right">3</td><td style="text-align: right">55</td><td style="text-align: right">4</td></tr>
+</tbody>
+</table>
+</div>
+<p>Every refusal of every reading has a written disposition (<code>residual_dispositions.tsv</code>, <code>…_sv_2023.tsv</code>,
+<code>…_verilog_2005.tsv</code>), and no reading carries a “gap to fix” any more:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>disposition</th><th style="text-align: right">default</th><th style="text-align: right"><code>sv_2023</code></th><th style="text-align: right"><code>verilog_2005</code></th><th>what it means</th></tr>
+</thead>
+<tbody>
+<tr><td>the suite’s own error test</td><td style="text-align: right">53</td><td style="text-align: right">53</td><td style="text-align: right">1</td><td>refused at the construct the suite names</td></tr>
+<tr><td>refused by a clause</td><td style="text-align: right">32</td><td style="text-align: right">32</td><td style="text-align: right">8</td><td>a Verilog-AMS <code>begin_keywords</code> specifier, a string split between a macro and its usage, <code>`"</code> outside macro text, a comment between formals, an empty formal list, …</td></tr>
+<tr><td>an edition contrast</td><td style="text-align: right">3</td><td style="text-align: right">10</td><td style="text-align: right">47</td><td>valid under another edition and refused under this one (<code>"1800-2023"</code> under 1800-2017; a directive over several lines under 1800-2023; <code>`"</code> under 1364-2005)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>The over-acceptance half.</strong> The census now also selects the corpus’s preprocessor-themed suite error tests by each
+suite’s naming convention — 82 files — and requires a written reason for every one the parser accepts. The default
+reading refuses 47 and accepts 35: 19 are errors of the expansion stage (macro arity, undefined or recursive macros,
+include loops, unpaired <code>`end_keywords</code>), 14 are SystemVerilog’s (elaboration, a stray token, following text, placement
+inside a module), 2 are tool lints, not LRM errors (a third, verilator’s <code>PREPROCZERO</code> warning, is accepted under <code>sv_2023</code> only). None is an error of the directive structure.</p>
+<p><strong>The certificate.</strong> The grammar’s generated samples reach forms no corpus file holds. The first <code>1.0.9</code> build was not
+fully certified (4 rules UNKNOWN, 101 refused samples over 32 seeds); each refused sample was read, three were parser
+defects (fixed — a define ending the file after white space, a comment-only formal default, macro actuals read
+without lexing, ledger <code>SVPP-0015</code>) and the rest token boundaries now declared for generation. On the release grammar the certificate is clean at its bar — seed 0, 40 samples: <strong>201 rules · 192 witness · 9 proof · 0 unknown, fully certified, 0 refused samples</strong> — and the union of the three profiles is fully certified. Over 32 seeds every one is fully certified with 0 UNKNOWN; one seed (21) reports one refused sample, read: the parser is right (a macro usage’s actual list one <code>)</code> short), the hazard is generation’s — owned,
+<code>SV-CORPUS-GRAD.13c.2v.18</code>.</p>
+<p>Open in this parser, owned and ordered fixed (<code>SV-CORPUS-GRAD.13c.2v.17</code>): a macro usage whose actuals continue onto
+the next line inside a directive parameter is read as a usage without actuals followed by text.</p>
+<p>The census is still not this family’s leg-3 assertion (the derived block above reads NOT MEASURED); wiring it is
+<code>SV-CORPUS-GRAD.13c.2v.10</code>’s remaining item.</p>
 
                     </main>
 

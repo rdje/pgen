@@ -26,17 +26,17 @@ The raw separated-list carrier `{first: <head element>, rest: <raw [[separator, 
 
 The literal sentinel string PGEN's emit-time machinery substitutes when a bare positional `$N` reference resolves to an **inline alternation group**. In sv_preprocessor this affected exactly one field — `pp_if_branch.keyword` — and is **resolved as of parser release `1.0.2` / schema `2`** (`SVPP-0001`). *Historical (release `1.0.1`, schema `1`):* for `` `ifdef`` / `` `ifndef`` conditional input, `items[].body.if_branch.keyword` was a malformed nested object containing three `"<invalid_sequence_access>"` strings instead of the keyword token, because `pp_if_branch := (kw_ifdef | kw_ifndef) macro_name … -> {keyword: $1, …}` bound `$1` to the inline `(kw_ifdef | kw_ifndef)` group — the same emit-time defect class fixed for `rtl_const_expr` in RTL-CE-Slice-2 and tracked for `rtl_frontend` / `vhdl` `binop_chain`. The `` `define`` / non-conditional surface was always unaffected. **Fix:** the inline alternation is lifted into the named rule `pp_if_keyword := kw_ifdef -> {kind: "ifdef"} | kw_ifndef -> {kind: "ifndef"}` (the proven RTL-CE-Slice-2 / `systemverilog.ebnf` idiom); `pp_if_branch`'s bare `keyword: $1` now binds the clean named rule, so `if_branch.keyword` is the typed polarity object `{kind: "ifdef"}` / `{kind: "ifndef"}` with no `<invalid_sequence_access>` anywhere. **Current consumer guidance:** read the conditional polarity from `if_branch.keyword.kind` and the guard macro from `if_branch.macro`. Status `Released`; the schema-`1`→`2` transition is shown with the pre-fix history kept honestly in [Conditional Compilation](examples-conditional.md); recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Resolved Defects — `SVPP-0001`" and `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`SVPP-0001`).
 
-## macro_body_fragment (11 kinds)
+## macro_body_fragment (12 kinds)
 
-The `kind`-tagged dispatch for the tokenized `` `define`` replacement text (`macro_body := macro_body_fragment+ -> {fragments: $1}`). The **11** kinds are `line_continuation`, `token_paste`, `stringize`, `escaped_quote`, `macro_reference` (`{kind, body}`), `text` (`{kind, body}`), `lparen`, `rparen`, `comma`, `question`, `colon` (9 through `1.0.7`; `line_continuation` and `escaped_quote` since `1.0.8`). `"macro_reference"` and `"text"` carry a `body`; the rest are bare `{kind}` atoms. `"token_paste"` is the SystemVerilog ``` `` ``` operator, `"stringize"` the `` `" `` operator, `"escaped_quote"` the `` `\`" `` escape. A `"text"` fragment keeps a plain string literal and a `//` comment whole (since `1.0.8`). See [Top-Level Rules](rules-top-level.md#family-macro-body-11-kind-fragment).
+The `kind`-tagged dispatch for the tokenized `` `define`` replacement text (`macro_body := macro_body_fragment+ -> {fragments: $1}`). The **12** kinds are `line_continuation`, `token_paste`, `stringize`, `escaped_quote`, `directive` (`{kind, body}`), `macro_reference` (`{kind, body}`), `text` (`{kind, body}`), `lparen`, `rparen`, `comma`, `question`, `colon` (9 through `1.0.7`; `line_continuation` and `escaped_quote` since `1.0.8`; `directive` since `1.0.9` — a directive inside macro text, through `1.0.8` a `macro_reference`). `"macro_reference"` and `"text"` carry a `body`; the rest are bare `{kind}` atoms. `"token_paste"` is the SystemVerilog ``` `` ``` operator, `"stringize"` the `` `" `` operator, `"escaped_quote"` the `` `\`" `` escape. A `"text"` fragment keeps a plain string literal and a `//` comment whole (since `1.0.8`). See [Top-Level Rules](rules-top-level.md#family-macro-body-12-kind-fragment).
 
 ## macro_default_atom (7 kinds + the balanced group)
 
 The `kind`-tagged dispatch for a macro formal's default value (`macro_default_value := macro_default_atom+ -> {atoms: $1}`). Seven kinds — `token_paste`, `stringize`, `macro_reference` (`{kind, body}`), `text` (`{kind, body}`), `question`, `colon` — plus the balanced `{kind: "paren_group", atoms}` (since `1.0.7`, `SVPP-0004`), inside which, and only there, a comma surfaces as `{kind: "comma"}`. A `"text"` atom keeps a string literal whole since `1.0.8`, so a quoted comma (`a="x,y"`) no longer ends the default.
 
-## condition_atom (12 kinds)
+## condition_atom (12 kinds — removed in 1.0.9)
 
-The `kind`-tagged dispatch for the `` `elsif`` condition's flat token list (`condition_expr := condition_atom+ -> {atoms: $1}`). The **12** kinds are the shared eight plus `comma`, `logical_or`, `logical_and`, `bang`. It is a **flat token list in source order, not a parsed boolean expression** — any expression evaluation is the consumer's responsibility. `"macro_reference"` / `"text"` carry a `body`; the rest are bare `{kind}` atoms. See [Top-Level Rules](rules-top-level.md) and [The Json Carrier](json-carrier.md).
+Through schema `6`, the `` `elsif `` condition was a flat 12-kind token list (`condition_expr := condition_atom+ -> {atoms: $1}`) running to the line end — which swallowed code written after the condition (ledger `SVPP-0012`). REMOVED in release `1.0.9` (schema `7`): an `` `elsif `` takes the `` `ifdef `` condition, `{macro, tail, items}` — an identifier, a macro usage, or under `sv_2023` an `( ifdef_macro_expression )` tree. See [Top-Level Rules](rules-top-level.md).
 
 ## parseability_probe
 
@@ -76,7 +76,87 @@ The primary top-level dispatcher of the sv_preprocessor AST. `pp_item` is an **1
 
 ## Profile
 
-A named configuration of the grammar that selects which top-level entry rule to start parsing from. The sv_preprocessor family has exactly **one** profile: `default`, whose entry rule is the grammar root `systemverilog_preprocessor_file`. There is **no** per-grammar convenience function for sv_preprocessor (no `parse_systemverilog_preprocessor`); the stable host surface is the generic-by-grammar entry points — `parse_grammar_profile`, `parse_grammar_profile_result`, `parse_grammar_profile_ast_dump` with `GrammarFamily::SystemverilogPreprocessor` + `GrammarProfile::Default`, plus the `parse_grammar_profile_named` / `parse_grammar_profile_named_with_limits` string overloads (and `parse_grammar_profile_ast_dump_named` for the AST dump) with `"systemverilog_preprocessor"` / `"default"`. See [Public API Surface](public-api.md).
+A named EDITION reading of the grammar (`@profiles` gates). Since release `1.0.9` the family has the SystemVerilog
+family's four: `sv_2017` (IEEE 1800-2017, **the default** — `@default_profile`), `sv_2023` (IEEE 1800-2023),
+`sv_2023_tolerant` (as `sv_2023` for every directive) and `verilog_2005` (IEEE 1364-2005), with the aliases `2017`,
+`2023`, `1364-2005`, `ieee1800-2017`, … Pass one with `parseability_probe --parse systemverilog_preprocessor FILE
+--profile sv_2023`, or `set_grammar_profile(Some("sv_2023"))` on the generated parser; `None` restores the default. The
+entry rule is `systemverilog_preprocessor_file` under every profile. See [Editions and Profiles](profiles.md). (Through
+`1.0.8` the family had one profile, `default`, with no edition axis.)
+
+## Edition contrast
+
+A form two editions read differently — `` `ifdef (A) `` derives under `sv_2023` and is refused under `sv_2017`; a
+`` `timescale `` written over two lines is the reverse. The census marks such a refusal `edition_contrast:<profile>`
+(the profile under which the file derives). Every contrast is a bank case under each profile it splits.
+
+## Line discipline
+
+Whether a directive's tokens may be separated by NEWLINES. IEEE 1800-2023 §22.2: *"Unless specified below as supporting
+multiple lines, compiler directives shall be all on one line"* — only the macro text and a conditional's block of text
+are so specified. IEEE 1364-2005 and 1800-2017 have no such sentence, so under `verilog_2005` / `sv_2017` a directive
+may be written over several lines (iverilog's `br_gh782b.v` writes a `` `timescale `` one token per line), a formal
+list included; `` `include `` and `` `line `` own their line in every edition. Under `sv_2023` a block comment that
+crosses a line INSIDE a directive breaks the rule too (release `1.0.9`): the comment carries the directive onto a second
+line. Macro text keeps 1800-2023's own licence for multi-line comments.
+
+## Malformed directive (group item)
+
+`{kind: "malformed_directive", body: {text}}` — a line inside a CONDITIONAL GROUP that does not parse, recorded whole
+instead of refused (release `1.0.9`). §22.6: an ignored group need only be lexically valid, and whether a group is
+ignored is decided by the expansion stage, which has the compilation's symbols and includes. The line is still lexed
+(an unclosed string or comment refuses the file); at the top level the same line is refused; the conditional keywords
+are never recorded so. See [Groups, Comments and Lines That Do Not Parse](examples-groups.md).
+
+## Text run (lexeme)
+
+The passthrough text of a line, read as LEXEMES since `1.0.9`: block comments (which may span lines), line comments,
+strings (one line, or backslash-continued), triple-quoted strings (`sv_2023`), escaped identifiers, macro usages and
+other characters. A directive word inside a comment or a string is text, and a directive word outside them ends the
+run, so a directive may begin mid-line. The tree keeps the run as ONE string (`text: [[trivia], "…"]`).
+
+## Actual arguments (of a macro usage in a directive)
+
+The `( … )` after a macro usage that stands in a directive's parameter (`` `include `M(f) ``, `` `timescale `T / 1ps ``),
+kept as ONE string in `arguments`. Since release `1.0.9` it is LEXED per §22.5.1: a string, a block comment and an
+escaped identifier are single atoms, and a parenthesis inside `[ ]` or `{ }` is a character, so only a `)` outside
+all of them ends the list (`` `include `M(")") ``). Ledger `SVPP-0015`.
+
+## Certificate (proof / witness / UNKNOWN)
+
+Every grammar rule is either PROVEN unreachable or WITNESSED by a generated sample whose parse exercises it; a rule
+with neither is UNKNOWN. The grammar is *fully certified* when nothing is UNKNOWN and no proof fails re-verification; a
+generated sample the parser refuses is reported beside it (`sample_parse_failures`) and read, never discounted. The
+published bar is seed 0, 40 samples, the base configuration (`docs/book/src/grammar-certification-status.md`).
+
+## Sample parse failure
+
+A sample the certificate's generator wrote from the grammar that the generated parser then refuses. It is one of two
+things, never discounted: a LEXICAL BOUNDARY the grammar never declared for generation (the parser is right; the
+generator concatenated two tokens that re-read differently), or a parser DEFECT (the text is valid and refused).
+Release `1.0.9`'s first build had 101 over 32 seeds; reading each one found three parser defects no corpus file
+holds. See *Follow restriction* below.
+
+## Follow restriction (`[>! … ]`)
+
+A grammar annotation on a rule: its match must not be followed by the listed pattern. The parser ignores it (the
+rule's own regex already holds the boundary); the stimuli generator appends the separator the pattern cannot start.
+This grammar declares with it that a `/` before `/` or `*` is a comment opener, that an escaped identifier ends at white
+space, that a `//` comment ends its line, and that an object-like macro's name is not followed by `(`.
+
+## End-of-input anchor
+
+A terminal that matches only at the end of the text (`end_of_input := /\z/`), used where a line construct may end the
+file without a newline (a define's last line, a passthrough line, a `` `line ``). The generator renders it as nothing,
+so it draws an alternative holding one only where nothing mandatory follows — never inside a conditional group, whose
+closing keyword follows.
+
+## Error-test half (of the census)
+
+The census's over-acceptance reading: it selects the corpus's preprocessor-themed suite error tests by each suite's
+naming convention and requires every one the parser ACCEPTS to carry a written reason (`error_test_dispositions.tsv` —
+the error is the expansion stage's or SystemVerilog's, not the directive structure's). Headline
+`SVPP-CORPUS-CENSUS-ERROR-TESTS: … accepted=A unadjudicated_accepts=U`. See [Over-acceptance](#over-acceptance).
 
 ## Recursive envelope
 

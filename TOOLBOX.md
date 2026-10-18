@@ -161,6 +161,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "How trustworthy is this grammar? proof/witness/UNKNOWN?" | [4.1 `--report-certificate-coverage`](#41---report-certificate-coverage) |
 | **"A gate printed `signature drift vs seed 0` / a rule COUNT moved with the seed"** | ⛔ **[4.7 the cert-count determinism probe](#47-certificate_coverage-s-total-moved--determinism-and-how-to-tell-which-thing-moved) BEFORE hypothesising about the tool** — `total` is a pure function of the loaded grammar, and the gate re-reads that grammar once per seed while pinning NOTHING, so its drift message cannot tell "nondeterministic tool" from "the file changed under me". Measured `.13c.2x.1`: invariant across 3 processes AND 3 seeds |
 | "Give me ALL the UNKNOWN rules" | [4.2 `PGEN_CERT_COVERAGE_DUMP_ALL`](#42-pgen_cert_coverage_dump_all) |
+| **"The certificate reads `sample_parse_failures` above 0 — generator bug or parser bug?"** — ⛔ never discount the set | [4.8 the three-way triage](#48-sample_parse_failures--0--the-three-way-triage-cert_sample_failurestriagepy) |
 | **"WHY is this rule UNKNOWN / not witnessed?"** | [4.3 `PGEN_CERT_COVERAGE_DEBUG_PROBES`](#43-pgen_cert_coverage_debug_probes) → [the 3-step protocol](#protocol-a-diagnose-an-unknown-3-steps) |
 | "Which path did the witness planner take?" | [4.4 `PGEN_REACH_PATH_DUMP`](#44-pgen_reach_path_dump) |
 | "Which residual `UNKNOWN`s are profile-excluded by construction?" | [4.6 `PGEN_CERT_RESIDUAL_CLASSIFICATION`](#46-pgen_cert_residual_classification) |
@@ -758,13 +759,23 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   every file both binaries accept (`--parse-dump-ast`, byte for byte; `movers.tsv`). `--check-dispositions` refuses a
   rejection that `residual_dispositions.tsv` does not explain, or a disposition for a file now accepted. `--bank --probe
   <probe>` runs the clause-22 reproducer bank (`bank/MANIFEST.tsv`, ACCEPT and REJECT cases with their clauses;
-  `SVPP-CORPUS-CENSUS-BANK: cases=… failures=0`) and needs no corpus.
+  `SVPP-CORPUS-CENSUS-BANK: cases=… profiled=… failures=0`; a fifth manifest column names the PROFILE a case is read
+  under, blank for the default) and needs no corpus. Since release `1.0.9` (`SV-CORPUS-GRAD.13c.2v.13`): `--profile P`
+  selects the READING — the default is the grammar's `@default_profile` (IEEE 1800-2017); `sv_2023` reads the same
+  population under 1800-2023; `verilog_2005` reads the v2005 lane's own (`results_v2005.tsv`) — each with its own
+  `rejections_<P>.tsv`, `movers_<P>.tsv`, `census_<P>.md` and `residual_dispositions_<P>.tsv`. And the OVER-ACCEPTANCE
+  half: every reading also selects the corpus's preprocessor-themed suite error tests by naming convention (`ERROR_TESTS`
+  in the script) and prints `SVPP-CORPUS-CENSUS-ERROR-TESTS: profile=… selected=N refused=R accepted=A
+  unadjudicated_accepts=U`; every accepted one needs a row in `error_test_dispositions.tsv` saying why accepting it is
+  right (the error is the expansion stage's or SystemVerilog's), and `--check-dispositions` refuses one without.
 - **WHEN:** every `systemverilog_preprocessor` release (its corpus reading; `SV-CORPUS-GRAD.13c.2v.2`), and any "why does
   the preprocessor parser refuse this file?" question at corpus scale. To prototype a grammar change BEFORE generating,
   drive the same population through §1.5b's `--interpret-parse` with two grammars and compare — the generated census then
   confirms it (on `1.0.8` the interpreter and the generated parser named identical rejection and mover sets).
 - ⛔ A moved tree is a claim to explain: attribute each mover to one grammar delta (re-run the prototype one step back), as
   `1.0.8`'s 69 movers were (38 continuation, 31 string atom).
+- ⛔ A census of refusals cannot see an over-acceptance (`docs/knowledge/a-census-of-refusals-cannot-see-an-over-acceptance.md`):
+  `pass → fail = 0` compares two releases, never a release with the requirement — read the ERROR-TESTS headline too.
 
 ### 1.6 The differential-equivalence gate — is the interpreter byte-identical to the generated parser?
 - **WHAT:** `make -C rust SHELL=/bin/bash parse_harness_equivalence_gate` (module `rust/src/parse_harness_equivalence.rs`) — the certifying oracle for the interpreter (1.5). For each registered grammar it runs the interpreter AND the shipped generated parser over ONE deterministic stimuli corpus (seeds 0/7/42, bounded generation, large-stack workers) and asserts **byte-identical** verdict + typed AST. Report-first API (`evaluate_grammar_equivalence` collects divergences, never panics) + 3 enforcing gate tests. PARSE-HARNESS.5.
@@ -1979,6 +1990,35 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - ⚠️ **It needs NO regeneration.** The cert pass reads the `.ebnf` directly; only WITNESS verification touches the generated parser, and `total` does not depend on it — so this runs against any grammar copy, in ~16 min, at any commit. The leaf that opened the question assumed the opposite and blocked itself for two sessions on a 25-minute regeneration it never needed.
 
 ---
+
+### 4.8 `sample_parse_failures > 0` — the three-way triage (`cert_sample_failures/triage.py`)
+- **WHAT:** `docs/tasks/artifacts/sv_corpus_grad/cert_sample_failures/triage.py` cuts every `SAMPLE-PARSE FAILURES`
+  sample out of 4.1's logs BYTE-EXACT (`N bytes` after its header, the log read with `newline=""` — a text-mode read
+  folds CR LF and shifts every offset) and reads each three ways: the release probe, the interpreter on the committed
+  grammar, the interpreter on a `--candidate` grammar. Headline `CERT-SAMPLE-TRIAGE: failures=F engine_divergent=D
+  candidate_accepts=A still_refused=R`; exit 1 on any divergence.
+- **WHEN:** the moment a certificate reads `sample_parse_failures` above 0 — ⛔ never discount the set. Each refused
+  sample is a lexical BOUNDARY the grammar never declared for generation (the parser is right) or a parser DEFECT (the
+  text is valid); `systemverilog_preprocessor` `1.0.9`'s first build had 101 over 32 seeds and they held three parser
+  defects no corpus file contains (`SV-CORPUS-GRAD.13c.2v.16`).
+- **HOW:**
+  ```bash
+  for s in $(seq 0 31); do ./rust/target/debug/ast_pipeline grammars/G.ebnf --report-certificate-coverage \
+    --entry-rule E --count 40 --seed $s > rust/target/cert/seed$s.log 2>&1; done
+  python3 docs/tasks/artifacts/sv_corpus_grad/cert_sample_failures/triage.py --logs 'rust/target/cert/seed*.log' \
+    --grammar grammars/G.ebnf --candidate rust/target/cand/G.ebnf --out rust/target/cert/triage
+  ```
+  A candidate is a scratch copy of the grammar under the SAME file name (the certificate needs the registered
+  parser's name); the stale binary still judges it, and `[>! … ]` is a parse no-op, so a generation-side candidate
+  is measured without a rebuild. Bisect each `still_refused` sample to a minimal reproducer and run it on the RELEASED
+  parser too: that decides a ledger row (released) from this build's regression.
+- **OUTPUT / CAUSE MAP:** `engine_divergent` → the interpreter and the generated parser disagree (§1.5); a sample the
+  candidate accepts → a parser fix its rebuild delivers; `still_refused` → re-run the sweep with the candidate: a
+  boundary the generation fix removes disappears from the next sweep, a defect does not. The declarations are the
+  `[>! … ]` follow restriction (a rule's match is not followed by X — the generator appends a separator X cannot start)
+  and, for the end-of-input anchor, the generator's own reading of `\z` (an alternative holding one is drawn only where
+  nothing mandatory follows). A rule-level `@sample` renders the rule's text and nothing else: it bypasses every
+  restriction below it.
 
 ## 5. Static analysis & generation IR (`ast_pipeline`)
 

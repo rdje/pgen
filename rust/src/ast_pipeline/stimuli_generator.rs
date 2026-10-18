@@ -2281,6 +2281,20 @@ pub struct StimuliGenerator<'a> {
     // no per-generation regex re-parse. EMPTY for grammars without such a rule ⇒
     // a structural no-op (parser/EBNF-agnostic).
     reserved_word_lists: HashMap<String, Vec<String>>,
+    // SV-CORPUS-GRAD.13c.2v.16: an END-OF-INPUT anchor (a terminal whose regex matches only the empty
+    // string at the end of the text, `\z`) is satisfiable only where nothing follows it. Generation
+    // renders the anchor as "" wherever it is drawn, so an alternative that mandatorily renders one,
+    // drawn while a non-empty element is still to come, yields text the grammar cannot derive (the
+    // svpp `define_end := newline | macro_trivia end_of_input` drawn inside a conditional group put
+    // the group's `` `endif `` on the define's line). `end_anchor_rules` holds every rule whose body
+    // mandatorily renders such an anchor (a fixpoint over the profile-filtered tree, computed once);
+    // `continuation_nonempty` is a stack the sequence and quantifier renderers push: whether a
+    // non-nullable element still follows the current position. `generate_or` then drops an
+    // anchor-bearing alternative while the continuation is non-empty, unless it is the only one left.
+    // EMPTY `end_anchor_rules` (every grammar without such an anchor) ⇒ nothing is pushed, nothing is
+    // filtered — byte-identical generation. Derived from the grammar's own regex HIR ⇒ parser-agnostic.
+    end_anchor_rules: HashSet<String>,
+    continuation_nonempty: Vec<bool>,
 }
 
 impl<'a> StimuliGenerator<'a> {
@@ -2387,6 +2401,7 @@ impl<'a> StimuliGenerator<'a> {
         // words the active-profile parser reserves). EMPTY for grammars without a whole-word-list rule
         // ⇒ inert (byte-identical generation).
         let reserved_word_lists = Self::compute_reserved_word_lists(grammar_tree);
+        let end_anchor_rules = Self::compute_end_anchor_rules(grammar_tree);
         // STIMULI-SIGNOFF.12: precompute the per-rule `@quantified_separator` policies once from
         // the annotations (the same declarative surface the validator lints). Empty for every
         // directive-free grammar ⇒ the quantifier-join separator path is inert.
@@ -2467,6 +2482,8 @@ impl<'a> StimuliGenerator<'a> {
             keyword_identifier_exclusions: Vec::new(),
             keyword_identifier_collisions: 0,
             reserved_word_lists,
+            end_anchor_rules,
+            continuation_nonempty: Vec::new(),
         }
     }
 
@@ -3303,20 +3320,43 @@ impl<'a> StimuliGenerator<'a> {
                 if success_hits > 0 {
                     covered_branches = covered_branches.saturating_add(1);
                 }
+
+                // SV-CORPUS-GRAD.13c.2v.13: a branch's REACHABILITY is a property of the grammar, so
+                // it is counted for EVERY branch, before the coverage deficit decides whether the
+                // branch is still a debt target. Counted after the `deficit == 0` skip (as it was), a
+                // COVERED branch was never reachable, `unreachable_branches = total - reachable`
+                // counted it as unreachable, and `covered_reachable_branches` /
+                // `reachable_branches_at_threshold` could never move — measured on the
+                // `systemverilog_preprocessor` 1.0.9 grammar: 17 covered branches read as unreachable
+                // from the entry, beside the 8 genuinely absent under the default profile.
+                let missing_rule_refs = branch_nodes
+                    .and_then(|alternatives| alternatives.get(branch_idx))
+                    .map(|branch_node| self.missing_rule_references(branch_node))
+                    .unwrap_or_default();
+                let branch_reachable =
+                    reachable && missing_rule_refs.is_empty() && !inside_lookahead;
+                if branch_reachable {
+                    reachable_branches = reachable_branches.saturating_add(1);
+                }
+                if success_hits > 0 && branch_reachable {
+                    covered_reachable_branches = covered_reachable_branches.saturating_add(1);
+                }
+                if branch_reachable && success_hits >= threshold {
+                    reachable_branches_at_threshold =
+                        reachable_branches_at_threshold.saturating_add(1);
+                }
                 if deficit == 0 {
                     continue;
                 }
 
                 let mut rule_refs = Vec::new();
                 let mut uncovered_rule_refs = Vec::new();
-                let mut missing_rule_refs = Vec::new();
                 if let Some(alternatives) = branch_nodes {
                     if let Some(branch_node) = alternatives.get(branch_idx) {
                         let mut refs = HashSet::new();
                         self.collect_rule_references(branch_node, &mut refs);
                         rule_refs = refs.into_iter().collect();
                         rule_refs.sort();
-                        missing_rule_refs = self.missing_rule_references(branch_node);
                         uncovered_rule_refs = rule_refs
                             .iter()
                             .filter(|rule_name| {
@@ -3334,19 +3374,6 @@ impl<'a> StimuliGenerator<'a> {
                             .cloned()
                             .collect();
                     }
-                }
-
-                let branch_reachable =
-                    reachable && missing_rule_refs.is_empty() && !inside_lookahead;
-                if branch_reachable {
-                    reachable_branches = reachable_branches.saturating_add(1);
-                }
-                if success_hits > 0 && branch_reachable {
-                    covered_reachable_branches = covered_reachable_branches.saturating_add(1);
-                }
-                if branch_reachable && success_hits >= threshold {
-                    reachable_branches_at_threshold =
-                        reachable_branches_at_threshold.saturating_add(1);
                 }
 
                 let reason = if branch_reachable {
@@ -12384,6 +12411,31 @@ impl<'a> StimuliGenerator<'a> {
             }
         });
 
+        // SV-CORPUS-GRAD.13c.2v.16: an alternative that mandatorily renders an end-of-input anchor is
+        // not derivable while a non-empty element is still to come — drop it, unless it is all there is.
+        if !self.end_anchor_rules.is_empty() && self.continuation_is_nonempty() {
+            let anchored: Vec<usize> = candidate_indices
+                .iter()
+                .copied()
+                .filter(|idx| {
+                    Self::node_mandatorily_renders_end_anchor(
+                        prepared[*idx].1.as_ref(),
+                        &self.end_anchor_rules,
+                    )
+                })
+                .collect();
+            if !anchored.is_empty() && anchored.len() < candidate_indices.len() {
+                candidate_indices.retain(|idx| !anchored.contains(idx));
+                self.trace(
+                    TraceLevel::Debug,
+                    format_args!(
+                        "Pruned OR branch(es) {:?} rendering an end-of-input anchor before a non-empty continuation: rule='{}' path='{}'",
+                        anchored, current_rule, node_path
+                    ),
+                );
+            }
+        }
+
         // SV-EXH-PROOF.7.2.2 (PGEN-SV-EXH-PROOF-0116): on-path candidate-set
         // bypass. If a reach plan is active AND this OR site is on the reach path
         // AND the forced target branch was pruned out above (depth-floor /
@@ -13217,6 +13269,47 @@ impl<'a> StimuliGenerator<'a> {
         call_stack: &mut Vec<String>,
         element_path: &str,
     ) -> Result<String> {
+        if self.end_anchor_rules.is_empty() {
+            return self.generate_sequence_element_inner(
+                elements,
+                idx,
+                force_nl_idx,
+                current_rule,
+                depth,
+                call_stack,
+                element_path,
+            );
+        }
+        // SV-CORPUS-GRAD.13c.2v.16: the element's continuation is non-empty when its parent's is or a
+        // non-nullable element follows it in this sequence.
+        let nonempty = self.continuation_is_nonempty()
+            || elements[idx + 1..]
+                .iter()
+                .any(|element| self.node_renders_nonempty(element));
+        self.continuation_nonempty.push(nonempty);
+        let result = self.generate_sequence_element_inner(
+            elements,
+            idx,
+            force_nl_idx,
+            current_rule,
+            depth,
+            call_stack,
+            element_path,
+        );
+        self.continuation_nonempty.pop();
+        result
+    }
+
+    fn generate_sequence_element_inner(
+        &mut self,
+        elements: &[ASTNode],
+        idx: usize,
+        force_nl_idx: Option<usize>,
+        current_rule: &str,
+        depth: usize,
+        call_stack: &mut Vec<String>,
+        element_path: &str,
+    ) -> Result<String> {
         if Some(idx) == force_nl_idx {
             if let ASTNode::Quantified { element, .. } = &elements[idx] {
                 return self.generate_node(
@@ -13654,6 +13747,88 @@ impl<'a> StimuliGenerator<'a> {
     /// fixed-literal shape to the `!reserved-regex identifier` shape. Rules that
     /// are NOT pure word lists yield nothing (the resolver bails on the first
     /// non-word branch) ⇒ empty map for grammars without such a rule ⇒ inert.
+    /// SV-CORPUS-GRAD.13c.2v.16: is `pattern` a pure END-OF-INPUT anchor — a regex whose only match
+    /// is the empty string at the end of the text (`\z`)? Multi-line `$` (`EndLF` / `EndCRLF`) is a
+    /// line anchor, not this, and a regex with any consuming part is not this.
+    fn regex_is_end_of_input_anchor(pattern: &str) -> bool {
+        fn only_end(hir: &Hir) -> bool {
+            match hir.kind() {
+                HirKind::Look(regex_syntax::hir::Look::End) => true,
+                HirKind::Capture(capture) => only_end(&capture.sub),
+                HirKind::Concat(parts) => !parts.is_empty() && parts.iter().all(only_end),
+                _ => false,
+            }
+        }
+        regex_syntax::parse(pattern.trim())
+            .map(|hir| only_end(&hir))
+            .unwrap_or(false)
+    }
+
+    /// SV-CORPUS-GRAD.13c.2v.16: does every rendering of `node` contain an end-of-input anchor?
+    /// A sequence does when any element does; a choice when every alternative does; `?` / `*` /
+    /// `{0,…}` and lookaheads never do; a rule reference does when the rule is in `anchored`.
+    fn node_mandatorily_renders_end_anchor(node: &ASTNode, anchored: &HashSet<String>) -> bool {
+        match node {
+            ASTNode::Or { alternatives } => {
+                !alternatives.is_empty()
+                    && alternatives
+                        .iter()
+                        .all(|alt| Self::node_mandatorily_renders_end_anchor(alt, anchored))
+            }
+            ASTNode::Sequence { elements } => elements
+                .iter()
+                .any(|element| Self::node_mandatorily_renders_end_anchor(element, anchored)),
+            ASTNode::Lookahead { .. } => false,
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } => {
+                let q = quantifier.trim();
+                !(q.starts_with('?') || q.starts_with('*') || q.starts_with("{0"))
+                    && Self::node_mandatorily_renders_end_anchor(element, anchored)
+            }
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => Self::node_mandatorily_renders_end_anchor(inner, anchored),
+                ASTValue::Token(parts) => match Self::extract_token_pair(parts) {
+                    Some(("rule_reference", name)) => anchored.contains(name),
+                    Some(("regex", pattern)) => Self::regex_is_end_of_input_anchor(pattern),
+                    _ => false,
+                },
+            },
+        }
+    }
+
+    /// SV-CORPUS-GRAD.13c.2v.16: every rule whose body mandatorily renders an end-of-input anchor —
+    /// a monotone fixpoint over the (profile-filtered) tree, so `a := b`, `b := /\z/` puts both in.
+    fn compute_end_anchor_rules(grammar_tree: &HashMap<String, ASTNode>) -> HashSet<String> {
+        let mut anchored: HashSet<String> = HashSet::new();
+        loop {
+            let newly: Vec<String> = grammar_tree
+                .iter()
+                .filter(|(name, body)| {
+                    !anchored.contains(name.as_str())
+                        && Self::node_mandatorily_renders_end_anchor(body, &anchored)
+                })
+                .map(|(name, _)| name.clone())
+                .collect();
+            if newly.is_empty() {
+                return anchored;
+            }
+            anchored.extend(newly);
+        }
+    }
+
+    /// SV-CORPUS-GRAD.13c.2v.16: whether a non-nullable element follows the current position (the
+    /// top of `continuation_nonempty`; an empty stack is the end of the text).
+    fn continuation_is_nonempty(&self) -> bool {
+        self.continuation_nonempty.last().copied().unwrap_or(false)
+    }
+
+    fn node_renders_nonempty(&self, node: &ASTNode) -> bool {
+        let mut hit_cycle = false;
+        !Self::node_is_nullable(self.grammar_tree, node, 0, &mut HashSet::new(), &mut hit_cycle)
+    }
+
     fn compute_reserved_word_lists(
         grammar_tree: &HashMap<String, ASTNode>,
     ) -> HashMap<String, Vec<String>> {
@@ -14070,6 +14245,28 @@ impl<'a> StimuliGenerator<'a> {
         }
     }
 
+    /// SV-CORPUS-GRAD.13c.2v.16: one quantifier iteration, its continuation non-empty when the
+    /// parent's is or a later iteration of a non-nullable element follows.
+    fn generate_quantified_iteration(
+        &mut self,
+        element: &ASTNode,
+        current_rule: &str,
+        depth: usize,
+        call_stack: &mut Vec<String>,
+        node_path: &str,
+        more_iterations_follow: bool,
+    ) -> Result<String> {
+        if self.end_anchor_rules.is_empty() {
+            return self.generate_node(element, current_rule, depth, call_stack, node_path);
+        }
+        let nonempty = self.continuation_is_nonempty()
+            || (more_iterations_follow && self.node_renders_nonempty(element));
+        self.continuation_nonempty.push(nonempty);
+        let result = self.generate_node(element, current_rule, depth, call_stack, node_path);
+        self.continuation_nonempty.pop();
+        result
+    }
+
     fn generate_quantified(
         &mut self,
         element: &ASTNode,
@@ -14277,12 +14474,13 @@ impl<'a> StimuliGenerator<'a> {
                     self.enforce_generation_deadline(current_rule, &quantified_path)?;
                     let saved_plan = self.reach_plan.take();
                     self.reach_plan = Some((*sub_plan).clone());
-                    let mut prelude_result = self.generate_node(
+                    let mut prelude_result = self.generate_quantified_iteration(
                         element,
                         current_rule,
                         depth + 1,
                         call_stack,
                         &quantified_path,
+                        repeats > 0,
                     );
                     // VERILOG-2005-PROFILE.6.3.2: armed-prelude fact-kind INTEGRITY + ONE
                     // depth-fresh retry. A name-coordinated prelude exists to emit ONE fact of
@@ -14337,12 +14535,13 @@ impl<'a> StimuliGenerator<'a> {
                                 ),
                             );
                             self.reach_plan = Some((*sub_plan).clone());
-                            prelude_result = self.generate_node(
+                            prelude_result = self.generate_quantified_iteration(
                                 element,
                                 current_rule,
                                 depth + 1,
                                 call_stack,
                                 &quantified_path,
+                                repeats > 0,
                             );
                             self.config.max_depth = saved_max_depth;
                             if prelude_result.is_ok()
@@ -14386,14 +14585,15 @@ impl<'a> StimuliGenerator<'a> {
                     continue;
                 }
             }
-            for _ in 0..repeats {
+            for iteration in 0..repeats {
                 self.enforce_generation_deadline(current_rule, &quantified_path)?;
-                match self.generate_node(
+                match self.generate_quantified_iteration(
                     element,
                     current_rule,
                     depth + 1,
                     call_stack,
                     &quantified_path,
+                    iteration + 1 < repeats,
                 ) {
                     Ok(generated) => {
                         if let Some(sep) = self.quantified_separator_to_insert(
@@ -23781,6 +23981,92 @@ mod tests {
                 .iter()
                 .all(|target| target.rule_name != "unreachable")
         );
+    }
+
+    /// SV-CORPUS-GRAD.13c.2v.13: a COVERED branch is still a REACHABLE branch. The summary counted
+    /// reachability after the coverage-deficit skip, so a covered branch read as unreachable
+    /// (`unreachable_branches = total - reachable`) and the covered/at-threshold counters never moved.
+    #[test]
+    fn gap_report_counts_a_covered_branch_as_reachable() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "A"), token("quoted_string", "B")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+        let _ = generator
+            .generate_many(64, Some("start"))
+            .expect("generation over a two-way choice should succeed");
+
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report generation should succeed");
+        let s = &report.summary;
+
+        assert_eq!(s.total_branches, 2);
+        assert_eq!(s.covered_branches, 2, "64 samples cover both alternatives");
+        assert_eq!(s.reachable_branches, 2, "a covered branch is reachable");
+        assert_eq!(s.unreachable_branches, 0, "total - reachable: nothing is unreachable");
+        assert_eq!(s.covered_reachable_branches, 2);
+        assert_eq!(s.reachable_branches_at_threshold, 2);
+        assert!(report.reachable_branch_debt.is_empty(), "a covered branch is not a debt target");
+    }
+
+    // SV-CORPUS-GRAD.13c.2v.16 — an end-of-input anchor is satisfiable only where nothing follows.
+    // `item_end := ";" | end_of_input`: under `inside` a mandatory `!` follows every item, so the
+    // anchor alternative renders a sample the grammar cannot derive (`a!`); under `last` nothing
+    // follows and the anchor stays generable, so it is still witnessed.
+    #[test]
+    fn end_of_input_anchor_is_generated_only_where_the_continuation_can_be_empty() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "inside".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "item"), token("quoted_string", "!")],
+            },
+        );
+        grammar_tree.insert("last".to_string(), token("rule_reference", "item"));
+        grammar_tree.insert(
+            "item".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "a"), token("rule_reference", "item_end")],
+            },
+        );
+        grammar_tree.insert(
+            "item_end".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("quoted_string", ";"),
+                    token("rule_reference", "end_of_input"),
+                ],
+            },
+        );
+        grammar_tree.insert("end_of_input".to_string(), token("regex", "\\z"));
+        let rule_order: Vec<String> = ["inside", "last", "item", "item_end", "end_of_input"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 11);
+        let inside = generator
+            .generate_many(64, Some("inside"))
+            .expect("generation under `inside` should succeed");
+        let derivable: Vec<&String> = inside.iter().filter(|s| s.as_str() != "a;!").collect();
+        assert!(
+            derivable.is_empty(),
+            "an end-of-input anchor followed by `!` is not derivable: {derivable:?}"
+        );
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 11);
+        let last = generator
+            .generate_many(64, Some("last"))
+            .expect("generation under `last` should succeed");
+        assert!(last.iter().any(|s| s == "a"), "where nothing follows the anchor is generated: {last:?}");
+        assert!(last.iter().any(|s| s == "a;"), "and so is its sibling: {last:?}");
     }
 
     #[test]

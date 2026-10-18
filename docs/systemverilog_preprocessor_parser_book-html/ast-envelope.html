@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-aa59a798.js";
+            window.path_to_searchindex_js = "searchindex-0dae82da.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-89867f1a.js"></script>
+        <script src="toc-b48efc63.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -284,6 +284,12 @@ of this for consumers.</p>
 <p>The catch-all arm is exactly where a walker written against schema <code>5</code> meets release <code>1.0.8</code>: the eight clause-22
 kinds are new values of <code>kind</code>, so a walker that treats an unknown kind as unreachable must be updated before it
 reads schema-<code>6</code> output — one reason <code>1.0.8</code> bumped the schema (see <a href="schema-versioning.html">Schema Versioning</a>).</p>
+<p>Schema <code>7</code> (release <code>1.0.9</code>) adds no <code>pp_item</code> kind, but a CONDITIONAL GROUP’s items may now hold
+<code>{kind: "malformed_directive", body: {text}}</code> (a group line that does not parse, recorded whole), an <code>`elsif</code> branch
+is <code>{macro, tail, items}</code> (no longer <code>{condition: {atoms}}</code>), a condition <code>macro</code> may be an object (a macro usage, or
+under <code>sv_2023</code> an expression) instead of the identifier envelope, and a <code>non_directive_line</code> may end mid-line, before a
+directive. A walker that matches <code>pp_item</code> kinds needs no new arm; one that walks conditional groups or reads
+<code>elsif</code> conditions does — see <a href="rules-top-level.html">Top-Level Rules</a>.</p>
 <h2 id="conditional-compilation-tree"><a class="header" href="#conditional-compilation-tree">Conditional-compilation tree</a></h2>
 <p><code>pp_conditional</code> describes the recursive <code> `ifdef / `elsif / `else / `endif</code> (and <code> `ifndef</code>) chain. The body is a typed shape mirroring the grammar’s recursive layout. The <code> `ifdef</code>/<code> `ifndef</code> polarity is a typed <code>pp_if_keyword</code> object — <code>pp_if_branch.keyword</code> is <code>{kind: "ifdef"}</code> or <code>{kind: "ifndef"}</code> as of the <code>1.0.2</code> <code>SVPP-0001</code> correctness fix (was the malformed <code>&lt;invalid_sequence_access&gt;</code> object at <code>1.0.1</code> / schema <code>1</code>; see <a href="schema-versioning.html">Schema Versioning</a> and the <a href="examples-conditional.html">Conditional Compilation</a> worked example). See <a href="walking-the-ast.html">Walking the AST</a> for the full tree shape.</p>
 <h2 id="macro_body-fragment-dispatch"><a class="header" href="#macro_body-fragment-dispatch">macro_body fragment dispatch</a></h2>

@@ -1,0 +1,57 @@
+# path	verdict	shape	line	text (the line holding the furthest position)
+stimuli/sv/subs/ispras-sv-tests/ieee-1364-2005/test_19_03_01_2.v	fail	OTHER	13	  $display (`first_half end of string");
+stimuli/sv/subs/iverilog/ivtest/ivltests/attrib_expr.v	fail	`define	78	`define MACRO(arg) (* attr = `"`\`"arg`\`"`" *)
+stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh484.v	fail	`define	1	`define MY_FILE(dir, file) `"dir/file`"
+stimuli/sv/subs/iverilog/ivtest/ivltests/case_mux_array_word.v	fail	OTHER	13	               `"val`", exp, val); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/drive_strength4.v	fail	OTHER	17	               `"expr`", (val), (expr)); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/ifdef_fail.v	fail	`ifndef	4	`ifndef
+stimuli/sv/subs/iverilog/ivtest/ivltests/macro_str_esc.v	fail	OTHER	8	    $display("Using ``celldefine gives: %s", ``celldefine);
+stimuli/sv/subs/iverilog/ivtest/ivltests/macro_with_args.v	fail	`define	17	`define sum( a /* comment */ , b /* comment */ ) /* comment */ \
+stimuli/sv/subs/iverilog/ivtest/ivltests/module_input_port_list_def.v	fail	OTHER	10	      $display("FAILED(%0d): %s, expected %0h got %0h", `__LINE__, `"val`", exp, val); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/module_output_port_list_def.v	fail	OTHER	10	      $display("FAILED(%0d): %s, expected %0h got %0h", `__LINE__, `"val`", exp, val); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/nb_ec_concat.v	fail	OTHER	9	      $display("FAILED. %s: expected %b, got %b.", `"val`", exp, val); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/nb_ec_repeat_auto.v	fail	OTHER	12	               `"val`", exp, val); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/parameter_1bit.v	fail	OTHER	12	      $display("FAILED: `%s`, expected %0d, got %0d", `"expr`", val, expr); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1741212.v	fail	OTHER	485	        $display( "cos(%s): %f", ``MATH_2_PI, cos(20*`MATH_2_PI) ) ;
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1912112.v	fail	OTHER	5	   initial $display("The `test definition is: `define %s", ``test);
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1925360.v	fail	OTHER	5	  if ("$display(in);" != ``MAC(in))
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr622.v	fail	OTHER	4	                 $display("macro FOO = %s", ``FOO);
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr639.v	fail	OTHER	48	  $display("......... %s should be displayed as 15.20 in its timeformat.", ``PERIODR);
+stimuli/sv/subs/iverilog/ivtest/ivltests/real_array_multi_dim.v	fail	OTHER	9	      $display("FAILED: `%s`, expected %f, got %f", `"expr`", val, expr); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/real_unary_minus_inf.v	fail	OTHER	12	               `"val`", exp, val); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/real_unary_minus_nan.v	fail	OTHER	12	               `"val`", exp, val); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/real_unary_minus_zero.v	fail	OTHER	12	               `"val`", exp, val); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/shift6.v	fail	OTHER	11	               `"val`", (exp), (val), 4); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/sv_lval_concat_uarray1.v	fail	OTHER	13	               `"val`", exp, val); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/sv_lval_concat_uarray2.v	fail	OTHER	15	               `"val`", exp, val); \
+stimuli/sv/subs/iverilog/ivtest/ivltests/vardly_undefined_vec.v	fail	OTHER	10	      $display("FAILED(%0d): `%s`, expected %0x, got %0x", `__LINE__, `"expr`", val, expr); \
+stimuli/sv/subs/sv2v/test/basic/flatten_tb.v	fail	OTHER	2	    wire [14:0] tag``one_out, tag``two_out, tag``thr_out, tag``fou_out; \
+stimuli/sv/subs/sv2v/test/basic/flatten_three_tb.v	fail	OTHER	2	    wire [29:0] tag``one_out, tag``two_out, tag``thr_out, tag``fou_out; \
+stimuli/sv/subs/sv2v/test/core/ambiguous_tore.v	fail	OTHER	21	                $display(`"prefix``E = %0d %0d`", eval, eval); \
+stimuli/sv/subs/sv2v/test/core/cast_literal.v	fail	OTHER	2	    tmp``size = literal; \
+stimuli/sv/subs/sv2v/test/core/cast_nettype.v	fail	OTHER	3	        r``typ = expr; \
+stimuli/sv/subs/sv2v/test/core/cast_procedure.v	fail	OTHER	6	    $display(`"size: %b %b %b %b`", short, long, long, short);
+stimuli/sv/subs/sv2v/test/core/class_param_nest.v	fail	`define	1	`define DUMP(expr, value) $display(`"expr = %0d`", value);
+stimuli/sv/subs/sv2v/test/core/default_nettype.v	fail	OTHER	5	    module test_``t; \
+stimuli/sv/subs/sv2v/test/core/dimensions.v	fail	OTHER	17	    $display(`"Dumping info for typ`"); \
+stimuli/sv/subs/sv2v/test/core/end_labels.v	fail	`define	1	`define DUMP(expr, value) initial $display(`"expr = %0d`", value);
+stimuli/sv/subs/sv2v/test/core/enum.v	fail	OTHER	2	    dummy``name = val; \
+stimuli/sv/subs/sv2v/test/core/for_loop_inits.v	fail	OTHER	5	        $display(`"ID x = %0d`", x);
+stimuli/sv/subs/sv2v/test/core/implicit_net.v	fail	OTHER	2	    $display(`"expr = %b; $bits(expr) = %0d`", expr, $bits(expr));
+stimuli/sv/subs/sv2v/test/core/import_no_reorder.v	fail	`define	1	`define DUMP(x) initial $display(`"x: %0d %b`", $bits(x), x);
+stimuli/sv/subs/sv2v/test/core/interface_array_single.v	fail	OTHER	10	                $display(`"Module``X got %0d`", i ** 2 + offset); \
+stimuli/sv/subs/sv2v/test/core/interface_check_extra.v	fail	`define	3	`define DUMP(expr, val) $display(`"expr = %b`", val);
+stimuli/sv/subs/sv2v/test/core/interface_check_same.v	fail	OTHER	3	        $display(`"loc mod.expr %b`", i.expr); \
+stimuli/sv/subs/sv2v/test/core/multipack_ident_scope.v	fail	`define	1	`define DUMP(id) #1 $display(`"id: %b`", arr);
+stimuli/sv/subs/sv2v/test/core/no_default_param.v	fail	`define	1	`define DUMP(name) initial $display(`"name W=%b $bits(X)=%0d Y=%b $bits(Z)=%0d`", W, X, Y, Z);
+stimuli/sv/subs/sv2v/test/core/param_list.v	fail	`define	1	`define DUMP_V(X) initial $display(`"V: X %b %0d %0d`", X, X, $bits(X));
+stimuli/sv/subs/sv2v/test/core/paramtype_delay.v	fail	OTHER	17	        mod #(`"x`", w) m``x();
+stimuli/sv/subs/sv2v/test/core/struct_ident_scope.v	fail	OTHER	4	        $display(`"id: access a=%b b=%b`", x[0+:A], x[A+:B]); \
+stimuli/sv/subs/sv2v/test/core/struct_scope.v	fail	`define	15	`define INSPECT_SIZE(expr, size) $display(`"expr -> %0d`", size);
+stimuli/sv/subs/sv2v/test/core/subroutine.v	fail	OTHER	3	    initial repeat (4) $display(`"subroutine()`");
+stimuli/sv/subs/sv2v/test/core/typedef_ident_scope.v	fail	OTHER	2	    $display(`"id: $bits(T) = %0d, $left(T) = %0d, $right(T) = %0d`", \
+stimuli/sv/subs/sv2v/test/core/typename_deep.v	fail	OTHER	2	    initial $display(`"expr %0d %0d %0d`", \
+stimuli/sv/subs/sv2v/test/core/typeof_signed.v	fail	OTHER	2	    reg [size-1:0] typ``_unspecified = 1; \
+stimuli/sv/subs/sv2v/test/core/unbased_unsized.v	fail	OTHER	2	    reg [63:0] val_``value = {64{1'b``value}}; \
+stimuli/sv/subs/sv2v/test/lex/macro_arg_comment.v	fail	OTHER	3	    $display(`"x %b`", x); \
+stimuli/sv/subs/sv2v/test/lex/macro_arg_invoke.v	fail	`define	2	`define MODULE(str) module str; initial $display(`"hello str`"); endmodule

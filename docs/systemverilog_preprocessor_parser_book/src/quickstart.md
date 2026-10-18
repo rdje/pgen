@@ -76,6 +76,19 @@ The sv_preprocessor AST root is `systemverilog_preprocessor_file`, which produce
 
 See [Walking the AST](walking-the-ast.md) for the full walker pattern.
 
+## 4b. Choose the edition (release `1.0.9`)
+
+The parser reads directives the way a named IEEE edition does; without a profile it reads IEEE 1800-2017.
+
+```bash
+rust/target/release/parseability_probe --parse systemverilog_preprocessor top.sv                       # IEEE 1800-2017 (the default)
+rust/target/release/parseability_probe --parse systemverilog_preprocessor top.sv --profile sv_2023     # IEEE 1800-2023
+rust/target/release/parseability_probe --parse systemverilog_preprocessor top.sv --profile verilog_2005 # IEEE 1364-2005
+```
+
+On the generated parser, `set_grammar_profile(Some("sv_2023"))`; `None` restores the default. Hand this parser the
+profile you hand the SystemVerilog parser. See [Editions and Profiles](profiles.md).
+
 ## 5. Track the contract version
 
-Pin your downstream code to the parser-release version recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" (currently `1.0.8`, AST-dump schema `6`). When you bump to a new PGEN version, scan the [Changelog Index](changelog-index.md) for shape-change rows that affect the directives you consume (e.g. the `1.0.2` `SVPP-0001` fix changed `pp_if_branch.keyword` to `{kind: "ifdef"|"ifndef"}`; the `1.0.3` POST-SV-AUDIT fix changed `pp_define.formals` from the raw `{first, rest}` envelope to a clean `macro_formal[]` list; the `1.0.5` schema-`4` fix made a `condition_atom` "text" `body` a flat string; the `1.0.7` `SVPP-0004` schema-`5` fix restructured macro-default shapes; the `1.0.8` schema-`6` release added eight `pp_item` kinds and corrected the continued-define, object-like-macro and string-in-macro-text trees).
+Pin your downstream code to the parser-release version recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" (currently `1.0.9`, AST-dump schema `7`). When you bump to a new PGEN version, scan the [Changelog Index](changelog-index.md) for shape-change rows that affect the directives you consume (e.g. the `1.0.2` `SVPP-0001` fix changed `pp_if_branch.keyword` to `{kind: "ifdef"|"ifndef"}`; the `1.0.3` POST-SV-AUDIT fix changed `pp_define.formals` from the raw `{first, rest}` envelope to a clean `macro_formal[]` list; the `1.0.5` schema-`4` fix made a `condition_atom` "text" `body` a flat string; the `1.0.7` `SVPP-0004` schema-`5` fix restructured macro-default shapes; the `1.0.8` schema-`6` release added eight `pp_item` kinds and corrected the continued-define, object-like-macro and string-in-macro-text trees).

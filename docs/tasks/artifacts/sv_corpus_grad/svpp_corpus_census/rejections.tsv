@@ -1,25 +1,36 @@
 # path	verdict	shape	line	text (the line holding the furthest position)
-stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/top_1.v	fail	`default_nettype	13	`default_nettype 
+stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/top_1.v	fail	`undef	15	`undef multipl
+stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/top_2.v	fail	OTHER	45	$display(`first_half end of string ");
 stimuli/sv/subs/Surelog/tests/PragmaProtect/top.sv	fail	`pragma	87	`pragma protect key_block encoding = (enctype = "base64")
 stimuli/sv/subs/Surelog/tests/PreProcMacroFunc/dut.sv	fail	`endif	7	`endif  // ASSERT_SV
-stimuli/sv/subs/Surelog/tests/PreprocLine/dut.sv	fail	`line	9	`line `new_line_num `foo(line) 1
-stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/top_1.v	fail	`default_nettype	13	`default_nettype 
-stimuli/sv/subs/Surelog/tests/TestMacros/TestMacros.v	fail	`define	14	`define
+stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/top_1.v	fail	`undef	15	`undef multipl
+stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/top_2.v	fail	OTHER	45	$display(`first_half end of string ");
+stimuli/sv/subs/Surelog/tests/TestMacros/TestMacros.v	fail	`define	12	`define define
+stimuli/sv/subs/friscv/test/common/friscv_testbench.sv	fail	OTHER	872	            $sformat(tcname, "%s", ``TCNAME);
+stimuli/sv/subs/friscv/test/sv/icache_testbench.sv	fail	OTHER	277	        $sformat(tbname, "%s", ``TBNAME);
+stimuli/sv/subs/ispras-sv-tests/ieee-1364-2005/test_19_03_01_2.v	fail	OTHER	13	  $display (`first_half end of string");
+stimuli/sv/subs/iverilog/ivtest/ivltests/begin_keywords_1800_2023.v	fail	`begin_keywords	3	`begin_keywords "1800-2023"
 stimuli/sv/subs/iverilog/ivtest/ivltests/begin_keywords_vams_2_3.v	fail	`begin_keywords	3	`begin_keywords "VAMS-2.3"
-stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh782b.v	fail	`timescale	1	/* comment */ `timescale /* comment */ // comment
-stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh782c.v	fail	OTHER	34	   comment */
-stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh782e.v	fail	`begin_keywords	3	/* comment */ `begin_keywords /* comment */ // comment
-stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh782f.v	fail	`default_nettype	3	/* comment */ `default_nettype /* comment */ // comment
-stimuli/sv/subs/iverilog/ivtest/ivltests/escaped_macro_name.v	fail	`define	2	`define \escaped    "escaped name"
-stimuli/sv/subs/iverilog/ivtest/ivltests/ifdef_fail.v	fail	`ifdef	3	`ifdef
+stimuli/sv/subs/iverilog/ivtest/ivltests/ifdef_fail.v	fail	`ifndef	4	`ifndef
+stimuli/sv/subs/iverilog/ivtest/ivltests/macro_str_esc.v	fail	OTHER	8	    $display("Using ``celldefine gives: %s", ``celldefine);
+stimuli/sv/subs/iverilog/ivtest/ivltests/macro_with_args.v	fail	`define	17	`define sum( a /* comment */ , b /* comment */ ) /* comment */ \
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1741212.v	fail	OTHER	485	        $display( "cos(%s): %f", ``MATH_2_PI, cos(20*`MATH_2_PI) ) ;
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1912112.v	fail	OTHER	5	   initial $display("The `test definition is: `define %s", ``test);
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1925360.v	fail	OTHER	5	  if ("$display(in);" != ``MAC(in))
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr622.v	fail	OTHER	4	                 $display("macro FOO = %s", ``FOO);
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr639.v	fail	OTHER	48	  $display("......... %s should be displayed as 15.20 in its timeformat.", ``PERIODR);
 stimuli/sv/subs/sv-tests/tests/chapter-22/22.11--pragma-invalid.sv	fail	`pragma	17	`pragma
 stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-1.sv	fail	`line	17	`line 1 "somefile" 3
 stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-2.sv	fail	`line	17	`line 1 somefile 2
 stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-3.sv	fail	`line	17	`line -12 "somefile" 3
-stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-4.sv	fail	`line	17	`line 1 "somefile"
-stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-5.sv	fail	`line	17	`line 1
-stimuli/sv/subs/sv-tests/tests/chapter-22/22.9--unconnected_drive-invalid-1.sv	fail	`unconnected_drive	17	`unconnected_drive
+stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-4.sv	fail	OTHER	18	
+stimuli/sv/subs/sv-tests/tests/chapter-22/22.12--line-illegal-5.sv	fail	OTHER	18	
+stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_21.sv	fail	OTHER	19	initial $display(`first_half end of string");
+stimuli/sv/subs/sv-tests/tests/chapter-22/22.5.1--define-expansion_23.sv	fail	`define	17	`define define "illegal"
+stimuli/sv/subs/sv-tests/tests/chapter-22/22.9--unconnected_drive-invalid-1.sv	fail	`nounconnected_drive	18	`nounconnected_drive
 stimuli/sv/subs/sv-tests/tests/chapter-22/22.9--unconnected_drive-invalid-2.sv	fail	`unconnected_drive	17	`unconnected_drive pull2
+stimuli/sv/subs/sv2v/test/error/block_comment_eof.sv	fail	OTHER	2	/*
+stimuli/sv/subs/sv2v/test/error/default_nettype_invalid.sv	fail	`default_nettype	2	`default_nettype invalid
 stimuli/sv/subs/sv2v/test/error/double_backtick.sv	fail	OTHER	4	    ``
 stimuli/sv/subs/sv2v/test/error/include_apos.sv	fail	`include	1	`include '/dev/null'
 stimuli/sv/subs/sv2v/test/error/include_filename_eof.sv	fail	`include	2	`include <foo
@@ -27,8 +38,14 @@ stimuli/sv/subs/sv2v/test/error/line_char1.sv	fail	`line	1	`line 1 "asd" B
 stimuli/sv/subs/sv2v/test/error/line_char2.sv	fail	`line	1	`line 1 "asd" 1B
 stimuli/sv/subs/sv2v/test/error/line_eof.sv	fail	`line	1	`line
 stimuli/sv/subs/sv2v/test/error/line_level.sv	fail	`line	1	`line 0 "asd" 3
+stimuli/sv/subs/sv2v/test/error/macro_arg_bad_eq.sv	fail	`define	2	`define MACRO(a#)
+stimuli/sv/subs/sv2v/test/error/macro_arg_bad_name.sv	fail	`define	2	`define MACRO(#)
+stimuli/sv/subs/sv2v/test/error/macro_args_empty.sv	fail	`define	2	`define MACRO()
+stimuli/sv/subs/sv2v/test/error/macro_illegal_name.sv	fail	`define	2	`define define
+stimuli/sv/subs/sv2v/test/error/stray_escaped_vendor_comment.sv	fail	OTHER	4	    /``* some awful garbage *``/
 stimuli/sv/subs/sv2v/test/error/string_directive.sv	fail	OTHER	2	`"asdf `line`"
 stimuli/sv/subs/sv2v/test/error/string_literal_backtick_eof.sv	fail	OTHER	2	`"
+stimuli/sv/subs/sv2v/test/error/string_literal_eof.sv	fail	OTHER	2	"
 stimuli/sv/subs/sv2v/test/error/unmatched_else.sv	fail	`else	2	`else
 stimuli/sv/subs/sv2v/test/error/unmatched_else_end.sv	fail	OTHER	4	
 stimuli/sv/subs/sv2v/test/error/unmatched_elsif.sv	fail	`elsif	2	`elsif
@@ -36,30 +53,37 @@ stimuli/sv/subs/sv2v/test/error/unmatched_elsif_end.sv	fail	OTHER	4
 stimuli/sv/subs/sv2v/test/error/unmatched_endif.sv	fail	`endif	2	`endif
 stimuli/sv/subs/sv2v/test/error/unmatched_ifdef.sv	fail	OTHER	3	
 stimuli/sv/subs/sv2v/test/error/unmatched_ifndef.sv	fail	OTHER	3	
-stimuli/sv/subs/sv2v/test/lex/line.sv	fail	`line	9	`line `new_line_num `foo(line) 1
-stimuli/sv/subs/sv2v/test/lex/string_macro.sv	fail	`define	42	`define
-stimuli/sv/subs/verilator/test_regress/t/t_clk_2in.v	fail	OTHER	164	
+stimuli/sv/subs/sv2v/test/lex/macro_arg_comment.sv	fail	OTHER	2	    // comment
+stimuli/sv/subs/sv2v/test/lex/string_macro.sv	fail	OTHER	9	        $display(`"`FOO`");
+stimuli/sv/subs/verilator/test_regress/t/t_display_qqq.v	fail	OTHER	10	    $display("""First "quoted"\nsecond\
 stimuli/sv/subs/verilator/test_regress/t/t_dpi_vams.v	fail	`begin_keywords	8	`begin_keywords "1800+VAMS"
-stimuli/sv/subs/verilator/test_regress/t/t_func_dotted.v	fail	OTHER	160	
-stimuli/sv/subs/verilator/test_regress/t/t_interface2.v	fail	OTHER	112	
-stimuli/sv/subs/verilator/test_regress/t/t_interface_modport.v	fail	OTHER	156	
+stimuli/sv/subs/verilator/test_regress/t/t_fuzz_eof_bad.v	fail	OTHER	4	  initial $lay(*Hello!=n");
 stimuli/sv/subs/verilator/test_regress/t/t_lint_pragma_protected_bad.v	fail	`pragma	96	`pragma
-stimuli/sv/subs/verilator/test_regress/t/t_lint_warn_line_bad.v	fail	`line	9	`line `__LINE__ "the_line_file" 1
-stimuli/sv/subs/verilator/test_regress/t/t_pp_line_bad.v	fail	`line	7	`line
+stimuli/sv/subs/verilator/test_regress/t/t_parse_eof_qqq_bad.v	fail	OTHER	7	"""str
+stimuli/sv/subs/verilator/test_regress/t/t_parse_eof_str_bad.v	fail	OTHER	7	localparam string STR = "str
+stimuli/sv/subs/verilator/test_regress/t/t_pp_defkwd_bad.v	fail	`define	7	`define define 1
+stimuli/sv/subs/verilator/test_regress/t/t_pp_defnettype_bad.v	fail	`default_nettype	7	`default_nettype bad_none_such
+stimuli/sv/subs/verilator/test_regress/t/t_pp_display.v	fail	OTHER	40	    $display(`"standalone`");
+stimuli/sv/subs/verilator/test_regress/t/t_pp_line_bad.v	fail	`line	8	`line 100
 stimuli/sv/subs/verilator/test_regress/t/t_pp_pragma_bad.v	fail	`pragma	7	`pragma
-stimuli/sv/subs/verilator/test_regress/t/t_preproc.v	fail	`include	246	 `include NOT_DEFINED_INC
+stimuli/sv/subs/verilator/test_regress/t/t_preproc.v	fail	OTHER	119	      $display(`"standalone`");
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_cmtend_bad.v	fail	OTHER	7	/*Blah
 stimuli/sv/subs/verilator/test_regress/t/t_preproc_elsif_bad.v	fail	`elsif	9	`elsif A
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof1_bad.v	fail	OTHER	7	/*
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof2_bad.v	fail	OTHER	8	
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof4_bad.v	fail	OTHER	7	"blah
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof_qqq_bad.v	fail	OTHER	7	"""str
 stimuli/sv/subs/verilator/test_regress/t/t_preproc_ifdefend_bad.v	fail	OTHER	8	
-stimuli/sv/subs/verilator/test_regress/t/t_preproc_ifexpr.v	fail	`ifdef	13	`ifdef ( ONE )
-stimuli/sv/subs/verilator/test_regress/t/t_preproc_ifexpr_bad.v	fail	`elsif	13	`elsif ( ONE )  // BAD: elsif without if
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_ifexpr.v	fail	`begin_keywords	8	`begin_keywords "1800-2023"
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_ifexpr_bad.v	fail	`begin_keywords	8	`begin_keywords "1800-2023"
 stimuli/sv/subs/verilator/test_regress/t/t_preproc_inc_fn_bad.v	fail	`include	7	`include `else
-stimuli/sv/subs/verilator/test_regress/t/t_preproc_kwd.v	fail	`begin_keywords	91	`begin_keywords "VAMS-2.3"
-stimuli/sv/subs/verilator/test_regress/t/t_preproc_preproczero_bad.v	fail	`ifdef	12	`ifdef ( ZERO )
-stimuli/sv/subs/verilator/test_regress/t/t_preproc_undefineall.v	fail	OTHER	22	
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_kwd.v	fail	`begin_keywords	83	`begin_keywords "1800-2023"
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_preproczero_bad.v	fail	`begin_keywords	8	`begin_keywords "1800-2023"
+stimuli/sv/subs/verilator/test_regress/t/t_preproc_stringend_bad.v	fail	OTHER	7	"Blah
 stimuli/sv/subs/verilator/test_regress/t/t_split_var_3_wreal.v	fail	`begin_keywords	7	`begin_keywords "VAMS-2.3"
-stimuli/sv/subs/verilator/test_regress/t/t_time_vpi.v	fail	`timescale	7	`timescale `time_scale_units / `time_scale_prec
 stimuli/sv/subs/verilator/test_regress/t/t_timescale_parse_bad.v	fail	`timescale	11	`timescale frump
-stimuli/sv/subs/verilator/test_regress/t/t_unconnected_bad.v	fail	`unconnected_drive	7	`unconnected_drive
+stimuli/sv/subs/verilator/test_regress/t/t_timing_split.v	fail	`define	20	  `define foo8() \
+stimuli/sv/subs/verilator/test_regress/t/t_unconnected_bad.v	fail	`unconnected_drive	9	`unconnected_drive pull2
 stimuli/sv/subs/verilator/test_regress/t/t_vams_basic.v	fail	`begin_keywords	7	`begin_keywords "VAMS-2.3"
 stimuli/sv/subs/verilator/test_regress/t/t_vams_kwd_bad.v	fail	`begin_keywords	7	`begin_keywords "VAMS-2.3"
 stimuli/sv/subs/verilator/test_regress/t/t_vams_wreal.v	fail	`begin_keywords	7	`begin_keywords "VAMS-2.3"

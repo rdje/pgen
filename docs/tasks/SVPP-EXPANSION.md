@@ -274,6 +274,7 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 | ⚠️ | `.5`(z) | `todo` (opened 2026-10-18 by `SV-CORPUS-GRAD.13c.2v.13`, `PGEN-SV-CORPUS-GRAD-0460`) | under `verilog_2005` a formal DEFAULT (`` `define M(a=1) a ``) and the `` `" `` token pass; IEEE 1364-2005 clause 19 has neither |
 | ⚠️ | `.5`(aa) | `todo` (opened 2026-10-18 by `SV-CORPUS-GRAD.13c.2v.13`, `PGEN-SV-CORPUS-GRAD-0461`) | a directive written over several lines is read inconsistently and edition-blind: `` `timescale `` / `` `default_nettype `` / `` `ifdef `` / `` `unconnected_drive `` / a `` `define `` formal list pass under `sv_2017` AND `sv_2023`, `` `begin_keywords `` / `` `undef `` are refused under both; 1364-2005 and 1800-2017 allow it, 1800-2023 §22.2 forbids it |
 | ⚠️ | `.5`(ab) | `todo` (opened 2026-10-18 by `SV-CORPUS-GRAD.13c.2v.13`, `PGEN-SV-CORPUS-GRAD-0463`) | an EMPTY formal list (`` `define foo8() 8 ``) passes under `sv_2017` and `sv_2023`; Syntax 22-2's `list_of_formal_arguments` has at least one formal in every edition (sv2v keys the form as `test/error/macro_args_empty.sv`) |
+| ⚠️ | `.5`(ac) | `todo` (opened 2026-10-18 by `SV-CORPUS-GRAD.13c.2v.16`, `PGEN-SV-CORPUS-GRAD-0464`) | a macro usage's ACTUAL list is closed by parenthesis depth alone: a `)` inside matched `[ ]` / `{ }` or inside an escaped identifier ends it (`` wire [`M(\x) ):0] `` refused), against §22.5.1 |
 | — | `.6c.3` | ✅ `done` | `PGEN-SVPP-EXPANSION-0042`: the 94 sv-tests `:type: preprocessing` rows the raw key deferred to the preprocessor lane BY DESIGN are judged by their own header through the key's own function in its pipeline mode (`should_fail_because` → must_reject, absent → must_accept): 86 `svpp_owned:corroborated`, 4 refused as expected (`must_reject:refused_engine`, now ADJUDICATED), 2 rejected as expected, and TWO the pipeline ACCEPTS against a should-fail header — the standard's own split-string example and `` `define define `` — on the bar under the pipeline (tuple `11270/2606/2460/1261/2`) until `.5`(s)/(t) land. Section below |
 | — | `.5`(r) | ✅ `done` (a RULING) | `PGEN-SVPP-EXPANSION-0041`: the comment-backslash continuation 1800-2023 §22.5.1 names outright (`docs/systemverilog/2023/md/section-22-compiler-directives.md:200-201`) already reads as licensed on both profiles (measured before any change); the Surelog `TestMacros/macros.v:5` line writes a TAB and spaces AFTER its backslash, which no edition licenses (2017 `docs/systemverilog/2017/md/section-22-compiler-directives.md:171-172` "preceded by a backslash", 2023 `docs/systemverilog/2023/md/section-22-compiler-directives.md:173-175` "immediately preceded", 1364-2005 `docs/verilog/2005/md/section-19-compiler-directives.md:107-108`); the corpus writes that shape at two sites, both tests (verilator's own `t_lint_bsspace_bad.v` is its lint-error test for it). Two pins, both SV profiles; no stage option; no row moved. Section below |
 | — | `.4d` | ✅ `done` | `PGEN-SVPP-EXPANSION-0038`: the lane's refused-context rows grouped by what the context fails to supply — 168 black-parrot rows name BaseJump STL (not vendored; honestly absent), the rest top-specific files, build outputs and error tests, AND 25 rows name a file the tree holds: the derivation's include-candidate population was the SOURCE suffixes only (a `.vi` / `.vams` header held once was "absent"), and a tie of byte-identical copies was "ambiguous". Both fixed in `stimuli/sv/pipeline_context.py`; the fix's first cut was REFUSED by the shadow guard written beside it (a suite directory chosen for one name held two ambiguous ones) and redesigned per file. Five rows left `pp_fail` under each of the three readings — four to `pass` (two HardFloat `specialize.v`, iverilog `test_va_math.v` / `test_vams_math.v`), one to `fail` (the friscv testbench) — the five named in writing before the chain, none the other way; the 20 HardFloat `source` rows now stop at the honest three-way tie behind the resolved header. Section below |
@@ -2178,6 +2179,13 @@ it waits on the `.5`(d) ruling.
   - [x] **NEUTRALITY TIER** — SystemVerilog's own pins; no engine byte.
   - promotion: declined (see `DEVELOPMENT_NOTES.md`).
 
+> ⛔ **SCHEDULE CHANGED 2026-10-18 (`PGEN-SV-CORPUS-GRAD-0464`).** `.5`(w) – (ab) below do NOT ride the
+> `systemverilog_preprocessor` release `1.0.9`, as their "Owed" lines first said: each is expansion-stage Rust that
+> MOVES SystemVerilog pipeline verdicts, so the six — and `.5`(ac), found by the same release — are the stage's OWN next release — the EDITION-FIDELITY release —
+> which measures and adjudicates its movers on their own. Release `1.0.9` changed zero expansion-stage bytes (its SV
+> re-key is an identity check, `SV-CORPUS-GRAD.13c.2v.13`'s release record). They are ordered next, before
+> `SV-CORPUS-GRAD.13c.2v.10`'s leg-3 wiring.
+
 ## `.5`(w) `` `line 0 `` is consumed — ⚠️ `todo` (opened 2026-10-17 by `SV-CORPUS-GRAD.13c.2v.1`, `PGEN-SV-CORPUS-GRAD-0457`)
 
 - **The finding.** Designing the `systemverilog_preprocessor` grammar's `` `line `` production for release
@@ -2277,6 +2285,21 @@ it waits on the `.5`(d) ruling.
 - **Owed.** Refuse an empty formal list in `parse_macro_parameter_list` with the production named; a RED-first unit
   test; the pipeline mover and its key row adjudicated. Rides the SystemVerilog binaries of the stage's
   edition-fidelity release.
+
+## `.5`(ac) a macro usage's actuals closed at the first `)` — ⚠️ `todo` (opened 2026-10-18 by `SV-CORPUS-GRAD.13c.2v.16`, `PGEN-SV-CORPUS-GRAD-0464`)
+
+- **The finding.** Lexing the `systemverilog_preprocessor` grammar's macro ACTUALS to §22.5.1 (1800-2017 and 1800-2023:
+  *"Actual arguments and defaults shall not contain comma or right parenthesis characters outside matched pairs of left
+  and right parentheses (), square brackets [], braces {}, double quotes "", or an escaped identifier"*; ledger
+  `SVPP-0015`), the stage was read beside it: the invocation scanner closes the list by PARENTHESIS depth alone —
+  strings and comments are honoured, `[ ]` / `{ }` only for commas, an escaped identifier not at all.
+- **Measured** (the release probe, `--parse systemverilog … --preprocess`, scratch `rust/target/svpp9/certdbg/st_*.sv`):
+  `` `define M(a) 1 `` / `` wire [`M(\x) ):0] w; `` → REFUSED (the list closed inside the escaped identifier `\x)`; the
+  clause's reading expands to `[1:0]`); `` `M(3[)]) `` closes at the `)` inside the brackets. Controls: `` `M({3}) `` and
+  `` `M(")") `` pass.
+- **Owed.** Close the list outside matched `[ ]` / `{ }` and outside an escaped identifier, with the clause; a
+  RED-first unit test per form; the pipeline movers adjudicated. Expansion-stage Rust: the stage's edition-fidelity
+  release, with `.5`(w) – (ab).
 
 ## `.6d.8` VeeR's flow predecessors — ✅ done 2026-10-06 (`PGEN-SVPP-EXPANSION-0040`): the generated configuration header the Makefile compiles first, which no file includes, supplied as the suite's unit predecessor; three rows reach the parser's acceptance
 

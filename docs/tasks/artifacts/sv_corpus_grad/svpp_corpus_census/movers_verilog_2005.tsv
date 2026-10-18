@@ -1,0 +1,63 @@
+# path	before	after	tree (both accept: same / MOVED)
+stimuli/sv/subs/ispras-sv-tests/ieee-1364-2005/test_19_03_01_2.v	pass	fail	
+stimuli/sv/subs/ispras-sv-tests/ieee-1364-2005/test_19_04_00_3.v	pass	pass	MOVED
+stimuli/sv/subs/iverilog/ivtest/ivltests/attrib_expr.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh484.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh782c.v	fail	pass	
+stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh782e.v	fail	pass	
+stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh782f.v	fail	pass	
+stimuli/sv/subs/iverilog/ivtest/ivltests/case_mux_array_word.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/drive_strength4.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/elsif_test.v	pass	pass	MOVED
+stimuli/sv/subs/iverilog/ivtest/ivltests/macro_str_esc.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/macro_with_args.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/module_input_port_list_def.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/module_output_port_list_def.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/nb_ec_concat.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/nb_ec_repeat_auto.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/parameter_1bit.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1741212.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1912112.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr1925360.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr2002443.v	pass	pass	MOVED
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr622.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/pr639.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/real_array_multi_dim.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/real_unary_minus_inf.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/real_unary_minus_nan.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/real_unary_minus_zero.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/shift6.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/string12.v	pass	pass	MOVED
+stimuli/sv/subs/iverilog/ivtest/ivltests/sv_lval_concat_uarray1.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/sv_lval_concat_uarray2.v	pass	fail	
+stimuli/sv/subs/iverilog/ivtest/ivltests/vardly_undefined_vec.v	pass	fail	
+stimuli/sv/subs/sv2v/test/basic/flatten_tb.v	pass	fail	
+stimuli/sv/subs/sv2v/test/basic/flatten_three_tb.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/ambiguous_tore.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/cast_literal.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/cast_nettype.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/cast_procedure.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/class_param_nest.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/default_nettype.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/dimensions.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/end_labels.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/enum.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/for_loop_inits.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/implicit_net.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/import_no_reorder.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/interface_array_single.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/interface_check_extra.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/interface_check_same.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/multipack_ident_scope.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/no_default_param.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/param_list.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/paramtype_delay.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/struct_ident_scope.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/struct_scope.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/subroutine.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/typedef_ident_scope.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/typename_deep.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/typeof_signed.v	pass	fail	
+stimuli/sv/subs/sv2v/test/core/unbased_unsized.v	pass	fail	
+stimuli/sv/subs/sv2v/test/lex/macro_arg_comment.v	pass	fail	
+stimuli/sv/subs/sv2v/test/lex/macro_arg_invoke.v	pass	fail	

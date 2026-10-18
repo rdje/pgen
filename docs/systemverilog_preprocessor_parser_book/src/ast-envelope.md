@@ -121,6 +121,13 @@ The catch-all arm is exactly where a walker written against schema `5` meets rel
 kinds are new values of `kind`, so a walker that treats an unknown kind as unreachable must be updated before it
 reads schema-`6` output — one reason `1.0.8` bumped the schema (see [Schema Versioning](schema-versioning.md)).
 
+Schema `7` (release `1.0.9`) adds no `pp_item` kind, but a CONDITIONAL GROUP's items may now hold
+`{kind: "malformed_directive", body: {text}}` (a group line that does not parse, recorded whole), an `` `elsif `` branch
+is `{macro, tail, items}` (no longer `{condition: {atoms}}`), a condition `macro` may be an object (a macro usage, or
+under `sv_2023` an expression) instead of the identifier envelope, and a `non_directive_line` may end mid-line, before a
+directive. A walker that matches `pp_item` kinds needs no new arm; one that walks conditional groups or reads
+`elsif` conditions does — see [Top-Level Rules](rules-top-level.md).
+
 ## Conditional-compilation tree
 
 `pp_conditional` describes the recursive `` `ifdef / `elsif / `else / `endif`` (and `` `ifndef``) chain. The body is a typed shape mirroring the grammar's recursive layout. The `` `ifdef``/`` `ifndef`` polarity is a typed `pp_if_keyword` object — `pp_if_branch.keyword` is `{kind: "ifdef"}` or `{kind: "ifndef"}` as of the `1.0.2` `SVPP-0001` correctness fix (was the malformed `<invalid_sequence_access>` object at `1.0.1` / schema `1`; see [Schema Versioning](schema-versioning.md) and the [Conditional Compilation](examples-conditional.md) worked example). See [Walking the AST](walking-the-ast.md) for the full tree shape.

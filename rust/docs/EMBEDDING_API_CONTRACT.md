@@ -52,7 +52,22 @@ Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) 
   - default via `AstDumpOptions::default()`
 
 ## Versioning
-- Contract version constant: `EMBEDDING_API_VERSION = "2.0.0"`
+- Contract version constant: `EMBEDDING_API_VERSION = "2.2.0"` (this line read `2.0.0` through `2.1.0` — corrected
+  forward 2026-10-18)
+  - `2.2.0` (2026-10-18, `SV-CORPUS-GRAD.13c.2v.16`, with `systemverilog_preprocessor` release `1.0.9`): TWO families
+    now declare the same profile spellings — the SystemVerilog preprocessor reads the SystemVerilog family's editions
+    (`sv_2017`, `sv_2023`, `sv_2023_tolerant`, `verilog_2005` and their aliases). (1) `GrammarParseOutcome` and
+    `GrammarAstDumpOutcome` read their `profile` back WITHIN their own `grammar`; the wire shape is unchanged, and an
+    unprofiled family's outcome now round-trips (its `null` profile had no family to resolve in). Without this an SV
+    outcome naming `"sv_2023"` would not read back. (2) The family-less `GrammarProfile::from_str` keeps its rule — a
+    spelling must resolve in exactly one family — so a SystemVerilog edition's spelling is AMBIGUOUS there, the
+    diagnostic naming both families; resolve within the family (`GrammarFamily::from_str("systemverilog")?
+    .profile("sv_2023")?`), the documented form since `2.0.0`. ⚠️ A behaviour change for a caller of the family-less
+    form with one of those spellings; no parse, verdict or AST changes, and every named entry point is unaffected
+    (it takes the grammar with the profile).
+  - `2.1.0` (2026-09-30, `ENGINE-UNIVERSAL-SERVICES.73`): the SystemVerilog standard-library bundle is embedded in
+    the binary; `PGEN_PARSER_LIBS_DIR` is the one override and refuses by name (additive, and a corrected behaviour —
+    a missing bundle had been a silent `Ok`).
   - `2.0.0` (2026-09-28, `ENGINE-UNIVERSAL-SERVICES.112` slice 3): **the API is DERIVED from the
     registry and names no language** — a BREAKING Rust-surface change, wire-compatible for JSON
     consumers. `GrammarFamily` and `GrammarProfile` are resolved values, not enums: obtain them with
@@ -240,6 +255,8 @@ Grammar parser API:
   reached through `@profile_alias` and `@default_profile` (`sv_2017 | sv_2023 | verilog_2005` for
   SystemVerilog, `vhdl_1076_2019` for VHDL, `pcre2 | relaxed` for regex with `regex_default` an
   alias of `pcre2`; a family declaring no profiles has one unprofiled dialect, serialised as `null`).
+  Since `2.2.0` `systemverilog_preprocessor` declares the SystemVerilog editions too (`sv_2017` default, `sv_2023`,
+  `sv_2023_tolerant`, `verilog_2005`, the same aliases), so a profile is resolved WITHIN its family.
 - `FamilyContract`: a family's published downstream contract identity (`family_contracts`).
   - `verilog_2005` (aliases `1364-2005` / `ieee1364-2005` / `ieee_1364_2005`) is a strict IEEE
     1364-2005 (Verilog) parsing profile on the SystemVerilog grammar: it rides the `sv_2017` baseline

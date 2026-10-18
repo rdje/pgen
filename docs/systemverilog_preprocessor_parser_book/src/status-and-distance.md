@@ -153,7 +153,7 @@ written down in `residual_dispositions.tsv`, which the census refuses to run wit
 The census is not yet this family's leg-3 assertion (the derived block above still reads NOT MEASURED); wiring it is
 `SV-CORPUS-GRAD.13c.2v.10`.
 
-### Two wrong verdicts the census could not see (found 2026-10-18)
+### Wrong verdicts the census of refusals could not see (found 2026-10-18; FIXED in release `1.0.9`)
 
 The census above reads the files this parser REFUSES. A file it wrongly ACCEPTS never reaches the disposition table, and
 designing the next release found five such defects in `1.0.8` (the last two by measuring its first prototype over the
@@ -179,6 +179,44 @@ An example of the first — the release's tree for this input has an `else` bran
 ```
 
 IEEE 1800-2023 §22.2: *"Directives are not recognized within comments or string literals"* — the `` `else `` is comment text,
-so the conditional has one branch. Both defects are fixed by the next release's lexically-aware text run (task leaf
-`SV-CORPUS-GRAD.13c.2v.13`), and that release's census reads the other half too: every row the SystemVerilog answer key
-expects to be refused, joined to this parser's verdict.
+so the conditional has one branch. All five are fixed in release `1.0.9` (below), whose census reads the other half too: the corpus's preprocessor-themed
+suite error tests, every one the parser accepts given a written reason.
+
+## Release `1.0.9`, measured (2026-10-18)
+
+Release `1.0.9` reads each IEEE edition through a profile ([Editions and Profiles](profiles.md)), lexes passthrough
+text, lets a directive begin anywhere on a line, and records a conditional group's line that does not parse instead
+of refusing it. The same census, on the GENERATED parser, against the `1.0.8` probe — one reading per edition:
+
+| reading | files | accepted | refused | fail → pass | pass → fail | trees moved |
+|---|---:|---:|---:|---:|---:|---:|
+| default — IEEE 1800-2017 | 16,336 | 16,248 | 88 | 14 | 38 | 82 |
+| `sv_2023` — IEEE 1800-2023 | 16,336 | 16,241 | 95 | 11 | 42 | 77 |
+| `verilog_2005` — IEEE 1364-2005, over its own lane | 2,943 | 2,887 | 56 | 3 | 55 | 4 |
+
+Every refusal of every reading has a written disposition (`residual_dispositions.tsv`, `…_sv_2023.tsv`,
+`…_verilog_2005.tsv`), and no reading carries a "gap to fix" any more:
+
+| disposition | default | `sv_2023` | `verilog_2005` | what it means |
+|---|---:|---:|---:|---|
+| the suite's own error test | 53 | 53 | 1 | refused at the construct the suite names |
+| refused by a clause | 32 | 32 | 8 | a Verilog-AMS `begin_keywords` specifier, a string split between a macro and its usage, `` `" `` outside macro text, a comment between formals, an empty formal list, … |
+| an edition contrast | 3 | 10 | 47 | valid under another edition and refused under this one (`"1800-2023"` under 1800-2017; a directive over several lines under 1800-2023; `` `" `` under 1364-2005) |
+
+**The over-acceptance half.** The census now also selects the corpus's preprocessor-themed suite error tests by each
+suite's naming convention — 82 files — and requires a written reason for every one the parser accepts. The default
+reading refuses 47 and accepts 35: 19 are errors of the expansion stage (macro arity, undefined or recursive macros,
+include loops, unpaired `` `end_keywords ``), 14 are SystemVerilog's (elaboration, a stray token, following text, placement
+inside a module), 2 are tool lints, not LRM errors (a third, verilator's `PREPROCZERO` warning, is accepted under `sv_2023` only). None is an error of the directive structure.
+
+**The certificate.** The grammar's generated samples reach forms no corpus file holds. The first `1.0.9` build was not
+fully certified (4 rules UNKNOWN, 101 refused samples over 32 seeds); each refused sample was read, three were parser
+defects (fixed — a define ending the file after white space, a comment-only formal default, macro actuals read
+without lexing, ledger `SVPP-0015`) and the rest token boundaries now declared for generation. On the release grammar the certificate is clean at its bar — seed 0, 40 samples: **201 rules · 192 witness · 9 proof · 0 unknown, fully certified, 0 refused samples** — and the union of the three profiles is fully certified. Over 32 seeds every one is fully certified with 0 UNKNOWN; one seed (21) reports one refused sample, read: the parser is right (a macro usage's actual list one `)` short), the hazard is generation's — owned,
+`SV-CORPUS-GRAD.13c.2v.18`.
+
+Open in this parser, owned and ordered fixed (`SV-CORPUS-GRAD.13c.2v.17`): a macro usage whose actuals continue onto
+the next line inside a directive parameter is read as a usage without actuals followed by text.
+
+The census is still not this family's leg-3 assertion (the derived block above reads NOT MEASURED); wiring it is
+`SV-CORPUS-GRAD.13c.2v.10`'s remaining item.

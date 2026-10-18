@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-aa59a798.js";
+            window.path_to_searchindex_js = "searchindex-0dae82da.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-89867f1a.js"></script>
+        <script src="toc-b48efc63.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -201,6 +201,74 @@
 <p>The main SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The sv_preprocessor parser is different: it has a small, line-oriented directive grammar that was typed in a single comprehensive slice — SVPP-Slice-1 — plus a follow-up correctness fix (<code>SVPP-0001</code>, release <code>1.0.2</code> / schema <code>2</code>), a POST-SV-AUDIT Category-A shape correction (<code>macro_formals</code>, release <code>1.0.3</code> / schema <code>3</code>), a schema-neutral macro-comment correctness fix (<code>SVPP-0002</code>, release <code>1.0.4</code>, schema <strong>stays</strong> <code>3</code>), the <code>condition_text -&gt; $text</code> annotation (release <code>1.0.5</code> / schema <code>4</code>, <code>GRAMMAR-WELLFORMED.H.5.1.3.2</code>), and a schema-neutral condition-comment correctness fix (<code>SVPP-0003</code>, release <code>1.0.6</code>, schema <strong>stays</strong> <code>4</code>, <code>GRAMMAR-WELLFORMED.H.5.5</code>), so the sv_preprocessor schema timeline has a short list of entries (<code>SVPP-0002</code>/<code>1.0.4</code> and <code>SVPP-0003</code>/<code>1.0.6</code> are release bumps with no new schema row — schema <code>3</code> spans <code>1.0.3</code>–<code>1.0.4</code>, schema <code>4</code> spans <code>1.0.5</code>–<code>1.0.6</code>).</strong> This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="schema-versioning.html">Schema Versioning</a> row, and an entry below.</p>
 <h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
 <p>This book is <strong>live</strong> and tracks current main HEAD. The schema entries below mirror the “Schema Versioning” table in <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state. The newest release (<code>1.0.6</code>, <code>SVPP-0003</code>) is schema-neutral — it shares schema <code>4</code> with <code>1.0.5</code> (no new schema row), recorded as the <code>1.0.6</code> addendum to the schema-<code>4</code> entry; <code>1.0.5</code> was the release that bumped the AST-dump schema to <code>4</code>.</p>
+<h3 id="release-109--per-edition-profiles-lexed-text-directives-anywhere-on-a-line-five-corrected-trees-ast-dump-schema-6--7-112-annotations--60-rules"><a class="header" href="#release-109--per-edition-profiles-lexed-text-directives-anywhere-on-a-line-five-corrected-trees-ast-dump-schema-6--7-112-annotations--60-rules">Release 1.0.9 — per-edition profiles, lexed text, directives anywhere on a line, five corrected trees (AST-dump schema <code>6</code> → <code>7</code>; 112 annotations / 60 rules)</a></h3>
+<p>Landed 2026-10-18 (<code>PGEN-SV-CORPUS-GRAD-0464</code>, leaves <code>SV-CORPUS-GRAD.13c.2v.8</code> – <code>.16</code>), the release the director
+ordered on 2026-10-18 (<code>docs/decisions/feedback_every_parser_meets_its_full_requirements_no_documented_limits.md</code>).</p>
+<ul>
+<li>
+<p><strong>Release:</strong> parser release <code>1.0.9</code>, contract <code>1.0.9</code>. <strong>AST-dump schema: <code>7</code></strong> (was <code>6</code>).</p>
+</li>
+<li>
+<p><strong>New — per-edition PROFILES:</strong> <code>sv_2017</code> (the default), <code>sv_2023</code>, <code>sv_2023_tolerant</code>, <code>verilog_2005</code>, the
+SystemVerilog family’s own names and aliases. 1800-2023’s <code>`ifdef ( expr )</code> / <code>`elsif ( expr )</code> and
+triple-quoted strings derive under <code>sv_2023</code> only; 1364-2005 has no <code>`undefineall</code>, <code>`include &lt;…&gt;</code>, formal
+defaults or <code>`"</code> tokens; each edition has its own <code>version_specifier</code> list and LINE DISCIPLINE (1800-2023 puts a
+directive on one line, the earlier editions do not). See <a href="profiles.html">Editions and Profiles</a>.</p>
+</li>
+<li>
+<p><strong>New — the ordered gaps closed:</strong> a conditional on one line is accepted; a line inside a conditional group that does
+not parse is RECORDED (<code>malformed_directive</code>), not refused — liveness is the expansion stage’s; a macro name may be an
+escaped identifier and may not be a directive’s name; a macro usage may stand in any directive parameter; a
+directive may begin mid-line (<code>`include</code> and <code>`line</code> excepted).</p>
+</li>
+<li>
+<p><strong>Corrected trees (breaking):</strong> passthrough text is LEXED — a comment or string hides a directive word (<code>SVPP-0010</code>;
+Surelog <code>PPComment/dut.sv</code>), an unclosed string or comment is refused (<code>SVPP-0011</code>), a backslash-continued string is
+one item; text after a conditional directive is the group’s first item and <code>`elsif</code> takes an identifier
+(<code>SVPP-0012</code>; <code>{macro, tail, items}</code>, was <code>{condition: {atoms}}</code>); a formal list never falls back to an object-like
+define — 15 corpus files’ defines are now function-like, UVM-core’s <code>uvm_declare_type_alias(TYPE,NAME,SFX=)</code> among
+them (<code>SVPP-0013</code>); a define body no longer runs on into the next line (<code>SVPP-0014</code>); a directive inside macro text is
+a <code>directive</code> fragment.</p>
+</li>
+<li>
+<p><strong>Measured</strong> — the census of the GENERATED parser against the <code>1.0.8</code> probe, each reading’s every refusal written
+down (<code>docs/tasks/artifacts/sv_corpus_grad/svpp_corpus_census/</code>):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>reading</th><th style="text-align: right">files</th><th style="text-align: right">fail → pass</th><th style="text-align: right">pass → fail</th><th style="text-align: right">refused, each adjudicated</th><th style="text-align: right">trees moved (each attributed)</th></tr>
+</thead>
+<tbody>
+<tr><td>default (IEEE 1800-2017)</td><td style="text-align: right">16,336</td><td style="text-align: right">14</td><td style="text-align: right">38</td><td style="text-align: right">88</td><td style="text-align: right">82</td></tr>
+<tr><td><code>sv_2023</code></td><td style="text-align: right">16,336</td><td style="text-align: right">11</td><td style="text-align: right">42</td><td style="text-align: right">95</td><td style="text-align: right">77</td></tr>
+<tr><td><code>verilog_2005</code> (its lane)</td><td style="text-align: right">2,943</td><td style="text-align: right">3</td><td style="text-align: right">55</td><td style="text-align: right">56</td><td style="text-align: right">4</td></tr>
+</tbody>
+</table>
+</div>
+<p>The 38 default <code>pass → fail</code> are the suites’ own error tests (unterminated strings and comments, bad formals, invalid
+nettypes), strings split between a macro and its usage (§22.5.1), <code>`"</code> / <code>``</code> outside macro text (the stage
+refuses all nine), comments between formals, an empty formal list, and two 1800-2023 forms under 1800-2017 — none
+valid under its reading. The census reads the other half too: of the 82 preprocessor-themed suite error tests it
+selects, the default reading refuses 47 and every one of the 35 it accepts carries a written reason (the error is
+the expansion stage’s or SystemVerilog’s).</p>
+</li>
+<li>
+<p><strong>Found on the way and fixed:</strong> the stimuli generator’s gap report counted a COVERED branch as unreachable (its
+reachability was counted after the coverage skip), inflating every syntax-closure gate’s “unreachable from the
+entry”; a RED-first unit test pins the fix.</p>
+</li>
+<li>
+<p><strong>Found by the certificate, fixed before the release</strong> (<code>.13c.2v.16</code>): the first <code>1.0.9</code> build was NOT fully
+certified — 4 rules UNKNOWN and 101 generated samples refused over 32 seeds, where <code>1.0.8</code> was clean. Every sample
+was read: most were token boundaries the grammar never declared for generation (a <code>/</code> before <code>/*</code>, an escaped
+identifier before <code>(</code>, a <code>//</code> comment before the next item, a zero-width end of input drawn mid-file), now declared
+as follow restrictions or read by the generator; three were PARSER defects no corpus file holds, fixed: a define
+ending the file after white space, a formal default that is only a comment, and macro actuals in a directive
+parameter read without lexing (<code>`include `M(")")</code> — ledger <code>SVPP-0015</code>, present since <code>1.0.8</code>). Under <code>sv_2023</code> a
+block comment crossing a line inside a directive is now refused. On the release grammar the certificate is clean at its bar — seed 0, 40 samples: <strong>201 rules · 192 witness · 9 proof · 0 unknown, fully certified, 0 refused samples</strong> — and the union of the three profiles is fully certified. Over 32 seeds every one is fully certified with 0 UNKNOWN; one seed (21) reports one refused sample, read: the parser is right (a macro usage’s actual list one <code>)</code> short), the hazard is generation’s — owned,
+<code>SV-CORPUS-GRAD.13c.2v.18</code>.</p>
+</li>
+</ul>
 <h3 id="release-108--every-clause-22-directive-macro-usage-lines-three-corrected-trees-ast-dump-schema-5--6-100-annotations--46-rules"><a class="header" href="#release-108--every-clause-22-directive-macro-usage-lines-three-corrected-trees-ast-dump-schema-5--6-100-annotations--46-rules">Release 1.0.8 — every clause-22 directive, macro-usage lines, three corrected trees (AST-dump schema <code>5</code> → <code>6</code>; 100 annotations / 46 rules)</a></h3>
 <p>Landed 2026-10-17 (<code>PGEN-SV-CORPUS-GRAD-0458</code>, leaves <code>SV-CORPUS-GRAD.13c.2v.1</code> – <code>.7</code>), found by the first corpus reading of
 this parser: the generated parser refused <strong>4,477 of the 16,336</strong> SystemVerilog corpus files at <code>1.0.7</code>.</p>
