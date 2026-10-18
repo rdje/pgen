@@ -66,7 +66,7 @@ Only **7 733 rows (47.3 %)** were asked a question they could answer, and **3 64
 
 The three row counts sum to the denominator (14 481 + 717 + 1 138 = 16 336). **1 138 rows still stand between this corpus and leg 3** — every one in a named class with an owning leaf; the permanently unadjudicable rows stay in the raw table above as no-verdict rows and are never relabelled. The re-adjudication table is current with the raw classes (0 stale rows). The pre-`.3f` bit (`no_verdict == 0` on the raw lane, unreachable by construction) reads `false` and is kept by name as `full_pass_raw_lane`.
 
-**What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 115 trees the index carries. **5 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
+**What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 116 trees the index carries. **5 trees own this family's remaining work**, and **27** cross-cutting trees can gate any family.
 
 | Open tree | Status verdict | Where the detail lives |
 |---|---|---|

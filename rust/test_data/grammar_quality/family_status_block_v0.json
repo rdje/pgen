@@ -386,6 +386,7 @@
       "SV-PARSE-STRICT": "systemverilog",
       "SV-REPLAY-DEBT": "systemverilog",
       "SV-SPEED": "systemverilog",
+      "PGEN-SERVICES": "cross-cutting",
       "SV-SVA-PROPERTY-FIDELITY": "systemverilog",
       "SVPP-CONTRACT-BODY": "systemverilog_preprocessor",
       "SVPP-EXPANSION": "systemverilog_preprocessor",

@@ -42,6 +42,9 @@ layer-A pointer does not have to carry them (`MEMORY-ARCH.6`: the block was **2 
   future → [[feedback_sv_strict_lrm_compliance_default]].
 - **The EBNF is the sole source of truth** and steers the engine at the author's granularity →
   [[project_ebnf_is_single_source_of_truth]], [[project_ebnf_steers_the_engine_at_full_granularity]].
+- **PGEN is a SERVICE PROVIDER, and its parsers share CONTRACTED services like lego blocks** that downstream
+  projects may use too (director, 2026-10-19) → [[project_pgen_is_a_service_provider_shared_contracted_services]];
+  the register is `PGEN-SERVICES`, the first block `SVPP-EXPANSION.9`.
 - **Prove no existing surface covers it before designing one**, and RE-MEASURE engine behaviour
   rather than quoting a doc → [[feedback_read_prior_art_before_designing]] (mechanized:
   `DESIGN-PRIOR-ART`).

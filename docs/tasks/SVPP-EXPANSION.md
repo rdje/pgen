@@ -265,6 +265,7 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 | — | `.6g` | ✅ `done` | `PGEN-SVPP-EXPANSION-0047`: the closed loop and the per-sample stage replay GENERATED raw-lane text, whose `opaque_directive_line` residue the stage's `.6f` default refuses by design; the gate now passes `undefined_macro_policy=$generated_text_undefined_macro_policy` (contract: `keep`, the stage's consumer-resolves mode) at exactly those three stages; the realistic cases and every corpus lane keep `error`; both SV umbrellas green again; ZERO Rust / grammar bytes |
 | — | `.6h` | ✅ `done` | `PGEN-SVPP-EXPANSION-0048`: the `.6f` scan tested only an identifier or a macro-string successor — a backtick before a line end, white space, the end of the text, a digit or punctuation reached the parser as an opaque line, and an escaped identifier's bytes were scanned one by one (`` \a`b `` refused as a usage of `b`); now refused with §22.2 / Syntax 22-3, stepped over by §5.6.1, and `` `\name `` looked up by name; ZERO corpus movers on the three readings (the expanded-text census over all 16 336 rows predicted it) |
 | — | `.6i` | ✅ `done` | `PGEN-SV-CORPUS-GRAD-0466`: the `.6g` contract tier missed the BOUNDED cross-family contract — the push mirror's SV stimuli-quality stage died silently (an absent key read by `jq -e` under `set -e`) since 2026-10-08; the key added (`keep`); the silent refusal owed as `.6i`(b) |
+| ⏳ | `.9` | `todo` (DESIGN; opened 2026-10-19 by director direction, `PGEN-SV-CORPUS-GRAD-0468`) | the downstream PREPROCESSING contract: an EXPANDER over the svpp AST (in-process, in-memory file provider, and a tool), three consumption modes (AST only / PGEN expands / intercept), the SV front end on the same engine — supersedes the 2026-09-09 steer; `.9.1` contract draft, `.9.2` the Rust API over the existing stage, `.9.3` the expander over the AST, `.9.4` the SV front end on it |
 | — | `.5`(s) | ✅ `done` | `PGEN-SVPP-EXPANSION-0043`: macro text that leaves a plain STRING LITERAL open at its end is refused naming §22.5.1 (*"shall not be split across … String literals"*, the standard's own `first_half` example, `docs/systemverilog/2017/md/section-22-compiler-directives.md:275-281, :295-297`); the scan is the stage's own (comments, `` `"…`" `` and `\"` honoured); numbers / identifiers / keywords / operators cut at the text's end are NOT judged (a stated bound). sv-tests `_21` `pass → pp_fail` (now `must_reject:refused_engine`). Section below |
 | — | `.5`(t) | ✅ `done` | `PGEN-SVPP-EXPANSION-0043`: a compiler directive cannot be redefined as a macro name AND is a defined name to the conditionals (§22.5.1 *"All compiler directives shall be considered predefined macro names; it shall be illegal to redefine …"*, `docs/systemverilog/2017/md/section-22-compiler-directives.md:139-140`); the set is the edition's own (1364-2005's nineteen; + `undefineall`, `__FILE__`, `__LINE__` under 1800); the first GREEN caught the `` `ifndef `` arm testing presence by itself (ispras `22.13_01.sv`'s guard). sv-tests `_23`, verilator `t_pp_defkwd_bad.v`, sv2v `macro_illegal_name.sv` `pass → pp_fail`, Surelog `TestMacros.v` `fail → pp_fail`. Section below |
 | — | `.5`(u) | ✅ `done` (rode with (s)) | `PGEN-SVPP-EXPANSION-0043`: a backslash-newline INSIDE a string literal of the macro text omits both characters under the 2023 reading (1800-2023 §22.5.1 `docs/systemverilog/2023/md/section-22-compiler-directives.md:182-184`) and becomes a newline under 2017 (a two-line literal the parser rejects); found when a control pin of (s) I had written wrong REJECTED on every profile. Edition twin pins. Section below |
@@ -2598,6 +2599,86 @@ Under a director challenge it was measured and then PROVEN instead:
   edition — or a vendor specifier added to a profile's list — that broke the implication would fail the gate
   instead of quietly turning the warning into a live over-acceptance. RED control in `--self-test`: a planted
   `verilog_2005` that admits `"1800-2005"` is refused.
+
+## `.9` the downstream PREPROCESSING contract — an EXPANDER over the svpp AST, in-process and as a tool, and the SystemVerilog front end on the same engine — ⏳ `todo` (DESIGN; opened 2026-10-19 by director direction, `PGEN-SV-CORPUS-GRAD-0468`)
+
+> ⭐ **DIRECTOR, 2026-10-19 (verbatim):** *"I think you would need to define the contract the downstream project on how to
+> integrate svpp efficiently, elegantly to their projects"* — and: *"what do you think about providing another tool which
+> can be use also in-memory or in-process that will consume the AST from svpp and apply expansion that the downstream
+> process could use either svpp alone, so that downstream project will have to do the expansion itself, or it doesn't
+> want to do the expansion and will happily use PGEN svpp expansion wrapper tool to the job for it"*. This is the
+> 2026-06-09 ruling (*the expansion stage is a parse-tree transformation over the svpp AST, not a separate token-stream
+> engine*, recorded in [[project_preprocess_parse_pipeline_is_the_sv_deliverable]]) made concrete as a product, and it
+> SUPERSEDES the 2026-09-09 steer that built the driver on the hand-written scanner. Decision record:
+> `docs/decisions/project_svpp_expansion_is_a_service_over_the_svpp_ast.md`.
+
+### What exists today (measured 2026-10-19, before this leaf)
+
+- `systemverilog_preprocessor` release `1.0.9`: text → the directive AST (`pp_item`s), no expansion, no condition
+  evaluation, no include resolution (its contract's Scope). Reachable through the generic embedding API
+  (`GrammarFamily::from_str("systemverilog_preprocessor")`, parse / AST dump) and the probe; its contract says it has
+  no family `embed` convenience surface yet.
+- The expansion stage: `rust/src/families/systemverilog/preprocessor.rs` — `preprocess_systemverilog_file(path,
+  &SvPreprocessorConfig)` / `preprocess_systemverilog_unit(&[PathBuf], …)` → `PreprocessedOutput { text, source_map:
+  Vec<SourceMapEntry{output_start, output_end, source: SourceLocation}>, events: Vec<PreprocessorEvent{kind, file, line,
+  active, detail}>, diagnostics, included_files }`; `SvPreprocessorConfig { include_dirs, max_include_depth,
+  include_path_policy, macro_redefinition_policy, conditional_symbol_policy, conditional_expr_policy,
+  plain_string_substitution, strict_warning_codes, undefined_macro_policy, defines }`. A hand-written line/token scanner
+  with its own directive recognizer. Reachable ONLY through `parseability_probe --parse systemverilog <f> --preprocess`
+  (in-process preprocess→parse, the context flags), which does not emit the text; the embedding API's SV `embed`
+  surface has parse and AST-dump entry points only. ⛔ No published way for a downstream project to obtain
+  `PreprocessedOutput`.
+- Two readers of the directive layer, measurably divergent: `SVPP-EXPANSION.5`(w) – (ac).
+
+### The design (decided here before any code)
+
+1. **Two layers, one boundary — the svpp AST.** Layer 1 is svpp as shipped. Layer 2, the EXPANDER, takes the AST (not the
+   text) and a context and produces `PreprocessedOutput`. A convenience `preprocess(text, ctx)` is the composition.
+2. **Three ways to consume**, each a first-class use: (a) AST only — the consumer expands itself or never expands (a
+   linter that must see both arms of a conditional, an editor); (b) PGEN expands — `preprocess`; (c) intercept — the
+   consumer walks or edits the AST (injects defines, serves includes from its own store) and hands it to `expand`.
+3. **One engine.** The SystemVerilog family's own front end (`--preprocess`, the pipeline lanes) calls the SAME expander,
+   so a downstream project receives exactly what PGEN's parser consumed — same verdicts, text, source map. The
+   hand-written directive recognizer is retired; the stage's substantive logic (actual splitting, `` `" `` / ``` `` ```,
+   the recursion guard, `` `line `` bookkeeping, the keyword regions, the policies, the source map) is kept and
+   re-pointed at the tree: an `` `include `` is parsed by svpp and spliced as a subtree (the file provider decides the
+   bytes); a condition is evaluated on the tree's three shapes (identifier, macro usage, the 1800-2023 expression);
+   macro text is the tree's fragments. Edition behaviour comes from the AST's profile, so the (w) – (ac) class closes
+   structurally — one reader.
+4. **The context is a value, not a filesystem**: `PreprocessContext { profile, defines, include_dirs, file_provider:
+   &dyn FileProvider (path → bytes; the default reads disk, a consumer's serves memory), unit_predecessors, the
+   policies of `SvPreprocessorConfig` }`. In-memory use is the file provider plus `preprocess_str`.
+5. **The outputs a consumer compiles against**: `text`; `source_map` — every expanded span → `SourceLocation` PLUS the
+   macro-expansion chain (`[M at f.sv:12, N at g.svh:3]`), an EXTENSION of today's entry, so a downstream diagnostic
+   reads *"in the expansion of `M` at f.sv:12"*; `events` — the directive outcomes with `active` (which groups were
+   live: the question coverage and lint tools ask first); `diagnostics` (code, severity, file, line); `included_files`.
+6. **Surfaces**: Rust — `pgen::families::systemverilog_preprocessor::{parse, expand, preprocess, preprocess_str}` typed,
+   and by-name forms for bindings; the probe — `--preprocess --emit-preprocessed <out> [--emit-source-map <out.json>]`;
+   the JSON carrier for the source map and events. Stability axes: the expander's own release version and an OUTPUT
+   SCHEMA version, published in a companion contract `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md`
+   beside the svpp contract, with a chapter in the svpp book (the director's window).
+
+### Acceptance harness (the evidence the re-foundation needs)
+
+- The pipeline re-key on the SAME corpus: `REKEY-MOVERS` IDENTICAL on the three readings EXCEPT the rows the two readers
+  already disagree on — `SVPP-EXPANSION.5`(w) – (ac), each adjudicated in advance, each an expected mover with its clause;
+  `AST-IDENTITY-SWEEP ast_moved=0`; the adjudication manifests; the svpp census unchanged (the AST side does not move).
+- A RED-first test per consumption mode: AST-only (a both-arms walk), expand, intercept (an in-memory include served by
+  a provider; a define injected into the tree).
+- Source-map round trip: every expanded byte maps to a location; a macro-expansion diagnostic names the chain.
+- Parse cost: the ratchet unmoved on the SV lanes (the expander must not cost the parser; `costs are REJECTED, not traded`).
+
+### Open, for the director (not decided here)
+
+- The name and placement of layer 2 (a service of the `systemverilog_preprocessor` family, or a third family name).
+- Whether the by-name/JSON surface ships in the first release or after the Rust API.
+
+### Plan
+
+`.9.1` the contract draft (surfaces, context, outputs, schema axes) and the book chapter — docs only; `.9.2` the Rust
+API over the EXISTING stage (publish `PreprocessedOutput`, the file provider, `--emit-preprocessed`) — a consumer gets
+text today, before the re-foundation; `.9.3` the expander over the AST (the re-foundation), measured by the harness
+above; `.9.4` the SV front end on the expander; the (w) – (ac) findings are closed by `.9.3`'s reading, each measured.
 
 ## Acceptance Checklist (enforced)
 

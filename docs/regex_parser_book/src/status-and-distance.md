@@ -60,7 +60,7 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 
 **Under the reading leg 3 asserts:** ⛔ **NOT MEASURED** — the done-bar register declares no tracked leg-3 assertion for this family (`leg3_surface.tracked_assertion_command`), so there is no declared reading to count under; owed by `DONE-BAR.3`.
 
-**What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 115 trees the index carries. **5 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
+**What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 116 trees the index carries. **5 trees own this family's remaining work**, and **27** cross-cutting trees can gate any family.
 
 | Open tree | Status verdict | Where the detail lives |
 |---|---|---|
