@@ -10,8 +10,8 @@ Reading: **sv_2023** (`--profile sv_2023`)
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| systemverilog_preprocessor raw ast | `grammars/systemverilog_preprocessor.ebnf` | `17ceff01f898b247757142413efa5697af4cd9d4e384a141786b31e0aa24929e` |
-| parse binary | `rust/target/release/parseability_probe` | `a666007464bccafdb6d12a8baa96d2ee2ad01bff7744f14bafa808c6c664b83d` |
+| systemverilog_preprocessor raw ast | `grammars/systemverilog_preprocessor.ebnf` | `2b4676115650df761744354fe266c44c545cb38e0b0a1825935dd4a359beffcc` |
+| parse binary | `rust/target/release/parseability_probe` | `cce7d537f2d365ca47882d53b4786b0df0d084651559d85dc128e6e6fed3b851` |
 | parse binary (before) | `rust/target/svpp8/bin/release/parseability_probe` | `c6eccad4cc2eb5b10d9de607dff1c587fe9451d857463e2d531b9ff9c88e518d` |
 
 Population: every path in `stimuli/sv/characterization/results.tsv` (a gitignored lane dump) — **16,336 files**,

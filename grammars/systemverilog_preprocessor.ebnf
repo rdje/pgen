@@ -237,12 +237,12 @@ macro_argument_string := /"(?:[^"\\\r\n]|\\[^\r\n])*"/
 # printable ASCII character except white space } white_space (A.9.3, all three editions; §5.6.1). The regex takes
 # every non-white-space character, so the parser already holds it; the restriction declares it for GENERATION,
 # which otherwise rendered `\a` + `(x)` as `\a(x)`, one identifier.
-[>! /[^ \t\r\n]/]
+[>! /\S/]
 macro_argument_escaped := /\\[^ \t\r\n]*/
 # SV-CORPUS-GRAD.13c.2v.16 — a `/` that a `/` or `*` follows is not this token but a comment opener (1800-2017 §5.4;
 # the lexer reads the longest token). The parser already holds it (the layout before it takes the comment); the
 # restriction declares it for GENERATION, which otherwise rendered `/` + `/*c*/` as `//*c*/`, one line comment.
-[>! /[\/*]/]
+[>! "/", "*"]
 macro_argument_slash := /\// !comment_opener_tail
 macro_argument_stray := /[\[\]{}]/
 
@@ -407,7 +407,7 @@ macro_reference_simple := macro_trivia /`[a-zA-Z_][a-zA-Z0-9_$]*/
 # printable ASCII character except white space } white_space (A.9.3, all three editions; §5.6.1). The regex takes
 # every non-white-space character, so the parser already holds it; the restriction declares it for GENERATION,
 # which otherwise rendered `\a` + `(x)` as `\a(x)`, one identifier.
-[>! /[^ \t\r\n]/]
+[>! /\S/]
 macro_reference_escaped := macro_trivia /`(?:\\[^ \t\r\n`][^ \t\r\n]*|\\`(?:[^ \t\r\n"][^ \t\r\n]*)?)/
 @profiles: ["sv_2017", "sv_2023", "sv_2023_tolerant"]
 macro_token_paste := macro_trivia /``/
@@ -458,11 +458,11 @@ macro_name := macro_simple_name
 macro_object_name := macro_name
 macro_simple_name := directive_trivia !directive_name_word /[a-zA-Z_][a-zA-Z0-9_$]*/
                   -> [$1, $3]
-# SV-CORPUS-GRAD.13c.2v.16 — an escaped identifier is TERMINATED by white space: escaped_identifier ::= \ { any
-# printable ASCII character except white space } white_space (A.9.3, all three editions; §5.6.1). The regex takes
-# every non-white-space character, so the parser already holds it; the restriction declares it for GENERATION,
-# which otherwise rendered `\a` + `(x)` as `\a(x)`, one identifier.
-[>! /[^ \t\r\n]/]
+# An escaped macro name is terminated by white space too (A.9.3); its generation-side separator is
+# `macro_object_name`'s, the only rule that reaches `macro_name` (the formal-list alternative takes
+# `macro_simple_name`, the 1800-2023 escaped-formals form `macro_escaped_formals_name`) — so no `[>! … ]` line of its
+# own sits here, directly after a rule that ends in a return annotation: the self-hosted EBNF reader (the
+# dual-run's arm 2) cannot read one there (SV-CORPUS-GRAD.13c.2v.20).
 macro_escaped_name := directive_trivia /\\[^ \t\r\n]+/
 # The same name where 1800-2023's single terminating white space is the grammar's own next element
 # (`escaped_name_end`), so no separator is declared.
@@ -482,7 +482,7 @@ bt_simple_identifier := inline_trivia /`[a-zA-Z_][a-zA-Z0-9_$]*/
 # printable ASCII character except white space } white_space (A.9.3, all three editions; §5.6.1). The regex takes
 # every non-white-space character, so the parser already holds it; the restriction declares it for GENERATION,
 # which otherwise rendered `\a` + `(x)` as `\a(x)`, one identifier.
-[>! /[^ \t\r\n]/]
+[>! /\S/]
 bt_escaped_identifier := inline_trivia /`\\[^ \t\r\n]+/
 
 # §5.9: a string on one line unless the newline is preceded by a backslash (through 1.0.8 a raw newline passed).
@@ -498,7 +498,7 @@ space_or_tab := /[ \t]+/
 # SV-CORPUS-GRAD.13c.2v.16 — a `//` comment ends its line (1800-2017 §5.4): nothing follows it there. The regex already
 # takes the rest of the line; the restriction declares it for GENERATION, which otherwise put the next item (an
 # `` `endif ``) on the comment's line.
-[>! /[^\r\n]/]
+[>! /\S/, / /, /\t/]
 line_comment := /\/\/[^\r\n]*/
 block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//
 # SV-CORPUS-GRAD.13c.2v.16 — the layout INSIDE a directive (between its tokens): a comment there crosses a line only
@@ -678,21 +678,21 @@ text_block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//
 # SV-CORPUS-GRAD.13c.2v.16 — a `//` comment ends its line (1800-2017 §5.4): nothing follows it there. The regex already
 # takes the rest of the line; the restriction declares it for GENERATION, which otherwise put the next item (an
 # `` `endif ``) on the comment's line.
-[>! /[^\r\n]/]
+[>! /\S/, / /, /\t/]
 text_line_comment := /\/\/[^\r\n]*/
 text_string := /"(?:[^"\\\r\n]|\\(?:\r?\n|[^\r\n]))*"/
 # SV-CORPUS-GRAD.13c.2v.16 — an escaped identifier is TERMINATED by white space: escaped_identifier ::= \ { any
 # printable ASCII character except white space } white_space (A.9.3, all three editions; §5.6.1). The regex takes
 # every non-white-space character, so the parser already holds it; the restriction declares it for GENERATION,
 # which otherwise rendered `\a` + `(x)` as `\a(x)`, one identifier.
-[>! /[^ \t\r\n]/]
+[>! /\S/]
 text_escaped_identifier := /\\[^ \t\r\n]*/
 text_macro_usage := !directive_keyword bt_identifier
 text_chars := /(?:[^`"\\\/\r\n]|\/[^\/*`"\\\r\n])+/
 # SV-CORPUS-GRAD.13c.2v.16 — a `/` that a `/` or `*` follows is not this token but a comment opener (1800-2017 §5.4;
 # the lexer reads the longest token). The parser already holds it (the layout before it takes the comment); the
 # restriction declares it for GENERATION, which otherwise rendered `/` + `/*c*/` as `//*c*/`, one line comment.
-[>! /[\/*]/]
+[>! "/", "*"]
 text_slash := /\// !comment_opener_tail
 comment_opener_tail := /[\/*]/
 
@@ -716,7 +716,7 @@ p_identifier := p_layout /[a-zA-Z_][a-zA-Z0-9_$]*/
 # SV-CORPUS-GRAD.13c.2v.16 — a `/` that a `/` or `*` follows is not this token but a comment opener (1800-2017 §5.4;
 # the lexer reads the longest token). The parser already holds it (the layout before it takes the comment); the
 # restriction declares it for GENERATION, which otherwise rendered `/` + `/*c*/` as `//*c*/`, one line comment.
-[>! /[\/*]/]
+[>! "/", "*"]
 p_slash := p_layout /\//
 p_unsigned_number := p_layout /[0-9][0-9_]*/
 p_time_unit := p_layout /(s|ms|us|ns|ps|fs)\b/
@@ -739,7 +739,7 @@ p_bt_simple_identifier := p_layout /`[a-zA-Z_][a-zA-Z0-9_$]*/
 # printable ASCII character except white space } white_space (A.9.3, all three editions; §5.6.1). The regex takes
 # every non-white-space character, so the parser already holds it; the restriction declares it for GENERATION,
 # which otherwise rendered `\a` + `(x)` as `\a(x)`, one identifier.
-[>! /[^ \t\r\n]/]
+[>! /\S/]
 p_bt_escaped_identifier := p_layout /`\\[^ \t\r\n]+/
 line_macro_usage := line_space !p_directive_word p_bt_identifier macro_usage_arguments?
                  -> {kind: "macro_usage", name: $3, arguments: $4}
@@ -811,7 +811,7 @@ macro_directive_word_2005 := /`(?:begin_keywords|celldefine|default_nettype|defi
 # SV-CORPUS-GRAD.13c.2v.16 — a `/` that a `/` or `*` follows is not this token but a comment opener (1800-2017 §5.4;
 # the lexer reads the longest token). The parser already holds it (the layout before it takes the comment); the
 # restriction declares it for GENERATION, which otherwise rendered `/` + `/*c*/` as `//*c*/`, one line comment.
-[>! /[\/*]/]
+[>! "/", "*"]
 macro_text_slash := /\// !comment_opener_tail
 # §22.5.1: the macro text runs to the first newline not preceded by a backslash, so a define ends at a line end —
 # never mid-line, where an unlexable remainder (an unclosed comment) would otherwise re-read as a following item.

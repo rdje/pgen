@@ -10,7 +10,7 @@ Both lanes parse the SAME population — every `.sv` / `.svh` / `.v` file under 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `a666007464bccafdb6d12a8baa96d2ee2ad01bff7744f14bafa808c6c664b83d` |
+| parse binary | `rust/target/release/parseability_probe` | `cce7d537f2d365ca47882d53b4786b0df0d084651559d85dc128e6e6fed3b851` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `e880d4d69928f48d2241c644b461285015741317a849009b39c92cd4da9779d6` |
 | sv_2017 results (output) | `stimuli/sv/characterization/results.tsv` | `fec95e7aafee542958110601e65367085c1c750c2fabb3f83b50047d5abdc67f` |
 | sv_2023 results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `9755a7d270570a2e138f0892bbc9326b752b3d14c1354493cab0d1bc35fd857d` |

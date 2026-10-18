@@ -216,7 +216,17 @@ envelope_divergence_ceiling() {
         # .10.14 plus the two documented arm-2 blind spots: `[> …]` lexical annotations (which
         # arm 2 misparses as character classes) and arm 1's inline/rule-level annotation
         # distinction, which arm 2 does not represent.
-        systemverilog_preprocessor) echo 15 ;;
+        # 15 -> 80 by SV-CORPUS-GRAD.13c.2v.20 (release 1.0.9), ATTRIBUTED (`ebnf_dual_run_diff --envelope-differential`
+        # under PGEN_ENVELOPE_DUMP_ALL=1, the 1.0.8 grammar and the release's, one tool build): ⚠️ the 1.0.8 grammar
+        # already read 26 (23 `[> …]` rows — 1.0.8's eleven new directive keywords each carry `[>! /\w/]` — and 3
+        # `@sample` rows), past this ceiling and unseen, because this gate runs at a push and none fell inside the
+        # release. The release's 80, every row classed: 32 `[> …]` lines read as character classes (the twenty
+        # directive keywords, `kw_line_word`, and eleven generation-side boundaries of .13c.2v.16 — the escaped
+        # identifiers, the slashes, the line comments, the object-like macro name); 46 the .10.14 class, a rule-level
+        # directive bound to the PREVIOUS rule — 44 `@profiles` rows (the release's edition-gated rules) and 2
+        # `@quantified_separator` (pp_group_item); 2 the .10.13 class, arm 2's `regex_flags` eating the leading `m` of
+        # `macro_argument_in_square` / `_in_curly` after `/\[/` and `/\{/`. No row of any other class.
+        systemverilog_preprocessor) echo 80 ;;
         # ⚠️ NOT a defect count — arm 1 RESOLVES `include(…)` and splices in 1398 rules while
         # arm 2 stops at the directive, so the two arms describe different rule sets. This is
         # the one grammar where the token counts cannot be read as parity, and the report's
@@ -230,8 +240,11 @@ envelope_divergence_ceiling() {
 # construct is a blind spot in the measurement itself, so it must fail rather than pass quietly.
 envelope_unmapped_ceiling() {
     case "$1" in
-        # The 12 `[> …]` lexical annotations arm 2 reads as character classes.
-        systemverilog_preprocessor) echo 12 ;;
+        # The `[> …]` lexical annotations arm 2 reads as character classes: 12 -> 33 by SV-CORPUS-GRAD.13c.2v.20
+        # (release 1.0.9; 1.0.8 already read 23), exactly the grammar's 33 `[> …]` lines. A bracket class inside one
+        # (`[>! /[^ \t]/]`) ends arm 2's character class early and refuses the grammar, as does a `[> …]` line right
+        # after a rule that ends in a return annotation — the grammar spells around both, .13c.2v.20.
+        systemverilog_preprocessor) echo 33 ;;
         *) echo 0 ;;
     esac
 }

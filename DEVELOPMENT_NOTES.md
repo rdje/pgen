@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-18 — SV-CORPUS-GRAD.13c.2v.20 (`PGEN-SV-CORPUS-GRAD-0465`): a grammar is an input to more than its family
+
+- **The ceremony ran the family's gates; the gate that failed reads the grammar for the meta-grammar's sake.** The EBNF dual-run parses every tracked grammar with the self-hosted meta-parser. It runs only in the push mirror, so release `1.0.8` raised its ceilings unseen and release `1.0.9` was refused after its commit — and after a full SystemVerilog re-key that the fix then invalidated. Derive a release's gate list from the files it changes; run the mirror's grammar gates before the re-key. Promoted: `docs/knowledge/a-ceremony-that-lists-its-family-gates-misses-a-gate-that-reads-the-grammar.md`.
+- **Reduce a refusal on both readers before changing anything.** The Rust frontend accepted the grammar; the meta-parser refused it at a byte offset. Three-line grammars separated the two shapes it cannot read (a bracket class inside the restriction; a restriction after a return annotation) from the one it can, and the respelling followed from that — not from guessing at the meta-grammar.
+
 ## 2026-10-18 — SV-CORPUS-GRAD.13c.2v.13 / .15 (`PGEN-SV-CORPUS-GRAD-0464`): the systemverilog_preprocessor release 1.0.9
 
 - **A pin that fails after a grammar change is a measurement before it is a re-pin.** The syntax-closure ceiling failed 25 > 24; the 8 profile-gated branches explained eight of 33 and the gap report named the rest nowhere — they were the 17 branches the sample COVERED, counted after the debt skip. Re-pinning to 25 would have pinned the defect. Promoted: `docs/knowledge/a-counter-computed-after-a-skip-cannot-count-what-it-skipped.md`.

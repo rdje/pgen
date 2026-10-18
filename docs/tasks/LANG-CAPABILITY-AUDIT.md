@@ -2848,7 +2848,8 @@ positive control is exactly the thing that would have caught bug 1 had it existe
   under `payload_not_comparable` (never folded silently into either column), and
   `agreement_ratio` counts them as agreement **on the kind, which is all that was checked**.
 - **Arm 2 is known-blind to `[> … ]` lexical annotations** — it reads all 12 in
-  `systemverilog_preprocessor.ebnf` as character classes. Pre-existing and already documented in
+  `systemverilog_preprocessor.ebnf` as character classes (33 since that grammar's release `1.0.9`, 23 at `1.0.8`; the
+  fix is owned by `.10.19`, which also records the two shapes arm 2 cannot parse at all). Pre-existing and already documented in
   `ebnf_frontend.rs`; the instrument now *measures* it under `unmapped_arm2_constructs`.
 - **Arm 1's inline / rule-level annotation distinction is not represented by arm 2** (12
   occurrences, `systemverilog` only), so those report as kind divergences.
@@ -2927,6 +2928,23 @@ assumed here.
 - **When taken up**: needs a boundary the expression cannot cross — the same class of fix as an
   anchored rule terminator. ⚠️ Prove the repair against the differential, not against a parse
   verdict: the defect is `Ok` on both sides today.
+
+### `.10.19` — the meta-grammar has no `[> … ]` construct: arm 2 reads a lexical follow-restriction as a CHARACTER CLASS on the previous rule, refuses one whose regex holds a bracket class, and refuses one after a rule that ends in a return annotation (`todo`, opened 2026-10-18 by `SV-CORPUS-GRAD.13c.2v.20`, `PGEN-SV-CORPUS-GRAD-0465`)
+
+- **The finding.** `grammars/ebnf.ebnf` has no rule for the `[> … ]` / `[>! … ]` line the authoritative Rust frontend
+  reads in a pre-pass (`rust/src/ebnf_frontend.rs` `parse_lexical_annotation_line`). Arm 2 of the EBNF dual-run therefore
+  parses each such line as a `character_class` element appended to the PREVIOUS rule — the blind spot this tree's
+  HONEST BOUNDS already state and the dual-run counts as `unmapped_arm2_constructs`. Two shapes it cannot even parse,
+  measured on minimal grammars (`rust/target/svpp9/certdbg/meta_*.ebnf`, `parseability_probe --parse ebnf`): a
+  restriction whose regex holds a bracket class (`[>! /[^ \t]/]` — the class ends at the regex's own `]`), and any
+  `[> … ]` line directly after a rule ending in a return annotation (`a := "x" -> [$1]` then `[>! /\w/]`). The
+  `systemverilog_preprocessor` release `1.0.9` grammar met both and was refused by the push mirror; it now spells
+  around them (`SV-CORPUS-GRAD.13c.2v.20`).
+- **Owed.** The construct in the meta-grammar — a top-level `lexical_annotation` line binding to the rule it precedes,
+  its items the Rust frontend's (regex and quoted literals, comma or white space separated) — so arm 2 reads what arm 1
+  reads; the projection maps it; the svpp envelope ceilings fall by the 32 rows and 33 unmapped constructs the class
+  holds today. A meta-grammar change: the seed chain, `REGEX-SELF-HOSTING`, the dual-run's `ebnf` row (envelope-
+  equivalent, ceiling 0) and the bootstrap reproducibility rows are its gates.
 
 ### `.10.17` — the PROJECTION flattens arm 1's inline/before-rule annotation distinction, and it is the single largest divergence class on SystemVerilog (`todo`, routed in 2026-08-18 by `SV-CORPUS-GRAD.13c.2i`)
 

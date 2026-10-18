@@ -1,7 +1,7 @@
 {
   "_comment": "GENERATED-REPRODUCIBILITY baseline. DERIVED — never hand-edit. Rewrite with: bash scripts/check_generated_reproducibility.sh --rebaseline",
   "_what_this_proves": "every artifact below re-derived BYTE-IDENTICALLY from HEAD at the recorded commit. Tier 1 re-hashes these three fields and demands a re-verify the moment any of them moves.",
-  "verified_at_commit": "dbca8d5aae0dddac707925654d209080d81a2d2b",
+  "verified_at_commit": "893cbc93767eda1bfa485b3317dae46ef38862dc",
   "emission_sha": "c24a60e4484164eb15f0853102cf9867fdede32cb20c750609b86841eaee5ed6",
   "artifacts": {
     "return_annotation": { "parser_sha": "2beeb1aba74832b41f6f9a2195ea1a4e372105ffe5d3da78e85d48116738babd", "input_sha": "6c360912aa3624c01330b55b111a3580544855a667e60ecd1ed6bf396987de75" },
@@ -9,7 +9,7 @@
     "json": { "parser_sha": "23771e6d31c00ed09ae97ede46c66858f8335e1f4f4549a1f9d391d08084a428", "input_sha": "2578ef6980256902c85297d2e023d979efe0da870c1f11d0fc5fe986ceef7186" },
     "regex": { "parser_sha": "493a66344948525ff1807e60e3fcc2669a7eaf8d4209e483eb2a61ab839ba318", "input_sha": "9cffc7ba9f9bd27e8015382654c3a23ba14457fe5202776a1da84653fbd3d026" },
     "systemverilog": { "parser_sha": "aa7972eda83778061bb6df0fd938a3441ca728308217c30111ff5a2c8296c09d", "input_sha": "d765fcd4e07ccef4d6c7c6dfece308e2e322fc2d39054505204b5c2bfb2efd2f" },
-    "systemverilog_preprocessor": { "parser_sha": "1831bbfeba91d676a5fc180d9564b6daef8761a8e6913029dd774ea5c3a22ae7", "input_sha": "158f3d70da40da72e7cc935e6fb28a50273c9eeb76456d9371f9a4a02d2f2019" },
+    "systemverilog_preprocessor": { "parser_sha": "0aca5ffe7813dd1cc845502d2475e95f56e3cc2126d6f6fd1af01bc8473c85a2", "input_sha": "8dfb983b3cb6e1f4fac462becf943b193bae83d749a96b66aae65ca90748df7d" },
     "vhdl": { "parser_sha": "0d2ec815c30d6de57a786e5b715708443c240b50ab507813dc74f0da4fd01967", "input_sha": "563eaa37db51b6d29eccfad49ed114a7c3ae9ee479fd636b88c13fa070bfd8b1" },
     "rtl_const_expr": { "parser_sha": "e2b0c139159f9f9242ff8f24231545fcdce91e579c4bb42cc1c71d7d633c2a53", "input_sha": "a69e6eef2bf136a3dcd1e7ace7a11da0b44e977a5de7e0fa0781fa6ea5fe023e" },
     "rtl_frontend": { "parser_sha": "c83b63eb1bcc458ba62b5f3013bfb14c87ffd978cdba0388e4eb5e36aa63df74", "input_sha": "5194686e4424ac6b72c1c24b839402b3e586c2ccf9b7438d60a39246f5f6efc3" },

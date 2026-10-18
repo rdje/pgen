@@ -14219,7 +14219,8 @@ is `p7` with the certificate's corrections of `.13c.2v.16` below; the bank 138 c
   per-mover attribution (`rust/target/svpp9/interp_census.py`, prototypes `p1` – `p7`).
 - [x] **FIX** — GRAMMAR tier for the parser (the EBNF is the single source of truth: profiles by `@profiles` /
   `@default_profile` / `@profile_alias`, no engine name-gate); ENGINE-INSTRUMENT tier for `.13c.2v.15`.
-- [x] **ADDRESSED (verified)** — the generated parser of `1.0.9` (fingerprint `1831bbfeba91d676`), measured by
+- [x] **ADDRESSED (verified)** — the generated parser of `1.0.9` (fingerprint `1831bbfeba91d676`; as shipped after
+  `.13c.2v.20`, `-0465`: `0aca5ffe7813dd1c`, an inlining-only change, every reading re-measured identical), measured by
   `census.py --probe rust/target/release/parseability_probe --before rust/target/svpp8/bin/release/parseability_probe`
   under each profile: `SVPP-CORPUS-CENSUS: profile=default files=16336 fail=88 pass=16248 unadjudicated=0
   stale_dispositions=0` (`fail → pass 14`, `pass → fail 38` — each refusal adjudicated, none valid under its reading;
@@ -14372,7 +14373,7 @@ is `p7` with the certificate's corrections of `.13c.2v.16` below; the bank 138 c
   say it (no generation directive weighs a branch); the service reads the grammar's own anchor.
 - [x] **ADDRESSED (verified)** — RED-first: `end_of_input_anchor_is_generated_only_where_the_continuation_can_be_empty`
   on the committed generator → `FAILED … an end-of-input anchor followed by `!` is not derivable: ["a!", …]` (24 of 64);
-  on the fix → `ok` (with the seven `gap_report` tests). The sweep on the rebuilt parser: The sweep on the rebuilt parser (`rust/target/svpp9/cert2/`, fingerprint `1831bbfeba91d676`): seed 0
+  on the fix → `ok` (with the seven `gap_report` tests). The sweep on the rebuilt parser (`rust/target/svpp9/cert2/`, fingerprint `1831bbfeba91d676`): seed 0
   `total=201 proof=9 witness=192 UNKNOWN=0 fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)`;
   `CERTIFICATE-COVERAGE-UNION: … union_configs=[…:sv_2023, …:verilog_2005] total=201 proof=9 witness=192 UNKNOWN=0
   fully_certified=true`; seeds 0 – 31: `UNKNOWN=0 fully_certified=true` in all 32, `sample_parse_failures=0` in 31
@@ -14412,6 +14413,10 @@ is `p7` with the certificate's corrections of `.13c.2v.16` below; the bank 138 c
   chunk regex (`macro_text_chunk_line`) — a hazard inside a single regex terminal, which no follow restriction reaches;
   it did not recur in the 96 seed runs after it, and it is a generation hazard, not a parser defect.
 - promotion: PROMOTED — `docs/knowledge/a-generated-sample-the-parser-refuses-is-a-boundary-or-a-defect.md`.
+- ⛔ **Corrected forward by `.13c.2v.20` (`-0465`)**: the restrictions above are SPELLED without a bracket class
+  (`[>! /\S/]`, `[>! "/", "*"]`, `[>! /\S/, / /, /\t/]` — the same forbidden sets), and `macro_escaped_name`'s is REMOVED
+  as redundant (`macro_object_name`'s separates the whole name); the self-hosted EBNF reader the push mirror runs
+  could not parse the first spellings.
 
 ##### ✅ `.13c.2v.19` `done` 2026-10-18 (`-0464`, embedding API `2.1.0 → 2.2.0`) — the embedding API read a typed outcome's profile WITHOUT its family, so once two families declared the SystemVerilog editions an SV outcome naming `"sv_2023"` no longer read back
 
@@ -14449,6 +14454,58 @@ is `p7` with the certificate's corrections of `.13c.2v.16` below; the bank 138 c
   resolved SystemVerilog. No book documents that form (all three show `family.profile(…)`) and no named entry point is
   affected, so this is recorded as a minor version (`2.2.0`) with a ⚠️ entry; under the API's own policy a caller of the
   family-less form may read it as breaking — the major/minor call is the director's.
+
+##### ✅ `.13c.2v.20` `done` 2026-10-18 (`-0465`, release `1.0.9`) — the CI mirror's EBNF dual-run refused the release grammar: the self-hosted EBNF reader (arm 2) cannot read a bracket class inside `[>! … ]`, nor a `[> … ]` line after a rule that ends in a return annotation; and its svpp envelope ceilings had been past their pins since `1.0.8`, unseen
+
+- **Found** by the push gate, `make -C rust ci_workflow_local_gate` (`rust/target/svpp9/ci_gate.log`), after `-0464`:
+  `error: workflow local parity failed: ebnf-frontend-dual-run-diff` — `systemverilog_preprocessor rust_parse fail …
+  Error: generated meta-parser rejected the input: InvalidSyntax { message: "Parser did not consume full input",
+  position: 16837 }`. Every other grammar passed.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+- [x] **REPRODUCE / ISSUE** — `parseability_probe --parse ebnf grammars/systemverilog_preprocessor.ebnf` → refused at byte
+  16,837, the first `[>! /[^ \t\r\n]/]`; minimal grammars (`rust/target/svpp9/certdbg/meta_*.ebnf`): `a := "x"` /
+  `[>! /\w/]` / `b := "y"` parses, the same with `/[a]/`, `/[^ \t]/` or `/[\/*]/` refuses at the annotation; and
+  `a := "x" -> [$1]` (or `-> {k: $1}`, `-> $1`) followed by ANY `[> … ]` line refuses, while a plain rule between
+  them parses.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `grammars/ebnf.ebnf` has no lexical-annotation construct (the authoritative
+  Rust frontend reads `[> … ]` in a line pre-pass, `rust/src/ebnf_frontend.rs` `parse_lexical_annotation_line`), so arm 2
+  reads the line as a `character_class` element appended to the PREVIOUS rule — the documented arm-2 blind spot
+  (`rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`). WHY it now refused: a class ends at its first `]`, so a regex
+  holding `[…]` leaves `/]` unparsed; and after a return annotation no element may follow. `.13c.2v.16` introduced both
+  shapes (bracket-class restrictions; `[>! /\S/]` on `macro_escaped_name` directly after `macro_simple_name -> [$1, $3]`).
+  And the envelope ceilings (15 divergences / 12 unmapped) were STALE: the `1.0.8` grammar already reads 26 / 23 — its
+  eleven new directive keywords each carry `[>! /\w/]` — but the gate runs only in the push mirror, and no push fell
+  between the `1.0.8` release and this one.
+- [x] **FIX** — GRAMMAR tier, parse-neutral: the restrictions spelled without a bracket class, each the same forbidden
+  set (`[>! /\S/]` for an escaped identifier; `[>! "/", "*"]` for the slash; `[>! /\S/, / /, /\t/]` for a line comment —
+  every character but a line end); the `macro_escaped_name` restriction REMOVED as redundant — `macro_name` is reached
+  only through `macro_object_name`, whose `[>! /\(/]` already separates the whole name, and the formal-list and
+  1800-2023 forms have their own rules. The two svpp ceilings re-pinned 15 → 80 and 12 → 33, every row ATTRIBUTED in the
+  gate's own comment (`ebnf_dual_run_diff --envelope-differential` under `PGEN_ENVELOPE_DUMP_ALL=1`, the `1.0.8` grammar
+  and the release's, one tool build): 32 `[> … ]` lines read as character classes, 46 the `.10.14` class (44
+  `@profiles`, 2 `@quantified_separator`), 2 the `.10.13` class (arm 2's `regex_flags` eating the leading `m` of
+  `macro_argument_in_square` / `_in_curly`); 33 unmapped = the grammar's 33 `[> … ]` lines.
+- [x] **ADDRESSED (verified)** — `parseability_probe --parse ebnf grammars/systemverilog_preprocessor.ebnf` → `parse_full
+  passed`; `make -C rust ebnf_frontend_dual_run_diff` → `✅ EBNF dual-run differential passed for all tracked grammars`
+  (svpp `pass … 80 80 … pass`); the push mirror re-run before the push.
+- [x] **NO REGRESSION** — the regenerated parser (fingerprint `0aca5ffe7813dd1c`, from `1831bbfeba91d676`: the removed restriction is a
+  generation-side no-op and the respellings name the same sets, so the parser moved by inlining alone) re-measured on
+  the full svpp chain: the three census readings against `1.0.8` byte-for-byte the release's (default 14 / 38 / 82,
+  `sv_2023` 11 / 42 / 77, `verilog_2005` 3 / 55 / 4, every refusal adjudicated), the bank 138 / 138, 32 seeds fully
+  certified (seed 0 and the union `201 / 192 / 9 / 0`; the one refused sample at seed 21 the same `.13c.2v.18` case),
+  every svpp gate rc 0, reproducibility re-baselined, the lib suite `1341 passed; 0 failed`, clippy ✅; the
+  SystemVerilog identity RE-KEYED on the rebuilt probes (release `cce7d537f2d365ca`, debug `d2cdfaafb965e63e`; the SV
+  parser `aa7972eda8377806` unchanged): `REKEY-MOVERS: IDENTICAL` over the three raw lanes and the three pipeline
+  readings' tables, `AST-IDENTITY-SWEEP ast_moved=0 verdict_moved=0` on 10,022 / 10,048 / 2,548 trees, the three
+  adjudication manifests and `pipeline_readjudication.tsv` byte-identical, the pipeline lanes 12,710 / 12,751 / 12,769
+  pass with 0 timeouts and 0 crashes, only the store-gate memo's 108 `binary_sha256` keys moved; `SV-CEREMONY-BINARIES:
+  OK verify copies=3 published=3 reports=6 memo=OK recorded=2 notes=0`.
+- **Owed, not here**: `grammars/ebnf.ebnf` learning the `[> … ]` construct removes the blind spot itself (and the
+  ceilings' largest class) — a meta-grammar change with its own self-hosting gates, owned by
+  `LANG-CAPABILITY-AUDIT.10.19`, opened here.
+- promotion: PROMOTED — `docs/knowledge/a-ceremony-that-lists-its-family-gates-misses-a-gate-that-reads-the-grammar.md`.
 
 ##### ⚠️ `.13c.2v.17` NEW `todo` (opened 2026-10-18, `-0464`) — a macro usage's actuals continued onto the next line INSIDE a directive parameter read as a usage without actuals followed by text
 
