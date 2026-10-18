@@ -46,7 +46,7 @@ Measured at seed 0, `--count 40`, against the generated parsers in the tree.
 | `rtl_const_expr` | ✅ **yes** | 48 rules · 48 witness · 0 proof · 0 unknown | every rule proven or witnessed |
 | `rtl_frontend` | ✅ **yes** | 169 rules · 168 witness · 1 proof · 0 unknown | every rule proven or witnessed |
 | `semantic_annotation` | ⛔ **no** | 126 rules · 94 witness · 0 proof · 32 unknown | **32 rule(s) UNKNOWN** — no generated sample reaches them and no proof covers them |
-| `systemverilog_preprocessor` | ✅ **yes** | 74 rules · 74 witness · 0 proof · 0 unknown | every rule proven or witnessed |
+| `systemverilog_preprocessor` | ✅ **yes** | 117 rules · 115 witness · 2 proof · 0 unknown | every rule proven or witnessed |
 | `vhdl` | ✅ **yes** | 225 rules · 225 witness · 0 proof · 0 unknown | every rule proven or witnessed |
 | `systemverilog` | ⚠️ **unverified** | 1533 rules · 1520 witness · 13 proof · 0 unknown (canonical unknown 14) | from the tracked union contract, **not re-measured here** (~2 min/seed × 3 seeds × 4 configs). Proof freshness vs the parser in the tree: **fresh** |
 

@@ -1,0 +1,2 @@
+`ifdef X
+foo

@@ -8,109 +8,58 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| systemverilog_preprocessor raw ast | `grammars/systemverilog_preprocessor.ebnf` | `b0ea2e943a06880697d8881c0bd0707b807eeaa175c12601f3715868414e5e4f` |
-| parse binary | `rust/target/release/parseability_probe` | `fba24b751bc01efe3bd29ec6ea9cd9ffef769d4097483b28bf618a0772519807` |
+| systemverilog_preprocessor raw ast | `grammars/systemverilog_preprocessor.ebnf` | `8f22eab7008a969478ead62a7dbf1eb5e1ad3bb42f8a01c5c20a1ae6b28136f5` |
+| parse binary | `rust/target/release/parseability_probe` | `c6eccad4cc2eb5b10d9de607dff1c587fe9451d857463e2d531b9ff9c88e518d` |
+| parse binary (before) | `rust/target/sv50/bin/release/parseability_probe` | `fba24b751bc01efe3bd29ec6ea9cd9ffef769d4097483b28bf618a0772519807` |
 
-Population: every path in the SV raw lane's `stimuli/sv/characterization/results.tsv` — **16,336 files**, the corpus the
-SystemVerilog lanes read (each is a preprocessor input whatever its SystemVerilog verdict).
+Population: every path in the SV raw lane's `stimuli/sv/characterization/results.tsv` (a gitignored lane dump) — **16,336 files**,
+the corpus the SystemVerilog lanes read (each is a preprocessor input whatever its SystemVerilog verdict);
+the sorted path list's sha256 is `000717aea2c68b0295ea9926abcdb3031fbad890c118e50003afd0774e126ecf`.
 
 ## The headline
 
-- **accepted: 11,859** · **rejected: 4,477**
-- every rejection adjudicated: **NO — 4477 unadjudicated** (`residual_dispositions.tsv`, 0 rows; stale rows: 0)
+- **accepted: 16,272** · **rejected: 64**
+- every rejection adjudicated: **yes** (`residual_dispositions.tsv`, 64 rows; stale rows: 0)
+
+## Transitions against the `before` binary
+
+| before → after | files |
+|---|---:|
+| `fail → fail` | 64 |
+| `fail → pass` | 4,413 |
+| `pass → pass` | 11,859 |
+
+AST identity over the 11,859 files both binaries accept: **11,790 byte-identical**, **69 moved** (each listed in `movers.tsv`).
 
 ## Rejections by the line that stops the parse
 
 | what opens the stopping line | files |
 |---|---:|
-| a text macro usage (§22.5.1) | 4,182 |
-| a clause-22 directive | 243 |
-| no backtick word opens the stopping line | 52 |
+| a clause-22 directive | 50 |
+| no backtick word opens the stopping line | 14 |
 
 | opening word of the stopping line | class | files |
 |---|---|---:|
-| `` `uvm_object_utils `` | a text macro usage (§22.5.1) | 1,317 |
-| `` `uvm_component_utils `` | a text macro usage (§22.5.1) | 407 |
-| `` `checkh `` | a text macro usage (§22.5.1) | 206 |
-| `` `checkd `` | a text macro usage (§22.5.1) | 203 |
-| `` `ASSERT `` | a text macro usage (§22.5.1) | 185 |
-| `` `check `` | a text macro usage (§22.5.1) | 157 |
-| `` `ASSERT_INIT `` | a text macro usage (§22.5.1) | 140 |
-| `` `declare_bp_proc_params `` | a text macro usage (§22.5.1) | 132 |
-| `` `uvm_object_utils_begin `` | a text macro usage (§22.5.1) | 132 |
-| `` `uvm_info `` | a text macro usage (§22.5.1) | 128 |
-| `` `begin_keywords `` | a clause-22 directive | 93 |
-| `` `ASSERT_PULSE `` | a text macro usage (§22.5.1) | 70 |
-| `` `resetall `` | a clause-22 directive | 69 |
-| `` `uvm_component_param_utils `` | a text macro usage (§22.5.1) | 57 |
-| `` `PRIM_FLOP_SPARSE_FSM `` | a text macro usage (§22.5.1) | 55 |
-| `` `ASSERT_KNOWN `` | a text macro usage (§22.5.1) | 54 |
-| OTHER | no backtick word opens the stopping line | 52 |
-| `` `DV_ALERT_IF_CONNECT `` | a text macro usage (§22.5.1) | 40 |
-| `` `uvm_object_param_utils `` | a text macro usage (§22.5.1) | 40 |
-| `` `ASSUME_FPV `` | a text macro usage (§22.5.1) | 31 |
-| `` `TEST `` | a text macro usage (§22.5.1) | 31 |
-| `` `checks `` | a text macro usage (§22.5.1) | 28 |
-| `` `uvm_fatal `` | a text macro usage (§22.5.1) | 28 |
-| `` `CHK `` | a text macro usage (§22.5.1) | 24 |
-| `` `DUMP `` | a text macro usage (§22.5.1) | 22 |
-| `` `line `` | a clause-22 directive | 20 |
-| `` `systemc_header `` | a text macro usage (§22.5.1) | 19 |
-| `` `pragma `` | a clause-22 directive | 18 |
-| `` `uvm_error `` | a text macro usage (§22.5.1) | 17 |
-| `` `checkr `` | a text macro usage (§22.5.1) | 16 |
-| `` `check_rand `` | a text macro usage (§22.5.1) | 15 |
-| `` `BSG_ABSTRACT_MODULE `` | a text macro usage (§22.5.1) | 14 |
-| `` `error `` | a text macro usage (§22.5.1) | 14 |
-| `` `ASSUME `` | a text macro usage (§22.5.1) | 13 |
-| `` `checkp `` | a text macro usage (§22.5.1) | 13 |
-| `` `finish_fail `` | a text macro usage (§22.5.1) | 13 |
-| `` `DV_FCOV_INSTANTIATE_CG `` | a text macro usage (§22.5.1) | 12 |
-| `` `ASSERT_I `` | a text macro usage (§22.5.1) | 11 |
-| `` `uvm_object_new `` | a text macro usage (§22.5.1) | 11 |
-| `` `ASSERT_STATIC_LINT_ERROR `` | a text macro usage (§22.5.1) | 10 |
-| … 273 more words | (every row is in `rejections.tsv`) | 560 |
+| OTHER | no backtick word opens the stopping line | 14 |
+| `` `line `` | a clause-22 directive | 13 |
+| `` `begin_keywords `` | a clause-22 directive | 8 |
+| `` `include `` | a clause-22 directive | 4 |
+| `` `pragma `` | a clause-22 directive | 4 |
+| `` `default_nettype `` | a clause-22 directive | 3 |
+| `` `define `` | a clause-22 directive | 3 |
+| `` `elsif `` | a clause-22 directive | 3 |
+| `` `ifdef `` | a clause-22 directive | 3 |
+| `` `timescale `` | a clause-22 directive | 3 |
+| `` `unconnected_drive `` | a clause-22 directive | 3 |
+| `` `endif `` | a clause-22 directive | 2 |
+| `` `else `` | a clause-22 directive | 1 |
 
-## ⛔ Unadjudicated rejections
+## Every rejection, by disposition
 
-- `stimuli/sv/subs/Cores-VeeR-EL2/design/lib/beh_lib.sv`
-- `stimuli/sv/subs/Cores-VeeR-EL2/design/lib/mem_lib.sv`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/arbiter.v`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_crossbar.v`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_crossbar_addr.v`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_crossbar_rd.v`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_crossbar_wr.v`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_crossbar_wrap_2x1.v`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_register_rd.v`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_register_wr.v`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/priority_encoder.v`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/tb_top.sv`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_agent.sv`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_base_test.sv`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_driver.sv`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_memtest.sv`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_monitor.sv`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_scoreboard.sv`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_sequence.sv`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_sequencer.sv`
-- `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv`
-- `stimuli/sv/subs/Cores-VeeR-EL2/tools/riscv-dv/veer_directed_instr_lib.sv`
-- `stimuli/sv/subs/Surelog/tests/1364_2005/dut.v`
-- `stimuli/sv/subs/Surelog/tests/AllPackageSignal/dut.sv`
-- `stimuli/sv/subs/Surelog/tests/BlackConst/dut.sv`
-- `stimuli/sv/subs/Surelog/tests/ClassCons/top.sv`
-- `stimuli/sv/subs/Surelog/tests/ClassScope/dut.sv`
-- `stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/top.v`
-- `stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/top_1.v`
-- `stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/top_2.v`
-- `stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/top_3.v`
-- `stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/top_4.v`
-- `stimuli/sv/subs/Surelog/tests/FileLine/fileLine.sv`
-- `stimuli/sv/subs/Surelog/tests/MacroArgDefaultSpaces/dut.sv`
-- `stimuli/sv/subs/Surelog/tests/MultiConcat/dut.sv`
-- `stimuli/sv/subs/Surelog/tests/PpLppdr/dut.sv`
-- `stimuli/sv/subs/Surelog/tests/PragmaProtect/pp.top.sv`
-- `stimuli/sv/subs/Surelog/tests/PragmaProtect/svpp_all/top.sv`
-- `stimuli/sv/subs/Surelog/tests/PragmaProtect/top.sv`
-- `stimuli/sv/subs/Surelog/tests/PreProcMacro/dut.sv`
-- … and 4,437 more (every rejection is a row of `rejections.tsv`)
+| disposition | files |
+|---|---:|
+| `suite_error_test` | 34 |
+| `refused_by_clause` | 16 |
+| `routed_gap:SV-CORPUS-GRAD.13c.2v.10` | 7 |
+| `routed_gap:SV-CORPUS-GRAD.13c.2v.9` | 6 |
+| `routed_gap:SV-CORPUS-GRAD.13c.2v.8` | 1 |

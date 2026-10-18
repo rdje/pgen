@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-180306b1.js";
+            window.path_to_searchindex_js = "searchindex-41b12d34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-1f5fa4fd.js"></script>
+        <script src="toc-89867f1a.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,13 +181,13 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="welcome--pgen-systemverilog-preprocessor-parser-integration-reference"><a class="header" href="#welcome--pgen-systemverilog-preprocessor-parser-integration-reference">Welcome — PGEN SystemVerilog Preprocessor Parser Integration Reference</a></h1>
-<p>This book is the <strong>canonical AST reference</strong> for downstream consumers of PGEN’s <code>systemverilog_preprocessor</code> parser family. The preprocessor parser handles directive parsing (<code>define</code>, <code>undef</code>, <code>include</code>, <code>ifdef</code>/<code>ifndef</code>/<code>elsif</code>/<code>else</code>/<code>endif</code>, <code>timescale</code>, <code>default_nettype</code>, <code>celldefine</code>/<code>endcelldefine</code>), conditional-compilation blocks, macro definitions (formals, defaults, bodies with token-paste and stringize), and the non-directive passthrough text shape.</p>
+<p>This book is the <strong>canonical AST reference</strong> for downstream consumers of PGEN’s <code>systemverilog_preprocessor</code> parser family. The preprocessor parser handles directive parsing — every IEEE 1800 clause-22 directive since release <code>1.0.8</code> (<code>define</code>, <code>undef</code>, <code>undefineall</code>, <code>include</code> with a quoted, angle-bracketed or macro path, <code>ifdef</code>/<code>ifndef</code>/<code>elsif</code>/<code>else</code>/<code>endif</code>, <code>timescale</code>, <code>default_nettype</code>, <code>celldefine</code>/<code>endcelldefine</code>, <code>resetall</code>, <code>unconnected_drive</code>/<code>nounconnected_drive</code>, <code>pragma</code>, <code>line</code>, <code>begin_keywords</code>/<code>end_keywords</code>) — conditional-compilation blocks, macro definitions (formals, defaults, bodies with token-paste, stringize, the <code>`\`"</code> escape and backslash-newline continuation), and the passthrough text shape, including a line that opens with a macro usage.</p>
 <h2 id="what-this-book-covers"><a class="header" href="#what-this-book-covers">What this book covers</a></h2>
 <ul>
 <li><strong>Build and integration.</strong> See <a href="build-recipe.html">Build Recipe</a>, <a href="public-api.html">Public API Surface</a>.</li>
 <li><strong>AST envelope and walking conventions.</strong> See <a href="ast-envelope.html">AST Envelope Structure</a>, <a href="walking-the-ast.html">Walking the AST</a>.</li>
-<li><strong>Per-rule typed shapes.</strong> See <a href="rules-top-level.html">Per-Rule Shape Reference</a>. The grammar (<code>grammars/systemverilog_preprocessor.ebnf</code>) carries <strong>64 typed annotations</strong> covering the pp_item dispatch (10 kinds), per-directive shapes (7), conditional branches (5), and macro-body / condition fragment shapes (12+8+9 kinds).</li>
-<li><strong>Worked examples</strong>: <a href="examples-single-define.html">Single Define</a>, <a href="examples-conditional.html">Conditional Compilation</a>.</li>
+<li><strong>Per-rule typed shapes.</strong> See <a href="rules-top-level.html">Per-Rule Shape Reference</a>. The grammar (<code>grammars/systemverilog_preprocessor.ebnf</code>) carries <strong>100 typed annotations</strong> over 46 rules (release <code>1.0.8</code>) covering the pp_item dispatch (18 kinds), per-directive shapes (15), conditional branches (5), and the condition / macro-default / macro-body fragment shapes (12, 7 plus the balanced group, 11 kinds).</li>
+<li><strong>Worked examples</strong>: <a href="examples-single-define.html">Single Define</a>, <a href="examples-conditional.html">Conditional Compilation</a>, <a href="examples-clause22.html">Clause-22 Directives, a Macro-Usage Line, a Continued Define</a>.</li>
 </ul>
 <h2 id="what-this-book-is-not"><a class="header" href="#what-this-book-is-not">What this book is NOT</a></h2>
 <ul>

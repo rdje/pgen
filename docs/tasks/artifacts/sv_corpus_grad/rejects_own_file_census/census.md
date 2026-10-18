@@ -8,10 +8,10 @@ under the lane's own derived context — **never edited by hand**. `--check` re-
 | input | path | sha256 |
 |---|---|---|
 | re-adjudication table | `stimuli/sv/characterization/pipeline_readjudication.tsv` | `4b28995d2649a697e01e7651d5b926e7362aec423385a954a1d62741590aae9d` |
-| sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `7b1ac7eaa01fe7b4646878b2ae9117b82bb11b1650f46927cb26742c266d8274` |
-| sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `b987f55646f24f63f5de40f4faecec6860dd9a0cafa9becc0214a4f34c9795bf` |
-| sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `044ea4ba169dddafacf231ae91326204a8695f904a3c1d9d4d18ff343c01645d` |
-| expansion binary | `rust/target/debug/ast_pipeline` | `9382dff7f4f2a60f0e0f74aa9b61d563fce05064f7becf9fffed6a6e93cd3614` |
+| sv_2017 dump | `stimuli/sv/characterization/pipeline_results.tsv` | `cc298f8f4731f5fa052065fe0f7655d193c32e300f7fa76657fd7250c1420193` |
+| sv_2023 dump | `stimuli/sv/characterization/pipeline_results_sv2023.tsv` | `ad6d0c2538f7e24051e216858e83da625821b6b2374b151313b1d75c03c8034c` |
+| sv_2023_tolerant dump | `stimuli/sv/characterization/pipeline_results_sv2023_tolerant.tsv` | `1aafba2af70fdf9f33848fcd5133db29bc1c12e47662fd0a1f8e5cfee008c546` |
+| expansion binary | `rust/target/debug/ast_pipeline` | `0ae374714aa41b2e9e8ba4725d2e176ae911fd12eece503c31c22dd2e36ef597` |
 
 ## The classes — 256 rows
 

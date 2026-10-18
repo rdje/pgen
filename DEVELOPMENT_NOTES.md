@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-17 — SV-CORPUS-GRAD.13c.2v.2 (`PGEN-SV-CORPUS-GRAD-0458`): the systemverilog_preprocessor release 1.0.8
+
+- **Prototype on the interpreter, confirm on the generated parser.** Three successive prototypes (v8, v10, v11 — a v9 sweep was stopped when v10 superseded it) were each measured over the whole 16,336-file corpus with `--interpret-parse` (≈ 7 min a sweep, no build) before one regeneration; the generated parser then named the identical rejection set and the identical 69-file mover set. The interpreter is the design loop; the generated census is the claim.
+- **Every new acceptance needs its refusal twin.** Widening `non_directive_text` to admit a leading backtick would have accepted every malformed directive; the negative lookahead over `directive_keyword` is what kept `` `timescale 1ns `` and a stray `` `else `` refused, and the bank holds a REJECT case for each widening (`` `include `else ``, `` `pragma p a, ``, `` `line 0 … ``). A lookahead in turn moved the syntax-closure gate's two-sided lookahead pins — predicted, then re-pinned by name with the measured set.
+- **Read the clause beyond the syntax box.** `` `include `MACRO `` is licensed two pages after §22.4's Syntax 22-1; `` `pragma `` has no defined end (2023 §22.2), so trailing text cannot follow it; `` `line `` forbids comments on its line. Each would have been wrong from the box alone.
+- **A scratch directory name is not a fresh directory.** `rust/target/svpp8/` was `SVPP-EXPANSION.8`'s (2026-09-14) and its `build_chain.done` satisfied this release's waiter while the probe was still compiling; the chain ran two steps on the old binary before it was stopped. Check the directory is new, and key a waiter on a marker the chain itself removes at its start.
+- **A shared binary turns a family release into a re-key.** The SystemVerilog parser's fingerprint did not move (`aa7972eda8377806`), but every SV identity row names the probe's BYTES; the re-key re-derived each reading on the rebuilt probes and compared it with the copy taken before the build — the strongest no-regression arm the release has.
+
 ## 2026-10-17 — SV-CORPUS-GRAD.13c.2v.1 / .2 (`PGEN-SV-CORPUS-GRAD-0457`): measure the population before costing the seven
 
 - **The leaf named seven directives; the corpus named a different defect.** `.13c.2v.1` was costed as seven missing `pp_item` branches. Running the generated parser over the 16,336 corpus files put those seven at 243 rejections and a passthrough rule that could not begin with a backtick at 4,182. A leaf's own list is a hypothesis about its population; the census is the population.

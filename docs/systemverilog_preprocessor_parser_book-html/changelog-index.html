@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-180306b1.js";
+            window.path_to_searchindex_js = "searchindex-41b12d34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-1f5fa4fd.js"></script>
+        <script src="toc-89867f1a.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -201,6 +201,30 @@
 <p>The main SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The sv_preprocessor parser is different: it has a small, line-oriented directive grammar that was typed in a single comprehensive slice — SVPP-Slice-1 — plus a follow-up correctness fix (<code>SVPP-0001</code>, release <code>1.0.2</code> / schema <code>2</code>), a POST-SV-AUDIT Category-A shape correction (<code>macro_formals</code>, release <code>1.0.3</code> / schema <code>3</code>), a schema-neutral macro-comment correctness fix (<code>SVPP-0002</code>, release <code>1.0.4</code>, schema <strong>stays</strong> <code>3</code>), the <code>condition_text -&gt; $text</code> annotation (release <code>1.0.5</code> / schema <code>4</code>, <code>GRAMMAR-WELLFORMED.H.5.1.3.2</code>), and a schema-neutral condition-comment correctness fix (<code>SVPP-0003</code>, release <code>1.0.6</code>, schema <strong>stays</strong> <code>4</code>, <code>GRAMMAR-WELLFORMED.H.5.5</code>), so the sv_preprocessor schema timeline has a short list of entries (<code>SVPP-0002</code>/<code>1.0.4</code> and <code>SVPP-0003</code>/<code>1.0.6</code> are release bumps with no new schema row — schema <code>3</code> spans <code>1.0.3</code>–<code>1.0.4</code>, schema <code>4</code> spans <code>1.0.5</code>–<code>1.0.6</code>).</strong> This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="schema-versioning.html">Schema Versioning</a> row, and an entry below.</p>
 <h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
 <p>This book is <strong>live</strong> and tracks current main HEAD. The schema entries below mirror the “Schema Versioning” table in <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state. The newest release (<code>1.0.6</code>, <code>SVPP-0003</code>) is schema-neutral — it shares schema <code>4</code> with <code>1.0.5</code> (no new schema row), recorded as the <code>1.0.6</code> addendum to the schema-<code>4</code> entry; <code>1.0.5</code> was the release that bumped the AST-dump schema to <code>4</code>.</p>
+<h3 id="release-108--every-clause-22-directive-macro-usage-lines-three-corrected-trees-ast-dump-schema-5--6-100-annotations--46-rules"><a class="header" href="#release-108--every-clause-22-directive-macro-usage-lines-three-corrected-trees-ast-dump-schema-5--6-100-annotations--46-rules">Release 1.0.8 — every clause-22 directive, macro-usage lines, three corrected trees (AST-dump schema <code>5</code> → <code>6</code>; 100 annotations / 46 rules)</a></h3>
+<p>Landed 2026-10-17 (<code>PGEN-SV-CORPUS-GRAD-0458</code>, leaves <code>SV-CORPUS-GRAD.13c.2v.1</code> – <code>.7</code>), found by the first corpus reading of
+this parser: the generated parser refused <strong>4,477 of the 16,336</strong> SystemVerilog corpus files at <code>1.0.7</code>.</p>
+<ul>
+<li><strong>Release:</strong> parser release <code>1.0.8</code>, contract <code>1.0.8</code>. <strong>AST-dump schema: <code>6</code></strong> (was <code>5</code>).</li>
+<li><strong>New:</strong> <code>pp_item</code> kinds <code>resetall</code>, <code>undefineall</code>, <code>unconnected_drive</code>, <code>nounconnected_drive</code>, <code>pragma</code>, <code>line</code>,
+<code>begin_keywords</code>, <code>end_keywords</code>; an <code>include_path</code> <code>macro</code> kind; a passthrough line may OPEN with a text macro usage
+(<code>`uvm_object_utils(c)</code> — 4,182 of the 4,477 refusals); <code>macro_body_fragment</code> kinds <code>line_continuation</code> and
+<code>escaped_quote</code>. Ledger <code>SVPP-0005</code>.</li>
+<li><strong>Corrected trees (breaking):</strong> a backslash-continued define body is one define (<code>SVPP-0006</code>; was cut at its first
+line); <code>`define M (x) y</code> is object-like (<code>SVPP-0008</code>; was function-like); a plain string literal and a <code>//</code> comment
+are whole text fragments of macro text, and a quoted comma in a default keeps the formals (<code>SVPP-0009</code>); the branch
+indices of <code>pp_item</code> and <code>macro_body_fragment</code> shift.</li>
+<li><strong>Now refused:</strong> <code>`include "a.sv" x</code> (<code>SVPP-0007</code>; §22.4 allows only white space or a comment after the path).</li>
+<li><strong>Verified:</strong> the census of the generated parser against the <code>1.0.7</code> probe — rejections <code>4,477 → 64</code>, zero
+<code>pass → fail</code>, each of the 64 adjudicated; 11,790 of the 11,859 previously accepted trees byte-identical and the 69 that
+moved each attributed; the 66-case clause-22 bank; the certificate sweep fully certified at all 32 seeds (UNKNOWN 0,
+sample-parse failures 0); the shape manifest’s thirteen samples; the family gates. Because the release
+<code>parseability_probe</code> is one binary for every family, the SystemVerilog readings were re-derived on the rebuilt
+probes and came back identical.</li>
+<li><strong>Worked example:</strong> <a href="examples-clause22.html">Clause-22 Directives, a Macro-Usage Line, a Continued Define</a>.</li>
+<li><strong>Tracked:</strong> leaves <code>SV-CORPUS-GRAD.13c.2v.1</code> – <code>.7</code> (and the routed <code>.8</code> – <code>.10</code>); ledger <code>SVPP-0005</code> – <code>SVPP-0009</code>;
+contract § “Resolved Defects — <code>SVPP-0005</code> … <code>SVPP-0009</code>” + the schema-<code>6</code> row.</li>
+</ul>
 <h3 id="release-107--svpp-0004-macro-default-balanced-parentheses-correction-ast-dump-schema-4--5-68-annotations--31-rules"><a class="header" href="#release-107--svpp-0004-macro-default-balanced-parentheses-correction-ast-dump-schema-4--5-68-annotations--31-rules">Release 1.0.7 — <code>SVPP-0004</code> macro-default balanced-parentheses correction (AST-dump schema <code>4</code> → <code>5</code>; 68 annotations / 31 rules)</a></h3>
 <p>The <code>SVPP-0004</code> correctness fix (landed 2026-06-10, <code>PGEN-GRAMMAR-WELLFORMED-0059</code>, <code>GRAMMAR-WELLFORMED.H.9</code>; found by the <code>H.7.2</code> plannable-rule reach pass — the stimuli generator as a bug-finding oracle).</p>
 <ul>

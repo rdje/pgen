@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-180306b1.js";
+            window.path_to_searchindex_js = "searchindex-41b12d34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-1f5fa4fd.js"></script>
+        <script src="toc-89867f1a.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -308,11 +308,40 @@ parenthesis does not follow the name immediately;</li>
 <li><code>`\`"</code>, and a backtick inside a plain string or a <code>//</code> comment in macro text, were refused;</li>
 <li><code>`include `home(myfile)</code> was refused, which §22.5.1 licenses in both editions.</li>
 </ul>
-<p>All of them are fixed together in release <code>1.0.8</code> (task leaves <code>SV-CORPUS-GRAD.13c.2v.1</code> – <code>.7</code>). Measured on
-the interpreter before the release is built, the fix takes the rejections from 4,477 to <strong>64</strong>, with <strong>no</strong>
-file going from accepted to rejected. Each of the 64 is read one by one: 34 are the suites’ own error tests,
-16 are refused by a clause, 12 are valid text routed to later leaves, and 2 sit at a boundary of the
-line-oriented model. This page is republished with the generated parser’s numbers when <code>1.0.8</code> ships.</p>
+<p>All of them are fixed together in release <code>1.0.8</code> (task leaves <code>SV-CORPUS-GRAD.13c.2v.1</code> – <code>.7</code>). <strong>Release <code>1.0.8</code>,
+measured with the same census on the generated parser, against the <code>1.0.7</code> probe:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>reading</th><th style="text-align: right">files</th></tr>
+</thead>
+<tbody>
+<tr><td>rejected at <code>1.0.7</code>, accepted at <code>1.0.8</code></td><td style="text-align: right">4,413</td></tr>
+<tr><td>rejected by both</td><td style="text-align: right">64</td></tr>
+<tr><td>accepted by both</td><td style="text-align: right">11,859</td></tr>
+<tr><td>accepted at <code>1.0.7</code>, rejected at <code>1.0.8</code></td><td style="text-align: right"><strong>0</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p>Of the 11,859 files both releases accept, <strong>11,790</strong> produce a byte-identical tree; the <strong>69</strong> whose tree moved are each
+explained — 38 by the continuation fix (the <code>1.0.7</code> define body ended in a <code>\</code>), 31 by the string-literal atom (a plain
+string in macro text is no longer split at its punctuation). The 64 files <code>1.0.8</code> still rejects are each read and
+written down in <code>residual_dispositions.tsv</code>, which the census refuses to run without:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>disposition</th><th style="text-align: right">files</th><th>what it means</th></tr>
+</thead>
+<tbody>
+<tr><td>the suite’s own error test</td><td style="text-align: right">34</td><td>sv2v <code>test/error/*</code>, sv-tests <code>*-illegal</code> / <code>*-invalid</code>, verilator <code>*_bad</code>, iverilog <code>CE</code> — refused at the construct the suite names</td></tr>
+<tr><td>refused by a clause</td><td style="text-align: right">16</td><td>a Verilog-AMS <code>begin_keywords</code> specifier (§22.14), a directive spread over lines (IEEE 1800-2023 §22.2: <em>“compiler directives shall be all on one line”</em>), a directive with a missing argument, a <code>pragma</code> whose expressions lack Syntax 22-8’s comma</td></tr>
+<tr><td>valid text the parser must accept — ordered fixed</td><td style="text-align: right">12</td><td>IEEE 1800-2023 directive forms (<code>`ifdef ( expr )</code>, a macro inside <code>`line</code> / <code>`timescale</code> — <code>.13c.2v.9</code>), an escaped-identifier macro name (<code>.8</code>), a conditional on one line (<code>.10</code>)</td></tr>
+<tr><td>a malformed directive inside a skipped group</td><td style="text-align: right">2</td><td>§22.6 asks only lexical validity there: the directive must be SKIPPED, not rejected — a gap ordered fixed by the director (2026-10-18), <code>.10</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The census is not yet this family’s leg-3 assertion (the derived block above still reads NOT MEASURED); wiring it is
+<code>SV-CORPUS-GRAD.13c.2v.10</code>.</p>
 
                     </main>
 

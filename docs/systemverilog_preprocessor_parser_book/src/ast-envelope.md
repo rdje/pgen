@@ -59,7 +59,7 @@ systemverilog_preprocessor_file := pp_item*
 
 ## pp_item dispatch
 
-`pp_item` is the primary top-level dispatcher. It is a 10-branch `kind`-tagged shape covering all preprocessor directive forms:
+`pp_item` is the primary top-level dispatcher. It is an 18-branch `kind`-tagged shape covering every preprocessor line form (10 branches through `1.0.7`; release `1.0.8` added the eight kinds of the seven clause-22 directives the grammar had not derived):
 
 ```ebnf
 pp_item := pp_define              -> {kind: "define",              body: $1}
@@ -69,6 +69,14 @@ pp_item := pp_define              -> {kind: "define",              body: $1}
          | pp_default_nettype     -> {kind: "default_nettype",     body: $1}
          | pp_celldefine          -> {kind: "celldefine"}
          | pp_endcelldefine       -> {kind: "endcelldefine"}
+         | pp_resetall            -> {kind: "resetall",            body: $1}
+         | pp_undefineall         -> {kind: "undefineall",         body: $1}
+         | pp_unconnected_drive   -> {kind: "unconnected_drive",   body: $1}
+         | pp_nounconnected_drive -> {kind: "nounconnected_drive", body: $1}
+         | pp_pragma              -> {kind: "pragma",              body: $1}
+         | pp_line                -> {kind: "line",                body: $1}
+         | pp_begin_keywords      -> {kind: "begin_keywords",      body: $1}
+         | pp_end_keywords        -> {kind: "end_keywords",        body: $1}
          | pp_conditional         -> {kind: "conditional",         body: $1}
          | pp_non_directive_line  -> {kind: "non_directive_line",  body: $1}
          | pp_blank_line          -> {kind: "blank_line"}
@@ -76,7 +84,7 @@ pp_item := pp_define              -> {kind: "define",              body: $1}
 
 Each branch produces an object with:
 
-- `kind` — one of: `"define"`, `"undef"`, `"include"`, `"timescale"`, `"default_nettype"`, `"celldefine"`, `"endcelldefine"`, `"conditional"`, `"non_directive_line"`, `"blank_line"`.
+- `kind` — one of: `"define"`, `"undef"`, `"include"`, `"timescale"`, `"default_nettype"`, `"celldefine"`, `"endcelldefine"`, `"resetall"`, `"undefineall"`, `"unconnected_drive"`, `"nounconnected_drive"`, `"pragma"`, `"line"`, `"begin_keywords"`, `"end_keywords"`, `"conditional"`, `"non_directive_line"`, `"blank_line"`.
 - `body` — the child shape for that branch (absent for `"celldefine"`, `"endcelldefine"`, and `"blank_line"`, which carry only the kind).
 
 A typical consumer dispatch:
@@ -93,6 +101,14 @@ fn handle_pp_item(node: &serde_json::Value) {
         "default_nettype"    => handle_default_nettype(body),
         "celldefine"         => set_celldefine_state(true),
         "endcelldefine"      => set_celldefine_state(false),
+        "resetall"           => reset_directive_state(),            // §22.3
+        "undefineall"        => clear_macro_table(),                // §22.5.3
+        "unconnected_drive"  => handle_unconnected_drive(body),     // body.drive.kind: "pull0" | "pull1"
+        "nounconnected_drive" => clear_unconnected_drive(),
+        "pragma"             => handle_pragma(body),                // name + expressions (Syntax 22-8)
+        "line"               => handle_line(body),                  // number, filename, level
+        "begin_keywords"     => push_keyword_version(body),         // body.version: "\"1800-2017\"" …
+        "end_keywords"       => pop_keyword_version(),
         "conditional"        => handle_conditional(body),
         "non_directive_line" => handle_non_directive(body),
         "blank_line"         => {/* nothing */}
@@ -100,6 +116,10 @@ fn handle_pp_item(node: &serde_json::Value) {
     }
 }
 ```
+
+The catch-all arm is exactly where a walker written against schema `5` meets release `1.0.8`: the eight clause-22
+kinds are new values of `kind`, so a walker that treats an unknown kind as unreachable must be updated before it
+reads schema-`6` output — one reason `1.0.8` bumped the schema (see [Schema Versioning](schema-versioning.md)).
 
 ## Conditional-compilation tree
 

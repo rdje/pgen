@@ -21,6 +21,31 @@ The main SystemVerilog parser's changelog index is long because its return-annot
 
 This book is **live** and tracks current main HEAD. The schema entries below mirror the "Schema Versioning" table in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`; the contract is authoritative for the live state. The newest release (`1.0.6`, `SVPP-0003`) is schema-neutral — it shares schema `4` with `1.0.5` (no new schema row), recorded as the `1.0.6` addendum to the schema-`4` entry; `1.0.5` was the release that bumped the AST-dump schema to `4`.
 
+### Release 1.0.8 — every clause-22 directive, macro-usage lines, three corrected trees (AST-dump schema `5` → `6`; 100 annotations / 46 rules)
+
+Landed 2026-10-17 (`PGEN-SV-CORPUS-GRAD-0458`, leaves `SV-CORPUS-GRAD.13c.2v.1` – `.7`), found by the first corpus reading of
+this parser: the generated parser refused **4,477 of the 16,336** SystemVerilog corpus files at `1.0.7`.
+
+- **Release:** parser release `1.0.8`, contract `1.0.8`. **AST-dump schema: `6`** (was `5`).
+- **New:** `pp_item` kinds `resetall`, `undefineall`, `unconnected_drive`, `nounconnected_drive`, `pragma`, `line`,
+  `begin_keywords`, `end_keywords`; an `include_path` `macro` kind; a passthrough line may OPEN with a text macro usage
+  (`` `uvm_object_utils(c) `` — 4,182 of the 4,477 refusals); `macro_body_fragment` kinds `line_continuation` and
+  `escaped_quote`. Ledger `SVPP-0005`.
+- **Corrected trees (breaking):** a backslash-continued define body is one define (`SVPP-0006`; was cut at its first
+  line); `` `define M (x) y `` is object-like (`SVPP-0008`; was function-like); a plain string literal and a `//` comment
+  are whole text fragments of macro text, and a quoted comma in a default keeps the formals (`SVPP-0009`); the branch
+  indices of `pp_item` and `macro_body_fragment` shift.
+- **Now refused:** `` `include "a.sv" x `` (`SVPP-0007`; §22.4 allows only white space or a comment after the path).
+- **Verified:** the census of the generated parser against the `1.0.7` probe — rejections `4,477 → 64`, zero
+  `pass → fail`, each of the 64 adjudicated; 11,790 of the 11,859 previously accepted trees byte-identical and the 69 that
+  moved each attributed; the 66-case clause-22 bank; the certificate sweep fully certified at all 32 seeds (UNKNOWN 0,
+  sample-parse failures 0); the shape manifest's thirteen samples; the family gates. Because the release
+  `parseability_probe` is one binary for every family, the SystemVerilog readings were re-derived on the rebuilt
+  probes and came back identical.
+- **Worked example:** [Clause-22 Directives, a Macro-Usage Line, a Continued Define](examples-clause22.md).
+- **Tracked:** leaves `SV-CORPUS-GRAD.13c.2v.1` – `.7` (and the routed `.8` – `.10`); ledger `SVPP-0005` – `SVPP-0009`;
+  contract § "Resolved Defects — `SVPP-0005` … `SVPP-0009`" + the schema-`6` row.
+
 ### Release 1.0.7 — `SVPP-0004` macro-default balanced-parentheses correction (AST-dump schema `4` → `5`; 68 annotations / 31 rules)
 
 The `SVPP-0004` correctness fix (landed 2026-06-10, `PGEN-GRAMMAR-WELLFORMED-0059`, `GRAMMAR-WELLFORMED.H.9`; found by the `H.7.2` plannable-rule reach pass — the stimuli generator as a bug-finding oracle).

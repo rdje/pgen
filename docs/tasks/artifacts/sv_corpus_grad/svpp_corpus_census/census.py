@@ -20,10 +20,18 @@ Every rejection the census reports is looked up in `residual_dispositions.tsv` (
 the LRM text or the suite's own verdict that makes it right). `--check-dispositions` exits 1 when a
 rejection carries no disposition, or a disposition names a file the parser now accepts.
 
+`--bank` runs the clause-22 reproducer bank (`bank/MANIFEST.tsv`: one file per case, ACCEPT or REJECT, the
+clause that decides it) through the same generated parser; exit 1 on any case that does not behave as keyed.
+It needs no corpus, so it runs on a fresh clone.
+
+⛔ The population is a lane DUMP (`results.tsv` is .gitignored): without it the census REFUSES (exit 2) rather
+than measuring an empty corpus; the report records a digest of the sorted path list it read.
+
 Usage (repo-root-relative paths; writes only inside this directory):
   python3 docs/tasks/artifacts/sv_corpus_grad/svpp_corpus_census/census.py --probe rust/target/release/parseability_probe
   python3 … --probe NEW --before OLD          # + transitions and AST identity
   python3 … --check-dispositions              # rc 1 on an unadjudicated rejection (reads rejections.tsv)
+  python3 … --bank --probe BIN                # the clause-22 reproducer bank, rc 1 on any miss
   python3 … --self-test                       # the classifier and the disposition join, no parser
 """
 from __future__ import annotations
@@ -45,6 +53,7 @@ POPULATION = "stimuli/sv/characterization/results.tsv"
 GRAMMAR = "grammars/systemverilog_preprocessor.ebnf"
 DIGESTER = "scripts/check_baseline_identity.sh"
 DISPOSITIONS = HERE / "residual_dispositions.tsv"
+BANK = HERE / "bank"
 REJECTIONS = HERE / "rejections.tsv"
 MOVERS = HERE / "movers.tsv"
 REPORT = HERE / "census.md"
@@ -79,9 +88,16 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def population() -> list[str]:
+def population() -> list[str] | None:
+    """The SV raw lane's file list, or None when the (gitignored) dump is absent."""
+    if not (ROOT / POPULATION).is_file():
+        return None
     rows = (ROOT / POPULATION).read_text(encoding="utf-8").splitlines()
     return sorted({r.split("\t")[2] for r in rows if r.count("\t") >= 2})
+
+
+def population_digest(paths: list[str]) -> str:
+    return hashlib.sha256("\n".join(paths).encode()).hexdigest()
 
 
 def classify(data: bytes, pos: int) -> tuple[str, int, str]:
@@ -141,6 +157,10 @@ def measure(args) -> int:
             print(f"{TAG}: REFUSE — {binary} is not a file", file=sys.stderr)
             return 2
     paths = population()
+    if paths is None:
+        print(f"{TAG}: REFUSE — {POPULATION} is absent (a gitignored lane dump: run "
+              f"`stimuli/run_external_corpus.sh sv 60 8 0` first)", file=sys.stderr)
+        return 2
     scratch = tempfile.mkdtemp(prefix="svpp_census_", dir=ROOT / "rust/target")
 
     def one(path: str):
@@ -205,8 +225,9 @@ def write_report(rows, probe, before, digest, table, missing, stale) -> None:
         lines.append(f"| parse binary (before) | `{before}` | `{sha256(ROOT / before)}` |")
     lines += [
         "",
-        f"Population: every path in the SV raw lane's `{POPULATION}` — **{len(rows):,} files**, the corpus the",
-        "SystemVerilog lanes read (each is a preprocessor input whatever its SystemVerilog verdict).",
+        f"Population: every path in the SV raw lane's `{POPULATION}` (a gitignored lane dump) — **{len(rows):,} files**,",
+        "the corpus the SystemVerilog lanes read (each is a preprocessor input whatever its SystemVerilog verdict);",
+        f"the sorted path list's sha256 is `{population_digest([r[0] for r in rows])}`.",
         "",
         "## The headline",
         "",
@@ -243,6 +264,26 @@ def write_report(rows, probe, before, digest, table, missing, stale) -> None:
             lines.append(f"- … and {len(missing) - TOP_WORDS:,} more (every rejection is a row of `rejections.tsv`)")
     lines.append("")
     REPORT.write_text("\n".join(lines), encoding="utf-8")
+
+
+def run_bank(probe: str) -> int:
+    manifest = BANK / "MANIFEST.tsv"
+    if not manifest.is_file() or not (ROOT / probe).is_file():
+        print(f"{TAG}-BANK: REFUSE — {rel(manifest)} or {probe} is missing", file=sys.stderr)
+        return 2
+    cases = [l.split("\t") for l in manifest.read_text(encoding="utf-8").splitlines() if l and not l.startswith("#")]
+    misses = []
+    for case in cases:
+        name, expect = case[0], case[1]
+        verdict, _ = parse(probe, rel(BANK / name))
+        got = "ACCEPT" if verdict == "pass" else "REJECT"
+        if got != expect:
+            misses.append(f"{name}: keyed {expect}, the parser says {got}")
+    for m in misses:
+        print(f"{TAG}-BANK: ✗ {m}", file=sys.stderr)
+    counts = Counter(c[1] for c in cases)
+    print(f"{TAG}-BANK: cases={len(cases)} accept={counts['ACCEPT']} reject={counts['REJECT']} failures={len(misses)}")
+    return 1 if misses else 0
 
 
 def check_dispositions() -> int:
@@ -291,12 +332,17 @@ def main() -> int:
     ap.add_argument("--before", help="a second parseability_probe: transitions + AST identity")
     ap.add_argument("--jobs", type=int, default=8)
     ap.add_argument("--check-dispositions", action="store_true")
+    ap.add_argument("--bank", action="store_true", help="run the clause-22 reproducer bank through --probe")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
         return self_test()
     if args.check_dispositions:
         return check_dispositions()
+    if args.bank:
+        if not args.probe:
+            ap.error("--bank needs --probe")
+        return run_bank(args.probe)
     if not args.probe:
         ap.error("--probe is required unless --check-dispositions or --self-test")
     return measure(args)

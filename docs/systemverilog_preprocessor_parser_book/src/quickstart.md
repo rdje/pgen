@@ -1,6 +1,6 @@
 # Quickstart for Downstream Consumers
 
-A minimal "compile this, walk that" recipe for embedding the PGEN sv_preprocessor parser. This parser models the SystemVerilog preprocessor directive surface (`define / `undef / `include / `timescale / `default_nettype / `celldefine / conditional compilation). Read [Build Recipe](build-recipe.md) and [Public API Surface](public-api.md) for the long-form versions of each step.
+A minimal "compile this, walk that" recipe for embedding the PGEN sv_preprocessor parser. This parser models the SystemVerilog preprocessor directive surface — every IEEE 1800 clause-22 directive (`` `define `` / `` `include `` / conditional compilation / `` `timescale `` / `` `pragma `` / `` `line `` / `` `begin_keywords `` / …) plus the source lines between them. Read [Build Recipe](build-recipe.md) and [Public API Surface](public-api.md) for the long-form versions of each step.
 
 ## 1. Cold-clone build
 
@@ -51,7 +51,7 @@ match outcome.status {
 
 ## 4. Walk the pp_item dispatch
 
-The sv_preprocessor AST root is `systemverilog_preprocessor_file`, which produces a JSON array of zero or more typed `pp_item` objects. Each `pp_item` is a `kind`-tagged variant for one of 10 directive forms:
+The sv_preprocessor AST root is `systemverilog_preprocessor_file`, which produces a JSON array of zero or more typed `pp_item` objects. Each `pp_item` is a `kind`-tagged variant for one of 18 line forms (release `1.0.8`; 10 through `1.0.7`):
 
 ```json
 {"kind": "define", "body": {...}}
@@ -61,6 +61,14 @@ The sv_preprocessor AST root is `systemverilog_preprocessor_file`, which produce
 {"kind": "default_nettype", "body": {...}}
 {"kind": "celldefine"}
 {"kind": "endcelldefine"}
+{"kind": "resetall", "body": {...}}
+{"kind": "undefineall", "body": {...}}
+{"kind": "unconnected_drive", "body": {...}}
+{"kind": "nounconnected_drive", "body": {...}}
+{"kind": "pragma", "body": {...}}
+{"kind": "line", "body": {...}}
+{"kind": "begin_keywords", "body": {...}}
+{"kind": "end_keywords", "body": {...}}
 {"kind": "conditional", "body": {...}}
 {"kind": "non_directive_line", "body": {...}}
 {"kind": "blank_line"}
@@ -70,4 +78,4 @@ See [Walking the AST](walking-the-ast.md) for the full walker pattern.
 
 ## 5. Track the contract version
 
-Pin your downstream code to the parser-release version recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" (currently `1.0.7`, AST-dump schema `5`). When you bump to a new PGEN version, scan the [Changelog Index](changelog-index.md) for shape-change rows that affect the directives you consume (e.g. the `1.0.2` `SVPP-0001` fix changed `pp_if_branch.keyword` to `{kind: "ifdef"|"ifndef"}`; the `1.0.3` POST-SV-AUDIT fix changed `pp_define.formals` from the raw `{first, rest}` envelope to a clean `macro_formal[]` list; the `1.0.5` schema-`4` fix made a `condition_atom` "text" `body` a flat string; the `1.0.7` `SVPP-0004` schema-`5` fix restructured macro-default shapes).
+Pin your downstream code to the parser-release version recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" (currently `1.0.8`, AST-dump schema `6`). When you bump to a new PGEN version, scan the [Changelog Index](changelog-index.md) for shape-change rows that affect the directives you consume (e.g. the `1.0.2` `SVPP-0001` fix changed `pp_if_branch.keyword` to `{kind: "ifdef"|"ifndef"}`; the `1.0.3` POST-SV-AUDIT fix changed `pp_define.formals` from the raw `{first, rest}` envelope to a clean `macro_formal[]` list; the `1.0.5` schema-`4` fix made a `condition_atom` "text" `body` a flat string; the `1.0.7` `SVPP-0004` schema-`5` fix restructured macro-default shapes; the `1.0.8` schema-`6` release added eight `pp_item` kinds and corrected the continued-define, object-like-macro and string-in-macro-text trees).

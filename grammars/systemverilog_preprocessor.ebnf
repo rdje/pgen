@@ -1,12 +1,17 @@
 # systemverilog_preprocessor.ebnf
 #
-# Initial SystemVerilog preprocessor grammar seed.
-# Scope for this first increment:
-# - Core directive parsing (`define`, `undef`, `include`, `ifdef` family)
-# - Timescale/default-nettype/celldefine directives
+# The SystemVerilog preprocessor's directive-STRUCTURE grammar (IEEE 1800-2017 / 1800-2023 clause 22).
+# Scope:
+# - Every clause-22 directive (§22.1's list): `define` / `undef` / `undefineall`, `include` (a quoted,
+#   angle-bracketed or macro-valued path), the `ifdef` family, `timescale`, `default_nettype`,
+#   `celldefine` / `endcelldefine`, `resetall`, `unconnected_drive` / `nounconnected_drive`, `pragma`,
+#   `line`, `begin_keywords` / `end_keywords` (SV-CORPUS-GRAD.13c.2v.1, release 1.0.8)
 # - Nested conditional-compilation blocks
 # - Macro formal/default argument syntax
-# - Macro body primitives for token-paste and stringize
+# - Macro body primitives: token-paste, stringize, the `\`" escaped quote, backslash-newline
+#   continuation, string literals and comments as opaque text
+# - A text macro usage anywhere a source line may hold one, the start of a line included
+#   (`__FILE__` / `__LINE__` among them, §22.13)
 #
 # Notes:
 # - This grammar is intentionally line-oriented and deterministic.
@@ -43,6 +48,14 @@ pp_item := pp_define              -> {kind: "define",              body: $1}
          | pp_default_nettype     -> {kind: "default_nettype",     body: $1}
          | pp_celldefine          -> {kind: "celldefine"}
          | pp_endcelldefine       -> {kind: "endcelldefine"}
+         | pp_resetall            -> {kind: "resetall",            body: $1}
+         | pp_undefineall         -> {kind: "undefineall",         body: $1}
+         | pp_unconnected_drive   -> {kind: "unconnected_drive",   body: $1}
+         | pp_nounconnected_drive -> {kind: "nounconnected_drive", body: $1}
+         | pp_pragma              -> {kind: "pragma",              body: $1}
+         | pp_line                -> {kind: "line",                body: $1}
+         | pp_begin_keywords      -> {kind: "begin_keywords",      body: $1}
+         | pp_end_keywords        -> {kind: "end_keywords",        body: $1}
          | pp_conditional         -> {kind: "conditional",         body: $1}
          | pp_non_directive_line  -> {kind: "non_directive_line",  body: $1}
          | pp_blank_line          -> {kind: "blank_line"}
@@ -55,7 +68,10 @@ pp_define := kw_define macro_name macro_formals? macro_body? newline?
           -> {name: $2, formals: $3, body: $4}
 pp_undef := kw_undef macro_name directive_comment_tail newline?
          -> {name: $2, comment: $3}
-pp_include := kw_include include_path directive_comment_tail newline?
+# SV-CORPUS-GRAD.13c.2v.4 (SVPP-0007) — §22.4 (both editions): "Only white space or a comment may appear on
+# the same line as the `include compiler directive". The former `newline?` let the line's remainder re-read
+# as a second, passthrough item (`include "a.sv" x was accepted); the line must end here.
+pp_include := kw_include include_path directive_comment_tail line_end
            -> {path: $2, comment: $3}
 pp_timescale := kw_timescale time_literal slash time_literal directive_comment_tail newline?
              -> {unit: $2, precision: $4, comment: $5}
@@ -66,8 +82,91 @@ pp_celldefine := kw_celldefine directive_comment_tail newline?
 pp_endcelldefine := kw_endcelldefine directive_comment_tail newline?
                  -> {comment: $2}
 
-include_path := quoted_string -> {kind: "quoted", text: $1}
-              | angle_path    -> {kind: "angle",  text: $1}
+# SV-CORPUS-GRAD.13c.2v.1 (release 1.0.8) — the seven clause-22 directives the grammar did not derive.
+# Each carries its body at the `pp_item` dispatch (the `pp_undef` precedent), so no comment is dropped.
+#   `resetall            §22.3     `undefineall          §22.5.3 (no arguments)
+#   `unconnected_drive   §22.9     pull0 | pull1, and `nounconnected_drive
+#   `pragma              §22.11, Syntax 22-8: pragma_name [ pragma_expression { , pragma_expression } ]
+#   `line                §22.12, Syntax 22-9: number "filename" level
+#   `begin_keywords      §22.14, Syntax 22-10: "version_specifier", and `end_keywords
+# A directive with a DEFINED end keeps `newline?`: 1800-2023 §22.2 lets "each directive whose syntax shows a
+# defined end to the directive ... be followed by another valid language element on the same line".
+# `pragma` has no defined end (§22.2 names it among the directives "that include an indeterminate amount of
+# text"), so its line must END there: `line_end` is required, and `pragma p a,` is refused.
+pp_resetall := kw_resetall directive_comment_tail newline?
+            -> {comment: $2}
+pp_undefineall := kw_undefineall directive_comment_tail newline?
+               -> {comment: $2}
+pp_unconnected_drive := kw_unconnected_drive pull_drive directive_comment_tail newline?
+                     -> {drive: $2, comment: $3}
+pp_nounconnected_drive := kw_nounconnected_drive directive_comment_tail newline?
+                       -> {comment: $2}
+pp_pragma := kw_pragma pragma_name pragma_expression_list? directive_comment_tail line_end
+          -> {name: $2, expressions: $3, comment: $4}
+# §22.12: "only white space may appear on the same line as the `line directive. Comments are not allowed on
+# the same line as a `line directive. All parameters in the `line directive are required." — every separator is
+# `line_space` (spaces and tabs only, never `inline_trivia`, which admits a block comment), and the line ends
+# after the level.
+pp_line := kw_line line_number line_filename line_level line_terminator
+        -> {number: $2, filename: $3, level: $4}
+pp_begin_keywords := kw_begin_keywords version_specifier directive_comment_tail newline?
+                  -> {version: $2, comment: $3}
+pp_end_keywords := kw_end_keywords directive_comment_tail newline?
+                -> {comment: $2}
+
+pull_drive := kw_pull0 -> {kind: "pull0"}
+            | kw_pull1 -> {kind: "pull1"}
+
+# Syntax 22-8. `pragma_keyword = pragma_value` is tried before the bare keyword, and a bare identifier reads
+# as a keyword; an identifier VALUE is reachable after `=`. clause 34's own examples separate the
+# expressions with commas, as the syntax box does.
+pragma_name := identifier
+pragma_keyword := identifier
+pragma_expression_list := pragma_expression (comma pragma_expression)*
+                       -> [$1, $2::2*]
+pragma_expression := pragma_keyword assign pragma_value -> {kind: "keyword_value", keyword: $1, value: $3}
+                   | pragma_keyword                     -> {kind: "keyword", keyword: $1}
+                   | pragma_value                       -> {kind: "value", value: $1}
+pragma_value := pragma_value_list -> {kind: "list", expressions: $1}
+              | pragma_number     -> {kind: "number", text: $1}
+              | quoted_string     -> {kind: "string", text: $1}
+              | identifier        -> {kind: "identifier", name: $1}
+pragma_value_list := lparen pragma_expression_list rparen
+                  -> $2
+# A.8.7 `number`: a real (fixed point or exponent form), a sized or unsized based integral number
+# (`4'b10_1x`, `8 'sd 255`, `'hFF`), or an unsigned decimal — the real forms first, so `3.5e-2` is one token.
+pragma_number := inline_trivia /[0-9][0-9_]*\.[0-9][0-9_]*(?:[eE][+-]?[0-9][0-9_]*)?|[0-9][0-9_]*[eE][+-]?[0-9][0-9_]*|(?:[1-9][0-9_]*[ \t]*)?'[sS]?(?:[dD][ \t]*(?:[0-9][0-9_]*|[xXzZ?]_*)|[bB][ \t]*[01xXzZ?][01xXzZ?_]*|[oO][ \t]*[0-7xXzZ?][0-7xXzZ?_]*|[hH][ \t]*[0-9a-fA-FxXzZ?][0-9a-fA-FxXzZ?_]*)|[0-9][0-9_]*/
+
+# §22.12: the number "shall be a positive integer", the filename "shall be a string literal", the level
+# "shall be 0, 1, or 2".
+line_space := space_or_tab*
+line_number := line_space /0*[1-9][0-9]*/
+line_filename := line_space /"([^"\\\r\n]|\\.)*"/
+line_level := line_space /[012]\b/
+line_terminator := line_space line_end
+line_end := /\r?\n|\z/
+
+# Syntax 22-10. One grammar serves both editions: the list is 1800-2023's (1800-2017's plus "1800-2023"),
+# which §22.14 permits — "Implementations and other standards are permitted to extend the `begin_keywords
+# directive with custom version specifiers" — and the expansion stage holds the per-edition admission
+# (`keyword_versions.rs`, W_SVPP_KEYWORDS_VERSION_NOT_IN_EDITION). Any other text is refused.
+version_specifier := inline_trivia /"(?:1800-2023|1800-2017|1800-2012|1800-2009|1800-2005|1364-2005|1364-2001-noconfig|1364-2001|1364-1995)"/
+
+include_path := quoted_string       -> {kind: "quoted", text: $1}
+              | angle_path          -> {kind: "angle",  text: $1}
+              | include_macro_usage -> {kind: "macro",  body: $1}
+
+# SV-CORPUS-GRAD.13c.2v.7 — §22.5.1 (both editions): "The `include directive can be followed by a macro,
+# instead of a string literal" (`include `home(myfile)). The actuals are one balanced-parenthesis span
+# (`$text`); `include `else stays refused — a directive keyword is not a macro.
+include_macro_usage := !directive_keyword macro_reference macro_usage_arguments?
+                    -> {name: $2, arguments: $3}
+macro_usage_arguments := lparen macro_argument_atom* rparen
+                      -> $text
+macro_argument_atom := macro_argument_text
+                     | macro_argument_group
+macro_argument_group := lparen macro_argument_atom* rparen
+macro_argument_text := inline_trivia /[^()\r\n]+/
 
 nettype_value := identifier -> {kind: "identifier", body: $1}
                | kw_none    -> {kind: "none"}
@@ -148,7 +247,13 @@ condition_text := /(?:\/\*([^*]|\*+[^*\/])*\*+\/|[^`(),?:!|&\r\n])+/ -> $text
 # extraction-spread `[$2, $3::2*]` (the `object_properties` reference
 # idiom in return_annotation.ebnf) drops the separator and yields a
 # clean flat `macro_formal` list.
-macro_formals := lparen macro_formal (comma macro_formal)* rparen
+#
+# SV-CORPUS-GRAD.13c.2v.5 (SVPP-0008) — §22.5.1 (2017): "The left parenthesis shall follow the text macro name
+# immediately, with no space in between" (2023: "no white space shall separate the opening parenthesis from the
+# macro name"). `formals_open` is a regex token, so nothing is skipped before it: `define M (x) y is an
+# OBJECT-like macro whose text is "(x) y" — the reading the expansion stage has always had — where the former
+# `lparen` (inline trivia first) made it function-like.
+macro_formals := formals_open macro_formal (comma macro_formal)* rparen
               -> [$2, $3::2*]
 macro_formal := macro_name (assign macro_default_value)?
              -> {name: $1, default: $2}
@@ -186,12 +291,24 @@ macro_default_group_atom := macro_default_atom -> $1
 # the proven systemverilog.ebnf `timeunit_separator_trivia` /
 # `block_comment` idiom; accepts strictly more, narrows nothing; the
 # `{kind:"text", body:$1}` AST shape is unchanged.
-macro_default_text := inline_trivia /(?:\/\*([^*]|\*+[^*\/])*\*+\/|[^`(),?:\r\n])+/
+#
+# SV-CORPUS-GRAD.13c.2v.6 (SVPP-0009) — a string literal is one atom of default text: §22.5.1 "Actual arguments
+# and defaults shall not contain comma or right parenthesis characters outside matched pairs of ... double
+# quotes", so `define M(a="x,y") closes its formals.
+macro_default_text := inline_trivia /(?:\/\*([^*]|\*+[^*\/])*\*+\/|"(?:[^"\\\r\n]|\\.)*"|[^`(),?:\r\n])+/
 
 macro_body := macro_body_fragment+
            -> {fragments: $1}
-macro_body_fragment := macro_token_paste -> {kind: "token_paste"}
+# SV-CORPUS-GRAD.13c.2v.3 (SVPP-0006) — backslash-newline CONTINUATION: §22.5.1 (2017) "If more than one line
+# is necessary to specify the text, the newline shall be preceded by a backslash"; (2023) "immediately
+# preceded". The body formerly ended at the first newline, its tree holding `"a + \\"` and the continuation
+# reading as a separate passthrough line. A backslash followed by white space is NOT a continuation
+# (SVPP-EXPANSION.5(r): no edition licenses it).
+# SV-CORPUS-GRAD.13c.2v.6 — `\`" (§22.5.1: "The `define macro text can also include `", `\`", and ``").
+macro_body_fragment := macro_line_continuation -> {kind: "line_continuation"}
+                     | macro_token_paste -> {kind: "token_paste"}
                      | macro_stringize   -> {kind: "stringize"}
+                     | macro_escaped_quote -> {kind: "escaped_quote"}
                      | macro_reference   -> {kind: "macro_reference", body: $1}
                      | macro_body_text   -> {kind: "text",   body: $1}
                      | lparen            -> {kind: "lparen"}
@@ -202,20 +319,34 @@ macro_body_fragment := macro_token_paste -> {kind: "token_paste"}
 
 # Comment-aware — same fix + rationale as macro_default_text above
 # (SV-EXH-PROOF.2.3.1, PGEN-SV-EXH-PROOF-0008).
-macro_body_text := inline_trivia /(?:\/\*([^*]|\*+[^*\/])*\*+\/|[^`(),?:\r\n])+/
+# SV-CORPUS-GRAD.13c.2v.6 (SVPP-0009) — three more atoms, each per §22.5.1: a `//` comment ("the comment shall
+# not become part of the substituted text"), which runs up to — not including — a continuation backslash
+# (2023: "the comment ends before the backslash and the macro text continues on the next line"); a plain string
+# literal ("Macro substitution and argument substitution shall not occur within string literals"), so a
+# backtick, a parenthesis or a comma inside it no longer splits or ends the run; and a backslash, consumed only
+# with the character after it, so the backslash that ends a line is the continuation's.
+macro_body_text := inline_trivia /(?:\/\*([^*]|\*+[^*\/])*\*+\/|\/\/(?:[^\r\n\\]|\\(?:[^\r\n]|\z))*|"(?:[^"\\\r\n]|\\(?:[^\r\n]|\z))*"|\\(?:[^\r\n]|\z)|[^`(),?:\r\n\\])+/
+macro_line_continuation := inline_trivia /\\\r?\n/
 macro_reference := bt_identifier
 macro_token_paste := inline_trivia /``/
 macro_stringize := inline_trivia /`"/
+macro_escaped_quote := inline_trivia /`\\`"/
 
 # ---------------------------------------------------------------------------
 # Passthrough lines
 # ---------------------------------------------------------------------------
 
-pp_non_directive_line := non_directive_text newline?
-                      -> {text: $1}
+# SV-CORPUS-GRAD.13c.2v.2 (SVPP-0005) — a line may OPEN with a text macro usage (§22.5.1 `text_macro_usage
+# ::= `text_macro_identifier [ ( list_of_actual_arguments ) ]` may stand wherever source text may):
+# `uvm_object_utils(c), `ASSERT(...), `__FILE__ (§22.13). The former first character `[^`\r\n]` refused every
+# such line — 4,182 of the 4,477 corpus files release 1.0.7 rejected. `!directive_keyword` keeps a MALFORMED
+# directive refused (`timescale 1ns, a stray `else), which would otherwise re-read as a macro-usage line;
+# `{text: $2}` because the lookahead occupies the first slot.
+pp_non_directive_line := !directive_keyword non_directive_text newline?
+                      -> {text: $2}
 pp_blank_line := newline
               -> {kind: "blank"}
-non_directive_text := inline_trivia /[^`\r\n][^\r\n]*/
+non_directive_text := inline_trivia /[^`\r\n][^\r\n]*|`[a-zA-Z_][a-zA-Z0-9_$]*[^\r\n]*/
 # GRAMMAR-WELLFORMED.H.5.3 — WITNESSING sample steering. `directive_tail`'s content
 # `/[^\r\n]+/` is line-greedy, so an un-steered generation can emit a free run that
 # over-produces a sample the parser rejects (a round-trip-faithfulness hazard). The older
@@ -268,6 +399,7 @@ bang := inline_trivia "!"
 logical_or := inline_trivia "||"
 logical_and := inline_trivia "&&"
 lparen := inline_trivia "("
+formals_open := /\(/   # no leading trivia: §22.5.1, see macro_formals
 rparen := inline_trivia ")"
 
 # ---------------------------------------------------------------------------
@@ -305,4 +437,37 @@ kw_default_nettype := inline_trivia /`default_nettype\b/
 kw_celldefine := inline_trivia /`celldefine\b/
 [>! /\w/]
 kw_endcelldefine := inline_trivia /`endcelldefine\b/
+[>! /\w/]
+kw_resetall := inline_trivia /`resetall\b/
+[>! /\w/]
+kw_undefineall := inline_trivia /`undefineall\b/
+[>! /\w/]
+kw_unconnected_drive := inline_trivia /`unconnected_drive\b/
+[>! /\w/]
+kw_nounconnected_drive := inline_trivia /`nounconnected_drive\b/
+[>! /\w/]
+kw_pragma := inline_trivia /`pragma\b/
+[>! /\w/]
+# `line takes white space only before it (§22.12); `kw_line_word` is the trivia-tolerant spelling the
+# `directive_keyword` lookahead needs, so `/* c */ `line 1 "f" 0` stays refused rather than re-reading as text.
+kw_line := line_space /`line\b/
+[>! /\w/]
+kw_line_word := inline_trivia /`line\b/
+[>! /\w/]
+kw_begin_keywords := inline_trivia /`begin_keywords\b/
+[>! /\w/]
+kw_end_keywords := inline_trivia /`end_keywords\b/
+[>! /\w/]
+kw_pull0 := inline_trivia /pull0\b/
+[>! /\w/]
+kw_pull1 := inline_trivia /pull1\b/
 kw_none := inline_trivia /none\b/
+
+# The twenty §22.1 directive keywords (`__FILE__` / `__LINE__` are predefined MACROS, §22.13) — read only by
+# the negative lookaheads of `pp_non_directive_line` and `include_macro_usage`. A new directive keyword joins
+# this list in the same edit, or a malformed use of it would be accepted as a macro-usage line.
+directive_keyword := kw_define | kw_undef | kw_undefineall | kw_include
+                   | kw_ifdef | kw_ifndef | kw_elsif | kw_else | kw_endif
+                   | kw_timescale | kw_default_nettype | kw_celldefine | kw_endcelldefine
+                   | kw_resetall | kw_unconnected_drive | kw_nounconnected_drive
+                   | kw_pragma | kw_line_word | kw_begin_keywords | kw_end_keywords

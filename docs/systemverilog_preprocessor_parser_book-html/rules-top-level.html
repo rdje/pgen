@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-180306b1.js";
+            window.path_to_searchindex_js = "searchindex-41b12d34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-1f5fa4fd.js"></script>
+        <script src="toc-89867f1a.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,9 +181,9 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
-<p>This chapter is the per-rule shape reference for the PGEN sv_preprocessor parser. It documents the <code>systemverilog_preprocessor_file</code> root, the <code>pp_item</code> dispatch, the seven directive shapes, the conditional-compilation tree, the condition / macro-formal / macro-body atom families, and the passthrough lines — grouped by rule family.</p>
+<p>This chapter is the per-rule shape reference for the PGEN sv_preprocessor parser. It documents the <code>systemverilog_preprocessor_file</code> root, the <code>pp_item</code> dispatch, the fifteen directive shapes (every clause-22 directive since release <code>1.0.8</code>), the conditional-compilation tree, the condition / macro-formal / macro-body atom families, and the passthrough lines — grouped by rule family.</p>
 <blockquote>
-<p><strong>Status:</strong> SVPP-Slice-1 landed the full grammar typing in one comprehensive batch; the <code>1.0.2</code> <code>SVPP-0001</code> correctness fix then lifted the inline <code>(kw_ifdef | kw_ifndef)</code> alternation into the named <code>pp_if_keyword</code> rule; the <code>1.0.3</code> POST-SV-AUDIT Category-A fix corrected <code>macro_formals</code> from the raw <code>{first, rest}</code> envelope to the clean <code>[$2, $3::2*]</code> list; <code>1.0.5</code>/schema <code>4</code> added <code>condition_text -&gt; $text</code>; and the <code>1.0.7</code> <code>SVPP-0004</code> macro-default balanced-parentheses correction (schema <code>5</code>) added <code>macro_default_paren_group</code> + <code>macro_default_group_atom</code>. As of parser release <code>1.0.7</code> / AST-dump schema version <code>5</code> the surface is <strong>68 return annotations across 31 distinct rules</strong> in <code>grammars/systemverilog_preprocessor.ebnf</code> (65 <code>return_object</code> + 1 <code>return_array</code> [<code>macro_formals</code>] + 2 <code>return_scalar</code> [<code>condition_text</code>, <code>macro_default_group_atom</code>]). Every shape in this chapter is drawn from the live inventory at <code>generated/systemverilog_preprocessor_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code> — identical content; the contract-embedded copy omits only the cosmetic <code>raw_text</code> field, the <code>(rule, branch_index, annotation_type, normalized_text)</code> tuples are byte-identical, 68 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
+<p><strong>Status:</strong> release <code>1.0.8</code> (AST-dump schema <code>6</code>) derives every clause-22 directive, a line that opens with a macro usage, the backslash continuation and the <code>`include</code> macro path — see <a href="schema-versioning.html">Schema Versioning</a>. Earlier: SVPP-Slice-1 landed the full grammar typing in one comprehensive batch; the <code>1.0.2</code> <code>SVPP-0001</code> correctness fix then lifted the inline <code>(kw_ifdef | kw_ifndef)</code> alternation into the named <code>pp_if_keyword</code> rule; the <code>1.0.3</code> POST-SV-AUDIT Category-A fix corrected <code>macro_formals</code> from the raw <code>{first, rest}</code> envelope to the clean <code>[$2, $3::2*]</code> list; <code>1.0.5</code>/schema <code>4</code> added <code>condition_text -&gt; $text</code>; and the <code>1.0.7</code> <code>SVPP-0004</code> macro-default balanced-parentheses correction (schema <code>5</code>) added <code>macro_default_paren_group</code> + <code>macro_default_group_atom</code>. As of parser release <code>1.0.7</code> / AST-dump schema version <code>5</code> the surface is <strong>68 return annotations across 31 distinct rules</strong> in <code>grammars/systemverilog_preprocessor.ebnf</code> (65 <code>return_object</code> + 1 <code>return_array</code> [<code>macro_formals</code>] + 2 <code>return_scalar</code> [<code>condition_text</code>, <code>macro_default_group_atom</code>]). Every shape in this chapter is drawn from the live inventory at <code>generated/systemverilog_preprocessor_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code> — identical content; the contract-embedded copy omits only the cosmetic <code>raw_text</code> field, the <code>(rule, branch_index, annotation_type, normalized_text)</code> tuples are byte-identical, 68 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
 </blockquote>
 <h2 id="how-to-read-this-chapter"><a class="header" href="#how-to-read-this-chapter">How to read this chapter</a></h2>
 <p>This is a <strong>curated, grouped</strong> reference — not a raw 64-line dump and not a copy of any IEEE 1800 LRM. For each family it gives the <code>kind</code> discriminators and field lists that the parser actually emits, transcribed from each rule’s normalized return-annotation text. Where a rule has per-branch typing, the <code>kind</code> value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
@@ -219,7 +219,7 @@
 </code></pre>
 <p><code>items</code> is the array of typed <code>pp_item</code> objects, one per top-level line/directive in source order. Consumers walking the sv_preprocessor AST dispatch on <code>obj["type"] == "systemverilog_preprocessor_file"</code> at the root, then iterate <code>obj["items"]</code>. This is the only rule that carries a <code>type</code> discriminator; every other dispatcher uses <code>kind</code>.</p>
 <h2 id="pp_item-dispatch"><a class="header" href="#pp_item-dispatch"><code>pp_item</code> dispatch</a></h2>
-<p><code>pp_item</code> is the primary top-level dispatcher — a 10-branch <code>kind</code>-tagged shape covering every preprocessor line form:</p>
+<p><code>pp_item</code> is the primary top-level dispatcher — an 18-branch <code>kind</code>-tagged shape covering every preprocessor line form (10 branches through <code>1.0.7</code>; release <code>1.0.8</code> added the eight kinds of the seven clause-22 directives the grammar had not derived — <code>SV-CORPUS-GRAD.13c.2v.1</code>):</p>
 <pre><code class="language-ebnf">pp_item := pp_define              -&gt; {kind: "define",              body: $1}
          | pp_undef               -&gt; {kind: "undef",               body: $1}
          | pp_include             -&gt; {kind: "include",             body: $1}
@@ -227,6 +227,14 @@
          | pp_default_nettype     -&gt; {kind: "default_nettype",     body: $1}
          | pp_celldefine          -&gt; {kind: "celldefine"}
          | pp_endcelldefine       -&gt; {kind: "endcelldefine"}
+         | pp_resetall            -&gt; {kind: "resetall",            body: $1}
+         | pp_undefineall         -&gt; {kind: "undefineall",         body: $1}
+         | pp_unconnected_drive   -&gt; {kind: "unconnected_drive",   body: $1}
+         | pp_nounconnected_drive -&gt; {kind: "nounconnected_drive", body: $1}
+         | pp_pragma              -&gt; {kind: "pragma",              body: $1}
+         | pp_line                -&gt; {kind: "line",                body: $1}
+         | pp_begin_keywords      -&gt; {kind: "begin_keywords",      body: $1}
+         | pp_end_keywords        -&gt; {kind: "end_keywords",        body: $1}
          | pp_conditional         -&gt; {kind: "conditional",         body: $1}
          | pp_non_directive_line  -&gt; {kind: "non_directive_line",  body: $1}
          | pp_blank_line          -&gt; {kind: "blank_line"}
@@ -244,6 +252,14 @@
 <tr><td><code>"default_nettype"</code></td><td><code>pp_default_nettype</code> — <code>{nettype, comment}</code></td></tr>
 <tr><td><code>"celldefine"</code></td><td><em>(no body — <code> `celldefine</code> marker)</em></td></tr>
 <tr><td><code>"endcelldefine"</code></td><td><em>(no body — <code> `endcelldefine</code> marker)</em></td></tr>
+<tr><td><code>"resetall"</code></td><td><code>pp_resetall</code> — <code>{comment}</code> (<code>1.0.8</code>)</td></tr>
+<tr><td><code>"undefineall"</code></td><td><code>pp_undefineall</code> — <code>{comment}</code> (<code>1.0.8</code>)</td></tr>
+<tr><td><code>"unconnected_drive"</code></td><td><code>pp_unconnected_drive</code> — <code>{drive, comment}</code>, <code>drive</code> <code>{kind: "pull0"}</code> / <code>{kind: "pull1"}</code> (<code>1.0.8</code>)</td></tr>
+<tr><td><code>"nounconnected_drive"</code></td><td><code>pp_nounconnected_drive</code> — <code>{comment}</code> (<code>1.0.8</code>)</td></tr>
+<tr><td><code>"pragma"</code></td><td><code>pp_pragma</code> — <code>{name, expressions, comment}</code> (<code>1.0.8</code>)</td></tr>
+<tr><td><code>"line"</code></td><td><code>pp_line</code> — <code>{number, filename, level}</code> (<code>1.0.8</code>)</td></tr>
+<tr><td><code>"begin_keywords"</code></td><td><code>pp_begin_keywords</code> — <code>{version, comment}</code> (<code>1.0.8</code>)</td></tr>
+<tr><td><code>"end_keywords"</code></td><td><code>pp_end_keywords</code> — <code>{comment}</code> (<code>1.0.8</code>)</td></tr>
 <tr><td><code>"conditional"</code></td><td><code>pp_conditional</code> — <code>{if_branch, elsif_branches, else_branch}</code></td></tr>
 <tr><td><code>"non_directive_line"</code></td><td><code>pp_non_directive_line</code> — <code>{text}</code></td></tr>
 <tr><td><code>"blank_line"</code></td><td><em>(no body — blank line)</em></td></tr>
@@ -256,7 +272,7 @@
           -&gt; {name: $2, formals: $3, body: $4}
 pp_undef := kw_undef macro_name directive_comment_tail newline?
          -&gt; {name: $2, comment: $3}
-pp_include := kw_include include_path directive_comment_tail newline?
+pp_include := kw_include include_path directive_comment_tail line_end
            -&gt; {path: $2, comment: $3}
 pp_timescale := kw_timescale time_literal slash time_literal directive_comment_tail newline?
              -&gt; {unit: $2, precision: $4, comment: $5}
@@ -283,9 +299,11 @@ pp_endcelldefine := kw_endcelldefine directive_comment_tail newline?
 </tbody>
 </table>
 </div>
+<p>⛔ <strong><code>`include</code> must end its line</strong> since <code>1.0.8</code> (<code>pp_include := … directive_comment_tail line_end</code>): IEEE 1800 §22.4, both editions, <em>“Only white space or a comment may appear on the same line as the <code>`include</code> compiler directive”</em> — through <code>1.0.7</code> <code>`include "a.sv" x</code> was accepted, the <code>x</code> re-read as a second, passthrough item (<code>SV-CORPUS-GRAD.13c.2v.4</code>, ledger <code>SVPP-0007</code>). Every other fixed-end directive keeps its optional <code>newline?</code>: IEEE 1800-2023 §22.2 lets <em>“each directive whose syntax shows a defined end to the directive … be followed by another valid language element on the same line”</em>, which the tree records as a following <code>non_directive_line</code> item.</p>
 <h3 id="include-path--nettype--time-literal"><a class="header" href="#include-path--nettype--time-literal">Include path / nettype / time literal</a></h3>
-<pre><code class="language-ebnf">include_path := quoted_string -&gt; {kind: "quoted", text: $1}
-              | angle_path    -&gt; {kind: "angle",  text: $1}
+<pre><code class="language-ebnf">include_path := quoted_string       -&gt; {kind: "quoted", text: $1}
+              | angle_path          -&gt; {kind: "angle",  text: $1}
+              | include_macro_usage -&gt; {kind: "macro",  body: $1}
 nettype_value := identifier -&gt; {kind: "identifier", body: $1}
                | kw_none    -&gt; {kind: "none"}
 time_literal := unsigned_number time_unit -&gt; {value: $1, unit: $2}
@@ -296,12 +314,55 @@ time_literal := unsigned_number time_unit -&gt; {value: $1, unit: $2}
 <tr><th>Rule</th><th>Shape</th></tr>
 </thead>
 <tbody>
-<tr><td><code>include_path</code> (2 kinds)</td><td><code>{kind: "quoted", text}</code> (<code> `include "f.svh"</code>) / <code>{kind: "angle", text}</code> (<code> `include &lt;pkg.svh&gt;</code>).</td></tr>
+<tr><td><code>include_path</code> (3 kinds)</td><td><code>{kind: "quoted", text}</code> (<code> `include "f.svh"</code>) / <code>{kind: "angle", text}</code> (<code> `include &lt;pkg.svh&gt;</code>) / <code>{kind: "macro", body}</code> (<code> `include `home(myfile)</code> — IEEE 1800 §22.5.1, both editions: <em>“The <code>`include</code> directive can be followed by a macro, instead of a string literal”</em>; <code>body</code> is <code>{name, arguments}</code>, <code>name</code> the macro’s backtick-identifier envelope, <code>arguments</code> the balanced <code>( … )</code> span as one string or <code>[]</code> when absent; a directive keyword is refused there — <code>`include `else</code>; since <code>1.0.8</code>, <code>SV-CORPUS-GRAD.13c.2v.7</code>).</td></tr>
 <tr><td><code>nettype_value</code> (2 kinds)</td><td><code>{kind: "identifier", body}</code> (e.g. <code>wire</code>) / <code>{kind: "none"}</code> (the <code>none</code> keyword, bodyless).</td></tr>
 <tr><td><code>time_literal</code></td><td><code>{value, unit}</code> — <code>value</code> is the un-annotated <code>unsigned_number</code> envelope; <code>unit</code> is the un-annotated <code>time_unit</code> envelope (<code>s</code>/<code>ms</code>/<code>us</code>/<code>ns</code>/<code>ps</code>/<code>fs</code>).</td></tr>
 </tbody>
 </table>
 </div>
+<h2 id="family-the-clause-22-directives-added-in-108-8-shapes"><a class="header" href="#family-the-clause-22-directives-added-in-108-8-shapes">Family: the clause-22 directives added in <code>1.0.8</code> (8 shapes)</a></h2>
+<p>Release <code>1.0.8</code> (<code>SV-CORPUS-GRAD.13c.2v.1</code>) derives the seven IEEE 1800 clause-22 directives the grammar had refused — measured over the SystemVerilog corpus, <code>`begin_keywords</code> stopped 93 files and <code>`resetall</code> 69 at release <code>1.0.7</code>. Each kind carries its body (the <code>pp_undef</code> precedent), so no comment is dropped at the dispatch:</p>
+<pre><code class="language-ebnf">pp_resetall            := kw_resetall directive_comment_tail newline?             -&gt; {comment: $2}
+pp_undefineall         := kw_undefineall directive_comment_tail newline?          -&gt; {comment: $2}
+pp_unconnected_drive   := kw_unconnected_drive pull_drive directive_comment_tail newline?
+                       -&gt; {drive: $2, comment: $3}
+pp_nounconnected_drive := kw_nounconnected_drive directive_comment_tail newline?  -&gt; {comment: $2}
+pp_pragma              := kw_pragma pragma_name pragma_expression_list? directive_comment_tail line_end
+                       -&gt; {name: $2, expressions: $3, comment: $4}
+pp_line                := kw_line line_number line_filename line_level line_terminator
+                       -&gt; {number: $2, filename: $3, level: $4}
+pp_begin_keywords      := kw_begin_keywords version_specifier directive_comment_tail newline?
+                       -&gt; {version: $2, comment: $3}
+pp_end_keywords        := kw_end_keywords directive_comment_tail newline?         -&gt; {comment: $2}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Clause</th><th>Shape</th><th>What it accepts — and refuses</th></tr>
+</thead>
+<tbody>
+<tr><td><code>pp_resetall</code></td><td>§22.3</td><td><code>{comment}</code></td><td><code>`resetall</code> with an optional comment</td></tr>
+<tr><td><code>pp_undefineall</code></td><td>§22.5.3 (<em>“takes no arguments”</em>)</td><td><code>{comment}</code></td><td><code>`undefineall</code></td></tr>
+<tr><td><code>pp_unconnected_drive</code></td><td>§22.9</td><td><code>{drive, comment}</code></td><td><code>`unconnected_drive pull0</code> / <code>pull1</code> — <code>drive</code> is <code>{kind: "pull0"}</code> / <code>{kind: "pull1"}</code>; a bare directive or <code>pull2</code> is refused</td></tr>
+<tr><td><code>pp_nounconnected_drive</code></td><td>§22.9</td><td><code>{comment}</code></td><td><code>`nounconnected_drive</code></td></tr>
+<tr><td><code>pp_pragma</code></td><td>§22.11, Syntax 22-8</td><td><code>{name, expressions, comment}</code></td><td><code>name</code> the <code>pragma_name</code> envelope; <code>expressions</code> the comma-separated <code>pragma_expression</code> list (<code>[]</code> when absent). ⛔ Nothing may follow on the line (§22.2 counts <code>`pragma</code> among the directives <em>“that include an indeterminate amount of text”</em>): <code>`pragma p a,</code> is refused</td></tr>
+<tr><td><code>pp_line</code></td><td>§22.12, Syntax 22-9</td><td><code>{number, filename, level}</code></td><td><code>`line 5 "f.sv" 0</code>. ⛔ <em>“only white space may appear on the same line … Comments are not allowed”</em>: the separators are spaces and tabs only, and a comment, a missing parameter, a level other than <code>0</code>/<code>1</code>/<code>2</code> or a number that is not a positive integer is refused</td></tr>
+<tr><td><code>pp_begin_keywords</code></td><td>§22.14, Syntax 22-10</td><td><code>{version, comment}</code></td><td>the nine <code>version_specifier</code>s of IEEE 1800-2023’s list (1800-2017’s eight plus <code>"1800-2023"</code>); any other text — <code>"VAMS-2.3"</code>, an unquoted spelling — is refused. The per-edition admission is the expansion stage’s (<code>W_SVPP_KEYWORDS_VERSION_NOT_IN_EDITION</code>)</td></tr>
+<tr><td><code>pp_end_keywords</code></td><td>§22.14</td><td><code>{comment}</code></td><td><code>`end_keywords</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The <code>pragma</code> value grammar follows Syntax 22-8 exactly:</p>
+<pre><code class="language-ebnf">pragma_expression_list := pragma_expression (comma pragma_expression)*  -&gt; [$1, $2::2*]
+pragma_expression := pragma_keyword assign pragma_value -&gt; {kind: "keyword_value", keyword: $1, value: $3}
+                   | pragma_keyword                     -&gt; {kind: "keyword", keyword: $1}
+                   | pragma_value                       -&gt; {kind: "value", value: $1}
+pragma_value := pragma_value_list -&gt; {kind: "list", expressions: $1}
+              | pragma_number     -&gt; {kind: "number", text: $1}
+              | quoted_string     -&gt; {kind: "string", text: $1}
+              | identifier        -&gt; {kind: "identifier", name: $1}
+</code></pre>
+<p>So <code>`pragma protect encoding = (enctype = "BASE64", line_length = 76), begin</code> reads as <code>name</code> <code>protect</code> and two expressions: a <code>keyword_value</code> whose value is a <code>list</code> of two <code>keyword_value</code>s (a <code>string</code> and a <code>number</code>), then the bare <code>keyword</code> <code>begin</code>. <code>pragma_number</code> is A.8.7’s <code>number</code> — a real (<code>3.5e-2</code>), a sized or unsized based integral number (<code>4'b10_1x</code>, <code>8 'sd 255</code>, <code>'hFF</code>) or an unsigned decimal.</p>
 <h2 id="family-conditional-compilation-tree-5-nodes--the-pp_if_keyword-polarity-rule"><a class="header" href="#family-conditional-compilation-tree-5-nodes--the-pp_if_keyword-polarity-rule">Family: conditional-compilation tree (5 nodes + the pp_if_keyword polarity rule)</a></h2>
 <pre><code class="language-ebnf">pp_conditional := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif
                -&gt; {if_branch: $1, elsif_branches: $2, else_branch: $3}
@@ -368,9 +429,10 @@ condition_atom := macro_token_paste -&gt; {kind: "token_paste"}
 </table>
 </div>
 <p>This is a <strong>flat token list</strong>, not a parsed boolean expression. The <code> `elsif</code> condition is surfaced as an ordered sequence of atoms; the consumer is responsible for any expression evaluation. The <code>body</code> of the <code>"macro_reference"</code> atom is the un-annotated <code>macro_reference</code> (backtick-identifier) envelope; the <code>body</code> of the <code>"text"</code> atom is the un-annotated <code>condition_text</code> envelope.</p>
-<h2 id="family-macro-formals--default-values-8-kind-atom"><a class="header" href="#family-macro-formals--default-values-8-kind-atom">Family: macro formals + default values (8-kind atom)</a></h2>
-<pre><code class="language-ebnf">macro_formals := lparen macro_formal (comma macro_formal)* rparen
+<h2 id="family-macro-formals--default-values-7-kind-atom--the-balanced-group"><a class="header" href="#family-macro-formals--default-values-7-kind-atom--the-balanced-group">Family: macro formals + default values (7-kind atom + the balanced group)</a></h2>
+<pre><code class="language-ebnf">macro_formals := formals_open macro_formal (comma macro_formal)* rparen
               -&gt; [$2, $3::2*]
+formals_open := /\(/
 macro_formal := macro_name (assign macro_default_value)?
              -&gt; {name: $1, default: $2}
 macro_default_value := macro_default_atom+
@@ -379,10 +441,13 @@ macro_default_atom := macro_token_paste -&gt; {kind: "token_paste"}
                     | macro_stringize   -&gt; {kind: "stringize"}
                     | macro_reference   -&gt; {kind: "macro_reference", body: $1}
                     | macro_default_text -&gt; {kind: "text",  body: $1}
-                    | lparen            -&gt; {kind: "lparen"}
-                    | rparen            -&gt; {kind: "rparen"}
+                    | macro_default_paren_group
                     | question          -&gt; {kind: "question"}
                     | colon             -&gt; {kind: "colon"}
+macro_default_paren_group := lparen macro_default_group_atom* rparen
+                          -&gt; {kind: "paren_group", atoms: $2}
+macro_default_group_atom := macro_default_atom -&gt; $1
+                         | comma -&gt; {kind: "comma"}
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -390,18 +455,20 @@ macro_default_atom := macro_token_paste -&gt; {kind: "token_paste"}
 <tr><th>Rule</th><th>Shape</th><th>Notes</th></tr>
 </thead>
 <tbody>
-<tr><td><code>macro_formals</code></td><td><code>[macro_formal, …]</code></td><td>A <strong>clean flat list</strong> of typed <code>macro_formal</code> objects, in source order — the canonical <code>[$2, $3::2*]</code> extraction-spread (<code>object_properties</code> idiom). <code>annotation_type: "return_array"</code> (the only <code>return_array</code> on the sv_preprocessor surface; every other rule is <code>return_object</code>). At ≤ release <code>1.0.2</code> / schema <code>2</code> this was the raw <code>{first, rest}</code> separator envelope (<code>first</code> = leading <code>macro_formal</code>; <code>rest</code> = the raw <code>[[comma, macro_formal], …]</code> iteration a consumer had to walk past) — a Category-A raw-envelope misuse corrected in <code>1.0.3</code> / schema <code>3</code> by the extraction-spread (POST-SV-AUDIT.2.1, <code>PGEN-POST-SV-AUDIT-0002</code>); the shape here is the corrected, gate-locked output. See <a href="walking-the-ast.html#iterating-the-macro_formals-list">Walking the AST</a> and <a href="schema-versioning.html">Schema Versioning</a>.</td></tr>
+<tr><td><code>macro_formals</code></td><td><code>[macro_formal, …]</code></td><td>A <strong>clean flat list</strong> of typed <code>macro_formal</code> objects, in source order — the canonical <code>[$2, $3::2*]</code> extraction-spread (<code>object_properties</code> idiom), <code>annotation_type: "return_array"</code>. At ≤ release <code>1.0.2</code> / schema <code>2</code> this was the raw <code>{first, rest}</code> separator envelope — a Category-A raw-envelope misuse corrected in <code>1.0.3</code> / schema <code>3</code> (POST-SV-AUDIT.2.1, <code>PGEN-POST-SV-AUDIT-0002</code>). See <a href="walking-the-ast.html#iterating-the-macro_formals-list">Walking the AST</a> and <a href="schema-versioning.html">Schema Versioning</a>. ⛔ <strong><code>formals_open</code> skips nothing</strong> (since <code>1.0.8</code>, ledger <code>SVPP-0008</code>): IEEE 1800-2017 §22.5.1 <em>“The left parenthesis shall follow the text macro name immediately, with no space in between”</em>. So <code>`define M(x) y</code> is function-like (<code>formals: [x]</code>), and <code>`define M (x) y</code> is OBJECT-like — <code>formals: []</code>, the body fragments <code>lparen</code>, <code>text "x"</code>, <code>rparen</code>, <code>text " y"</code>. Through <code>1.0.7</code> both read as function-like.</td></tr>
 <tr><td><code>macro_formal</code></td><td><code>{name, default}</code></td><td><code>name</code> is the macro-name envelope; <code>default</code> is the typed <code>macro_default_value</code> or <code>[]</code> when there is no <code>= &lt;default&gt;</code>.</td></tr>
 <tr><td><code>macro_default_value</code></td><td><code>{atoms}</code></td><td><code>atoms</code> is the recursive-envelope <code>macro_default_atom+</code> array.</td></tr>
-<tr><td><code>macro_default_atom</code> (8 kinds)</td><td><code>{kind, body}</code> for <code>"macro_reference"</code> / <code>"text"</code>; bare <code>{kind}</code> for <code>"token_paste"</code>, <code>"stringize"</code>, <code>"lparen"</code>, <code>"rparen"</code>, <code>"question"</code>, <code>"colon"</code>. This atom set has <strong>no</strong> <code>"comma"</code>, <code>"logical_or"</code>, <code>"logical_and"</code>, or <code>"bang"</code> (commas separate formals, so a default value cannot contain a bare comma).</td><td></td></tr>
+<tr><td><code>macro_default_atom</code> (7 kinds + the group)</td><td><code>{kind, body}</code> for <code>"macro_reference"</code> / <code>"text"</code>; bare <code>{kind}</code> for <code>"token_paste"</code>, <code>"stringize"</code>, <code>"question"</code>, <code>"colon"</code>; <code>{kind: "paren_group", atoms}</code> for a balanced <code>( … )</code>, inside which (and only there) a comma surfaces as <code>{kind: "comma"}</code> (since <code>1.0.7</code>, ledger <code>SVPP-0004</code>; §22.5.1: a default may contain a comma or right parenthesis only inside <em>“a balanced pair of parentheses”</em>). A <code>"text"</code> atom keeps a string literal whole since <code>1.0.8</code> (<code>`define M(a="x,y")</code> — the same sentence allows a comma inside <em>“double quotes”</em>).</td><td></td></tr>
 </tbody>
 </table>
 </div>
-<h2 id="family-macro-body-9-kind-fragment"><a class="header" href="#family-macro-body-9-kind-fragment">Family: macro body (9-kind fragment)</a></h2>
+<h2 id="family-macro-body-11-kind-fragment"><a class="header" href="#family-macro-body-11-kind-fragment">Family: macro body (11-kind fragment)</a></h2>
 <pre><code class="language-ebnf">macro_body := macro_body_fragment+
            -&gt; {fragments: $1}
-macro_body_fragment := macro_token_paste -&gt; {kind: "token_paste"}
+macro_body_fragment := macro_line_continuation -&gt; {kind: "line_continuation"}
+                     | macro_token_paste -&gt; {kind: "token_paste"}
                      | macro_stringize   -&gt; {kind: "stringize"}
+                     | macro_escaped_quote -&gt; {kind: "escaped_quote"}
                      | macro_reference   -&gt; {kind: "macro_reference", body: $1}
                      | macro_body_text   -&gt; {kind: "text",   body: $1}
                      | lparen            -&gt; {kind: "lparen"}
@@ -417,14 +484,20 @@ macro_body_fragment := macro_token_paste -&gt; {kind: "token_paste"}
 </thead>
 <tbody>
 <tr><td><code>macro_body</code></td><td><code>{fragments}</code></td><td><code>fragments</code> is the recursive-envelope <code>macro_body_fragment+</code> array (the macro replacement text, tokenized).</td></tr>
-<tr><td><code>macro_body_fragment</code> (9 kinds)</td><td><code>{kind, body}</code> for <code>"macro_reference"</code> / <code>"text"</code>; bare <code>{kind}</code> for <code>"token_paste"</code>, <code>"stringize"</code>, <code>"lparen"</code>, <code>"rparen"</code>, <code>"comma"</code>, <code>"question"</code>, <code>"colon"</code>. The macro-body atom set adds <code>"comma"</code> (vs the 8-kind <code>macro_default_atom</code>) but, like the default-atom set, has no <code>"logical_or"</code> / <code>"logical_and"</code> / <code>"bang"</code>.</td><td></td></tr>
+<tr><td><code>macro_body_fragment</code> (11 kinds)</td><td><code>{kind, body}</code> for <code>"macro_reference"</code> / <code>"text"</code>; bare <code>{kind}</code> for <code>"line_continuation"</code>, <code>"token_paste"</code>, <code>"stringize"</code>, <code>"escaped_quote"</code>, <code>"lparen"</code>, <code>"rparen"</code>, <code>"comma"</code>, <code>"question"</code>, <code>"colon"</code>. The macro-body atom set adds <code>"comma"</code>, <code>"line_continuation"</code> and <code>"escaped_quote"</code> (vs the 8-kind <code>macro_default_atom</code>) but, like the default-atom set, has no <code>"logical_or"</code> / <code>"logical_and"</code> / <code>"bang"</code>.</td><td></td></tr>
 </tbody>
 </table>
 </div>
-<p>The <code>"token_paste"</code> fragment is the SystemVerilog <code> </code> <code>paste operator; `"stringize"` is the</code> <code>" `` stringize operator. Each </code>“text”<code>fragment carries the un-annotated</code>macro_body_text` envelope (a run of literal replacement characters).</p>
+<p>The <code>"token_paste"</code> fragment is the SystemVerilog <code> </code> <code>paste operator; `"stringize"` is the</code> <code>" `` stringize operator; </code>“escaped_quote”<code>is ``</code>`“ <code>(§22.5.1: *"The</code> <code>define `` macro text can also include `` </code>“ <code>, </code> <code>\</code>“ <code>, and ``` </code> ```“*; <code>1.0.8</code>). Each <code>"text"</code> fragment carries the un-annotated <code>macro_body_text</code> envelope (a run of literal replacement characters).</p>
+<p>⭐ <strong>Three changes in <code>1.0.8</code> a consumer of the fragments sees</strong> (schema <code>5</code> → <code>6</code>):</p>
+<ul>
+<li><strong><code>"line_continuation"</code></strong> — a backslash immediately before the newline continues the macro text on the next line (§22.5.1). Through <code>1.0.7</code> the body ENDED at the first newline: <code>`define M(a) a + \</code> + <code>  b</code> gave the text <code>"a + \"</code> and a separate <code>non_directive_line</code> item for <code>  b</code> (ledger <code>SVPP-0006</code>). Now the fragments run <code>text "a + "</code>, <code>line_continuation</code>, <code>text "b"</code>, and no stray item follows. A backslash followed by white space is not a continuation.</li>
+<li><strong>A plain string literal is ONE text atom</strong> — §22.5.1 <em>“Macro substitution and argument substitution shall not occur within string literals”</em>: <code>$display("got </code>%b<code>, (%0d)", v)</code> keeps <code>"got </code>%b<code>, (%0d)"</code> whole, where the run used to stop at the backtick (refusing the define) or split at <code>(</code>, <code>,</code>, <code>:</code>. <code>`define BACKTICK "`"</code> no longer reads its <code>`"</code> as a stringize marker.</li>
+<li><strong>A <code>//</code> comment is ONE text atom</strong>, up to — not including — a continuation backslash (IEEE 1800-2023: <em>“If a one-line comment is followed by a backslash and newline character, the comment ends before the backslash and the macro text continues on the next line”</em>).</li>
+</ul>
 <h2 id="family-passthrough-lines"><a class="header" href="#family-passthrough-lines">Family: passthrough lines</a></h2>
-<pre><code class="language-ebnf">pp_non_directive_line := non_directive_text newline?
-                      -&gt; {text: $1}
+<pre><code class="language-ebnf">pp_non_directive_line := !directive_keyword non_directive_text newline?
+                      -&gt; {text: $2}
 pp_blank_line := newline
               -&gt; {kind: "blank"}
 </code></pre>
@@ -434,7 +507,7 @@ pp_blank_line := newline
 <tr><th>Rule</th><th>Shape</th><th>Notes</th></tr>
 </thead>
 <tbody>
-<tr><td><code>pp_non_directive_line</code></td><td><code>{text}</code></td><td>Any source line that is not a preprocessor directive. <code>text</code> is the un-annotated <code>non_directive_text</code> envelope.</td></tr>
+<tr><td><code>pp_non_directive_line</code></td><td><code>{text}</code></td><td>Any source line that is not a preprocessor directive — since <code>1.0.8</code> including a line that OPENS with a text macro usage (<code>`uvm_object_utils(c)</code>, <code>`ASSERT(…)</code>, <code>`__FILE__</code>; §22.5.1 Syntax 22-3, §22.13). <code>text</code> is the un-annotated <code>non_directive_text</code> envelope. ⛔ <code>!directive_keyword</code> — the twenty §22.1 directive keywords — keeps a MALFORMED directive refused: <code>`timescale 1ns</code> or a stray <code>`else</code> is not re-read as a macro-usage line.</td></tr>
 <tr><td><code>pp_blank_line</code></td><td><code>{kind: "blank"}</code></td><td>A blank line. At the <code>pp_item</code> dispatch level this surfaces as <code>{kind: "blank_line"}</code> (the <code>pp_blank_line</code> rule’s own <code>{kind: "blank"}</code> body is dropped by the <code>pp_item</code> annotation, exactly like <code>pp_celldefine</code> / <code>pp_endcelldefine</code>).</td></tr>
 </tbody>
 </table>
@@ -448,16 +521,16 @@ pp_blank_line := newline
 </thead>
 <tbody>
 <tr><td><code>condition_atom</code></td><td>12</td><td><code>"comma"</code>, <code>"logical_or"</code>, <code>"logical_and"</code>, <code>"bang"</code></td></tr>
-<tr><td><code>macro_body_fragment</code></td><td>9</td><td><code>"comma"</code></td></tr>
+<tr><td><code>macro_body_fragment</code></td><td>11</td><td><code>"comma"</code>, <code>"line_continuation"</code>, <code>"escaped_quote"</code></td></tr>
 <tr><td><code>macro_default_atom</code></td><td>8</td><td><em>(none — exactly the shared 8)</em></td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="total-surface-and-the-machine-checkable-source"><a class="header" href="#total-surface-and-the-machine-checkable-source">Total surface and the machine-checkable source</a></h2>
-<p>The full typed surface as of contract <code>1.0.7</code> is <strong>68 return annotations across 31 distinct rules</strong> (independently re-counted from the inventory: 68 <code>annotations</code> entries — <strong>65 <code>annotation_type: "return_object"</code> + 1 <code>annotation_type: "return_array"</code> + 2 <code>annotation_type: "return_scalar"</code></strong> (the <code>return_array</code> is <code>macro_formals</code>, the <code>1.0.3</code> POST-SV-AUDIT Category-A correction; the <code>return_scalar</code>s are <code>condition_text -&gt; $text</code> since <code>1.0.5</code>/schema <code>4</code> and <code>macro_default_group_atom</code> since the <code>1.0.7</code> <code>SVPP-0004</code> fix) — over 31 distinct rule names; the <code>1.0.2</code> <code>SVPP-0001</code> fix added the 2 <code>pp_if_keyword</code> branches / +1 distinct rule, taking 64→66 / 27→28; <code>1.0.5</code> took it to 67/29; <code>1.0.7</code> added <code>macro_default_paren_group</code> + <code>macro_default_group_atom</code>, taking it to 68/31). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
+<p>The full typed surface as of contract <code>1.0.8</code> is <strong>100 return annotations across 46 distinct rules</strong> — <strong>94 <code>annotation_type: "return_object"</code> + 4 <code>return_scalar</code> + 2 <code>return_array</code></strong> (the arrays are <code>macro_formals</code> and, since <code>1.0.8</code>, <code>pragma_expression_list</code>; the scalars are <code>condition_text -&gt; $text</code>, <code>macro_default_group_atom -&gt; $1</code>, and, since <code>1.0.8</code>, <code>macro_usage_arguments -&gt; $text</code> and <code>pragma_value_list -&gt; $2</code>). The history: 64 / 27 at SVPP-Slice-1, 66 / 28 after <code>1.0.2</code>’s <code>pp_if_keyword</code>, 67 / 29 at <code>1.0.5</code>, 68 / 31 at <code>1.0.7</code>, and <strong>+32 / +15 at <code>1.0.8</code></strong> — the eight new <code>pp_item</code> branches, the eight directive rules and their <code>pull_drive</code> / <code>pragma_*</code> value grammar, <code>include_macro_usage</code>, and the two new <code>macro_body_fragment</code> kinds. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
 <ul>
-<li><code>generated/systemverilog_preprocessor_return_annotations.json</code> — the live return-annotation inventory (<code>version: 1</code>, <code>grammar: "systemverilog_preprocessor"</code>, <code>annotation_count: 68</code>).</li>
-<li><code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (<code>declared_annotation_inventory.annotations</code>, 66 entries; identical tuples — the contract-embedded copy omits only the cosmetic <code>raw_text</code> field).</li>
+<li><code>generated/systemverilog_preprocessor_return_annotations.json</code> — the live return-annotation inventory (<code>version: 1</code>, <code>grammar: "systemverilog_preprocessor"</code>, <code>annotation_count: 100</code>).</li>
+<li><code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (<code>declared_annotation_inventory.annotations</code>, 100 entries; identical tuples — the contract-embedded copy omits only the cosmetic <code>raw_text</code> field), beside thirteen samples whose JSON-pointer claims pin the trees <code>1.0.8</code> changed or added.</li>
 </ul>
 <p>If this chapter and either artifact disagree, the artifact wins — and the integration contract <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code> wins over both.</p>
 <h2 id="how-to-follow-per-slice-changes"><a class="header" href="#how-to-follow-per-slice-changes">How to follow per-slice changes</a></h2>

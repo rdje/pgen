@@ -128,8 +128,27 @@ defects surfaced beside it, two of them wrong trees for input the parser accepte
 - `` `\`" ``, and a backtick inside a plain string or a `//` comment in macro text, were refused;
 - `` `include `home(myfile) `` was refused, which §22.5.1 licenses in both editions.
 
-All of them are fixed together in release `1.0.8` (task leaves `SV-CORPUS-GRAD.13c.2v.1` – `.7`). Measured on
-the interpreter before the release is built, the fix takes the rejections from 4,477 to **64**, with **no**
-file going from accepted to rejected. Each of the 64 is read one by one: 34 are the suites' own error tests,
-16 are refused by a clause, 12 are valid text routed to later leaves, and 2 sit at a boundary of the
-line-oriented model. This page is republished with the generated parser's numbers when `1.0.8` ships.
+All of them are fixed together in release `1.0.8` (task leaves `SV-CORPUS-GRAD.13c.2v.1` – `.7`). **Release `1.0.8`,
+measured with the same census on the generated parser, against the `1.0.7` probe:**
+
+| reading | files |
+|---|---:|
+| rejected at `1.0.7`, accepted at `1.0.8` | 4,413 |
+| rejected by both | 64 |
+| accepted by both | 11,859 |
+| accepted at `1.0.7`, rejected at `1.0.8` | **0** |
+
+Of the 11,859 files both releases accept, **11,790** produce a byte-identical tree; the **69** whose tree moved are each
+explained — 38 by the continuation fix (the `1.0.7` define body ended in a `\`), 31 by the string-literal atom (a plain
+string in macro text is no longer split at its punctuation). The 64 files `1.0.8` still rejects are each read and
+written down in `residual_dispositions.tsv`, which the census refuses to run without:
+
+| disposition | files | what it means |
+|---|---:|---|
+| the suite's own error test | 34 | sv2v `test/error/*`, sv-tests `*-illegal` / `*-invalid`, verilator `*_bad`, iverilog `CE` — refused at the construct the suite names |
+| refused by a clause | 16 | a Verilog-AMS `begin_keywords` specifier (§22.14), a directive spread over lines (IEEE 1800-2023 §22.2: *"compiler directives shall be all on one line"*), a directive with a missing argument, a `pragma` whose expressions lack Syntax 22-8's comma |
+| valid text the parser must accept — ordered fixed | 12 | IEEE 1800-2023 directive forms (`` `ifdef ( expr ) ``, a macro inside `` `line `` / `` `timescale `` — `.13c.2v.9`), an escaped-identifier macro name (`.8`), a conditional on one line (`.10`) |
+| a malformed directive inside a skipped group | 2 | §22.6 asks only lexical validity there: the directive must be SKIPPED, not rejected — a gap ordered fixed by the director (2026-10-18), `.10` |
+
+The census is not yet this family's leg-3 assertion (the derived block above still reads NOT MEASURED); wiring it is
+`SV-CORPUS-GRAD.13c.2v.10`.

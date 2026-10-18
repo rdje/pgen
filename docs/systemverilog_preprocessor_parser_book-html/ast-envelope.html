@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-180306b1.js";
+            window.path_to_searchindex_js = "searchindex-41b12d34.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-1f5fa4fd.js"></script>
+        <script src="toc-89867f1a.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -227,7 +227,7 @@ of this for consumers.</p>
 </code></pre>
 <p><code>systemverilog_preprocessor_file</code> produces a JSON array of zero or more typed <code>pp_item</code> objects.</p>
 <h2 id="pp_item-dispatch"><a class="header" href="#pp_item-dispatch">pp_item dispatch</a></h2>
-<p><code>pp_item</code> is the primary top-level dispatcher. It is a 10-branch <code>kind</code>-tagged shape covering all preprocessor directive forms:</p>
+<p><code>pp_item</code> is the primary top-level dispatcher. It is an 18-branch <code>kind</code>-tagged shape covering every preprocessor line form (10 branches through <code>1.0.7</code>; release <code>1.0.8</code> added the eight kinds of the seven clause-22 directives the grammar had not derived):</p>
 <pre><code class="language-ebnf">pp_item := pp_define              -&gt; {kind: "define",              body: $1}
          | pp_undef               -&gt; {kind: "undef",               body: $1}
          | pp_include             -&gt; {kind: "include",             body: $1}
@@ -235,13 +235,21 @@ of this for consumers.</p>
          | pp_default_nettype     -&gt; {kind: "default_nettype",     body: $1}
          | pp_celldefine          -&gt; {kind: "celldefine"}
          | pp_endcelldefine       -&gt; {kind: "endcelldefine"}
+         | pp_resetall            -&gt; {kind: "resetall",            body: $1}
+         | pp_undefineall         -&gt; {kind: "undefineall",         body: $1}
+         | pp_unconnected_drive   -&gt; {kind: "unconnected_drive",   body: $1}
+         | pp_nounconnected_drive -&gt; {kind: "nounconnected_drive", body: $1}
+         | pp_pragma              -&gt; {kind: "pragma",              body: $1}
+         | pp_line                -&gt; {kind: "line",                body: $1}
+         | pp_begin_keywords      -&gt; {kind: "begin_keywords",      body: $1}
+         | pp_end_keywords        -&gt; {kind: "end_keywords",        body: $1}
          | pp_conditional         -&gt; {kind: "conditional",         body: $1}
          | pp_non_directive_line  -&gt; {kind: "non_directive_line",  body: $1}
          | pp_blank_line          -&gt; {kind: "blank_line"}
 </code></pre>
 <p>Each branch produces an object with:</p>
 <ul>
-<li><code>kind</code> — one of: <code>"define"</code>, <code>"undef"</code>, <code>"include"</code>, <code>"timescale"</code>, <code>"default_nettype"</code>, <code>"celldefine"</code>, <code>"endcelldefine"</code>, <code>"conditional"</code>, <code>"non_directive_line"</code>, <code>"blank_line"</code>.</li>
+<li><code>kind</code> — one of: <code>"define"</code>, <code>"undef"</code>, <code>"include"</code>, <code>"timescale"</code>, <code>"default_nettype"</code>, <code>"celldefine"</code>, <code>"endcelldefine"</code>, <code>"resetall"</code>, <code>"undefineall"</code>, <code>"unconnected_drive"</code>, <code>"nounconnected_drive"</code>, <code>"pragma"</code>, <code>"line"</code>, <code>"begin_keywords"</code>, <code>"end_keywords"</code>, <code>"conditional"</code>, <code>"non_directive_line"</code>, <code>"blank_line"</code>.</li>
 <li><code>body</code> — the child shape for that branch (absent for <code>"celldefine"</code>, <code>"endcelldefine"</code>, and <code>"blank_line"</code>, which carry only the kind).</li>
 </ul>
 <p>A typical consumer dispatch:</p>
@@ -258,6 +266,14 @@ of this for consumers.</p>
         "default_nettype"    =&gt; handle_default_nettype(body),
         "celldefine"         =&gt; set_celldefine_state(true),
         "endcelldefine"      =&gt; set_celldefine_state(false),
+        "resetall"           =&gt; reset_directive_state(),            // §22.3
+        "undefineall"        =&gt; clear_macro_table(),                // §22.5.3
+        "unconnected_drive"  =&gt; handle_unconnected_drive(body),     // body.drive.kind: "pull0" | "pull1"
+        "nounconnected_drive" =&gt; clear_unconnected_drive(),
+        "pragma"             =&gt; handle_pragma(body),                // name + expressions (Syntax 22-8)
+        "line"               =&gt; handle_line(body),                  // number, filename, level
+        "begin_keywords"     =&gt; push_keyword_version(body),         // body.version: "\"1800-2017\"" …
+        "end_keywords"       =&gt; pop_keyword_version(),
         "conditional"        =&gt; handle_conditional(body),
         "non_directive_line" =&gt; handle_non_directive(body),
         "blank_line"         =&gt; {/* nothing */}
@@ -265,6 +281,9 @@ of this for consumers.</p>
     }
 }
 <span class="boring">}</span></code></pre>
+<p>The catch-all arm is exactly where a walker written against schema <code>5</code> meets release <code>1.0.8</code>: the eight clause-22
+kinds are new values of <code>kind</code>, so a walker that treats an unknown kind as unreachable must be updated before it
+reads schema-<code>6</code> output — one reason <code>1.0.8</code> bumped the schema (see <a href="schema-versioning.html">Schema Versioning</a>).</p>
 <h2 id="conditional-compilation-tree"><a class="header" href="#conditional-compilation-tree">Conditional-compilation tree</a></h2>
 <p><code>pp_conditional</code> describes the recursive <code> `ifdef / `elsif / `else / `endif</code> (and <code> `ifndef</code>) chain. The body is a typed shape mirroring the grammar’s recursive layout. The <code> `ifdef</code>/<code> `ifndef</code> polarity is a typed <code>pp_if_keyword</code> object — <code>pp_if_branch.keyword</code> is <code>{kind: "ifdef"}</code> or <code>{kind: "ifndef"}</code> as of the <code>1.0.2</code> <code>SVPP-0001</code> correctness fix (was the malformed <code>&lt;invalid_sequence_access&gt;</code> object at <code>1.0.1</code> / schema <code>1</code>; see <a href="schema-versioning.html">Schema Versioning</a> and the <a href="examples-conditional.html">Conditional Compilation</a> worked example). See <a href="walking-the-ast.html">Walking the AST</a> for the full tree shape.</p>
 <h2 id="macro_body-fragment-dispatch"><a class="header" href="#macro_body-fragment-dispatch">macro_body fragment dispatch</a></h2>

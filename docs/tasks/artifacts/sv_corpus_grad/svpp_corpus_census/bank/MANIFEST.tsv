@@ -1,0 +1,67 @@
+# file	expect	the clause that decides it	the case's first line (SV-CORPUS-GRAD.13c.2v.1 - .7)
+acc_backslash_ident_in_body.sv	ACCEPT	§5.6.1 escaped identifier in macro text	`define M \foo + 1
+acc_begin_keywords.sv	ACCEPT	§22.14 Syntax 22-10	`begin_keywords "1800-2017"
+acc_begin_keywords_2023.sv	ACCEPT	§22.14 Syntax 22-10	`begin_keywords "1800-2023" // c
+acc_begin_keywords_noconfig.sv	ACCEPT	§22.14 Syntax 22-10	`begin_keywords "1364-2001-noconfig"
+acc_body_line_comment_backtick.sv	ACCEPT	§22.5.1 comments are not substituted	`define M(a) \
+acc_body_string_backtick.sv	ACCEPT	§22.5.1 strings opaque in macro text	`define CHECK(val) \
+acc_body_unterminated_quote_char.sv	ACCEPT	§22.5.1 (a lone quote character is ordinary text in the run)	`define M x "unterminated
+acc_continuation.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define M(a) a + \
+acc_continuation_comment.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define M a // c \
+acc_continuation_empty_first.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define M \
+acc_continuation_paste.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define CP(name) \
+acc_continuation_stringize.sv	ACCEPT	§22.5.1 backslash-newline continuation	`define CHECK(val) \
+acc_default_string_comma.sv	ACCEPT	§22.5.1 quoted comma in a default	`define M(a="x,y", b=(1)) a b
+acc_define_control.sv	ACCEPT	§22.5.1 (control)	`define X 1
+acc_define_prefix_macro.sv	ACCEPT	§22.5.1 (a macro name that merely starts with a directive word)	`define_thing
+acc_escaped_quote.sv	ACCEPT	§22.5.1 `\`"	`define msg(x,y) `"x: `\`"y`\`"`"
+acc_file_line_macros.sv	ACCEPT	§22.13 (predefined macros)	`__FILE__
+acc_formals_tight.sv	ACCEPT	§22.5.1 formals	`define M(x) x
+acc_include_comment_eof.sv	ACCEPT	§22.4 / §22.5.1	`include "a.sv" // c
+acc_include_macro_args.sv	ACCEPT	§22.4 / §22.5.1	`define home(filename) `"/home/mydir/filename`"
+acc_include_macro_bare.sv	ACCEPT	§22.4 / §22.5.1	`include `TESTFILE // c
+acc_include_macro_nested.sv	ACCEPT	§22.4 / §22.5.1	`include `MY_FILE(ivltests, br(gh)484.vh)
+acc_line.sv	ACCEPT	§22.12 Syntax 22-9	`line 5 "f.sv" 0
+acc_line_eof.sv	ACCEPT	§22.12 Syntax 22-9	`line 3 "orig.v" 2
+acc_line_levels.sv	ACCEPT	§22.12 Syntax 22-9	`line 1 "a" 1
+acc_line_tight.sv	ACCEPT	§22.12 Syntax 22-9	`line 12"a b.sv"1  
+acc_macro_use_in_ifdef.sv	ACCEPT	§22.5.1 Syntax 22-3 text_macro_usage	`ifdef X
+acc_macro_use_line.sv	ACCEPT	§22.5.1 Syntax 22-3 text_macro_usage	  `uvm_info("a", "b", UVM_LOW)
+acc_macro_use_line2.sv	ACCEPT	§22.5.1 Syntax 22-3 text_macro_usage	`uvm_component_utils(my_comp)
+acc_nounconnected.sv	ACCEPT	§22.9	`nounconnected_drive
+acc_pragma_bare.sv	ACCEPT	§22.11 Syntax 22-8	`pragma foo
+acc_pragma_encoding.sv	ACCEPT	§22.11 Syntax 22-8	`pragma protect encoding = (enctype = "BASE64", line_length = 76, bytes = 1234)
+acc_pragma_keyowner.sv	ACCEPT	§22.11 Syntax 22-8	`pragma protect key_keyowner="Cadence Design Systems.", key_keyname="CDS_RSA_KEY
+acc_pragma_numbers.sv	ACCEPT	§22.11 Syntax 22-8	`pragma p a = 4'b10_1x, b = 3.5e-2, c = 'hFF, d = 12, e = 8 'sd 255
+acc_pragma_protect_begin.sv	ACCEPT	§22.11 Syntax 22-8	`pragma protect begin
+acc_pragma_value_first.sv	ACCEPT	§22.11 Syntax 22-8	`pragma p 5, "s", (x, y = z)
+acc_resetall.sv	ACCEPT	§22.3	`resetall
+acc_resetall_comment.sv	ACCEPT	§22.3	/* c */ `resetall // why
+acc_space_before_paren_object_like.sv	ACCEPT	§22.5.1 'no space in between'	`define M (x) y
+acc_unconnected_pull0.sv	ACCEPT	§22.9	`unconnected_drive pull0
+acc_unconnected_pull1.sv	ACCEPT	§22.9	`unconnected_drive pull1 // c
+acc_undefineall.sv	ACCEPT	§22.5.3	`undefineall
+rej_bare_backtick_line.sv	REJECT	§22.2 (a grave accent introduces a directive or a macro)	` x
+rej_begin_keywords_missing.sv	REJECT	§22.14 Syntax 22-10	`begin_keywords
+rej_begin_keywords_unknown.sv	REJECT	§22.14 Syntax 22-10	`begin_keywords "1800-2010"
+rej_begin_keywords_unquoted.sv	REJECT	§22.14 Syntax 22-10	`begin_keywords 1800-2017
+rej_include_directive_word.sv	REJECT	§22.4 / §22.5.1	`include `else
+rej_include_macro_trailing.sv	REJECT	§22.4 / §22.5.1	`include `F x
+rej_include_trailing_text.sv	REJECT	§22.4 / §22.5.1	`include "a.sv" x
+rej_line_block_comment_before.sv	REJECT	§22.12 Syntax 22-9	/* c */ `line 5 "f.sv" 0
+rej_line_comment.sv	REJECT	§22.12 Syntax 22-9	`line 5 "f.sv" 0 // c
+rej_line_level3.sv	REJECT	§22.12 Syntax 22-9	`line 5 "f.sv" 3
+rej_line_missing_level.sv	REJECT	§22.12 Syntax 22-9	`line 5 "f.sv"
+rej_line_trailing_text.sv	REJECT	§22.12 Syntax 22-9	`line 5 "f.sv" 0 x
+rej_line_zero.sv	REJECT	§22.12 Syntax 22-9	`line 0 "f.sv" 0
+rej_malformed_define.sv	REJECT	Syntax 22-2	`define
+rej_malformed_include.sv	REJECT	Syntax 22-1	`include foo.sv
+rej_malformed_timescale.sv	REJECT	Syntax 22-6	`timescale 1ns
+rej_pragma_bad_value.sv	REJECT	§22.11 Syntax 22-8	`pragma p a = 
+rej_pragma_missing_name.sv	REJECT	§22.11 Syntax 22-8	`pragma
+rej_pragma_trailing_comma.sv	REJECT	§22.11 Syntax 22-8	`pragma p a,
+rej_stray_else.sv	REJECT	Syntax 22-5	`else
+rej_stray_endif.sv	REJECT	Syntax 22-5	`endif
+rej_unconnected_bad.sv	REJECT	§22.9	`unconnected_drive pullup
+rej_unconnected_missing.sv	REJECT	§22.9	`unconnected_drive
+rej_unterminated_ifdef.sv	REJECT	Syntax 22-5	`ifdef X

@@ -26,6 +26,7 @@
 
 - [Single Define](examples-single-define.md)
 - [Conditional Compilation](examples-conditional.md)
+- [Clause-22 Directives, a Macro-Usage Line, a Continued Define](examples-clause22.md)
 
 # Migration
 
