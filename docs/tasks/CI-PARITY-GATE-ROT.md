@@ -6049,3 +6049,25 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
   dual-run before its re-key; (b) price a daily or per-N-commit tier for the rest, so a red gate is seen in days, not at
   the next push. The knowledge card
   `a-ceremony-that-lists-its-family-gates-misses-a-gate-that-reads-the-grammar.md` records the three instances.
+- **A fourth, the same push (2026-10-19, `DONE-BAR.5i`, `PGEN-SV-CORPUS-GRAD-0469`).** The mirror's fourth run was the first
+  to reach the aggregate's SV family-status stage, and that stage's leg-3 conformance gate refused: it took the RELEASE
+  probe as found, and the export has no `target/release` at all — red since the gate joined the stage (2026-09-03). Four
+  mirror-only reds, four commits, one push; each found only after the previous one's ≈5 h re-run. The per-release set
+  this leaf derives must include the aggregate's family-status stages, not only the grammar gates.
+
+### `.120` — CI's checkout carries no submodules, so the aggregate's SV leg-3 surface cannot be produced in CI (`todo`, opened 2026-10-19 by `DONE-BAR.5i`, `PGEN-SV-CORPUS-GRAD-0469`)
+
+- **The finding.** `sv_external_corpus_conformance_gate` re-measures `stimuli/sv/subs` (13 vendored suites, all submodules,
+  ≈457 MB) and refuses — correctly — when the roots are empty. `actions/checkout@v5` checks out no submodules and none of
+  the 15 workflows overrides it (`rust/scripts/ci_workflow_local_gate.sh` records that fact as a doctrine-scope matter),
+  while the mirror's export CARRIES the submodules: the parity copy is more capable than CI here, so a stage can be green
+  in the mirror and red by construction in CI. Since the gate joined the SV family-status stage (2026-09-03), the
+  `sota-exit-gate` workflow has had no green path — and no push since 2026-08-25 has run it.
+- **Done with `.5i`, verified by the next push's CI run and not before:** the workflow checks out the `stimuli/sv/subs/*`
+  submodules, shallow, before the aggregate (`git submodule update --init --depth 1 -- <the 13 paths>`), never
+  `stimuli/generators/anvil` (a generator, not a corpus — `DONE-BAR.3a`).
+- **Owed.** (a) Read the first CI run after the push and record its verdict here. (b) The mirror's export and CI's checkout
+  must agree on what is present — either the mirror strips what CI lacks or every workflow declares what it needs; today
+  the difference is invisible to the parity gate. (c) Wall-clock: the aggregate took ≈4.5 h on this host (01:14 → the SV
+  stages at 03:30, the promotion trials past 06:00) and `ubuntu-latest` is slower, with `timeout-minutes: 360` and a cold
+  release build of the probe (≈20 min, lowmem) added by `.5i` — a predicted overrun; price the split `.119`(b) proposes.

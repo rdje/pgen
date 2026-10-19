@@ -1924,6 +1924,52 @@ fails to reproduce.
 - **Routed**: the third push-only-gate instance of one push (`SV-CORPUS-GRAD.13c.2v.20`, `SVPP-EXPANSION.6i`, this) —
   deriving the mirror-only gate set and running it per release is `CI-PARITY-GATE-ROT.119`.
 
+##### `.5i` — the leg-3 conformance gate found the release probe instead of proving it: red in the push mirror since the day it joined the SV family-status stage (✅ done 2026-10-19, `PGEN-SV-CORPUS-GRAD-0469`; GATE tier)
+
+- **Found** by the push mirror's fourth run of 2026-10-19 (`rust/target/svpp9/ci_gate4.log`, run `run.AzKXa6`), the first
+  run to reach the aggregate's SV stages — every job before `sota-exit-gate` green, including the three gates `.5h`,
+  `SVPP-EXPANSION.6i` and `SV-CORPUS-GRAD.13c.2v.20` had just fixed. The aggregate's `summary.csv`:
+  `sv_parser_family_status_gate,required,fail` and `sv_parser_family_status_contract_gate,required,fail` (the contract
+  sibling only misses the `summary.json` the first never wrote); inside the first, `==> sv_external_corpus_conformance_gate`
+  → `error: …/export/rust/target/release/parseability_probe is not built`.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+- [x] **REPRODUCE / ISSUE** — the export (`run.AzKXa6/export/rust/target/`) holds `debug/` only: the mirror's jobs build debug
+  binaries on demand, as CI's checkout would, and nothing builds a release one; `rust/scripts/sv_external_corpus_conformance_gate.sh`
+  checked `-x "$PROBE"` and exited 2 with a build hint. The RED is the mirror's own stage log
+  (`…/sota_exit_gate/logs/sv_parser_family_status_gate.log`, 03:30).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: the gate took `rust/target/release/parseability_probe` as found. WHY: in the main
+  repo that path always holds the ceremony's probe, so the gate never met an empty one; the mirror met it on the first run
+  that reached this stage — the gate joined the stage on 2026-09-03 (`.3b`, `3422a9bbb`), after the 2026-08-25 push.
+  ⛔ The `.5h` lesson applies HALF here, and the half matters: this gate must NOT rebuild a present probe. The published
+  release probe is the ceremony's lowmem copy (`cce7d537…`); cargo's own `deps/parseability_probe-b75de81d…` is
+  `4609910a…`, a different build of the same tree (not byte-reproducible on this host — `SV-CORPUS-GRAD.53`); and cargo
+  RE-UPLIFTS on every build of a unit, fresh or not (`scripts/sv_ceremony_binaries.sh` measured it on the `pipeline` role).
+  An unconditional `cargo build` would have swapped the identity every tracked lane report names (`characterization*.md`
+  "parse binary") — the `1.0.252` defect, re-introduced by its own fix.
+- [x] **FIX** — the gate KEEPS a present probe that carries the generated SystemVerilog parser (`--parser-fingerprint`
+  `.parsers.systemverilog`, the proof a feature-less build lacks) and BUILDS one otherwise, in the ceremony's lowmem release
+  configuration (LTO off, 64 codegen units — the published probe's own build; ≈8 GB peak instead of 12, what a 7 GB CI
+  runner and the 14 GB guard budget carry), refusing with the build log's path if the build fails or the built probe still
+  lacks the parser; the `.53` comment names the rule. CI parity, same slice: `.github/workflows/sota-exit-gate.yml` checks
+  out the 13 `stimuli/sv/subs/*` submodules shallow (≈460 MB) before the aggregate, because this stage re-measures them and
+  `actions/checkout` checks out none — a CI red by construction the mirror cannot show (its export carries the
+  submodules); `CI-PARITY-GATE-ROT.120` owns reading the first CI run.
+- [x] **ADDRESSED (verified)** — the predicate on the three shapes (`bash -c` over the sourced function): the published probe →
+  KEEP; `/bin/ls` (no fingerprint) → BUILD; a missing path → BUILD. The gate in the main repo under the guard
+  (`rust/target/svpp9/conformance_kept.log`): `==> release probe kept: … cce7d537f2d365ca…`, rc 0, and the summary's
+  `probe_sha256` is the ceremony's — ZERO re-derivation, the tree clean after. The BUILD branch is the mirror's re-run on the
+  committed branch (`rust/target/svpp9/ci_gate5.log`): the export has no release probe, so the stage builds one and the SV
+  family-status stage passes — the push waits on it.
+- [x] **NO REGRESSION** — the KEEP branch runs the gate exactly as before on the same bytes (`summary.json` schema untouched,
+  `probe_sha256` / `systemverilog_parser_fingerprint` already identify the probe used); the regex and VHDL family-status
+  stages take no release binary (their scripts name none); `verilog_2005_conformance_gate` builds the release probe
+  unconditionally at the published path (its own `build_release_parseability_probe` stage; the chain restores after it) and
+  the aggregate does not reach it — the keep-if-verified rule is owed there, noted, not done.
+- **Routed**: the fourth mirror-only red of one push — `CI-PARITY-GATE-ROT.119` (now four instances) and `.120` (the CI
+  checkout without submodules; the CI runner's 6 h budget against the aggregate's ≈5 h here).
+
 #### `.5b` — zero open ledger entries, as a status-gate criterion (`done`, 2026-07-29 session #224, `PGEN-DONE-BAR-0013`)
 
 - ⭐ **DESIGN DECISION, recorded:** this is NOT a pre-commit doctrine. A genuinely open ledger entry

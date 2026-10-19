@@ -40,13 +40,41 @@ require_tool() { command -v "$1" >/dev/null 2>&1 || { echo "error: required tool
 require_file() { [[ -s "$1" ]] || { echo "error: required file missing or empty: $1" >&2; exit 2; }; }
 require_tool jq; require_tool python3; require_tool shasum
 require_file "$TRACKED_MANIFEST"; require_file "$TRACKED_MANIFEST_V2005"; require_file "$RUNNER"; require_file "$ADJUDICATOR"; require_file "$COMPARE"
-[[ -x "$PROBE" ]] || { echo "error: $PROBE is not built (cd rust && cargo build --release --features generated_parsers --bin parseability_probe)" >&2; exit 2; }
+# DONE-BAR.5i (2026-10-19): the release probe is KEPT when the published path holds one that carries the generated
+# SystemVerilog parser, and BUILT HERE when it does not. Two rules meet at this line and both hold:
+#   - `.5h`'s — a gate PROVES the binary it measures with, never `-x` alone. The push mirror's export has no
+#     `target/release` at all (its jobs build debug binaries on demand, CI's checkout builds nothing), so the old
+#     `-x`-or-refuse line made the SV family-status stage red in the mirror from the day this gate joined it
+#     (2026-09-03, `.3b`) — after the 2026-08-25 push, unseen until the 2026-10-19 push.
+#   - `SV-CORPUS-GRAD.53`'s — a ceremony's MEASURED binary is kept, not re-derived. The published release probe is the
+#     ceremony's lowmem copy; cargo's own `deps/` copy differs byte for byte, and cargo RE-UPLIFTS on every build of a
+#     unit, fresh or not (`scripts/sv_ceremony_binaries.sh`, role `pipeline`, measured). An unconditional `cargo build`
+#     here would swap the identity every tracked lane report names ("parse binary") — the `1.0.252` defect, again.
+#   The proof is the probe's own `--parser-fingerprint` (`.parsers.systemverilog`), which a feature-less build lacks.
+#   The build is the ceremony's lowmem release configuration (LTO off, 64 codegen units — the published probe's own
+#   build; ≈8 GB peak instead of 12, what a 7 GB CI runner and the 14 GB guard budget carry); verdicts do not depend on it.
+probe_carries_sv() {
+    [[ -x "$1" ]] || return 1
+    [[ -n "$("$1" --parser-fingerprint 2>/dev/null | jq -r '.parsers.systemverilog // empty' 2>/dev/null || true)" ]]
+}
+if probe_carries_sv "$PROBE"; then
+    echo "==> release probe kept: $PROBE ($(shasum -a 256 "$PROBE" | cut -c1-16)…) carries the generated SystemVerilog parser"
+else
+    echo "==> release probe absent or feature-less at $PROBE — building it (lowmem release profile, --features generated_parsers)"
+    mkdir -p "$LOG_DIR"
+    (cd "$RUST_DIR" && CARGO_PROFILE_RELEASE_LTO=off CARGO_PROFILE_RELEASE_CODEGEN_UNITS=64 \
+        cargo build --release --features generated_parsers --bin parseability_probe >"$LOG_DIR/build_release_parseability_probe.log" 2>&1) \
+        || { echo "error: cargo build --release --features generated_parsers --bin parseability_probe failed (log: $LOG_DIR/build_release_parseability_probe.log)" >&2; exit 2; }
+    probe_carries_sv "$PROBE" || { echo "error: $PROBE still does not carry the generated SystemVerilog parser after the build (log: $LOG_DIR/build_release_parseability_probe.log)" >&2; exit 2; }
+    echo "    built: $PROBE ($(shasum -a 256 "$PROBE" | cut -c1-16)…)"
+fi
 for root in $CORPUS_ROOTS; do
     [[ -d "$ROOT_DIR/$root" ]] && [[ -n "$(ls -A "$ROOT_DIR/$root" 2>/dev/null)" ]] || { echo "error: corpus root $root is absent or empty (submodules not checked out) — this gate cannot run, and says so" >&2; exit 2; }
 done
 
 rm -rf "$WORK_DIR"; mkdir -p "$WORK_DIR/characterization" "$LOG_DIR"
-# SV-CORPUS-GRAD.53: this gate re-measures the lanes with whatever binary sits at the release path WHEN IT RUNS, so
+# SV-CORPUS-GRAD.53: this gate re-measures the lanes with whatever binary sits at the release path WHEN IT RUNS (built
+# above only when none carries the parser — DONE-BAR.5i), so
 # its adjudication memo lives BESIDE its scratch manifest - seeded from the tracked memo so agreeing rows stay hits -
 # and never the tracked file: release 1.0.252 committed 54 tracked sv_2017 rows this gate had measured against a
 # rebuilt probe (`b7ce38c4...`) the tracked report does not name (`6af036ea...`). The adjudicator resolves the same

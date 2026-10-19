@@ -30,6 +30,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      # DONE-BAR.5i / CI-PARITY-GATE-ROT.120 (2026-10-19): the aggregate's SV family-status stage PRODUCES its
+      # leg-3 surface by re-measuring the vendored third-party corpora (sv_external_corpus_conformance_gate),
+      # which are submodules under stimuli/sv/subs. actions/checkout checks out none (submodules: false), so
+      # without this step the gate refuses — correctly — and the job is red by construction. Only the 13 SV
+      # corpus submodules, shallow (≈460 MB); never the generator (stimuli/generators/anvil, DONE-BAR.3a).
+      - name: Check out the SystemVerilog corpus submodules (leg-3 surface inputs)
+        run: |
+          git submodule update --init --depth 1 -- $(git config -f .gitmodules --get-regexp path | awk '{print $2}' | grep -E '^stimuli/sv/subs/')
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 

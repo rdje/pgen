@@ -57,3 +57,20 @@ derive that set (`GATE-REACHABILITY` knows it) and run it on each release that t
 mirror's preceding jobs leave it built without the generated parsers, so it refused every family — since 2026-09-30, the day
 it was wired as the prerequisite, which was after the previous push. Three mirror-only gates, three commits, one push.
 Deriving the mirror-only set and running it per release is `CI-PARITY-GATE-ROT.119`.
+
+## A fourth instance, the same push (`DONE-BAR.5i`) — and the half of the rule the third one missed
+
+The fourth run reached the aggregate's SV family-status stage for the first time, and its leg-3 conformance gate refused:
+it took `target/release/parseability_probe` as found, and the export has no `target/release` at all. Red since the gate
+joined the stage (2026-09-03). Four gates, four commits, one push, each found only after the previous one's ≈5 h re-run.
+
+The fix was NOT the third instance's fix. The sentinel builds its debug pair unconditionally, and that is tolerable
+because ordinary builds re-uplift the debug pair anyway and the ceremony restores after them. The RELEASE probe is
+different: the published path holds the ceremony's lowmem copy, cargo's `deps/` copy is a different build of the same tree
+(this host does not rebuild byte-for-byte), and cargo re-uplifts on EVERY build of a unit, fresh or not — so an
+unconditional `cargo build` in this gate would have swapped the identity every tracked lane report names, which is the
+`1.0.252` defect `a-ceremonys-measured-binary-is-kept-not-re-derived` records. The rule has two halves and a gate needs
+both: **prove the binary you measure with (its own fingerprint, never `-x`), build it when the proof fails, and KEEP it when
+the proof holds.** Build-always and find-always are the two ways to get one half.
+
+Related: [[a-ceremonys-measured-binary-is-kept-not-re-derived]].
