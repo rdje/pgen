@@ -19,6 +19,7 @@
 - [Parser Families](parser-families.md)
 - [Embedding and Downstream Integration](embedding-and-downstream-integration.md)
 - [Contracts and Support](contracts-and-support.md)
+- [Services Register — PGEN as a Service Provider](services-register.md)
 - [Roadmap and Live Status](roadmap-and-live-status.md)
 - [Grammar Certification Status](grammar-certification-status.md)
 
