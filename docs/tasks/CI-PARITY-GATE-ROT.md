@@ -6088,7 +6088,8 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
   doctrines never run, so the new contract `PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md` (`-0470`, indexed
   everywhere a contract is listed) was first refused by the mirror. Fixed here by the deliberate policy update (the
   entry, with its provenance comment). Owed: the four audits cost well under a second and read only `git ls-files` —
-  run them in `scripts/check_doctrines.sh` so a new tracked doc is refused at the commit that adds it, not at the push.
+  run them in `scripts/check_doctrines.sh` so a new tracked doc is refused at the commit that adds it, not at the push —
+  DONE as (g), `-0124`.
 
   **Acceptance checklist (`TASK-ACCEPTANCE`) for (d) — ops / build-flow tier:**
 
@@ -6180,6 +6181,42 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
     failures=0` (`rust/target/svpp9/repros_0123.log`, the ceremony probe); the generated
     parsers, `rust/src` and `grammars/` are byte-identical to `1d7fcd949` (`git diff --cached --stat -- generated rust/src
     grammars` empty), so no parser verdict, certificate or clippy reading can move.
+
+- ✅ **(g) DONE 2026-10-19 (`PGEN-CI-PARITY-GATE-ROT-0124`) — the six working-tree audits as a pre-commit doctrine,
+  `CI-MIRROR-DOCS-SURFACES`:** (d)'s owed item. `scripts/check_ci_mirror_docs_surfaces.sh` runs the mirror script in a
+  new AUDITS-ONLY mode (`PGEN_CI_WORKFLOW_LOCAL_AUDITS_ONLY`, in `main()` before any tool check, export or replay; it
+  refuses any name outside the six, because the other 27 audits read the export the mode never produces) against the
+  working tree, so the functions that refuse at the commit are the functions the mirror runs — one definition, no
+  fork; `PGEN_CI_WORKFLOW_LOCAL_ROOT_DIR` is the testability seam the RED arms use. Registered (46 doctrines), the
+  `DOCTRINE_ENFORCEMENT.md` §10 row, the book chapter re-rendered (`report_doctrines.sh --check` OK), the book's two
+  count markers 45 → 46.
+
+  **Acceptance checklist (`TASK-ACCEPTANCE`) for (g) — ops / build-flow tier:**
+
+  - [x] **REPRODUCE / ISSUE** — runs 5 and 6 (`rust/target/svpp9/ci_gate5.log`, `ci_gate6.log`): refused at 65 s / 71 s
+    by `audit_contract_docs_surface` and `audit_active_docs_rehome_paths`, with every pre-commit doctrine green on the
+    two commits (`-0470`, `-0121`); the doctrine's own RED arms reproduce both shapes outside the mirror (below).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: the six audits live only in `rust/scripts/ci_workflow_local_gate.sh`
+    `main()`, behind `copy_tracked_worktree` and a `main "$@"` with no library mode. WHY: they read nothing but the
+    working tree (`git ls-files -z | perl`, `rg` under `ROOT_DIR` — the ops signature: `git ls-files`), yet the only
+    way to run them was the full gate, so a doc change met them first at the push; `scripts/check_doctrines.sh` had no
+    entry for them.
+  - [x] **FIX** — the audits-only mode and the root seam in the mirror (three edits, four `-U0` hunks: the `ROOT_DIR`
+    line, the contract-docs comment, the block in `main()`); the doctrine script with four self-test arms; the registry
+    line; the §10 row; the rendered chapter; the two count markers.
+  - [x] **ADDRESSED (verified)** — `bash scripts/check_ci_mirror_docs_surfaces.sh` → `OK` in 0.45 s (`/usr/bin/time`);
+    `--self-test` 4 / 4: green on this tree; a stray `docs/contracts/ZZZ_STRAY_SELFTEST.md` planted in a COPY of the
+    index (`GIT_INDEX_FILE`) → `contract docs allowlist drift` (1); a scratch tree whose `README.md` carries a rehomed
+    doc's bare basename → `active docs path drift` (1); `audit_embedding_api_surface` named → refused by the mode, not
+    run (1); the driver `bash scripts/check_doctrines.sh` rc 0 with `✓ PASS CI-MIRROR-DOCS-SURFACES`, `<meta:mirror>`
+    46, `<meta:book-count>` 46, `<meta:book-content>` equal to a fresh derivation (`rust/target/svpp9/doctrines_0124.log`);
+    `mdbook build docs/book` to scratch rc 0, 0 warnings. ⚠️ The mirror's own run of the modified script is the NEXT
+    mirror run (run 8 exported `ead9388c2`, before this change).
+  - [x] **NO REGRESSION** — the six audit functions are byte-identical (the mirror diff's hunks touch none of them;
+    `bash -n` ok); unset, `ROOT_DIR` resolves exactly as before; the mode is entered only when
+    `PGEN_CI_WORKFLOW_LOCAL_AUDITS_ONLY` is set, so every real run takes the old path; the generated parsers, `rust/src`
+    and `grammars/` are byte-identical to `ead9388c2` (`git diff --cached --stat -- generated rust/src grammars` empty);
+    the other 45 doctrines passed unchanged in the same driver run.
 
 ### `.120` — CI's checkout carries no submodules, so the aggregate's SV leg-3 surface cannot be produced in CI (`todo`, opened 2026-10-19 by `DONE-BAR.5i`, `PGEN-SV-CORPUS-GRAD-0469`)
 

@@ -119,9 +119,9 @@ Steps 4 and 5 are enforced, not suggested. That is the whole point.
 
 <!-- BEGIN DERIVED: scripts/report_doctrines.sh --markdown -->
 
-**45 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **2**, oracle **8**, oracle + structural **1**, structural **21**, structural + oracle **5**.
+**46 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **2**, oracle **8**, oracle + structural **1**, structural **22**, structural + oracle **5**.
 
-**Depth, derived:** median **2192** bytes per description, thinnest **783** (`LESSON-PROMOTION`) — every one of the 45 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
+**Depth, derived:** median **2192** bytes per description, thinnest **783** (`LESSON-PROMOTION`) — every one of the 46 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
 
 Rows are in **registration order**, oldest first — so the bottom of this table is what the repository learned most recently.
 
@@ -172,6 +172,7 @@ Rows are in **registration order**, oldest first — so the bottom of this table
 | 43 | [`PIPELINE-LANE-CURRENCY`](#pipeline-lane-currency) | structural | `scripts/check_pipeline_lane_currency.sh` |
 | 44 | [`PER-FRAME-CENSUS-CURRENCY`](#per-frame-census-currency) | evidence + structural | `scripts/check_per_frame_census_currency.sh` |
 | 45 | [`SV-TOLERANT-PROFILE-SUPERSET`](#sv-tolerant-profile-superset) | structural | `scripts/check_sv_tolerant_profile.sh` |
+| 46 | [`CI-MIRROR-DOCS-SURFACES`](#ci-mirror-docs-surfaces) | structural | `scripts/check_ci_mirror_docs_surfaces.sh` |
 
 ### `MEMORY-ARCH`
 
@@ -442,5 +443,11 @@ the preprocess→parse lane's published numbers are a **RENDER of two dumps unde
 *structural* · enforced by `scripts/check_sv_tolerant_profile.sh`
 
 the opt-in tolerance profile `sv_2023_tolerant` is **`sv_2023` plus a closed list and nothing else** (director decision 2026-10-02, `docs/decisions/project_sv_opt_in_tolerance_profile.md`; `SV-CORPUS-GRAD.43`). The profile rides the existing `@profiles` directive — every rule live under `sv_2023` is also listed for the tolerant profile (393 lists) — so a new rule gated to `sv_2023` that forgets the tolerant name would silently remove a STANDARD construct from the tolerant profile while every strict gate stays green. Static, under a second: **(1) SUPERSET** every list naming `sv_2023` names `sv_2023_tolerant`; **(2) CLOSED LIST BY NAME** a rule gated to the tolerant profile alone is named `tolerated_…`; **(3) NO STRAY** the tolerant profile never rides a list without its strict base unless alone. A grammar with no tolerant profile is REFUSED (2). `--self-test` 8 arms. The behavioural half is the pin runner's superset sweep (`stimuli/sv/run_adjudication_repros.py`: `tolerated_rows`, `superset_rows`), run at every release ceremony.
+
+### `CI-MIRROR-DOCS-SURFACES`
+
+*structural* · enforced by `scripts/check_ci_mirror_docs_surfaces.sh`
+
+the push mirror's six **WORKING-TREE docs-surface audits** — the root-markdown, top-level-docs, contract-docs and reference-docs allowlists (exact-set comparisons against `git ls-files`), the docs/book surface derived from `SUMMARY.md`, and the active-docs rehome-path audit — hold at the **COMMIT** that changes a doc, not first at the push. Run through the mirror script's own audits-only mode (`PGEN_CI_WORKFLOW_LOCAL_AUDITS_ONLY`), so there is one definition and no fork. Founding measurement, `CI-PARITY-GATE-ROT.119`(d), 2026-10-19: runs 5 and 6 of the push mirror were refused 65 s and 71 s in by audits nothing else ran, each a ≈5.5 h re-run, with every pre-commit doctrine green on both commits. Self-test 4 arms (green; a planted stray contract doc in an index COPY; a bare rehomed basename in a scratch tree; an export-reading audit name refused). ≈0.5 s.
 
 <!-- END DERIVED -->

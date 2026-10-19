@@ -24,7 +24,10 @@ normalize_bool() {
   esac
 }
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# CI-PARITY-GATE-ROT.119(d) (2026-10-19, -0124): PGEN_CI_WORKFLOW_LOCAL_ROOT_DIR is a TESTABILITY seam for the
+# audits-only mode in main() — the CI-MIRROR-DOCS-SURFACES doctrine's RED self-test arms point the working-tree
+# audits at a scratch tree through it. Unset, as in every real run, the root is this script's own repository.
+ROOT_DIR="${PGEN_CI_WORKFLOW_LOCAL_ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 RUST_DIR="$ROOT_DIR/rust"
 STATE_DIR="${PGEN_CI_WORKFLOW_LOCAL_STATE_DIR:-$RUST_DIR/target/ci_workflow_local_gate}"
 mkdir -p "$STATE_DIR"
@@ -532,9 +535,11 @@ audit_contract_docs_surface() {
     # SystemVerilog PREPROCESSING SERVICE contract (the expander over the svpp AST, DRAFT 0.1),
     # indexed in docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md, the main book and the svpp
     # book. Found by this audit at the push mirror's fifth run (CI-PARITY-GATE-ROT.119(d)): the
-    # pre-commit doctrines do not run these allowlist audits, so a new contract is first refused
+    # pre-commit doctrines did not run these allowlist audits, so a new contract was first refused
     # here. (The sixth run was then refused by audit_active_docs_rehome_paths, which reads THIS
-    # file too: the previous wording named the contracts index by its bare basename.)
+    # file too: the previous wording named the contracts index by its bare basename.) Since -0124
+    # the CI-MIRROR-DOCS-SURFACES doctrine runs this audit and its five working-tree siblings at
+    # every commit, through main()'s audits-only mode.
     "docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md"
     "docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md"
     "docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md"
@@ -3622,6 +3627,33 @@ main() {
   note "cargo_offline: $CARGO_OFFLINE_RAW"
   note "keep_success_runs: $KEEP_RUNS_NORMALIZED"
   note "prepare_generated: $PREPARE_NORMALIZED"
+
+  # CI-PARITY-GATE-ROT.119(d) (2026-10-19, -0124) — AUDITS-ONLY MODE, for the pre-commit doctrine
+  # CI-MIRROR-DOCS-SURFACES (scripts/check_ci_mirror_docs_surfaces.sh). Runs 5 and 6 of that day were refused
+  # 65 s and 71 s in by audits nothing but this gate runs: the four docs allowlists, the docs/book surface and
+  # the rehome-path audit read ONLY the working tree (git ls-files, perl and rg under ROOT_DIR — no export, no
+  # build), so they can hold at the commit that changes a doc instead of at the push. The mode names the
+  # audits it runs and REFUSES any other name: the other 27 audits read the EXPORT, which this mode never
+  # produces, and a verdict about an absent tree is nothing. One definition — the functions run here are the
+  # ones the full gate runs, not copies — so the doctrine and the mirror cannot disagree.
+  if [[ -n "${PGEN_CI_WORKFLOW_LOCAL_AUDITS_ONLY:-}" ]]; then
+    local audit
+    require_tool git
+    require_tool perl
+    require_tool rg
+    for audit in $PGEN_CI_WORKFLOW_LOCAL_AUDITS_ONLY; do
+      case "$audit" in
+        audit_root_markdown_surface|audit_top_level_docs_surface|audit_contract_docs_surface|audit_reference_docs_surface|audit_docs_book_surface|audit_active_docs_rehome_paths)
+          "$audit"
+          ;;
+        *)
+          fail "PGEN_CI_WORKFLOW_LOCAL_AUDITS_ONLY names '$audit', which is not a working-tree-only audit of this gate (the six: audit_root_markdown_surface audit_top_level_docs_surface audit_contract_docs_surface audit_reference_docs_surface audit_docs_book_surface audit_active_docs_rehome_paths)"
+          ;;
+      esac
+    done
+    note "audits-only mode: $(printf '%s\n' $PGEN_CI_WORKFLOW_LOCAL_AUDITS_ONLY | grep -c .) working-tree audit(s) passed; no export, no replay"
+    return 0
+  fi
 
   require_tool git
   require_tool cargo
