@@ -6104,16 +6104,25 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
     audit — so a new tracked contract passes every pre-commit doctrine and is refused first at the push. `-0470` added the
     contract and indexed it in the contracts index, the main book and the svpp book, and could not have known.
   - [x] **FIX** — the entry added to the array in sorted position with its provenance comment (`SVPP-EXPANSION.9.1`,
-    `-0470`, found by run 5, routed as (d)). No other entry moved.
+    `-0470`, found by run 5, routed as (d)). No other entry moved. **Second round (`-0122`)**: run 6 (`run.Nf9BMO`,
+    `rust/target/svpp9/ci_gate6.log`) was refused 71 s in by the NEXT pre-flight audit, `audit_active_docs_rehome_paths`
+    — `error: active docs path drift detected` — whose `rg` pattern (`(^|[^/])PGEN_PARSER_INTEGRATION_CONTRACTS\.md|…`)
+    runs over a fixed set of active docs that includes `rust/scripts/ci_workflow_local_gate.sh` ITSELF, and the `-0121`
+    comment named the contracts index by its bare basename (the ops signature: the audit's own `rg` replicated over
+    its file set → exactly one hit, line 533, that comment). The comment now carries the rehomed path and says why.
   - [x] **ADDRESSED (verified)** — the audit's comparison replicated outside the mirror (`rust/target/svpp9/chain_0121.log`):
     the array extracted from the script and `git ls-files docs/contracts` filtered to `docs/contracts/*.md`, both sorted,
-    `diff -q` → `ALLOWLIST equal (17 docs)`; `bash -n` on the script ok. The mirror's own run of the audit is run 6's first
-    minute (`rust/target/svpp9/ci_gate6.log`, `auditing contract docs allowlist` followed by the next audit, not a refusal).
+    `diff -q` → `ALLOWLIST equal (17 docs)`; `bash -n` on the script ok. The mirror's own run of the allowlist audit is
+    run 6's first minute (`rust/target/svpp9/ci_gate6.log`: `auditing contract docs allowlist` followed by the three
+    audits after it — it passed; the refusal came from the rehome-paths audit two lines later). **Second round**: the
+    rehome audit's `rg` replicated over its file set after the fix → zero hits (`rust/target/svpp9/chain_0122.log`); the
+    mirror's own run of it is run 7's first minute.
   - [x] **NO REGRESSION** — the other 16 entries and the three sibling audits (root markdown, top-level docs, reference
     docs) are untouched (the diff is one array line plus comment lines); the entry names a tracked file (`git ls-files`
     lists it), so the audit cannot flip the other way; the generated parsers, `rust/src` and `grammars/` are
     byte-identical to `4592100d9` (`git diff --cached --stat -- generated rust/src grammars` is empty), so no parser
-    verdict, certificate or clippy reading can move; the mirror's own re-run is run 6.
+    verdict, certificate or clippy reading can move; the mirror's own re-run is run 6 — and, after the second round
+    (a comment line only; the same `git diff --cached --stat` empty, byte-identical to `82ca00a12`), run 7.
 - ℹ️ **(e) RECORDED 2026-10-19 — run 4's VHDL stages failed on a transient, not a defect:** `vhdl_strict_promotion_gate`
   trial 1's cold build inside the export died with `failed to write …/cargo_target/debug/.fingerprint/pgen-…/invoked.timestamp:
   No such file or directory` (07:11:24), which cascaded into `vhdl_parser_family_contract_gate` (`hold` instead of
