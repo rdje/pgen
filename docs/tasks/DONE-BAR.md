@@ -1972,6 +1972,11 @@ fails to reproduce.
   `built: …/export/rust/target/release/parseability_probe (f567afd5e4c12fe7…)` → `corpus_sv ok`, `corpus_sv2005 ok`. The
   identity built is the export's own; the main tree's `cce7d537…` was not touched (the KEEP branch, same day). The stage
   then failed in `adjudicate` on the NEXT fresh-checkout assumption — `CI-PARITY-GATE-ROT.119`(f), the seventh red.
+- **BUILD branch measured END TO END 2026-10-19, run 8** (`rust/target/svpp9/ci_gate8.log`, `run.D9jLgP`): `built:
+  …/export/rust/target/release/parseability_probe (a40d391af5cbddcf…)` → `corpus_sv ok`, `corpus_sv2005 ok`, `adjudicate
+  ok` (the `.119`(f) fix measured by the mirror) → `corpus-conformance: OK — 0 regressions; full_pass=False` (leg 3 reads
+  that bit: 1 138 rows still await a verdict under their declared reading — the tracker's `Provisional (corpus pending)`,
+  aligned). The stage's one red that day was the OTHER family's proof surface — `SV-CORPUS-GRAD.13c.2v.21`.
 - **Routed**: the fourth mirror-only red of one push — `CI-PARITY-GATE-ROT.119` (now four instances) and `.120` (the CI
   checkout without submodules; the CI runner's 6 h budget against the aggregate's ≈5 h here).
 

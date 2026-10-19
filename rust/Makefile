@@ -1462,7 +1462,7 @@ verilog_2005_conformance_gate:
 sv_preprocessor_formal_exhaustive_closure_gate:
 	@echo "🧪 Running SV preprocessor formal exhaustive closure gate..."
 	cd $(RUST_DIR) && ./scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh
-	@echo "✅ SV preprocessor formal exhaustive closure gate passed."
+	@echo "✅ SV preprocessor formal exhaustive closure gate ran (its proof surface is on the line above; the family's tier is bound by sv_parser_family_status_gate)."
 
 .PHONY: vhdl_parser_family_contract_gate
 vhdl_parser_family_contract_gate:

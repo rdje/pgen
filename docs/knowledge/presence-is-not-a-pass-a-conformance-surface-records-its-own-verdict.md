@@ -29,6 +29,19 @@ reverify: "bash docs/tasks/artifacts/done_bar/sv_external_corpus_conformance/pro
 4. **Do not let the instrument narrow the bar.** "No regression" is a ratchet; "PASSING" is the bar. The surface
    publishes the distance so the bar stays the director's sentence.
 
+## A second instance (2026-10-19, `SV-CORPUS-GRAD.13c.2v.21`) — a proof umbrella's `passed` is its computation's bit
+
+`rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh` runs six stages and exits 0 when they ran; the proof
+it exists to establish is a line INSIDE its summary (`zero_plausible_grammar_level_gap_proof_surface`). Release `1.0.9`
+(2026-10-18) stranded nine guard rules and nine edition-gated alternatives, the zero-plausible-gap contract (v3: an
+EMPTY surface) turned false, and the release ceremony's step log read `✅ … passed`, rc 0. The reader that binds the
+surface to the family's tier, `sv_parser_family_status_gate`, joined the ceremony a day later (`-0120`); the push
+mirror's aggregate was the first to run it and said `tracker='Provisional (corpus pending)' computed='Mostly Done'`.
+
+5. **A status umbrella's exit code says its stages ran; list the gate that binds the surface to a verdict.** The
+   umbrella's banner now carries the surface's own bit, and the contract explains the surface class by class against
+   the gap report and the grammar's `@profiles` instead of asserting it empty — rule 1 again, one level down.
+
 ## Related
 [[a-commit-that-quotes-a-bank-must-be-gated-on-the-banks-exit-code]] — the same discipline one level up.
 [[a-red-arm-that-returns-rc-1-from-a-crash-is-not-a-red-arm]] — an artifact that exists is not an artifact that passed.

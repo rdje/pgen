@@ -6218,6 +6218,24 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
     and `grammars/` are byte-identical to `ead9388c2` (`git diff --cached --stat -- generated rust/src grammars` empty);
     the other 45 doctrines passed unchanged in the same driver run.
 
+- ⏳ **(h) RUN 8 READ 2026-10-19 (`run.D9jLgP`, 13:52 → 20:51 CEST, 25 187 s, peak 8 135 MB; `rust/target/svpp9/ci_gate8.log`)
+  — 33 of 34 aggregate checks pass, one red, and the red is NOT of this leaf's class:** the 33 pre-flight audits and
+  `generated/` on `ead9388c2`; the VHDL stages green ((e)'s transient not reproduced: 3 / 3 locally, now 1 / 1 in the
+  mirror); the SV leg-3 conformance gate end to end on the export's own probe (`a40d391af5cbddcf…`: `corpus_sv` /
+  `corpus_sv2005` / `adjudicate` ok, `corpus-conformance: OK — 0 regressions; full_pass=False` — (f)'s fix and
+  `DONE-BAR.5i`'s BUILD branch measured by the mirror); the one red `sv_parser_family_status_gate`: `live tracker
+  systemverilog_preprocessor status mismatch: tracker='Provisional (corpus pending)' computed='Mostly Done'` — the
+  preprocessor's zero-plausible-gap proof contract (v3, an EMPTY unreachable surface) had broken on release `1.0.9`'s
+  guard rules and edition forms the day before; the main tree's own umbrella artifact of 2026-10-18 17:53 UTC already
+  read `surface_green: false`, and the umbrella printed `passed` over it. Fixed as `SV-CORPUS-GRAD.13c.2v.21` (`-0472`:
+  contract v4 explained by the grammar class by class; the umbrella's banner carries the surface). The mirror was the
+  first reader only because the tier-binding gate joined the ceremony with `-0120`, after the release. Run 9
+  (`rust/target/svpp9/ci_gate9.log`) re-measures on `-0472`; the push waits on it.
+- ⚠️ **(i) OWED** — the three sibling umbrellas (`rust/scripts/sv_formal_exhaustive_closure_gate.sh`, `vhdl_…`, `regex_…`)
+  print the same unconditional `✅ … passed` (and their Makefile echoes after them) whatever their proof surface says;
+  each banner carries its surface's bit after its own re-run verifies it (the SV umbrella is ≈70 min). The tier-binding
+  family-status gates are ceremony steps since `-0120`, so the mask has no second reader left — a banner fix, not a gate.
+
 ### `.120` — CI's checkout carries no submodules, so the aggregate's SV leg-3 surface cannot be produced in CI (`todo`, opened 2026-10-19 by `DONE-BAR.5i`, `PGEN-SV-CORPUS-GRAD-0469`)
 
 - **The finding.** `sv_external_corpus_conformance_gate` re-measures `stimuli/sv/subs` (13 vendored suites, all submodules,

@@ -638,4 +638,9 @@ jq -n \
         }
     }' >"$SUMMARY_JSON"
 
-echo "SV preprocessor formal exhaustive closure gate passed."
+# The verdict rides on the banner (SV-CORPUS-GRAD.13c.2v.21, 2026-10-19): this umbrella COMPUTES the proof
+# surface and exits 0 whenever its stages ran, so a ceremony that lists it reads `passed` even when the surface
+# is false — on 2026-10-18 it did, and the family-status gate (which BINDS the surface to the family's tier)
+# first said so in push-mirror run 8. The surface's own bit is on this line now; the exit code is unchanged,
+# because sv_parser_family_status_gate consumes this umbrella to compute a tier from a false surface too.
+echo "SV preprocessor formal exhaustive closure gate passed (stages ran; proof surface: zero_plausible_grammar_level_gap_proof_surface=${zero_plausible_grammar_level_gap_proof_surface}, systemverilog_preprocessor_formal_exhaustive_closure_surface_green=${systemverilog_preprocessor_formal_exhaustive_closure_surface_green}; the tier is bound by sv_parser_family_status_gate)."

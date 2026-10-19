@@ -1057,6 +1057,31 @@ is not a generation-coverage question. What the change removes is a permanent, u
 so that the closed-loop residual ratchet reads the grammar's real generation frontier — which, on
 the 1.0.246 grammar, is empty.
 
+### The zero-plausible-gap proof reads the same classes (svpp contract v4, 2026-10-19)
+
+The SystemVerilog preprocessor's *zero-plausible-gap proof* (`sv_preprocessor_zero_plausible_gap_proof_gate`,
+the last stage of its formal-closure umbrella) used to assert the whole unreachable surface EMPTY — true from
+the day the dead `trivia` rule left the grammar (2026-06-09) until release `1.0.9` (2026-10-18) added the guard
+rules above. Nobody re-pinned it in that slice, the umbrella kept printing `passed` (it computes the surface;
+its exit code says its stages ran), and the push mirror's family-status gate was the first reader to turn the
+false surface into a tier mismatch (`SV-CORPUS-GRAD.13c.2v.21`). Contract v4 partitions the surface by the gap
+report's own reason and judges each class against its oracle:
+
+| class | gap-report reason | what the gate requires |
+|---|---|---|
+| dead | `unreachable_from_entry` | the allow-lists, still EMPTY — a dead rule or branch is removed at source, never absorbed |
+| guard | `reachable_only_inside_lookahead` | `expected_lookahead_only_rules`, two-sided, AND equal to the syntax-closure contract's pin — a one-sided re-pin is refused by name |
+| interior | `inside_lookahead` | every alternative inside a pinned guard; the count pinned two-sided in both contracts |
+| edition-gated | `references_rule_missing_from_active_grammar` | pinned by id with the gated rule and its `@profiles`; the gap entry must reference that rule, and the grammar's raw AST must carry exactly those profiles on it with `@default_profile` not among them |
+| anything else | a reason the proof has no class for | unclassified: the proof refuses until it learns the class |
+
+An **edition-gated alternative** is a branch whose only referenced rule the grammar withholds from the default
+profile with an `@profiles` line (the 1800-2023 parenthesized `ifdef` condition, the triple-quoted string, the
+1364-2005 version list, …): unreachable in the default-profile grammar graph by construction, reachable under
+its own edition. The honest limit: the gap report runs the default profile only, so this proof establishes
+*unreachable by gating*; reachability under each edition is the release ceremony's per-profile census and the
+three-profile certificate union.
+
 ## Per-Target Reach Classification
 
 Each residual target in the coverage gap report carries a **read-only** `reach_classification` field, computed by `generate_gap_report()` (in `../../rust/src/ast_pipeline/stimuli_generator.rs`) purely as analysis over the already-computed targets — it never changes generation, so it cannot affect coverage counts.

@@ -45,7 +45,7 @@
       "entry": "systemverilog_preprocessor_zero_plausible_gap_proof_contract.json",
       "disposition": "deferred",
       "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
-      "reason": "allowed_unreachable_rules=[] and allowed_unreachable_branches=[] are EMPTY-SET assertions over the SVPP grammar -- the strictest possible form of a derived expectation, since any grammar change that strands one rule breaks them."
+      "reason": "PREDICTION MET 2026-10-18/19: allowed_unreachable_rules=[] and allowed_unreachable_branches=[] were EMPTY-SET assertions over the SVPP grammar -- the strictest possible form of a derived expectation, since any grammar change that strands one rule breaks them -- and release 1.0.9 stranded nine guard rules and nine edition-gated alternatives; the proof turned false, the umbrella printed passed, and push-mirror run 8 read it as the family-status tier mismatch (SV-CORPUS-GRAD.13c.2v.21, PGEN-SV-CORPUS-GRAD-0472). Re-pinned as v4: the surface is explained class by class against the gap report and the grammar's own @profiles (the dead allow-lists stay EMPTY), so a stranded rule now names itself. Still a derived expectation of the grammar and the gap-report binary, so adoption (an identity block over both, re-stamped by the umbrella) remains owed by the owner leaf."
     },
     {
       "entry": "rtl_const_expr_cert_contract.json",
