@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bb5e656f.js";
+            window.path_to_searchindex_js = "searchindex-be5bc34a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-d19d7c2c.js"></script>
@@ -536,7 +536,16 @@ tracked identity row that names a binary (the lane reports’ <code>parse binary
 <code>ast_pipeline</code> is a NOTE, because cargo re-uplifts it on every build of its feature set — every doctrines run
 and the pre-commit hook, after the chain’s last restore — so no chain can hold it at commit time (<code>.56</code>). ⛔ The
 published paths stay the ONLY paths a tracked artifact may name: the lane runner adopts the recorded
-probe path on its next run, and a scratch path is gone within a week.</li>
+probe path on its next run, and a scratch path is gone within a week.
+⛔ <strong>Then, on the final bytes and BEFORE any measuring step below, the push mirror’s gates whose inputs this
+release touches</strong> (<code>CI-PARITY-GATE-ROT.119</code>(a), 2026-10-19 — derived, not recalled): <code>make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff stimuli_cross_family_platform_gate silent_success_sentinel_gate sv_parser_family_status_gate</code>, each under the guard. The dual-run reads every <code>grammars/*.ebnf</code> for the
+meta-parser’s sake; the cross-family stimuli gate reads the generated parsers and the BOUNDED contracts; the
+sentinel reads the binaries’ feature set; the SV family-status stage re-runs the family’s gates and the leg-3
+conformance gate on the release probe. None of the four runs anywhere but the mirror, so a release ceremony
+that lists only its family’s gates meets them at the push — and a red one AFTER the re-key invalidates the
+re-key: the four instances of 2026-10-19 (<code>SV-CORPUS-GRAD.13c.2v.20</code>, <code>SVPP-EXPANSION.6i</code>, <code>DONE-BAR.5h</code>,
+<code>DONE-BAR.5i</code>) each cost a ≈5 h mirror re-run, and the first a second full re-key. The knowledge card is
+<code>docs/knowledge/a-ceremony-that-lists-its-family-gates-misses-a-gate-that-reads-the-grammar.md</code>.</li>
 <li><strong>Pins</strong>: <code>python3 stimuli/sv/run_adjudication_repros.py</code> → <code>failures=0</code>, with every
 <code>class=defect</code> row flipped to <code>fixed</code> the day it parses.</li>
 <li><strong>Corpus, all three lanes, per path and two-sided</strong>: <code>stimuli/run_external_corpus.sh sv 60 8 0</code>,

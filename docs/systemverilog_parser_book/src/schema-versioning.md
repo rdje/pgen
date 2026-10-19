@@ -361,6 +361,17 @@ each under the memory guard, sequentially.
    and the pre-commit hook, after the chain's last restore — so no chain can hold it at commit time (`.56`). ⛔ The
    published paths stay the ONLY paths a tracked artifact may name: the lane runner adopts the recorded
    probe path on its next run, and a scratch path is gone within a week.
+   ⛔ **Then, on the final bytes and BEFORE any measuring step below, the push mirror's gates whose inputs this
+   release touches** (`CI-PARITY-GATE-ROT.119`(a), 2026-10-19 — derived, not recalled): `make -C rust
+   SHELL=/bin/bash ebnf_frontend_dual_run_diff stimuli_cross_family_platform_gate silent_success_sentinel_gate
+   sv_parser_family_status_gate`, each under the guard. The dual-run reads every `grammars/*.ebnf` for the
+   meta-parser's sake; the cross-family stimuli gate reads the generated parsers and the BOUNDED contracts; the
+   sentinel reads the binaries' feature set; the SV family-status stage re-runs the family's gates and the leg-3
+   conformance gate on the release probe. None of the four runs anywhere but the mirror, so a release ceremony
+   that lists only its family's gates meets them at the push — and a red one AFTER the re-key invalidates the
+   re-key: the four instances of 2026-10-19 (`SV-CORPUS-GRAD.13c.2v.20`, `SVPP-EXPANSION.6i`, `DONE-BAR.5h`,
+   `DONE-BAR.5i`) each cost a ≈5 h mirror re-run, and the first a second full re-key. The knowledge card is
+   `docs/knowledge/a-ceremony-that-lists-its-family-gates-misses-a-gate-that-reads-the-grammar.md`.
 3. **Pins**: `python3 stimuli/sv/run_adjudication_repros.py` → `failures=0`, with every
    `class=defect` row flipped to `fixed` the day it parses.
 4. **Corpus, all three lanes, per path and two-sided**: `stimuli/run_external_corpus.sh sv 60 8 0`,
