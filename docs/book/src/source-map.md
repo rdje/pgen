@@ -78,6 +78,7 @@ This chapter maps the current authoritative docs into the book structure so futu
 - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`
+- `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md` (DRAFT — the preprocessing service: the expander over the svpp AST, `SVPP-EXPANSION.9`)
 - `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`

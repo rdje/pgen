@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c42604d0.js";
+            window.path_to_searchindex_js = "searchindex-61d61585.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b48efc63.js"></script>
+        <script src="toc-c629bd36.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -294,6 +294,15 @@ pub struct ParserEmbeddingApiContract {
 }
 <span class="boring">}</span></code></pre>
 <p>Embedders should check this at startup and refuse to operate (or fall back gracefully) if the sv_preprocessor backend is unavailable.</p>
+<h2 id="preprocessing-expansion-is-a-separate-service"><a class="header" href="#preprocessing-expansion-is-a-separate-service">Preprocessing (expansion) is a separate service</a></h2>
+<p>The entry points above return the <strong>directive AST</strong>. A consumer that wants the <strong>preprocessed text</strong> — directives
+executed, macros substituted, includes resolved, with a source map, an event stream and coded diagnostics — uses the
+expander, which today is reachable in-process through the engine’s neutral stage socket
+(<code>pgen::preprocessing_stage::stage_for("systemverilog")</code> → <code>execute(&amp;StageRequest)</code> → <code>Vec&lt;StageOutput&gt;</code>) and as a tool
+(<code>ast_pipeline INPUT --preprocess systemverilog --output OUT …</code>). Its typed Rust API, its file provider and the probe’s
+emit flag are <code>SVPP-EXPANSION.9.2</code>; the expander over this family’s AST is <code>.9.3</code>. The chapter
+<a href="preprocessing-service.html">Preprocessing as a Service</a> shows the three consumption modes; the draft contract is
+<code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md</code>.</p>
 <h2 id="source-pointer"><a class="header" href="#source-pointer">Source pointer</a></h2>
 <p>The authoritative source for the public API is <code>rust/src/embedding_api.rs</code>. The contract document <code>rust/docs/EMBEDDING_API_CONTRACT.md</code> describes the stability policy in full.</p>
 
@@ -305,7 +314,7 @@ pub struct ParserEmbeddingApiContract {
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="ast-envelope.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="preprocessing-service.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -319,7 +328,7 @@ pub struct ParserEmbeddingApiContract {
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="ast-envelope.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="preprocessing-service.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

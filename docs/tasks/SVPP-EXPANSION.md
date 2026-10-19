@@ -266,6 +266,7 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 | — | `.6h` | ✅ `done` | `PGEN-SVPP-EXPANSION-0048`: the `.6f` scan tested only an identifier or a macro-string successor — a backtick before a line end, white space, the end of the text, a digit or punctuation reached the parser as an opaque line, and an escaped identifier's bytes were scanned one by one (`` \a`b `` refused as a usage of `b`); now refused with §22.2 / Syntax 22-3, stepped over by §5.6.1, and `` `\name `` looked up by name; ZERO corpus movers on the three readings (the expanded-text census over all 16 336 rows predicted it) |
 | — | `.6i` | ✅ `done` | `PGEN-SV-CORPUS-GRAD-0466`: the `.6g` contract tier missed the BOUNDED cross-family contract — the push mirror's SV stimuli-quality stage died silently (an absent key read by `jq -e` under `set -e`) since 2026-10-08; the key added (`keep`); the silent refusal owed as `.6i`(b) |
 | ⏳ | `.9` | `todo` (DESIGN; opened 2026-10-19 by director direction, `PGEN-SV-CORPUS-GRAD-0468`) | the downstream PREPROCESSING contract: an EXPANDER over the svpp AST (in-process, in-memory file provider, and a tool), three consumption modes (AST only / PGEN expands / intercept), the SV front end on the same engine — supersedes the 2026-09-09 steer; `.9.1` contract draft, `.9.2` the Rust API over the existing stage, `.9.3` the expander over the AST, `.9.4` the SV front end on it |
+| ✅ | `.9.1` | `done` 2026-10-19 (`PGEN-SV-CORPUS-GRAD-0470`; docs only) | the preprocessing-service contract DRAFTED (`docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md`, `0.1`: identity as the service register's five columns; three consumption modes; surfaces tagged LIVE / CONTRACTED FOR `.9.2` / `.9.3`; the context; the five outputs at schema `1` with the event kinds and diagnostic codes enumerated; versioning rules; the harness; the two open director questions) and the svpp book chapter `preprocessing-service.md` with its glossary terms; wired into the contracts index, the main book and the svpp contract; the `.9` "no published way" measurement corrected (the stage socket is reachable, uncontracted) |
 | — | `.5`(s) | ✅ `done` | `PGEN-SVPP-EXPANSION-0043`: macro text that leaves a plain STRING LITERAL open at its end is refused naming §22.5.1 (*"shall not be split across … String literals"*, the standard's own `first_half` example, `docs/systemverilog/2017/md/section-22-compiler-directives.md:275-281, :295-297`); the scan is the stage's own (comments, `` `"…`" `` and `\"` honoured); numbers / identifiers / keywords / operators cut at the text's end are NOT judged (a stated bound). sv-tests `_21` `pass → pp_fail` (now `must_reject:refused_engine`). Section below |
 | — | `.5`(t) | ✅ `done` | `PGEN-SVPP-EXPANSION-0043`: a compiler directive cannot be redefined as a macro name AND is a defined name to the conditionals (§22.5.1 *"All compiler directives shall be considered predefined macro names; it shall be illegal to redefine …"*, `docs/systemverilog/2017/md/section-22-compiler-directives.md:139-140`); the set is the edition's own (1364-2005's nineteen; + `undefineall`, `__FILE__`, `__LINE__` under 1800); the first GREEN caught the `` `ifndef `` arm testing presence by itself (ispras `22.13_01.sv`'s guard). sv-tests `_23`, verilator `t_pp_defkwd_bad.v`, sv2v `macro_illegal_name.sv` `pass → pp_fail`, Surelog `TestMacros.v` `fail → pp_fail`. Section below |
 | — | `.5`(u) | ✅ `done` (rode with (s)) | `PGEN-SVPP-EXPANSION-0043`: a backslash-newline INSIDE a string literal of the macro text omits both characters under the 2023 reading (1800-2023 §22.5.1 `docs/systemverilog/2023/md/section-22-compiler-directives.md:182-184`) and becomes a newline under 2017 (a two-line literal the parser rejects); found when a control pin of (s) I had written wrong REJECTED on every profile. Edition twin pins. Section below |
@@ -2679,6 +2680,32 @@ Under a director challenge it was measured and then PROVEN instead:
 API over the EXISTING stage (publish `PreprocessedOutput`, the file provider, `--emit-preprocessed`) — a consumer gets
 text today, before the re-foundation; `.9.3` the expander over the AST (the re-foundation), measured by the harness
 above; `.9.4` the SV front end on the expander; the (w) – (ac) findings are closed by `.9.3`'s reading, each measured.
+
+### `.9.1` the contract draft and the book chapter — ✅ done 2026-10-19 (`PGEN-SV-CORPUS-GRAD-0470`; docs only)
+
+- **Delivered**: `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md` (DRAFT `0.1`) — the service
+  register's five columns as the identity block; the two layers and the one boundary; the three consumption modes;
+  the surfaces, each tagged LIVE (re-verifiable by a command) or CONTRACTED FOR `.9.2` / `.9.3`; the context as a
+  table of six members with their live spellings; the five outputs at schema `1` with the 14 event kinds and the 16
+  diagnostic codes enumerated from the code; the semantics a consumer may rely on, deferring to the SV contract's
+  front-end section rather than restating it; the honest boundary ((w) – (ac) as expected movers, the missing emit
+  flag / provider / typed refusal / chain); versioning rules; the acceptance harness; the two open director questions;
+  companion documentation with precedence. The svpp book gained the chapter `preprocessing-service.md` (terms defined
+  proactively: expander, context, file provider, consumption mode, schema axis), four glossary entries, a quickstart
+  step (4c), a `public-api.md` section and a `welcome.md` pointer; the main book's contracts lists, the parser-family
+  page, the source map and the embedding chapter's compiler section point at it; the contracts index carries its row;
+  the svpp contract's scope, stable-surface and companion-table entries name it.
+- **A measurement corrected on the way**: the `.9` opening text above says *"⛔ No published way for a downstream project
+  to obtain `PreprocessedOutput`"*. Measured for the draft: the neutral stage socket IS reachable in-process today
+  (`pgen::preprocessing_stage::stage_for("systemverilog")` → `execute(&StageRequest)` → `Vec<StageOutput>`, the five
+  outputs by their serde names) and the tool form emits all five files; what was missing is a CONTRACT for that path, a
+  typed API with a published output type, the file provider and the probe's emit flag — which is exactly `.9.2`'s list.
+  The contract says so, tagged LIVE, with the re-verify command.
+- **Verification**: the svpp book gate (`make -C rust SHELL=/bin/bash systemverilog_preprocessor_parser_book_gate`) and
+  `scripts/check_doctrines.sh` green on the committed tree (the commit's log); no Rust, grammar or generated byte moved.
+- **Next**: `.9.2` — the typed Rust API over the existing stage (`preprocess` / `preprocess_str`, `FileProvider`,
+  `PreprocessRefusal`), `--emit-preprocessed [--emit-source-map]` on the probe, the schema version on the JSON carrier,
+  the currency gate that lifts this contract to `1.0` — behind the push.
 
 ## Acceptance Checklist (enforced)
 

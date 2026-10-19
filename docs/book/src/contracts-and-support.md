@@ -23,6 +23,7 @@ They define:
 - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`
+- `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md` (DRAFT, 2026-10-19 — the preprocessing SERVICE: the expander over the svpp AST, in-process and as a tool; the first row of the PGEN service register, `PGEN-SERVICES`)
 - `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`

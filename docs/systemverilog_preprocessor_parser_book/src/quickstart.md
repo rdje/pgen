@@ -89,6 +89,21 @@ rust/target/release/parseability_probe --parse systemverilog_preprocessor top.sv
 On the generated parser, `set_grammar_profile(Some("sv_2023"))`; `None` restores the default. Hand this parser the
 profile you hand the SystemVerilog parser. See [Editions and Profiles](profiles.md).
 
+## 4c. Get preprocessed text instead of (or as well as) the directive AST
+
+If your project needs clause 22 **applied** — the text a SystemVerilog parser reads — do not expand the AST yourself
+unless you want to: the expander is PGEN's, the same one its SystemVerilog parser's front end uses. As a tool:
+
+```bash
+ast_pipeline INPUT.sv --preprocess systemverilog --profile sv_2017 \
+  --include-dir include --symbol SYNTHESIS --symbol WIDTH=8 \
+  --output OUT.sv --source-map-json MAP.json --event-log-json EVENTS.json --diagnostics-json DIAG.json
+```
+
+In-process, through `pgen::preprocessing_stage::stage_for("systemverilog")` (one `StageOutput` per unit file). The
+chapter [Preprocessing as a Service](preprocessing-service.md) defines the context, the five outputs and the three
+consumption modes, and says which parts are live today and which land under `SVPP-EXPANSION.9.2` – `.9.4`.
+
 ## 5. Track the contract version
 
 Pin your downstream code to the parser-release version recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" (currently `1.0.9`, AST-dump schema `7`). When you bump to a new PGEN version, scan the [Changelog Index](changelog-index.md) for shape-change rows that affect the directives you consume (e.g. the `1.0.2` `SVPP-0001` fix changed `pp_if_branch.keyword` to `{kind: "ifdef"|"ifndef"}`; the `1.0.3` POST-SV-AUDIT fix changed `pp_define.formals` from the raw `{first, rest}` envelope to a clean `macro_formal[]` list; the `1.0.5` schema-`4` fix made a `condition_atom` "text" `body` a flat string; the `1.0.7` `SVPP-0004` schema-`5` fix restructured macro-default shapes; the `1.0.8` schema-`6` release added eight `pp_item` kinds and corrected the continued-define, object-like-macro and string-in-macro-text trees).

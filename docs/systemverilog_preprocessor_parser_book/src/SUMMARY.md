@@ -12,6 +12,7 @@
 - [Editions and Profiles](profiles.md)
 - [Build Recipe](build-recipe.md)
 - [Public API Surface](public-api.md)
+- [Preprocessing as a Service — the Expander over the svpp AST](preprocessing-service.md)
 
 # AST Reference
 

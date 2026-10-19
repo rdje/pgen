@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c42604d0.js";
+            window.path_to_searchindex_js = "searchindex-61d61585.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b48efc63.js"></script>
+        <script src="toc-c629bd36.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -182,7 +182,7 @@
 <p>This book is the <strong>canonical AST reference</strong> for downstream consumers of PGEN’s <code>systemverilog_preprocessor</code> parser family. The preprocessor parser handles directive parsing — every IEEE 1800 clause-22 directive since release <code>1.0.8</code> (<code>define</code>, <code>undef</code>, <code>undefineall</code>, <code>include</code> with a quoted, angle-bracketed or macro path, <code>ifdef</code>/<code>ifndef</code>/<code>elsif</code>/<code>else</code>/<code>endif</code>, <code>timescale</code>, <code>default_nettype</code>, <code>celldefine</code>/<code>endcelldefine</code>, <code>resetall</code>, <code>unconnected_drive</code>/<code>nounconnected_drive</code>, <code>pragma</code>, <code>line</code>, <code>begin_keywords</code>/<code>end_keywords</code>) — conditional-compilation blocks, macro definitions (formals, defaults, bodies with token-paste, stringize, the <code>`\`"</code> escape and backslash-newline continuation), and the passthrough text shape, including a line that opens with a macro usage.</p>
 <h2 id="what-this-book-covers"><a class="header" href="#what-this-book-covers">What this book covers</a></h2>
 <ul>
-<li><strong>Build and integration.</strong> See <a href="#build-recipe">Build Recipe</a>, <a href="#public-api-surface">Public API Surface</a>.</li>
+<li><strong>Build and integration.</strong> See <a href="#build-recipe">Build Recipe</a>, <a href="#public-api-surface">Public API Surface</a>, and — for a project that wants the PREPROCESSED text rather than the directive AST — <a href="#preprocessing-as-a-service--the-expander-over-the-svpp-ast">Preprocessing as a Service</a> (the expander over this family’s AST, in-process and as a tool; draft contract <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md</code>).</li>
 <li><strong>AST envelope and walking conventions.</strong> See <a href="#ast-envelope-structure">AST Envelope Structure</a>, <a href="#walking-the-ast">Walking the AST</a>.</li>
 <li><strong>Per-rule typed shapes.</strong> See <a href="#top-level-rules">Per-Rule Shape Reference</a>. The grammar (<code>grammars/systemverilog_preprocessor.ebnf</code>) carries <strong>112 typed annotations</strong> over 60 rules (release <code>1.0.9</code>) covering the pp_item dispatch (18 kinds), per-directive shapes (15), conditional branches (5), and the condition / macro-default / macro-body fragment shapes (12, 7 plus the balanced group, 11 kinds).</li>
 <li><strong>Worked examples</strong>: <a href="#worked-example-single-define">Single Define</a>, <a href="#worked-example-conditional-compilation">Conditional Compilation</a>, <a href="#worked-example-clause-22-directives-a-macro-usage-line-a-continued-define">Clause-22 Directives, a Macro-Usage Line, a Continued Define</a>, <a href="#worked-example-groups-comments-and-lines-that-do-not-parse">Groups, Comments and Lines That Do Not Parse</a>. Since release <code>1.0.9</code> the parser reads each IEEE edition through a PROFILE — see <a href="#editions-and-profiles">Editions and Profiles</a>.</li>
@@ -500,6 +500,16 @@ rust/target/release/parseability_probe --parse systemverilog_preprocessor top.sv
 </code></pre>
 <p>On the generated parser, <code>set_grammar_profile(Some("sv_2023"))</code>; <code>None</code> restores the default. Hand this parser the
 profile you hand the SystemVerilog parser. See <a href="#editions-and-profiles">Editions and Profiles</a>.</p>
+<h2 id="4c-get-preprocessed-text-instead-of-or-as-well-as-the-directive-ast"><a class="header" href="#4c-get-preprocessed-text-instead-of-or-as-well-as-the-directive-ast">4c. Get preprocessed text instead of (or as well as) the directive AST</a></h2>
+<p>If your project needs clause 22 <strong>applied</strong> — the text a SystemVerilog parser reads — do not expand the AST yourself
+unless you want to: the expander is PGEN’s, the same one its SystemVerilog parser’s front end uses. As a tool:</p>
+<pre><code class="language-bash">ast_pipeline INPUT.sv --preprocess systemverilog --profile sv_2017 \
+  --include-dir include --symbol SYNTHESIS --symbol WIDTH=8 \
+  --output OUT.sv --source-map-json MAP.json --event-log-json EVENTS.json --diagnostics-json DIAG.json
+</code></pre>
+<p>In-process, through <code>pgen::preprocessing_stage::stage_for("systemverilog")</code> (one <code>StageOutput</code> per unit file). The
+chapter <a href="#preprocessing-as-a-service--the-expander-over-the-svpp-ast">Preprocessing as a Service</a> defines the context, the five outputs and the three
+consumption modes, and says which parts are live today and which land under <code>SVPP-EXPANSION.9.2</code> – <code>.9.4</code>.</p>
 <h2 id="5-track-the-contract-version"><a class="header" href="#5-track-the-contract-version">5. Track the contract version</a></h2>
 <p>Pin your downstream code to the parser-release version recorded in <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” (currently <code>1.0.9</code>, AST-dump schema <code>7</code>). When you bump to a new PGEN version, scan the <a href="#changelog-index">Changelog Index</a> for shape-change rows that affect the directives you consume (e.g. the <code>1.0.2</code> <code>SVPP-0001</code> fix changed <code>pp_if_branch.keyword</code> to <code>{kind: "ifdef"|"ifndef"}</code>; the <code>1.0.3</code> POST-SV-AUDIT fix changed <code>pp_define.formals</code> from the raw <code>{first, rest}</code> envelope to a clean <code>macro_formal[]</code> list; the <code>1.0.5</code> schema-<code>4</code> fix made a <code>condition_atom</code> “text” <code>body</code> a flat string; the <code>1.0.7</code> <code>SVPP-0004</code> schema-<code>5</code> fix restructured macro-default shapes; the <code>1.0.8</code> schema-<code>6</code> release added eight <code>pp_item</code> kinds and corrected the continued-define, object-like-macro and string-in-macro-text trees).</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -737,8 +747,139 @@ pub struct ParserEmbeddingApiContract {
 }
 <span class="boring">}</span></code></pre>
 <p>Embedders should check this at startup and refuse to operate (or fall back gracefully) if the sv_preprocessor backend is unavailable.</p>
+<h2 id="preprocessing-expansion-is-a-separate-service"><a class="header" href="#preprocessing-expansion-is-a-separate-service">Preprocessing (expansion) is a separate service</a></h2>
+<p>The entry points above return the <strong>directive AST</strong>. A consumer that wants the <strong>preprocessed text</strong> — directives
+executed, macros substituted, includes resolved, with a source map, an event stream and coded diagnostics — uses the
+expander, which today is reachable in-process through the engine’s neutral stage socket
+(<code>pgen::preprocessing_stage::stage_for("systemverilog")</code> → <code>execute(&amp;StageRequest)</code> → <code>Vec&lt;StageOutput&gt;</code>) and as a tool
+(<code>ast_pipeline INPUT --preprocess systemverilog --output OUT …</code>). Its typed Rust API, its file provider and the probe’s
+emit flag are <code>SVPP-EXPANSION.9.2</code>; the expander over this family’s AST is <code>.9.3</code>. The chapter
+<a href="#preprocessing-as-a-service--the-expander-over-the-svpp-ast">Preprocessing as a Service</a> shows the three consumption modes; the draft contract is
+<code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md</code>.</p>
 <h2 id="source-pointer"><a class="header" href="#source-pointer">Source pointer</a></h2>
 <p>The authoritative source for the public API is <code>rust/src/embedding_api.rs</code>. The contract document <code>rust/docs/EMBEDDING_API_CONTRACT.md</code> describes the stability policy in full.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="preprocessing-as-a-service--the-expander-over-the-svpp-ast"><a class="header" href="#preprocessing-as-a-service--the-expander-over-the-svpp-ast">Preprocessing as a Service — the Expander over the svpp AST</a></h1>
+<blockquote>
+<p><strong>Status (2026-10-19): DRAFT contract, <code>SVPP-EXPANSION.9.1</code>.</strong> This chapter describes a service whose contract is
+drafted (<code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md</code>) and whose surfaces land in three
+measured steps (<code>.9.2</code> – <code>.9.4</code>). Every paragraph below says which of its statements is <strong>live today</strong> and which is
+<strong>contracted for</strong> a named step. Nothing here is a promise without a step.</p>
+</blockquote>
+<h2 id="why-this-chapter-exists"><a class="header" href="#why-this-chapter-exists">Why this chapter exists</a></h2>
+<p>The <code>systemverilog_preprocessor</code> parser (svpp) reads IEEE 1800 clause-22 <strong>directives</strong> into an AST. It does not execute
+them: it decides nothing about which conditional groups are live, substitutes no macro, resolves no <code>`include</code>. A
+downstream project whose goal is <em>“give me the preprocessed SystemVerilog, so I can work on that”</em> therefore needs a
+second thing, the <strong>expander</strong>, and until 2026-10-19 PGEN offered it only as the SystemVerilog parser’s own front end,
+reachable through one CLI and never emitting the text. The director’s direction of 2026-10-19 (recorded verbatim in
+<code>docs/decisions/project_svpp_expansion_is_a_service_over_the_svpp_ast.md</code>) makes the expander a <strong>service</strong>: usable
+in-process and in-memory, usable as a tool, consuming svpp’s AST, and used by PGEN’s own SystemVerilog parser — one
+engine, so a downstream project receives exactly what PGEN’s parser consumed.</p>
+<h2 id="terms"><a class="header" href="#terms">Terms</a></h2>
+<ul>
+<li><strong>svpp</strong> — the <code>systemverilog_preprocessor</code> parser family: text → the directive AST (<code>pp_item</code>s). Release <code>1.0.9</code>,
+AST-dump schema <code>7</code>. Layer 1.</li>
+<li><strong>The expander</strong> — the service that takes the svpp AST plus a <strong>context</strong> and produces the <strong>preprocessed output</strong>.
+Layer 2. Today its substantive logic lives in <code>rust/src/families/systemverilog/preprocessor.rs</code> as a hand-written
+directive scanner (the <em>expansion stage</em>); <code>.9.3</code> re-points that logic at the AST.</li>
+<li><strong>The context</strong> — a value, never an implicit filesystem: the edition profile, the predefined macros, the include
+search directories, the compilation unit’s earlier files, the declared policy options, and (from <code>.9.2</code>) a <strong>file
+provider</strong> that answers <em>path → bytes</em>, whose default reads disk and whose in-memory implementation is the consumer’s.</li>
+<li><strong>The preprocessed output</strong> — five things: the expanded <code>text</code>; a <code>source_map</code> (every expanded byte range → the
+file, line and columns it came from); the <code>events</code> (one per directive outcome, each saying whether it fired in a
+live group); the <code>diagnostics</code> (coded, with severity); and the <code>included_files</code>.</li>
+<li><strong>A consumption mode</strong> — one of the three ways a project uses the service (next section). Each is first-class: none is
+the “real” one with the others as fallbacks.</li>
+<li><strong>Schema axis</strong> — the preprocessed output has its own schema version, independent of svpp’s AST-dump schema, so a
+change to one never silently changes the other.</li>
+</ul>
+<h2 id="the-three-consumption-modes"><a class="header" href="#the-three-consumption-modes">The three consumption modes</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Mode</th><th>What the consumer gets</th><th>What the consumer does</th><th>Live today?</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>AST only</strong></td><td>svpp’s directive AST</td><td>expands itself, or never expands (a linter that must see both arms of a conditional; an editor)</td><td><strong>Yes</strong> — the embedding API’s generic parse / AST-dump entry points with grammar <code>systemverilog_preprocessor</code> and an edition profile (see <a href="#public-api-surface">Public API Surface</a>).</td></tr>
+<tr><td><strong>PGEN expands</strong></td><td>the preprocessed output</td><td>compiles against the text and the source map</td><td><strong>Yes, in-process and as a CLI tool</strong> (below); the typed Rust API with a published output type and an emit flag on the probe are <code>.9.2</code>.</td></tr>
+<tr><td><strong>Intercept</strong></td><td>the AST, then the output</td><td>walks or edits the AST (injects a define, serves an include from its own store), then hands it to the expander</td><td><strong>Contracted for <code>.9.3</code></strong> (the expander over the AST). Today’s nearest: predefined macros (<code>--symbol</code>) and include directories are context, not AST edits.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="pgen-expands--what-works-today"><a class="header" href="#pgen-expands--what-works-today">PGEN expands — what works today</a></h2>
+<p>As a tool, the expansion alone, with every output as a file:</p>
+<pre><code class="language-bash">ast_pipeline INPUT.sv --preprocess systemverilog \
+  [--profile sv_2017|sv_2023|verilog_2005] \
+  [--include-dir DIR]... [--symbol NAME[=VALUE]]... [--unit-file FILE]... [--stage-opt KEY=VALUE]... \
+  --output OUT.sv --source-map-json MAP.json --event-log-json EVENTS.json --diagnostics-json DIAG.json
+</code></pre>
+<p>Expand-then-parse in one process (the SystemVerilog parser’s front end; exit <code>3</code> = the expander refused, <code>1</code> = the parser
+rejected the expanded text, <code>0</code> = accepted). It does <strong>not</strong> emit the text — that flag is <code>.9.2</code>’s <code>--emit-preprocessed</code>:</p>
+<pre><code class="language-bash">parseability_probe --parse systemverilog INPUT.sv --profile sv_2017 --preprocess [the same context flags]
+</code></pre>
+<p>In-process, through the engine’s neutral stage socket (one output per file of the unit, in order; <code>Err</code> is a refusal):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::preprocessing_stage::{stage_for, StageRequest};
+
+let stage = stage_for("systemverilog").expect("the SystemVerilog family declares a preprocessing stage");
+let request = StageRequest {
+    unit: vec!["pkg.sv".into(), "top.sv".into()],   // earlier files first; macro tables carry forward (§22.5.1)
+    include_dirs: vec!["include".into()],
+    symbols: vec!["SYNTHESIS".into(), "WIDTH=8".into()],
+    parse_profile: Some("sv_2017".into()),
+    options: vec![("undefined_macro_policy".into(), "error".into())],
+};
+let outputs = stage.execute(&amp;request)?;           // Vec&lt;StageOutput&gt;
+let top = &amp;outputs[1];
+let origin = top.origin_of_position(1234);        // Option&lt;&amp;SourceLocation&gt; — the file/line/columns of expanded byte 1234
+<span class="boring">}</span></code></pre>
+<p>The declared option keys (<code>ast_pipeline --preprocess systemverilog --list-stage-options &lt;file&gt;</code> prints them with their
+defaults) are the contract’s: <code>include_max_depth</code>, <code>include_path_policy</code>, <code>macro_redefine_policy</code>,
+<code>conditional_symbol_policy</code>, <code>conditional_expr_policy</code>, <code>plain_string_substitution</code>, <code>strict_warning_codes</code>,
+<code>undefined_macro_policy</code>. An undeclared key is refused by name.</p>
+<h2 id="what-the-output-means"><a class="header" href="#what-the-output-means">What the output means</a></h2>
+<ul>
+<li><strong><code>text</code></strong> — the expanded compilation-unit file. Under the default <code>undefined_macro_policy=error</code>, no backtick survives
+outside a comment or a string: an undefined macro, a function-like macro without its actuals, a stray macro-string token
+or an unknown directive is a refusal with its clause, so the text handed to a parser never carries a directive it would
+silently accept. <code>keep</code> is the passthrough for a consumer that resolves the rest itself.</li>
+<li><strong><code>source_map</code></strong> — entries <code>{output_start, output_end, source: {file, line, column_start, column_end}}</code>, sorted by
+<code>output_start</code>; <code>origin_of_position</code> is the binary search a diagnostic needs. Inside a <code>`begin_keywords</code> region a
+token the profile reserves and the region does not is emitted as an <em>escaped identifier</em>, and the map points back to
+the unescaped bytes the author wrote. <strong>Contracted for <code>.9.3</code> (schema <code>2</code>)</strong>: each entry also carries the
+<strong>macro-expansion chain</strong> (<code>M at f.sv:12</code> → <code>N at g.svh:3</code>), so a downstream message can read <em>“in the expansion of
+<code>M</code> at f.sv:12”</em>.</li>
+<li><strong><code>events</code></strong> — one per directive outcome: <code>define</code>, <code>undef</code>, <code>include</code>, <code>ifdef</code>, <code>ifndef</code>, <code>elsif</code>, <code>else</code>, <code>endif</code>,
+<code>passthrough_line</code>, <code>skipped_line</code>, <code>macro_expand</code>, <code>line_directive</code>, <code>protected_envelope</code>, <code>keywords_region</code>; each
+with <code>file</code>, <code>line</code>, <code>active</code> (did it fire in a live group) and a <code>detail</code>. Coverage and lint tools ask this stream
+first: <em>which groups were live for this compilation.</em></li>
+<li><strong><code>diagnostics</code></strong> — <code>{code, severity, file, line, message, detail}</code>; <code>severity</code> is <code>warning</code> or <code>error</code>. The codes are
+listed in the contract; <code>strict_warning_codes=all|none|CODE[,CODE…]</code> promotes warnings to errors.</li>
+<li><strong><code>included_files</code></strong> — every file the expansion read, in order of first inclusion.</li>
+</ul>
+<h2 id="one-engine-and-what-it-buys"><a class="header" href="#one-engine-and-what-it-buys">One engine, and what it buys</a></h2>
+<p>PGEN’s SystemVerilog parser does not use a different preprocessor behind the scenes: its <code>--preprocess</code> front end and
+the service are the same code. Today that code is the hand-written stage; after <code>.9.3</code> it is the expander over svpp’s
+AST, and the SystemVerilog front end runs on it (<code>.9.4</code>). The consequence a downstream project relies on: the text and
+the verdict it receives are the ones PGEN’s own corpus lanes measure
+(<code>docs/systemverilog_parser_book/src/preprocess-parse-pipeline.md</code>), and a disagreement between the directive parser and
+the expander — the class <code>SVPP-EXPANSION.5</code>(w) – (ac) names today — closes structurally rather than ticket by ticket.</p>
+<h2 id="what-is-not-yet-true-said-plainly"><a class="header" href="#what-is-not-yet-true-said-plainly">What is not yet true, said plainly</a></h2>
+<ul>
+<li>The probe parses the expanded text and does not emit it; <code>--emit-preprocessed</code> is <code>.9.2</code>.</li>
+<li>The in-process surface is the neutral stage socket above; a typed <code>preprocess(…)</code> / <code>expand(…)</code> pair with a published
+output type and a file provider is <code>.9.2</code>; the by-name/JSON form is a director question (whether it ships with <code>.9.2</code>).</li>
+<li>The expander does not yet read svpp’s AST; the divergences between the two readers are the ledgered rows
+<code>SVPP-EXPANSION.5</code>(w) – (ac), each adjudicated with its clause and expected to move under <code>.9.3</code>’s reading.</li>
+<li>The source map has no expansion chain yet (schema <code>1</code>); schema <code>2</code> adds it.</li>
+</ul>
+<h2 id="where-the-authority-is"><a class="header" href="#where-the-authority-is">Where the authority is</a></h2>
+<p>The contract <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md</code> is authoritative for the service’s
+surfaces, context, outputs and stability axes; the SystemVerilog integration contract’s <em>“Front End — the
+preprocess→parse pipeline”</em> section stays authoritative for the pipeline command’s verdict semantics and the corpus lane
+that derives its context; this family’s contract stays authoritative for the directive AST. Report a disagreement as a
+documentation bug rather than code to the lower-precedence surface.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="ast-envelope-structure"><a class="header" href="#ast-envelope-structure">AST Envelope Structure</a></h1>
 <p>The PGEN sv_preprocessor parser produces a JSON AST through <code>parse_grammar_profile_ast_dump_named</code> (grammar <code>"systemverilog_preprocessor"</code>). This chapter documents the top-level structure of that JSON.</p>
@@ -2816,6 +2957,14 @@ the error is the expansion stage’s or SystemVerilog’s, not the directive str
 <p>A value reached through an un-annotated rule surfaces as that rule’s <strong>recursive envelope</strong>, not a bare JSON string. The text is nested inside the envelope, reached by walking to the terminal — for an identifier or text run this is typically <code>[ &lt;trivia-prefix&gt;, "&lt;text&gt;" ]</code>, with the text at index <code>[1]</code>. Do <strong>not</strong> assume any identifier-valued or text-valued field (<code>pp_define.name</code>, <code>pp_if_branch.macro</code>, every <code>"text"</code> atom’s <code>body</code>, <code>time_literal.value</code> / <code>.unit</code>, the <code>*_comment</code> / <code>tail</code> fields) is a scalar string: in the <a href="#worked-example-single-define">single-define worked example</a>, <code>pp_define.name</code> is <code>[ [ " " ], "FOO" ]</code>, not the string <code>"FOO"</code>. The robust consumer rule is to walk to the terminal string rather than indexing a fixed depth. See <a href="#the-json-carrier">The Json Carrier</a> and <a href="#walking-the-ast">Walking the AST</a>.</p>
 <h2 id="svpp-slice-1"><a class="header" href="#svpp-slice-1">SVPP-Slice-1</a></h2>
 <p>The single comprehensive typing slice (landed 2026-05-14, parser release <code>1.0.1</code>, schema version <code>1</code>) that typed the entire <code>grammars/systemverilog_preprocessor.ebnf</code> directive surface at once — the <code>systemverilog_preprocessor_file</code> root; the 10-kind <code>pp_item</code> dispatch; the 7 per-directive shapes (<code>define</code> / <code>undef</code> / <code>include</code> / <code>timescale</code> / <code>default_nettype</code> / <code>celldefine</code> / <code>endcelldefine</code>); <code>include_path</code> / <code>nettype_value</code> / <code>time_literal</code>; the 5-node conditional-compilation tree; <code>condition_expr</code> / <code>condition_atom</code> (12 kinds); <code>macro_formals</code> / <code>macro_formal</code> / <code>macro_default_value</code> / <code>macro_default_atom</code> (8 kinds); <code>macro_body</code> / <code>macro_body_fragment</code> (9 kinds); and the passthrough lines — <strong>64 return annotations across 27 distinct rules</strong>, on top of the pre-typing baseline of one root annotation. Unlike the main SystemVerilog and regex parsers, whose return annotations were added rule-by-rule over a long per-slice campaign (each slice bumping the schema version), sv_preprocessor was typed in one pass. The slice shipped one annotation defect, <code>SVPP-0001</code> (above) — <strong>since fixed in parser release <code>1.0.2</code> / schema <code>2</code></strong>, which lifted the inline <code>(kw_ifdef | kw_ifndef)</code> alternation into the named <code>pp_if_keyword</code> rule and took the surface to 66 annotations / 28 distinct rules. A subsequent POST-SV-AUDIT Category-A correction (parser release <code>1.0.3</code> / schema <code>3</code>, <code>PGEN-POST-SV-AUDIT-0002</code>) then corrected <code>macro_formals</code> from the raw <code>{first, rest}</code> envelope to the clean <code>[$2, $3::2*]</code> flat list (count unchanged at 66 / 28; only that rule’s annotation form changed <code>return_object</code> → <code>return_array</code>). This batch-plus-two-fix history is why the sv_preprocessor <a href="#changelog-index">Changelog Index</a> and <a href="#schema-versioning">Schema Versioning</a> timeline are short by design. Subsequent shape-affecting slices, if any, each get their own contract row and changelog entry.</p>
+<h2 id="expander-the-preprocessing-service"><a class="header" href="#expander-the-preprocessing-service">Expander (the preprocessing service)</a></h2>
+<p>The second layer over this family’s AST: it takes the directive AST plus a <strong>context</strong> (edition profile, predefined macros, include directories, the unit’s earlier files, the declared policy options, and — from <code>SVPP-EXPANSION.9.2</code> — a file provider) and produces the <strong>preprocessed output</strong> (<code>text</code>, <code>source_map</code>, <code>events</code>, <code>diagnostics</code>, <code>included_files</code>). Today its logic is the hand-written expansion stage in <code>rust/src/families/systemverilog/preprocessor.rs</code>; <code>SVPP-EXPANSION.9.3</code> re-points it at this AST. Contract: <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md</code>; chapter: <a href="#preprocessing-as-a-service--the-expander-over-the-svpp-ast">Preprocessing as a Service</a>.</p>
+<h2 id="consumption-mode"><a class="header" href="#consumption-mode">Consumption mode</a></h2>
+<p>One of the three first-class ways a downstream project uses this family together with the expander: <strong>AST only</strong> (the project expands itself or never expands), <strong>PGEN expands</strong> (the project compiles against the preprocessed output), <strong>intercept</strong> (the project edits the AST — injects a define, serves an include from its own store — and hands it to the expander). The first two are live; the third is contracted for <code>SVPP-EXPANSION.9.3</code>.</p>
+<h2 id="file-provider"><a class="header" href="#file-provider">File provider</a></h2>
+<p>The context member that answers <em>path → bytes</em> for an <code>`include</code> and for the unit’s files. Its default reads the disk; a consumer’s implementation serves memory, which is what makes the service usable in-process without a filesystem. Contracted for <code>SVPP-EXPANSION.9.2</code>.</p>
+<h2 id="preprocessed-output-schema"><a class="header" href="#preprocessed-output-schema">Preprocessed-output schema</a></h2>
+<p>The version axis of the expander’s output, independent of this family’s AST-dump schema: schema <code>1</code> is today’s five-field output; schema <code>2</code> (<code>SVPP-EXPANSION.9.3</code>) adds the macro-expansion chain to every source-map entry. A change to one axis never silently changes the other.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="changelog-index"><a class="header" href="#changelog-index">Changelog Index</a></h1>
 <p>This chapter is an index — pointers into the documents that carry the full changelog detail, plus the short list of releases relevant to this book. Use it to find what changed in a given release.</p>

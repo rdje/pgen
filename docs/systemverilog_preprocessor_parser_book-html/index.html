@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c42604d0.js";
+            window.path_to_searchindex_js = "searchindex-61d61585.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b48efc63.js"></script>
+        <script src="toc-c629bd36.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,7 +184,7 @@
 <p>This book is the <strong>canonical AST reference</strong> for downstream consumers of PGEN’s <code>systemverilog_preprocessor</code> parser family. The preprocessor parser handles directive parsing — every IEEE 1800 clause-22 directive since release <code>1.0.8</code> (<code>define</code>, <code>undef</code>, <code>undefineall</code>, <code>include</code> with a quoted, angle-bracketed or macro path, <code>ifdef</code>/<code>ifndef</code>/<code>elsif</code>/<code>else</code>/<code>endif</code>, <code>timescale</code>, <code>default_nettype</code>, <code>celldefine</code>/<code>endcelldefine</code>, <code>resetall</code>, <code>unconnected_drive</code>/<code>nounconnected_drive</code>, <code>pragma</code>, <code>line</code>, <code>begin_keywords</code>/<code>end_keywords</code>) — conditional-compilation blocks, macro definitions (formals, defaults, bodies with token-paste, stringize, the <code>`\`"</code> escape and backslash-newline continuation), and the passthrough text shape, including a line that opens with a macro usage.</p>
 <h2 id="what-this-book-covers"><a class="header" href="#what-this-book-covers">What this book covers</a></h2>
 <ul>
-<li><strong>Build and integration.</strong> See <a href="build-recipe.html">Build Recipe</a>, <a href="public-api.html">Public API Surface</a>.</li>
+<li><strong>Build and integration.</strong> See <a href="build-recipe.html">Build Recipe</a>, <a href="public-api.html">Public API Surface</a>, and — for a project that wants the PREPROCESSED text rather than the directive AST — <a href="preprocessing-service.html">Preprocessing as a Service</a> (the expander over this family’s AST, in-process and as a tool; draft contract <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md</code>).</li>
 <li><strong>AST envelope and walking conventions.</strong> See <a href="ast-envelope.html">AST Envelope Structure</a>, <a href="walking-the-ast.html">Walking the AST</a>.</li>
 <li><strong>Per-rule typed shapes.</strong> See <a href="rules-top-level.html">Per-Rule Shape Reference</a>. The grammar (<code>grammars/systemverilog_preprocessor.ebnf</code>) carries <strong>112 typed annotations</strong> over 60 rules (release <code>1.0.9</code>) covering the pp_item dispatch (18 kinds), per-directive shapes (15), conditional branches (5), and the condition / macro-default / macro-body fragment shapes (12, 7 plus the balanced group, 11 kinds).</li>
 <li><strong>Worked examples</strong>: <a href="examples-single-define.html">Single Define</a>, <a href="examples-conditional.html">Conditional Compilation</a>, <a href="examples-clause22.html">Clause-22 Directives, a Macro-Usage Line, a Continued Define</a>, <a href="examples-groups.html">Groups, Comments and Lines That Do Not Parse</a>. Since release <code>1.0.9</code> the parser reads each IEEE edition through a PROFILE — see <a href="profiles.html">Editions and Profiles</a>.</li>

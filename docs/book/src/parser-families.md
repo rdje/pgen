@@ -90,6 +90,7 @@ Primary sources:
 - **Per-parser books:** [PGEN SystemVerilog Parser — Integration Reference](../../systemverilog_parser_book/src/welcome.md) · [PGEN SystemVerilog Preprocessor Parser — Integration Reference](../../systemverilog_preprocessor_parser_book/src/welcome.md)
 - `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`
+- `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md` (DRAFT — the preprocessing service over the svpp AST)
 - `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
 
 ## Annotation Families

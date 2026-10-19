@@ -181,3 +181,19 @@ A value reached through an un-annotated rule surfaces as that rule's **recursive
 ## SVPP-Slice-1
 
 The single comprehensive typing slice (landed 2026-05-14, parser release `1.0.1`, schema version `1`) that typed the entire `grammars/systemverilog_preprocessor.ebnf` directive surface at once — the `systemverilog_preprocessor_file` root; the 10-kind `pp_item` dispatch; the 7 per-directive shapes (`define` / `undef` / `include` / `timescale` / `default_nettype` / `celldefine` / `endcelldefine`); `include_path` / `nettype_value` / `time_literal`; the 5-node conditional-compilation tree; `condition_expr` / `condition_atom` (12 kinds); `macro_formals` / `macro_formal` / `macro_default_value` / `macro_default_atom` (8 kinds); `macro_body` / `macro_body_fragment` (9 kinds); and the passthrough lines — **64 return annotations across 27 distinct rules**, on top of the pre-typing baseline of one root annotation. Unlike the main SystemVerilog and regex parsers, whose return annotations were added rule-by-rule over a long per-slice campaign (each slice bumping the schema version), sv_preprocessor was typed in one pass. The slice shipped one annotation defect, `SVPP-0001` (above) — **since fixed in parser release `1.0.2` / schema `2`**, which lifted the inline `(kw_ifdef | kw_ifndef)` alternation into the named `pp_if_keyword` rule and took the surface to 66 annotations / 28 distinct rules. A subsequent POST-SV-AUDIT Category-A correction (parser release `1.0.3` / schema `3`, `PGEN-POST-SV-AUDIT-0002`) then corrected `macro_formals` from the raw `{first, rest}` envelope to the clean `[$2, $3::2*]` flat list (count unchanged at 66 / 28; only that rule's annotation form changed `return_object` → `return_array`). This batch-plus-two-fix history is why the sv_preprocessor [Changelog Index](changelog-index.md) and [Schema Versioning](schema-versioning.md) timeline are short by design. Subsequent shape-affecting slices, if any, each get their own contract row and changelog entry.
+
+## Expander (the preprocessing service)
+
+The second layer over this family's AST: it takes the directive AST plus a **context** (edition profile, predefined macros, include directories, the unit's earlier files, the declared policy options, and — from `SVPP-EXPANSION.9.2` — a file provider) and produces the **preprocessed output** (`text`, `source_map`, `events`, `diagnostics`, `included_files`). Today its logic is the hand-written expansion stage in `rust/src/families/systemverilog/preprocessor.rs`; `SVPP-EXPANSION.9.3` re-points it at this AST. Contract: `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md`; chapter: [Preprocessing as a Service](preprocessing-service.md).
+
+## Consumption mode
+
+One of the three first-class ways a downstream project uses this family together with the expander: **AST only** (the project expands itself or never expands), **PGEN expands** (the project compiles against the preprocessed output), **intercept** (the project edits the AST — injects a define, serves an include from its own store — and hands it to the expander). The first two are live; the third is contracted for `SVPP-EXPANSION.9.3`.
+
+## File provider
+
+The context member that answers *path → bytes* for an `` `include `` and for the unit's files. Its default reads the disk; a consumer's implementation serves memory, which is what makes the service usable in-process without a filesystem. Contracted for `SVPP-EXPANSION.9.2`.
+
+## Preprocessed-output schema
+
+The version axis of the expander's output, independent of this family's AST-dump schema: schema `1` is today's five-field output; schema `2` (`SVPP-EXPANSION.9.3`) adds the macro-expansion chain to every source-map entry. A change to one axis never silently changes the other.
