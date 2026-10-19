@@ -528,6 +528,12 @@ audit_contract_docs_surface() {
     "docs/contracts/PGEN_SEMANTIC_STORE_SCHEMA_LANGUAGE_SPEC.md"
     "docs/contracts/PGEN_SEMANTIC_STORE_TEST_PLAN.md"
     "docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md"
+    # SVPP-EXPANSION.9.1 (2026-10-19, PGEN-SV-CORPUS-GRAD-0470): deliberate policy update — the
+    # SystemVerilog PREPROCESSING SERVICE contract (the expander over the svpp AST, DRAFT 0.1),
+    # indexed in PGEN_PARSER_INTEGRATION_CONTRACTS.md, the main book and the svpp book. Found by
+    # this audit at the push mirror's fifth run (CI-PARITY-GATE-ROT.119(d)): the pre-commit
+    # doctrines do not run these allowlist audits, so a new contract is first refused here.
+    "docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md"
     "docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md"
     "docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md"
   )

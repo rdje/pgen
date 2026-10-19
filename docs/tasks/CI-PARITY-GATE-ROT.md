@@ -6082,6 +6082,47 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
   `*_combined_telemetry_contract_gate` the `sota-exit-gate` workflow runs after the aggregate (the mirror asserts the
   scripts are tracked and does not run them) — so a red in any of them is seen only by GitHub, after a push. Decide per
   target: mirror it, or record why it is excluded.
+- ⚠️ **(d) FOUND 2026-10-19 (`PGEN-CI-PARITY-GATE-ROT-0121`) — the fifth mirror-only red of the push, 65 s into run 5:**
+  `contract docs allowlist drift detected` — the mirror's four allowlist audits (root markdown, top-level docs, contract
+  docs, reference docs; `rust/scripts/ci_workflow_local_gate.sh` `audit_*_allowlist`) are inline lists the pre-commit
+  doctrines never run, so the new contract `PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md` (`-0470`, indexed
+  everywhere a contract is listed) was first refused by the mirror. Fixed here by the deliberate policy update (the
+  entry, with its provenance comment). Owed: the four audits cost well under a second and read only `git ls-files` —
+  run them in `scripts/check_doctrines.sh` so a new tracked doc is refused at the commit that adds it, not at the push.
+
+  **Acceptance checklist (`TASK-ACCEPTANCE`) for (d) — ops / build-flow tier:**
+
+  - [x] **REPRODUCE / ISSUE** — `make -C rust ci_workflow_local_gate` (run 5, `run.rqeqYB`, `rust/target/svpp9/ci_gate5.log`):
+    65 s after the start, `auditing contract docs allowlist` printed the expected and the actual surfaces and refused —
+    `error: contract docs allowlist drift detected; rehome unexpected docs or update the tracked policy deliberately`;
+    the actual surface held 17 docs, the expected 16; the one extra line is
+    `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md`.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `rust/scripts/ci_workflow_local_gate.sh`, the inline `expected_contract_docs`
+    array of `audit_contract_docs_allowlist`, compared against `git ls-files -z | perl … /\Adocs\/contracts\/[^\/]+\.md\z/`
+    (the ops signature: `git ls-files`). WHY: the list is a deliberate allowlist by design (its own comments record the
+    two previous policy updates), and nothing but the mirror runs it — `scripts/check_doctrines.sh` has no allowlist
+    audit — so a new tracked contract passes every pre-commit doctrine and is refused first at the push. `-0470` added the
+    contract and indexed it in the contracts index, the main book and the svpp book, and could not have known.
+  - [x] **FIX** — the entry added to the array in sorted position with its provenance comment (`SVPP-EXPANSION.9.1`,
+    `-0470`, found by run 5, routed as (d)). No other entry moved.
+  - [x] **ADDRESSED (verified)** — the audit's comparison replicated outside the mirror (`rust/target/svpp9/chain_0121.log`):
+    the array extracted from the script and `git ls-files docs/contracts` filtered to `docs/contracts/*.md`, both sorted,
+    `diff -q` → `ALLOWLIST equal (17 docs)`; `bash -n` on the script ok. The mirror's own run of the audit is run 6's first
+    minute (`rust/target/svpp9/ci_gate6.log`, `auditing contract docs allowlist` followed by the next audit, not a refusal).
+  - [x] **NO REGRESSION** — the other 16 entries and the three sibling audits (root markdown, top-level docs, reference
+    docs) are untouched (the diff is one array line plus comment lines); the entry names a tracked file (`git ls-files`
+    lists it), so the audit cannot flip the other way; the generated parsers, `rust/src` and `grammars/` are
+    byte-identical to `4592100d9` (`git diff --cached --stat -- generated rust/src grammars` is empty), so no parser
+    verdict, certificate or clippy reading can move; the mirror's own re-run is run 6.
+- ℹ️ **(e) RECORDED 2026-10-19 — run 4's VHDL stages failed on a transient, not a defect:** `vhdl_strict_promotion_gate`
+  trial 1's cold build inside the export died with `failed to write …/cargo_target/debug/.fingerprint/pgen-…/invoked.timestamp:
+  No such file or directory` (07:11:24), which cascaded into `vhdl_parser_family_contract_gate` (`hold` instead of
+  `enable_required_strict_mode`) and `vhdl_parser_family_status_gate` (no summary). Trials 0 and 2 passed; the same gate on
+  the main tree passed 3 / 3 with the expected recommendation (`rust/target/svpp9/vhdl_strict_local.log`, 22 min, peak
+  8.8 GB). Ruled out: the §8 cleanup that ran 07:05 – 07:09 (its delete list holds no live-run path; `cargo sweep` does not
+  reach nested target directories — synthetic test); a memory-guard breach (none logged). Cause not established; the
+  cleanup's I/O ran concurrently with the trial's cold build, so the hygiene rule now says: no cleanup, sweep or mass
+  deletion while a mirror run is live. Run 6 re-measures the stage.
 
 ### `.120` — CI's checkout carries no submodules, so the aggregate's SV leg-3 surface cannot be produced in CI (`todo`, opened 2026-10-19 by `DONE-BAR.5i`, `PGEN-SV-CORPUS-GRAD-0469`)
 

@@ -45,7 +45,13 @@ instruments all verified intact afterwards).
    the `-0118` smallvec decision depended on one).
 5. **Sequencing hazard recorded:** `cargo sweep --time 1` and a checkpoint-warm profile
    build cache are in tension — sweep prunes by mtime and the warm cache lives under
-   `rust/target/`; sweep AFTER a pending warm-cache build, not before.
+   `rust/target/`; sweep AFTER a pending warm-cache build, not before. **Extended 2026-10-19
+   (`PGEN-CI-PARITY-GATE-ROT-0121`): the push mirror's export builds under `rust/target/` too —
+   no cleanup, sweep or mass deletion while a mirror run is live.** The `-0020` cleanup ran
+   during run 4's VHDL promotion trials; trial 1's cold build died of a transient `ENOENT` on its
+   fingerprint file the same minutes (the cleanup touched no live-run path and `cargo sweep` does
+   not recurse into nested targets — measured — so the cause is not established; the rule costs
+   nothing and removes the overlap).
 
 ## Consequences
 
