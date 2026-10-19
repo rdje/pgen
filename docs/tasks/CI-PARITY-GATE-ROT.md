@@ -6131,7 +6131,55 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
   8.8 GB). Ruled out: the §8 cleanup that ran 07:05 – 07:09 (its delete list holds no live-run path; `cargo sweep` does not
   reach nested target directories — synthetic test); a memory-guard breach (none logged). Cause not established; the
   cleanup's I/O ran concurrently with the trial's cold build, so the hygiene rule now says: no cleanup, sweep or mass
-  deletion while a mirror run is live. Run 6 re-measures the stage.
+  deletion while a mirror run is live. Runs 5 – 7 ended before the VHDL stages (two pre-flight refusals, then (f), stopped
+  once its verdict was known); run 8 re-measures the stage.
+
+- ⚠️ **(f) FOUND + FIXED 2026-10-19 (`PGEN-CI-PARITY-GATE-ROT-0123`) — the seventh mirror-only red of the push, and the
+  first one PAST the probe:** run 7 (`run.5tEW2W`, `rust/target/svpp9/ci_gate7.log`) cleared every pre-flight audit and
+  all eleven jobs before the aggregate; inside the aggregate every SV check passed up to `sv_parser_family_status_gate`,
+  whose leg-3 conformance gate took the `.5i` BUILD branch (probe built, `corpus_sv` / `corpus_sv2005` ok) and then died in
+  `adjudicate`: `FileNotFoundError: [Errno 2] No such file or directory: '…/run.5tEW2W/export/tmp/tmp78rmsndb.sv'` from
+  `adjudicate_dark_worklist.probe_text` (reached through `adjudicate_external_corpus.edition_keyword_pass`'s measurer).
+  `sv_parser_family_status_contract_gate` fell with it (no `summary.json`). Run 7 was stopped once the verdict was known
+  (two required fails cannot turn green); the stages after it (the informational full-ratio promotion, VHDL, regex) re-run
+  in run 8.
+
+  **Acceptance checklist (`TASK-ACCEPTANCE`) for (f) — ops / build-flow tier:**
+
+  - [x] **REPRODUCE / ISSUE** — the mirror's own stage log (`…/run.5tEW2W/export/rust/target/sota_exit_gate/work/
+    sv_parser_family_status_gate/logs/sv_external_corpus_conformance_gate.log`, the `adjudicate` traceback above); and
+    in-process, outside the mirror: `adjudicate_dark_worklist` imported with `ROOT` pointed at an existing EMPTY directory
+    (`rust/target/svpp9/noroot_repro`) → `probe_text("module m; endmodule\n")` → the same `FileNotFoundError`
+    (`…/noroot_repro/tmp/tmpcf88t78r.sv`).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `stimuli/sv/adjudicate_dark_worklist.py` `probe_text` writes its one-file unit
+    with `tempfile.NamedTemporaryFile(dir=ROOT / "tmp")`, and the only `mkdir` of that directory sat in the module's
+    `main()`. WHY: `.gitignore` line 293 (`tmp/`) excludes the directory, so the export — `git ls-files` only (the ops
+    signature: `git ls-files | grep '^tmp/'` is empty; `git check-ignore -v tmp` → `.gitignore:293:tmp/`) — has none,
+    while every developer tree has carried one since the first `main()` run (`git log -S'ROOT / "tmp"'`: 2026-08-11,
+    `-0211`); the conformance adjudicator's measurer imports `probe_text` without `main()` (since `-0366`, 2026-09-04,
+    `SV-CORPUS-GRAD.3.37`), so on a fresh checkout its first call fails. Unreachable in the mirror until `.5i` (run 7 is
+    the first run past the probe) and unreachable in CI (`.120`, no submodules). `run_adjudication_repros.parse_ast`
+    carried the same shape (`main()` creates, the function assumes).
+  - [x] **FIX** — both instruments create the scratch directory at the point of use: a `scratch_dir()` helper
+    (`ROOT / "tmp"`, `mkdir(exist_ok=True)`, its docstring naming this leaf) used by `probe_text` / `parse_ast` and by
+    each `main()` in place of its own `mkdir`; the location is unchanged (the ignored repo-root `tmp/`, on the repo
+    volume), so no consumer moves. The store-gate memo keys on the two producers' bytes (`instrument_sha256`,
+    `SV-CORPUS-GRAD.15`), so the tracked memo `stimuli/sv/characterization/store_gate_cache.tsv` is re-measured and
+    re-published in this slice — the digest `a1f8cb4d…` → `2a7879e4…`, every other column byte-identical (measured below).
+  - [x] **ADDRESSED (verified)** — the in-process repro after the fix: `root exists: True | tmp before: False` →
+    `probe_text accepted -> True | tmp dir created: True | leftovers: 0`; `python3 -m py_compile` on both files ok;
+    `store_gate_explanations.py --self-test` PASS (0 failing). The conformance gate in the main tree under the guard
+    (`rust/target/svpp9/conformance_0123.log`, 161 s, peak 3.8 GB): `release probe kept … cce7d537f2d365ca…` (the KEEP
+    branch, identity untouched), `store-gate: measuring 54 sv_2017 row(s)` + `54 sv_2023 row(s)` (cache hits 0 — the memo
+    re-measured under the new digest, as `SV-CORPUS-GRAD.15` designed), rc 0. The mirror's own measurement is run 8.
+  - [x] **NO REGRESSION** — the gate's fresh manifests are byte-identical to the tracked adjudication
+    (`fresh_manifest_sha256` = `tracked_manifest_sha256` = `abb16584…`; `✅ … no regression against the recorded
+    adjudication`); the re-measured memo differs from the tracked one in the `instrument_sha256` column ONLY (108 rows;
+    `diff` over the other eight columns empty) and is published; the pin runner `run_adjudication_repros.py`:
+    `checked=2034 armed=236 listed=993 multi_profile_rows=765 preprocess_rows=41 tolerated_rows=8 superset_rows=764
+    failures=0` (`rust/target/svpp9/repros_0123.log`, the ceremony probe); the generated
+    parsers, `rust/src` and `grammars/` are byte-identical to `1d7fcd949` (`git diff --cached --stat -- generated rust/src
+    grammars` empty), so no parser verdict, certificate or clippy reading can move.
 
 ### `.120` — CI's checkout carries no submodules, so the aggregate's SV leg-3 surface cannot be produced in CI (`todo`, opened 2026-10-19 by `DONE-BAR.5i`, `PGEN-SV-CORPUS-GRAD-0469`)
 

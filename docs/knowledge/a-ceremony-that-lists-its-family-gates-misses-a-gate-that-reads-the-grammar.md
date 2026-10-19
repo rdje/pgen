@@ -73,4 +73,17 @@ unconditional `cargo build` in this gate would have swapped the identity every t
 both: **prove the binary you measure with (its own fingerprint, never `-x`), build it when the proof fails, and KEEP it when
 the proof holds.** Build-always and find-always are the two ways to get one half.
 
+## A fifth instance, the same push (`CI-PARITY-GATE-ROT.119`(f)) — the next assumption waits behind the one you fixed
+
+Run 7 was the first in which the leg-3 conformance gate got past its probe: the export built one, both corpus lanes
+ran, and the adjudicate stage died in `adjudicate_dark_worklist.probe_text` with
+`FileNotFoundError: …/export/tmp/tmp….sv`. The function wrote its one-file units into the repo-root `tmp/` that its
+own `main()` creates — but the conformance adjudicator imports the function without `main()`, and the export
+(`git ls-files` only) has no `tmp/` because `.gitignore` excludes it. In every developer tree the directory had existed
+for months, created by some earlier `main()` run. Three things make this the series' shape and not a new one: nothing
+but the mirror runs this path on a fresh checkout; each run costs ≈5 h; and the defect was unreachable until the fourth
+instance's fix let the stage proceed. The rule it adds: **a function that writes into an ignored directory creates that
+directory at the point of use** — an entry point's `mkdir` protects only the callers that go through the entry point,
+and a fresh checkout has none of the ignored tree.
+
 Related: [[a-ceremonys-measured-binary-is-kept-not-re-derived]].

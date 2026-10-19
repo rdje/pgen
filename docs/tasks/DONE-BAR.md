@@ -1967,6 +1967,11 @@ fails to reproduce.
   stages take no release binary (their scripts name none); `verilog_2005_conformance_gate` builds the release probe
   unconditionally at the published path (its own `build_release_parseability_probe` stage; the chain restores after it) and
   the aggregate does not reach it — the keep-if-verified rule is owed there, noted, not done.
+- **BUILD branch measured 2026-10-19, run 7** (`rust/target/svpp9/ci_gate7.log`, `run.5tEW2W`): the export held no release
+  probe → `release probe absent or feature-less … building it (lowmem release profile, --features generated_parsers)` →
+  `built: …/export/rust/target/release/parseability_probe (f567afd5e4c12fe7…)` → `corpus_sv ok`, `corpus_sv2005 ok`. The
+  identity built is the export's own; the main tree's `cce7d537…` was not touched (the KEEP branch, same day). The stage
+  then failed in `adjudicate` on the NEXT fresh-checkout assumption — `CI-PARITY-GATE-ROT.119`(f), the seventh red.
 - **Routed**: the fourth mirror-only red of one push — `CI-PARITY-GATE-ROT.119` (now four instances) and `.120` (the CI
   checkout without submodules; the CI runner's 6 h budget against the aggregate's ≈5 h here).
 

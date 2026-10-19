@@ -171,9 +171,20 @@ def compose(raw: str, wrapper, names, forms) -> str:
     return prelude_for(names, forms) + pre + raw + post
 
 
+def scratch_dir() -> Path:
+    """The scratch directory `probe_text` writes its one-file units into — created HERE, at the point of
+    use, never only by `main()`. `adjudicate_external_corpus.edition_keyword_pass` (the conformance gate's
+    adjudicate stage) and `store_gate_explanations` import `probe_text` without `main()`, and a fresh
+    checkout has no `tmp/` (`.gitignore` excludes it): the push mirror's export (`git ls-files` only) met
+    that on the first run to reach the stage — `CI-PARITY-GATE-ROT.119`(f), 2026-10-19."""
+    d = ROOT / "tmp"
+    d.mkdir(exist_ok=True)
+    return d
+
+
 def probe_text(text: str, trace: bool):
     """Parse `text` as a standalone file. Returns (accepted, surface, furthest, trace_stdout)."""
-    with tempfile.NamedTemporaryFile("w", suffix=".sv", dir=str(ROOT / "tmp"),
+    with tempfile.NamedTemporaryFile("w", suffix=".sv", dir=str(scratch_dir()),
                                      delete=False, encoding="latin-1") as fh:
         fh.write(text)
         tmp = Path(fh.name)
@@ -406,7 +417,7 @@ def main() -> int:
         raise SystemExit(f"⛔ REFUSING: {PROBE} is missing. Build it first:\n"
                          "   (cd rust && cargo build --release --features generated_parsers "
                          "--bin parseability_probe)")
-    (ROOT / "tmp").mkdir(exist_ok=True)
+    scratch_dir()
 
     with WORKLIST.open(encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh, delimiter="\t"))

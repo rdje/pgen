@@ -220,10 +220,20 @@ def parses(path: Path, profile: str = DEFAULT_PROFILE, entry: list[str] | None =
     return proc.returncode == 0
 
 
+def scratch_dir() -> Path:
+    """The scratch directory `parse_ast` writes its AST dumps into — created at the point of use, not only
+    by `main()`: the shape `adjudicate_dark_worklist.probe_text` carried (its `main()` created the directory;
+    a caller that is not `main()`, in a fresh checkout without the ignored `tmp/`, found none — the push
+    mirror's export, `CI-PARITY-GATE-ROT.119`(f), 2026-10-19), fixed here in the same slice."""
+    d = ROOT / "tmp"
+    d.mkdir(exist_ok=True)
+    return d
+
+
 def parse_ast(path: Path, profile: str = DEFAULT_PROFILE, entry: list[str] | None = None,
               stage: list[str] | None = None):
     """The typed AST for `path`, or None when the probe declines to produce one."""
-    with tempfile.TemporaryDirectory(dir=str(ROOT / "tmp")) as workdir:
+    with tempfile.TemporaryDirectory(dir=str(scratch_dir())) as workdir:
         out = Path(workdir) / "ast.json"
         proc = subprocess.run(
             [str(PROBE), "--parse-dump-ast", "systemverilog", str(path), str(out),
@@ -294,7 +304,7 @@ def main() -> int:
         sv_parser = "unknown (this probe predates --parser-fingerprint)"
     print(f"ADJUDICATION-REPROS: probe={os.path.relpath(PROBE, ROOT)} sv_parser={sv_parser}")
 
-    (ROOT / "tmp").mkdir(exist_ok=True)
+    scratch_dir()
 
     with MANIFEST.open(encoding="utf-8") as fh:
         reader = csv.DictReader(fh, delimiter="\t")
