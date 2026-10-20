@@ -6369,3 +6369,61 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
   directories, no `generated/`, no binaries, the runner's tool set, Python 3.12) — the checkout built here by hand;
   `.120`(b) is the same item from the other side. `.120`(a)'s next read: run `39370056063`'s successor on the next
   push, which verifies (4) and (5).
+- **Read (2026-10-20, 14:13–14:40).** Push-mirror run 10 (`run.R9hchX`, started 07:25:07 on `a0bec1ab6`, 6 h 48 min,
+  `rust/target/svpp9/ci_gate10.log`): 12 replayed jobs `ok`, the run dir removed on success, the Makefile's final `✅`
+  echo executed — GREEN; pushed `6aae268b0..a0bec1ab6` to `origin/main` at 14:19. (The memory guard around the run died
+  AFTER the verdict on its own script, rewritten in place under it from outside the session; the mirror's verdict was
+  unaffected and the guard now parses itself whole before launching — `OPS-MEMSAFE.6`, `-0022`.) `.120`(a)'s next read,
+  the hosted run of `a0bec1ab6`: `mdbook-docs-gate`, `fixed-point-gate`, `branch-protection-contract-gate`,
+  `lib-unit-test-gate` green; `memory-architecture-gate` (run `39421495286`, `rust/target/svpp9/hosted/run_39421495286.log`)
+  **49 doctrines green, ONE red**: the ripgrep step ran (`sudo apt-get install -y -qq ripgrep`, `rg --version`), the log
+  carries no `E2BIG` and no `Argument list too long`, every `.121` instrument reports its verdict — (4) and (5) are
+  VERIFIED on the runner. The one red is a sixth instrument defect of the same class, owned by `.122` below.
+
+### `.122` — the mirror's five docs-surface allowlist audits compared a hand-ordered roster against the host locale's `sort`, so the hosted runner's C collation refused a tree holding exactly the expected files (opened + closed 2026-10-20, `PGEN-CI-PARITY-GATE-ROT-0127`, status: `done`)
+
+- **Found** (`rust/target/svpp9/hosted/run_39421495286.log`, the `.120`(a) read above). `CI-MIRROR-DOCS-SURFACES` was the
+  one red doctrine of 50 on the hosted run of `a0bec1ab6`: `error: root markdown allowlist drift detected`. The two
+  lists it printed hold the SAME seventeen files; they differ only in order — the runner's actual list has `MEMORY.md`
+  before `MEMORY_ARCHITECTURE.md` and `README.md` before `README_POLICY.md`, the tracked expected list the reverse. The
+  local hook had passed the same audit on the same tree, and so had push-mirror run 10 in its first minute.
+- [x] **REPRODUCE** — `LC_ALL=C PGEN_CI_WORKFLOW_LOCAL_AUDITS_ONLY="<the six>" bash rust/scripts/ci_workflow_local_gate.sh`
+  on this host: rc 1, the identical `error: root markdown allowlist drift detected` with the identical two lists
+  (`rust/target/svpp9/hosted/audits_C.log`); the same command without `LC_ALL=C` (this host's `en_US.UTF-8`): rc 0,
+  `audits-only mode: 6 working-tree audit(s) passed` (`audits_default.log`). The defect is collation, not tree shape, so
+  no CI-shaped checkout was needed to reproduce it.
+- [x] **ROOT CAUSE** — WHY: five audits (`audit_root_markdown_surface`, `audit_top_level_docs_surface`,
+  `audit_contract_docs_surface`, `audit_reference_docs_surface`, `audit_docs_book_surface`) build the ACTUAL list with
+  `git ls-files -z | perl … | sort` under whatever locale the host runs, and compare it VERBATIM, as one string, against an
+  EXPECTED roster whose order was hand-copied from the author's own `sort` output — three comments in the file said so
+  outright: *"⚠️ ORDER IS LOAD-BEARING: … this locale sorts `TASK_TREE_README.md` BEFORE `TASK_TREE.md`"*, *"Ordering is
+  `sort`'s, not ASCII's"*. In `en_US.UTF-8`, `sort` ignores punctuation at the first level, so `MEMORY_ARCHITECTURE.md`
+  (`MEMORYARCHITECTURE…`) precedes `MEMORY.md` (`MEMORYmd`); in C / POSIX / `C.UTF-8` (the stock `ubuntu-latest` runner)
+  `.` (0x2E) precedes `_` (0x5F) and the order flips. An exact-SET comparison was implemented as an exact-SEQUENCE
+  comparison in one locale. WHERE: `rust/scripts/ci_workflow_local_gate.sh` lines 379–670 (pre-fix): the six `sort` /
+  `sort -u` pipelines and the five `expected_snapshot=` / `actual_snapshot=` lines. `fail` exits at the first audit, so
+  the runner never reached the top-level-docs audit, whose roster carries the same hazard
+  (`TASK_TREE_README.md` / `TASK_TREE.md`). Read with `bash -n` on the script and `git ls-files` for the rosters' sources.
+- [x] **FIX** — both sides of every comparison are sorted under `LC_ALL=C` before the exact-set comparison: the six
+  pipelines read `LC_ALL=C sort` / `LC_ALL=C sort -u`, and each `expected_snapshot` is piped through `LC_ALL=C sort`
+  (`sort -u` for the SUMMARY-derived set), so the order of a roster on the page means nothing. The three "ORDER IS
+  LOAD-BEARING" notes are replaced by the rule and the measured case. 24 insertions, 22 deletions, no roster entry
+  changed.
+- [x] **ADDRESSED (verified)** — the six audits under `LC_ALL=C`, `LC_ALL=POSIX` and `LC_ALL=en_US.UTF-8`: rc 0 and
+  `audits-only mode: 6 working-tree audit(s) passed` in each (`rust/target/svpp9/hosted/audits_fixed_{C,POSIX,en_US.UTF-8}.log`);
+  the `C` run that failed before the fix passes after it on the same tree. The doctrine itself
+  (`scripts/check_ci_mirror_docs_surfaces.sh`): `ci-mirror-docs-surfaces: OK - … 6 working-tree docs-surface audits hold`.
+- [x] **NO REGRESSION** — the doctrine's four-arm `--self-test` passes under the default locale and under `LC_ALL=C`
+  (4 / 4 each: the six audits hold, a tracked stray contract doc is refused, a bare rehomed basename is refused, an
+  export-reading audit name is refused by audits-only mode — every RED arm still fires); the audits' transcript under
+  `en_US.UTF-8` before and after the fix differs only in the random run-dir name; `bash -n` clean; `git diff --stat` names
+  one file, `rust/scripts/ci_workflow_local_gate.sh`, so every grammar and every generated parser is byte-identical to
+  HEAD's. The mirror's REPLAY phase is untouched (the audits run before it, unchanged in order and count).
+- [x] **LOCKSTEP** — `.121`'s **Read** bullet (run 10, the push, the hosted verification of (4) and (5)),
+  `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md` (lesson promoted to
+  `docs/knowledge/a-roster-compared-as-text-is-compared-in-the-authors-collation.md`), the main book's operations
+  chapter ("What a hosted doctrine run can evaluate").
+- [x] **NEUTRALITY TIER** — an instrument and records; no engine, grammar or family component.
+- **Owed** — `.119`(c) / `.120`(b) unchanged (a CI-shaped replay would have caught this one in the mirror: the mirror
+  runs these audits under this host's locale). `.120`(a)'s next read: the hosted run of the push that carries `-0127`,
+  which verifies this fix on the runner; the hosted doctrine gate stays red until that push.

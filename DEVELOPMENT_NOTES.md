@@ -1,5 +1,10 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-10-20 — CI-PARITY-GATE-ROT.122 (`PGEN-CI-PARITY-GATE-ROT-0127`): a roster compared as text is compared in the author's collation
+
+- **An exact-set comparison written as a string comparison is an exact-sequence comparison in one locale.** Five audits sorted the tree's files with the host's `sort` and compared the result verbatim against a roster whose order was copied from the author's own `sort`. The comments even said *"ORDER IS LOAD-BEARING … this locale sorts X before Y"* — "this locale" was the tell: a correct observation about the author's machine, written into a gate that runs on another. In `en_US.UTF-8` punctuation is ignored at the first level, so `MEMORY_ARCHITECTURE.md` precedes `MEMORY.md`; in C it follows. A set has no order; sort BOTH sides under `LC_ALL=C` and the page order of the roster stops mattering. The class is `.121`'s — an instrument assuming the author's host — and the sixth member hid behind the first five because `fail` exits at the first audit.
+- **A hosted verdict is read against the local one, defect by defect.** The same tree had passed the audit under the local hook and in the mirror's first minute; the runner's two printed lists were the diagnosis in full, and `LC_ALL=C` reproduced them here in two seconds. The CI-shaped checkout was not needed for this one; `.119`(c) would still have caught it in the mirror, which runs these audits under this host's locale.
+
 ## 2026-10-20 — OPS-MEMSAFE.6 (`PGEN-OPS-MEMSAFE-0022`): a guard that reads the wrong host metric cannot see, and a guard kills only what it owns
 
 - **"Free %" is not pressure.** `memory_pressure -Q` counts purgeable and cached pages as free; it read 51 % while swap stood at 22.06 of 23.55 GB and the host was unusable. The figure that moved was `vm_stat`'s swap-out counter — its rate is the axis. An axis is only as good as the metric it reads; measure the metric against the failure it is meant to catch before trusting the axis.

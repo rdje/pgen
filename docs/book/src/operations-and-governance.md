@@ -272,7 +272,13 @@ one tool the runner lacks is now installed by the workflow itself. The push
 mirror does not replay this job, and its export carries everything the runner
 lacks, so a doctrine's hosted behaviour is verified by the hosted run alone
 until the mirror replays it in a CI-shaped export
-(`CI-PARITY-GATE-ROT.121`).
+(`CI-PARITY-GATE-ROT.121`). The second hosted run (`a0bec1ab6`, the same day) verified
+those fixes and found a sixth instrument of the same class: the mirror's five docs-surface
+allowlist audits compared a hand-ordered roster against the host's `sort`, and the runner's C
+collation orders `MEMORY.md` before `MEMORY_ARCHITECTURE.md`, so a tree holding exactly the
+expected files was refused. Both sides of every such comparison are now sorted under
+`LC_ALL=C` before the exact-set comparison (`CI-PARITY-GATE-ROT.122`): a roster is a set, and
+its order on the page means nothing.
 
 `audit_workflow_regeneration_surface` holds that arrangement in place, and its
 polarity is the point: the roster is derived from `git ls-files`, and *needing*

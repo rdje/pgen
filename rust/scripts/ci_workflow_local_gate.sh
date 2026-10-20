@@ -412,9 +412,12 @@ audit_root_markdown_surface() {
     # MEMORY_ARCHITECTURE.md, DOCTRINE_ENFORCEMENT.md, TOOLBOX.md — while PGEN's own INSTANCE of
     # it (routing table, chosen caps, adoption evidence) stays at
     # docs/reference/PGEN_README_STABILITY_POLICY.md. Standard at the root, instance under docs/.
-    # ⚠️ Ordering is `sort`'s, not ASCII's: this sorts BEFORE README.md, exactly as
-    # MEMORY_ARCHITECTURE.md sorts before MEMORY.md. Verified by running this audit's own
-    # pipeline rather than by reasoning about collation.
+    # ⚠️ ORDER IS IRRELEVANT since CI-PARITY-GATE-ROT.122 (2026-10-20): both sides are sorted under
+    # LC_ALL=C before the EXACT-SET comparison. The note that stood here ("ordering is `sort`'s,
+    # not ASCII's: README_POLICY.md sorts BEFORE README.md") was true only in the author's
+    # en_US.UTF-8 locale; the hosted runner's C collation put MEMORY.md before
+    # MEMORY_ARCHITECTURE.md and this audit refused a tree holding exactly these 17 files
+    # (hosted run 39421495286 on a0bec1ab6; reproduced here with LC_ALL=C).
     "README_POLICY.md"
     "README.md"
     "SESSION_BOOTSTRAP.md"
@@ -432,10 +435,10 @@ audit_root_markdown_surface() {
     cd "$ROOT_DIR" &&
       git ls-files -z |
       perl -0ne 'for (split /\0/) { print "$_\n" if /\A[^\/]+\.md\z/ }' |
-      sort
+      LC_ALL=C sort
   )
 
-  expected_snapshot="$(printf '%s\n' "${expected_root_md[@]}")"
+  expected_snapshot="$(printf '%s\n' "${expected_root_md[@]}" | LC_ALL=C sort)"
   actual_snapshot="$(printf '%s\n' "${actual_root_md[@]}")"
 
   if [[ "$actual_snapshot" != "$expected_snapshot" ]]; then
@@ -452,8 +455,7 @@ audit_top_level_docs_surface() {
     # (session directive §8: "track this in docs/ARTIFACT_CLEANUP.md"), created by OPS-MEMSAFE.5 on
     # 2026-09-29 without this roster being told; the audit was RIGHT, and this is the policy update.
     # Verified before admission: `git log -- docs/ARTIFACT_CLEANUP.md` → one commit (707d276a2),
-    # referenced by the directive that mandates it. Not a stray. ⚠️ ORDER IS LOAD-BEARING: `sort`
-    # places it first.
+    # referenced by the directive that mandates it. Not a stray.
     "docs/ARTIFACT_CLEANUP.md"
     "docs/AST_GENERATOR_ARCHITECTURE.md"
     "docs/ast_transformation_pipeline.md"
@@ -465,7 +467,6 @@ audit_top_level_docs_surface() {
     # markdown: CLAIM_VERIFICATION 17 files / 46 mentions — it is the standing director directive
     # named in the session prompt itself — and DERIVED_STATE_CONTAINMENT 14 files / 46 mentions,
     # cited by layer-A MEMORY.md's own header as R1/R3. Neither is a stray.
-    # ⚠️ ORDER IS LOAD-BEARING (see below): taken verbatim from this audit's own `sort` output.
     "docs/CLAIM_VERIFICATION.md"
     "docs/DERIVED_STATE_CONTAINMENT.md"
     "docs/EBNF_INCLUDE_SYSTEM.md"
@@ -476,8 +477,9 @@ audit_top_level_docs_surface() {
     # verified before admission (added 2026-05-14/17, i.e. long-established; reference counts
     # measured across tracked markdown): TASK_TREE 70 refs and mandated by CLAUDE.md item 6,
     # TASK_TREE_README 9, POST_SV_AUDIT_LEDGER 23, SV_EXH_PROOF_BASELINE 6. None is a stray.
-    # ⚠️ ORDER IS LOAD-BEARING: the expected list is compared verbatim against `sort` output, and
-    # this locale sorts `TASK_TREE_README.md` BEFORE `TASK_TREE.md`. Keep entries in `sort` order.
+    # ⚠️ ORDER IS IRRELEVANT since CI-PARITY-GATE-ROT.122: both sides are sorted under LC_ALL=C
+    # before the comparison ("this locale sorts TASK_TREE_README.md before TASK_TREE.md" was the
+    # author's locale, not the runner's).
     "docs/POST_SV_AUDIT_LEDGER.md"
     "docs/RETURN_ANNOTATIONS_REFERENCE.md"
     "docs/SV_EXH_PROOF_BASELINE.md"
@@ -497,10 +499,10 @@ audit_top_level_docs_surface() {
     cd "$ROOT_DIR" &&
       git ls-files -z |
       perl -0ne 'for (split /\0/) { print "$_\n" if /\Adocs\/[^\/]+\.md\z/ }' |
-      sort
+      LC_ALL=C sort
   )
 
-  expected_snapshot="$(printf '%s\n' "${expected_top_level_docs[@]}")"
+  expected_snapshot="$(printf '%s\n' "${expected_top_level_docs[@]}" | LC_ALL=C sort)"
   actual_snapshot="$(printf '%s\n' "${actual_top_level_docs[@]}")"
 
   if [[ "$actual_snapshot" != "$expected_snapshot" ]]; then
@@ -556,10 +558,10 @@ audit_contract_docs_surface() {
     cd "$ROOT_DIR" &&
       git ls-files -z |
       perl -0ne 'for (split /\0/) { print "$_\n" if /\Adocs\/contracts\/[^\/]+\.md\z/ }' |
-      sort
+      LC_ALL=C sort
   )
 
-  expected_snapshot="$(printf '%s\n' "${expected_contract_docs[@]}")"
+  expected_snapshot="$(printf '%s\n' "${expected_contract_docs[@]}" | LC_ALL=C sort)"
   actual_snapshot="$(printf '%s\n' "${actual_contract_docs[@]}")"
 
   if [[ "$actual_snapshot" != "$expected_snapshot" ]]; then
@@ -580,8 +582,8 @@ audit_reference_docs_surface() {
     "docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md"
     "docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md"
     # README-POLICY.1 (2026-07-30): the adopted README Stability Policy. Tracked in-repo rather
-    # than referenced across a volume boundary (CLAUDE.md §12/§13). ⚠️ ORDER IS LOAD-BEARING —
-    # this list is compared verbatim against `sort` output, and README sorts before RELEASE.
+    # than referenced across a volume boundary (CLAUDE.md §12/§13). Order is irrelevant since
+    # CI-PARITY-GATE-ROT.122: both sides are LC_ALL=C-sorted before the comparison.
     "docs/reference/PGEN_README_STABILITY_POLICY.md"
     "docs/reference/PGEN_RELEASE_POLICY.md"
     "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md"
@@ -605,10 +607,10 @@ audit_reference_docs_surface() {
     cd "$ROOT_DIR" &&
       git ls-files -z |
       perl -0ne 'for (split /\0/) { print "$_\n" if /\Adocs\/reference\/[^\/]+\.md\z/ }' |
-      sort
+      LC_ALL=C sort
   )
 
-  expected_snapshot="$(printf '%s\n' "${expected_reference_docs[@]}")"
+  expected_snapshot="$(printf '%s\n' "${expected_reference_docs[@]}" | LC_ALL=C sort)"
   actual_snapshot="$(printf '%s\n' "${actual_reference_docs[@]}")"
 
   if [[ "$actual_snapshot" != "$expected_snapshot" ]]; then
@@ -646,7 +648,7 @@ audit_docs_book_surface() {
   done < <(
     cd "$ROOT_DIR" &&
       perl -ne 'print "$1\n" while /\]\(([^()\s]+\.md)\)/g' docs/book/src/SUMMARY.md |
-      sort -u
+      LC_ALL=C sort -u
   )
 
   while IFS= read -r line; do
@@ -655,11 +657,11 @@ audit_docs_book_surface() {
     cd "$ROOT_DIR" &&
       git ls-files -z |
       perl -0ne 'for (split /\0/) { print "$_\n" if /\Adocs\/book\/src\/.+\.md\z/ && $_ ne "docs/book/src/SUMMARY.md" }' |
-      sort
+      LC_ALL=C sort
   )
 
-  expected_snapshot="$(printf '%s\n' ${summary_refs[@]+"${summary_refs[@]}"})"
-  actual_snapshot="$(printf '%s\n' ${tracked_chapters[@]+"${tracked_chapters[@]}"})"
+  expected_snapshot="$(printf '%s\n' ${summary_refs[@]+"${summary_refs[@]}"} | LC_ALL=C sort -u)"
+  actual_snapshot="$(printf '%s\n' ${tracked_chapters[@]+"${tracked_chapters[@]}"} | LC_ALL=C sort)"
 
   if [[ "$actual_snapshot" != "$expected_snapshot" ]]; then
     printf 'SUMMARY.md-referenced chapters:\n%s\n' "$expected_snapshot" >&2
