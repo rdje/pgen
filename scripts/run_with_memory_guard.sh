@@ -9,7 +9,8 @@
 #   1. PRE-FLIGHT: refuses to launch the job if system-wide free memory OR free disk
 #      space (on the guard's working filesystem) is already below its floor
 #      (never launch into a pressured system — OPS-MEMSAFE.2 added the disk axis
-#      after the 2026-07-18 ENOSPC build death).
+#      after the 2026-07-18 ENOSPC build death), or if the HOST is already in trouble
+#      from something outside the job (item 5).
 #   2. Runs the command in its OWN PROCESS GROUP and samples the job's process-tree
 #      RSS (process-group members ∪ parent-child descendant closure) on an interval.
 #   3. KILLS the whole tree (TERM → grace → KILL) and writes an observable breach
@@ -20,16 +21,33 @@
 #        - the optional wall-clock timeout expires.
 #   4. Always writes a completion marker (composes with the background-job
 #      observability doctrine: completion marker + bounded timeout + liveness).
+#   5. HOST HAZARD + HOST PRESSURE (OPS-MEMSAFE.6, after the 2026-10-20 incident): the
+#      three kill axes see only what the job owns, and "free %" is not pressure —
+#      measured that day: free=51% while swap stood at 22.06 of 23.55 GB and a
+#      root-owned fseventsd (PPID 1, never inside any job tree) held 9–10 GB for hours
+#      while two guarded mirror runs tripped nothing. So the guard (a) refuses to
+#      LAUNCH while fseventsd's RSS is over --fseventsd-limit-mb or the swap-out rate
+#      across a short window is at or over --swapout-floor, naming the cause; (b) while
+#      the job runs, samples the swap-out rate, names the largest process OUTSIDE the
+#      job's tree when the host is under pressure, and records both in the marker;
+#      (c) warns when the budget exceeds half of physical RAM. It NEVER kills on host
+#      pressure: a guard kills only what it owns (the 2026-07-14 session kill is why),
+#      and what it records is exactly what a kill rule would need (the tree's RSS at
+#      the pressure peak, the unowned consumer) — see docs/tasks/OPS-MEMSAFE.md leaf .6.
 #
 # Exit codes (mechanically branchable by callers):
 #   child's own exit code   — the job completed on its own (guard transparent)
-#   96  preflight-refused   — free RAM or free disk already below its floor; job NEVER
-#                             started (marker reason= free-floor | disk-floor)
+#   96  preflight-refused   — free RAM or free disk already below its floor, or a host
+#                             hazard / host pressure present at launch; job NEVER
+#                             started (marker reason= free-floor | disk-floor |
+#                             host-hazard | host-pressure)
 #   97  rss-budget breach   — tree RSS exceeded --budget-mb
 #   98  free-floor breach   — system free % dropped below --floor-pct mid-run
 #   95  disk-floor breach   — free disk dropped below --disk-floor-gb mid-run
 #   99  timeout             — --timeout-s expired
 #   130 guard-interrupted   — the guard itself received INT/TERM (tree killed too)
+#   94  (reserved)          — a swap-out breach kill; NOT implemented: OPS-MEMSAFE.6
+#                             observes and records, the kill rule waits on that data
 #   2   usage error
 #
 # Usage:
@@ -41,6 +59,13 @@
 #                     0=disable the disk axis               (default 8)
 #   --interval-s N    sampling interval in seconds         (default 5)
 #   --timeout-s N     wall-clock timeout in seconds, 0=off (default 0)
+#   --fseventsd-limit-mb N  pre-flight: refuse to launch while the FSEvents journal daemon
+#                     holds more than N MB RSS, 0=off           (default 512)
+#   --swapout-floor N swap-out pages/s that count as host pressure, 0=off (default 1000):
+#                     pre-flight refuses to launch at or over it across a 3 s window; in
+#                     flight, two consecutive samples at or over it print ONE warning per
+#                     episode naming the largest process outside the job's tree —
+#                     recorded in the marker, never a kill
 #   --marker FILE     marker file path (default rust/target/generated_logs/memory_guard/guard.<pid>.marker)
 #   --log FILE        also append guard lines to FILE
 #
@@ -54,10 +79,25 @@
 #   (re-read every sample) instead of `memory_pressure -Q`.
 #   PGEN_MEMORY_GUARD_FAKE_DISK_FREE_GB_FILE=<file> — read the free disk GB from
 #   <file> (re-read every sample) instead of `df -Pk .`.
+#   PGEN_MEMORY_GUARD_FAKE_SWAPOUTS_FILE=<file>     — read the cumulative swap-out page
+#   count from <file> (re-read every sample) instead of `vm_stat`.
+#   PGEN_MEMORY_GUARD_FAKE_FSEVENTSD_RSS_MB_FILE=<file> — read the FSEvents daemon's RSS
+#   (MB) from <file> instead of `pgrep` + `ps`.
+#   PGEN_MEMORY_GUARD_FAKE_MEMSIZE_MB_FILE=<file>   — read physical RAM (MB) from <file>
+#   instead of `sysctl -n hw.memsize`.
 #
 # Honest limit: a descendant that re-parents AND changes its own process group
 # escapes both accounting and the kill. Jobs PGEN spawns (make/cargo/bench/parse)
 # do neither. This is bounded-blast-radius enforcement, not a kernel limit.
+#
+# PARSE-BEFORE-RUN (OPS-MEMSAFE.6, after push-mirror run 10 of 2026-10-20): the whole
+# body below is ONE function, called on the last line, and every path out of it is an
+# `exit`. bash reads a script incrementally, by file offset, as it executes; the guard
+# of run 10 had its script rewritten in place under it (by an actor outside the session,
+# discarded by git at 12:33:03) and died with a syntax error at the monitor loop's end,
+# 6 h 48 min in, losing the run's marker. With the body in a function, bash has parsed
+# the entire file before the job is launched and never reads it again.
+main() {
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -69,8 +109,24 @@ INTERVAL_S=5
 TIMEOUT_S=0
 MARKER=""
 LOG_FILE=""
+FSEVENTSD_LIMIT_MB=512
+SWAPOUT_FLOOR_PS=1000
+PRE_SWAP_WINDOW_S=3
+# host-pressure observation state (OPS-MEMSAFE.6) — every marker carries it
+SWAP_AXIS_ON=1
+SWAP_AXIS_STATE="on"
+SWAP_PREV=""
+SWAP_PREV_S=0
+SWAP_HIGH_RUN=0
+LAST_SWAP_PS=""
+PEAK_SWAP_PS=""
+PRESSURE_SAMPLES=0
+TREE_MB_AT_PEAK_SWAP=""
+UNOWNED_TOP=""
+PRE_FSEVENTSD=""
+PRE_SWAP_PS=""
 
-usage() { sed -n '2,59p' "${BASH_SOURCE[0]}" | grep -E '^# ?' | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,/^set -uo pipefail$/p' "${BASH_SOURCE[0]}" | grep -E '^# ?' | sed 's/^# \{0,1\}//'; }
 
 is_uint() { [[ "$1" =~ ^[0-9]+$ ]]; }
 
@@ -81,6 +137,8 @@ while [ $# -gt 0 ]; do
     --disk-floor-gb) DISK_FLOOR_GB="${2:-}"; shift 2 ;;
     --interval-s) INTERVAL_S="${2:-}"; shift 2 ;;
     --timeout-s)  TIMEOUT_S="${2:-}"; shift 2 ;;
+    --fseventsd-limit-mb) FSEVENTSD_LIMIT_MB="${2:-}"; shift 2 ;;
+    --swapout-floor) SWAPOUT_FLOOR_PS="${2:-}"; shift 2 ;;
     --marker)     MARKER="${2:-}"; shift 2 ;;
     --log)        LOG_FILE="${2:-}"; shift 2 ;;
     --help|-h)    usage; exit 0 ;;
@@ -89,7 +147,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 if [ $# -eq 0 ]; then echo "memory-guard: no command given (usage: $0 [options] -- cmd args...)" >&2; exit 2; fi
-for v in "$BUDGET_MB" "$FLOOR_PCT" "$DISK_FLOOR_GB" "$INTERVAL_S" "$TIMEOUT_S"; do
+for v in "$BUDGET_MB" "$FLOOR_PCT" "$DISK_FLOOR_GB" "$INTERVAL_S" "$TIMEOUT_S" "$FSEVENTSD_LIMIT_MB" "$SWAPOUT_FLOOR_PS"; do
   is_uint "$v" || { echo "memory-guard: option values must be non-negative integers (got '$v')" >&2; exit 2; }
 done
 [ "$INTERVAL_S" -ge 1 ] || { echo "memory-guard: --interval-s must be >= 1" >&2; exit 2; }
@@ -132,6 +190,14 @@ write_marker() { # write_marker <status> <reason> <exit> <peak_rss_kb> <last_fre
     printf 'peak_rss_mb=%s\n'   "$(( ${4:-0} / 1024 ))"
     printf 'last_free_pct=%s\n' "${5:--}"
     printf 'last_disk_free_gb=%s\n' "${7:--}"
+    printf 'host_pressure_axis=%s\n' "$SWAP_AXIS_STATE"
+    printf 'swapout_floor_ps=%s\n' "$SWAPOUT_FLOOR_PS"
+    printf 'last_swapout_ps=%s\n'  "${LAST_SWAP_PS:--}"
+    printf 'peak_swapout_ps=%s\n'  "${PEAK_SWAP_PS:--}"
+    printf 'pressure_samples=%s\n' "$PRESSURE_SAMPLES"
+    printf 'tree_mb_at_peak_swapout=%s\n' "${TREE_MB_AT_PEAK_SWAP:--}"
+    printf 'unowned_top=%s\n'      "${UNOWNED_TOP:--}"
+    printf 'fseventsd_rss_mb=%s\n' "${PRE_FSEVENTSD:--}"
     printf 'elapsed_s=%s\n'     "${6:-0}"
     printf 'cmd=%s\n'           "$CMD_STR"
     printf 'ended_at=%s\n'      "$(date '+%Y-%m-%dT%H:%M:%S%z')"
@@ -161,6 +227,64 @@ free_disk_gb() {
     out="$(df -Pk . 2>/dev/null | awk 'NR==2 { print int($4 / 1048576) }')"
   fi
   if is_uint "${out:-}"; then printf '%s\n' "$out"; else printf '\n'; fi
+}
+
+# ---- host pressure: the swap-out counter (OPS-MEMSAFE.6) --------------------
+# `memory_pressure -Q`'s free % counts purgeable and cached pages as free, so it read
+# 51 % while swap stood at 22.06 of 23.55 GB (2026-10-20). vm_stat's cumulative
+# swap-out page count is the figure that moved; its RATE (pages/s) is the axis.
+swapouts_pages() {
+  local out
+  if [ -n "${PGEN_MEMORY_GUARD_FAKE_SWAPOUTS_FILE:-}" ]; then
+    out="$(cat "$PGEN_MEMORY_GUARD_FAKE_SWAPOUTS_FILE" 2>/dev/null | tr -d '[:space:]')"
+  else
+    out="$(vm_stat 2>/dev/null | awk '/^Swapouts:/ { gsub(/[^0-9]/, "", $2); print $2 }')"
+  fi
+  if is_uint "${out:-}"; then printf '%s\n' "$out"; else printf '\n'; fi
+}
+
+# ---- host hazard: the FSEvents journal daemon's RSS (MB) ---------------------
+# Root-owned, PPID 1, outside every job tree; it held 9–10 GB for hours on 2026-10-20.
+# Empty when there is no such daemon here (a Linux runner) — then NOT EVALUATED, never a verdict.
+fseventsd_rss_mb() {
+  local out="" pid
+  if [ -n "${PGEN_MEMORY_GUARD_FAKE_FSEVENTSD_RSS_MB_FILE:-}" ]; then
+    out="$(cat "$PGEN_MEMORY_GUARD_FAKE_FSEVENTSD_RSS_MB_FILE" 2>/dev/null | tr -d '[:space:]')"
+  else
+    pid="$(pgrep -x fseventsd 2>/dev/null | head -n 1)"
+    [ -n "$pid" ] && out="$(ps -o rss= -p "$pid" 2>/dev/null | awk '{ printf "%d", $1 / 1024 }')"
+  fi
+  if is_uint "${out:-}"; then printf '%s\n' "$out"; else printf '\n'; fi
+}
+
+# ---- physical RAM (MB) — the budget's reference ------------------------------
+physical_ram_mb() {
+  local out
+  if [ -n "${PGEN_MEMORY_GUARD_FAKE_MEMSIZE_MB_FILE:-}" ]; then
+    out="$(cat "$PGEN_MEMORY_GUARD_FAKE_MEMSIZE_MB_FILE" 2>/dev/null | tr -d '[:space:]')"
+  else
+    out="$(sysctl -n hw.memsize 2>/dev/null | awk '{ printf "%d", $1 / 1048576 }')"
+  fi
+  if is_uint "${out:-}"; then printf '%s\n' "$out"; else printf '\n'; fi
+}
+
+# ---- the largest process OUTSIDE a pid set -----------------------------------
+# top_unowned "<pids to exclude>" → "name:MB" of the biggest process that is neither in
+# the set nor the guard (empty when ps fails). Evidence only: it names what the guard
+# cannot own, so a pressure episode is attributable after the fact.
+top_unowned() {
+  ps -ax -o pid=,rss=,comm= 2>/dev/null | awk -v excl="$1" -v guard="$$" '
+    BEGIN { n = split(excl, e, " "); for (i = 1; i <= n; i++) if (e[i] != "") own[e[i]] = 1; own[guard] = 1 }
+    {
+      if ($1 in own) next
+      if ($2 + 0 > best) {
+        best = $2 + 0
+        name = $0
+        sub(/^[ \t]*[0-9]+[ \t]+[0-9]+[ \t]+/, "", name)
+        sub(/.*\//, "", name)
+      }
+    }
+    END { if (best > 0) printf "%s:%d\n", name, best / 1024 }'
 }
 
 # ---- process-tree RSS ------------------------------------------------------
@@ -258,13 +382,59 @@ if [ "$DISK_FLOOR_GB" -gt 0 ]; then
   fi
 fi
 
+# ---- pre-flight: host hazard + host pressure (OPS-MEMSAFE.6) -----------------
+# Both axes above see only what the job will own, and a root-owned daemon outside every
+# job tree is invisible to them; "free %" read 51 % while swap stood at 22 of 23.5 GB
+# (2026-10-20). Refuse to launch into that, and name the cause instead of grinding.
+PRE_FSEVENTSD="$(fseventsd_rss_mb)"
+if [ "$FSEVENTSD_LIMIT_MB" -gt 0 ]; then
+  if [ -z "$PRE_FSEVENTSD" ]; then
+    info 2 "host-hazard pre-flight NOT EVALUATED: no fseventsd RSS readable here (no such daemon, or no pgrep/ps)"
+  elif [ "$PRE_FSEVENTSD" -gt "$FSEVENTSD_LIMIT_MB" ]; then
+    MARKER="${MARKER:-$ROOT/rust/target/generated_logs/memory_guard/guard.$$.marker}"
+    emit "PRE-FLIGHT REFUSED: host hazard fseventsd=${PRE_FSEVENTSD}MB > ${FSEVENTSD_LIMIT_MB}MB — a leaking FSEvents journal daemon starves this job and the whole host, and no axis of this guard can see or stop it (docs/decisions/feedback_host_ram_budget_all_jobs.md) — NOT launching: $CMD_STR"
+    write_marker "preflight-refused" "host-hazard" "-" 0 "${PRE_FREE:--}" 0 "${PRE_DISK:--}"
+    emit "marker written: $MARKER"
+    exit 96
+  fi
+fi
+if [ "$SWAPOUT_FLOOR_PS" -gt 0 ]; then
+  s0="$(swapouts_pages)"
+  if [ -z "$s0" ]; then
+    emit "WARNING: could not read the swap-out counter (vm_stat) — host-pressure axis NOT EVALUATED on this host"
+    SWAP_AXIS_ON=0; SWAP_AXIS_STATE="not-evaluated"
+  else
+    sleep "$PRE_SWAP_WINDOW_S"
+    s1="$(swapouts_pages)"
+    if [ -n "$s1" ] && [ "$s1" -ge "$s0" ]; then
+      PRE_SWAP_PS=$(( (s1 - s0) / PRE_SWAP_WINDOW_S ))
+      if [ "$PRE_SWAP_PS" -ge "$SWAPOUT_FLOOR_PS" ]; then
+        MARKER="${MARKER:-$ROOT/rust/target/generated_logs/memory_guard/guard.$$.marker}"
+        PEAK_SWAP_PS="$PRE_SWAP_PS"; LAST_SWAP_PS="$PRE_SWAP_PS"; PRESSURE_SAMPLES=1
+        UNOWNED_TOP="$(top_unowned "")"
+        emit "PRE-FLIGHT REFUSED: host pressure — swap-out ${PRE_SWAP_PS} pages/s >= floor ${SWAPOUT_FLOOR_PS} across ${PRE_SWAP_WINDOW_S}s (free=${PRE_FREE:-?}% is not pressure; the largest process on the host: ${UNOWNED_TOP:-?}) — NOT launching: $CMD_STR"
+        write_marker "preflight-refused" "host-pressure" "-" 0 "${PRE_FREE:--}" 0 "${PRE_DISK:--}"
+        emit "marker written: $MARKER"
+        exit 96
+      fi
+    fi
+    SWAP_PREV="${s1:-$s0}"; SWAP_PREV_S=$SECONDS
+  fi
+else
+  SWAP_AXIS_ON=0; SWAP_AXIS_STATE="off"
+fi
+RAM_MB="$(physical_ram_mb)"
+if [ -n "$RAM_MB" ] && [ "$BUDGET_MB" -gt $(( RAM_MB / 2 )) ]; then
+  emit "WARNING: budget ${BUDGET_MB}MB exceeds half of physical RAM (${RAM_MB}MB) — the guard protects the host LESS at this budget (OPS-MEMSAFE.4); derive it from measured peaks, budget = min(max_peak x 1.2, RAM / 2), and reduce the peak rather than raise the budget"
+fi
+
 # ---- launch (own process group via job control) ----------------------------
 set -m
 "$@" &
 CHILD=$!
 set +m
 MARKER="${MARKER:-$ROOT/rust/target/generated_logs/memory_guard/guard.$CHILD.marker}"
-info 1 "started pid=$CHILD pgid=$CHILD budget=${BUDGET_MB}MB floor=${FLOOR_PCT}% disk_floor=${DISK_FLOOR_GB}GB interval=${INTERVAL_S}s timeout=${TIMEOUT_S}s free=${PRE_FREE:-?}% disk=${PRE_DISK:-?}GB cmd: $CMD_STR"
+info 1 "started pid=$CHILD pgid=$CHILD budget=${BUDGET_MB}MB floor=${FLOOR_PCT}% disk_floor=${DISK_FLOOR_GB}GB interval=${INTERVAL_S}s timeout=${TIMEOUT_S}s free=${PRE_FREE:-?}% disk=${PRE_DISK:-?}GB fseventsd=${PRE_FSEVENTSD:-?}MB swapout=${PRE_SWAP_PS:-?}/s (floor ${SWAPOUT_FLOOR_PS}, axis ${SWAP_AXIS_STATE}) cmd: $CMD_STR"
 
 PEAK_RSS_KB=0
 LAST_FREE="$PRE_FREE"
@@ -342,6 +512,36 @@ while kill -0 "$CHILD" 2>/dev/null; do
       emit "WARNING: could not read free disk space this interval — disk-floor check skipped"
     fi
   fi
+
+  # host pressure (OPS-MEMSAFE.6): observed and recorded, never a kill — the job may
+  # not be the cause, and a guard kills only what it owns.
+  if [ "$SWAP_AXIS_ON" -eq 1 ]; then
+    s_now="$(swapouts_pages)"
+    if [ -n "$s_now" ]; then
+      if [ -n "$SWAP_PREV" ] && [ "$s_now" -ge "$SWAP_PREV" ]; then
+        dt=$(( SECONDS - SWAP_PREV_S )); [ "$dt" -lt 1 ] && dt=1
+        rate=$(( (s_now - SWAP_PREV) / dt ))
+        LAST_SWAP_PS="$rate"
+        if [ -z "$PEAK_SWAP_PS" ] || [ "$rate" -gt "$PEAK_SWAP_PS" ]; then   # a run of zeros has a peak of 0, not "-"
+          PEAK_SWAP_PS="$rate"; TREE_MB_AT_PEAK_SWAP=$(( ${rss_kb:-0} / 1024 ))
+        fi
+        if [ "$rate" -ge "$SWAPOUT_FLOOR_PS" ]; then
+          PRESSURE_SAMPLES=$(( PRESSURE_SAMPLES + 1 ))
+          SWAP_HIGH_RUN=$(( SWAP_HIGH_RUN + 1 ))
+          if [ "$SWAP_HIGH_RUN" -eq 2 ]; then
+            top="$(top_unowned "$(list_tree_pids "$CHILD")")"
+            [ -n "$top" ] && UNOWNED_TOP="$top"
+            emit "WARNING (host-pressure): swap-out ${rate} pages/s >= floor ${SWAPOUT_FLOOR_PS} on two consecutive samples — tree_rss=$(( ${rss_kb:-0} / 1024 ))MB of budget ${BUDGET_MB}MB, free=${LAST_FREE:-?}% (free % is not pressure), largest process outside the tree: ${top:-?} — observed and recorded, NOT a kill (a guard kills only what it owns)"
+          fi
+        else
+          SWAP_HIGH_RUN=0
+        fi
+      fi
+      SWAP_PREV="$s_now"; SWAP_PREV_S=$SECONDS
+    else
+      emit "WARNING: could not read the swap-out counter this interval — host-pressure sample skipped"
+    fi
+  fi
 done
 
 # ---- normal completion -----------------------------------------------------
@@ -349,5 +549,8 @@ wait "$CHILD"
 RC=$?
 trap - INT TERM
 write_marker "completed" "none" "$RC" "$PEAK_RSS_KB" "${LAST_FREE:--}" "$(( SECONDS - START_S ))" "${LAST_DISK:--}"
-info 1 "completed exit=$RC peak_tree_rss=$(( PEAK_RSS_KB / 1024 ))MB elapsed=$(( SECONDS - START_S ))s; marker: $MARKER"
+info 1 "completed exit=$RC peak_tree_rss=$(( PEAK_RSS_KB / 1024 ))MB elapsed=$(( SECONDS - START_S ))s peak_swapout=${PEAK_SWAP_PS:--}/s pressure_samples=${PRESSURE_SAMPLES}; marker: $MARKER"
 exit "$RC"
+}
+
+main "$@"

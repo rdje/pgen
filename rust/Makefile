@@ -1129,6 +1129,21 @@ ci_workflow_local_gate:
 	cd $(RUST_DIR) && ./scripts/ci_workflow_local_gate.sh
 	@echo "✅ Local GitHub workflow parity gate passed."
 
+# OPS-MEMSAFE.6 — the push mirror's ONE sanctioned launch. Until 2026-10-20 every session
+# composed its own guard line and chose the budget at invocation (8192, 12288, 14336 and 16384
+# are all in the markers for this job). The budget here is DERIVED from the guard's own markers:
+# every finished full mirror run peaked between 5,010 and 10,943 MB, so
+#   budget = min(max peak × 1.2, half of this 24 GB host) = min(13,132, 12,288) = 12,288.
+# A run that breaches it has grown; the answer is to reduce the peak (OPS-MEMSAFE.4), never to
+# raise the number. The 12 h ceiling bounds a hung replay. The guard's host-hazard pre-flight
+# refuses to start into a leaking fseventsd or a swapping host, by name.
+# ⚠️ `make -n` still LAUNCHES the guard here (GNU make runs a recipe line that contains $(MAKE)
+# even under -n; only the inner make dry-runs) — it leaves a marker, nothing else.
+.PHONY: ci_workflow_local_gate_guarded
+ci_workflow_local_gate_guarded:
+	cd $(RUST_DIR)/.. && scripts/run_with_memory_guard.sh --budget-mb 12288 --timeout-s 43200 -- \
+	  $(MAKE) -C rust SHELL=$(SHELL) ci_workflow_local_gate
+
 # BIN-BUILD-INTEGRITY.2 — every declared binary must still COMPILE, in every
 # configuration this repository actually builds. HEAVY (one cargo check per
 # configuration): run it under the memory guard per the host-RAM directive.

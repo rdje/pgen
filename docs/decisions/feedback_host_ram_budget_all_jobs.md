@@ -58,3 +58,43 @@ backstop) unchanged. Measured green peaks at that budget: 12076 MB (cold test co
 7389 MB (warm test run), 12531/12360 MB (fat-LTO A/B builds). The default in the script
 stays 12288 so casual jobs keep the tighter bound; the 16384 figure is the recorded
 per-job choice for these two named classes.
+
+## Host pressure is not "free %", and a guard kills only what it owns (amended 2026-10-20, `PGEN-OPS-MEMSAFE-0022`)
+
+On 2026-10-20 a root-owned `fseventsd` (PPID 1, started at boot, never inside any job tree)
+grew to 9–10 GB RSS at 99 % CPU on an 11-day FSEvents journal of the build volume (116,998
+files, 4.0 GB, under Spotlight indexing of `rust/target`); swap reached 22.06 of 23.55 GB, and
+the host was unusable for hours while two guarded push-mirror runs tripped no axis: the guard's
+free-memory floor read **51 % free** throughout, because `memory_pressure -Q` counts purgeable
+and cached pages as free. The operator remediated the host outside every repository (`no_log`
+on the volume, Spotlight off, the journal pruned, the daemon restarted at 4 MB). Measured and
+recorded in `docs/tasks/OPS-MEMSAFE.md` leaf `.6`; the figure that did move was `vm_stat`'s
+swap-out counter.
+
+Consequences (binding, additive to 1–4 above):
+
+5. **A guard kills only what it owns.** Host pressure caused by something outside the job's
+   tree is OBSERVED and RECORDED (the swap-out rate, the largest unowned process, the tree's RSS
+   at the pressure peak — eight marker fields), never killed on: a healthy seven-hour run killed
+   for a daemon's leak is a destructive non-fix, and the 2026-07-14 session kill is the
+   precedent. Exit 94 is reserved for a swap-out breach kill and stays unimplemented until the
+   recorded markers show what rule would have been right.
+6. **Refuse to launch into a host hazard, by name.** The guard's pre-flight refuses (exit 96)
+   when `fseventsd` holds more than 512 MB (`reason=host-hazard`) or the swap-out rate across a
+   3 s window is at or over 1,000 pages/s (`reason=host-pressure`), and names the cause instead
+   of grinding for hours. Where a reading cannot run (no daemon, no `vm_stat`: a Linux runner)
+   it says NOT EVALUATED and launches. Host configuration (the `no_log` marker, Spotlight) stays
+   outside the guard's remit.
+7. **The budget is derived, never chosen at invocation.** `budget = min(max measured peak × 1.2,
+   half of physical RAM)`; when the first term exceeds the second, reduce the peak
+   (`OPS-MEMSAFE.4` question 3) — do not raise the budget. The guard warns on any budget over
+   half of RAM. For the push mirror the guard's own markers give the table below, so its one
+   sanctioned launch is `make -C rust SHELL=/bin/bash ci_workflow_local_gate_guarded` at
+   **12,288 MB** (`min(10,943 × 1.2, 24,576 / 2)`); four budgets had been on disk for the same
+   job (`8192`, `12288`, `14336`, `16384`), chosen in-session.
+
+| budget_mb | full mirror runs' `peak_rss_mb` (2026-09 → 2026-10-20) | status |
+| --- | --- | --- |
+| 12288 | 9,564 · 9,639 | completed |
+| 14336 | 5,967 · 8,135 · 8,878 · 9,620 · 9,873 · 10,014 · 10,419 | six completed; 10,419 `guard-interrupted`, not a breach |
+| 16384 | 5,010 · 5,090 · 10,943 | completed |

@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `OPS-MEMSAFE`
-- Status: `active` (**REOPENED 2026-07-27 session #214 for leaf `.4`** — the guard cannot see a
+- Status: `active` (**`.6` DONE 2026-10-20, `PGEN-OPS-MEMSAFE-0022`** — the guard refuses to launch into a host hazard by name and observes host pressure in flight, never a kill; the mirror's budget derived and pinned; the guard parses its whole body before it launches anything, after run 10's guard died under an in-place rewrite from outside the session; `.4` stays open for spike visibility and peak reduction. **REOPENED 2026-07-27 session #214 for leaf `.4`** — the guard cannot see a
   spike between samples, and on this 24 GB host the RSS budget is not the binding constraint;
   opened by `GENERATED-LINT-CORRECTNESS.2` after it drew the WRONG conclusion from two OS
   kills. Previously `complete` 2026-07-18 — REOPENED same day for leaf `.2` disk-floor guard after the RGX-0078 `.5.i.15` probe build died on host-disk exhaustion, and CLOSED with T10/T11 + regression green; previously `complete` 2026-07-14 with battery T1–T9; the DIRECTIVES stay binding: heavy jobs run UNDER the guard, disk hygiene is proactive)
@@ -54,7 +54,15 @@ and gates any heavy job.
 - ID: `OPS-MEMSAFE`
   Status: `complete`
   Goal: mechanical host-resource (RAM + disk) budget enforcement for spawned jobs
-  Children: `OPS-MEMSAFE.1`, `OPS-MEMSAFE.2`, `OPS-MEMSAFE.3`, `OPS-MEMSAFE.4`, `OPS-MEMSAFE.5`
+  Children: `OPS-MEMSAFE.1`, `OPS-MEMSAFE.2`, `OPS-MEMSAFE.3`, `OPS-MEMSAFE.4`, `OPS-MEMSAFE.5`, `OPS-MEMSAFE.6`
+
+- ID: `OPS-MEMSAFE.6`
+  Status: `done`
+  Goal: the guard refuses to launch into a host hazard it cannot own (`fseventsd` over `--fseventsd-limit-mb`, the swap-out rate at or over `--swapout-floor`; exit 96, `reason=host-hazard` / `host-pressure`), observes host pressure in flight (one warning per episode naming the largest process outside the job's tree; eight marker fields; never a kill, exit 94 reserved), warns on a budget over half of physical RAM, and gives the push mirror one sanctioned launch at a budget DERIVED from its own markers (`ci_workflow_local_gate_guarded`, 12,288); and parses its whole body before launching anything (one function, every exit an `exit`), so a rewrite of the script during a run cannot reach it — run 10's guard died that way at its loop's end
+  Why: the 2026-10-20 incident — a root-owned `fseventsd` at 9–10 GB for hours, swap 22.06 of 23.55 GB, two guarded mirror runs tripping nothing because `memory_pressure -Q`'s free % (51 %) is not pressure; the report an external agent wrote for the director, every claim re-measured here
+  Acceptance: battery T12–T21 + the T20c control + replays T1 / T2 / T5 / T9 all PASS (15 / 15) on the scratch copy and in place; the first live launch of the installed guard recorded; the host re-measured; docs lockstep (card, book, Makefile, indexes)
+  Verification: see Verification Log
+  Commit: `PGEN-OPS-MEMSAFE-0022`
 
 - ID: `OPS-MEMSAFE.1`
   Status: `done`
@@ -75,6 +83,7 @@ and gates any heavy job.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
+| — | `OPS-MEMSAFE.6` | `done` 2026-10-20 (`PGEN-OPS-MEMSAFE-0022`) | The 2026-10-20 host incident: host-hazard + host-pressure pre-flight, in-flight observation (never a kill), the over-half-RAM warning, the mirror's derived budget pinned, parse-before-run after run 10's guard died under an outside in-place rewrite. Owed: the kill rule (exit 94) once the markers' `tree_mb_at_peak_swapout` say what rule is right. |
 | — | `OPS-MEMSAFE.5` | `done` (recurring — re-run when `docs/ARTIFACT_CLEANUP.md` is older than a day) | The §8 artifact cleanup of 2026-09-29: 54.0 GB freed under the decision record's safe inventory; `debug/incremental` kept as the active lane's hot cache. |
 | — | `OPS-MEMSAFE.2` | `done` | Disk-floor axis delivered (T10/T11 + regression green); tree complete again. |
 | — | `OPS-MEMSAFE.1` | `done` | Wrapper delivered + fratricide defect fixed; heavy jobs are unblocked (run them UNDER the guard). |
@@ -166,6 +175,8 @@ Process rule recorded in MEMORY: `make -n <target>` before any first-time invoca
 - `2026-07-14`: Honest limit recorded: a descendant that re-parents AND changes its own process group escapes the walk; jobs PGEN spawns (make/cargo/bench/parse) do neither. The guard is bounded-blast-radius enforcement, not a kernel limit.
 - `2026-07-14` (post-fratricide hardening): a kill list computed from a SAMPLED walk is UNTRUSTED input to the kill path — three independent rails now hold even if the walk is wrong again: (1) INSANE-SAMPLE VOIDING (a walk that marks pid 1 / the guard / a guard ancestor yields an empty result — a warned no-op, never a kill), (2) the kernel-scoped process-group kill (`kill -- -pgid`) is the primary kill and needs no walk at all, (3) `signal_tree` refuses pid ≤ 1 and the guard's own pid outright. General lesson (portable beyond this script): in awk, `!arr[k]` is a MEMBERSHIP BUG — reading `arr[k]` auto-vivifies the key and corrupts every later `in` test; membership is `!(k in arr)`.
 
+- `2026-10-20` (`.6`): the guard's mandate stays JOB-scoped for kills and widens to the HOST for refusal at launch and for evidence in flight — a guard kills only what it owns (the 2026-07-14 session kill is the precedent; on 2026-10-20 the tree stood at 35–76 % of its budget while a daemon was the cause, so a "kill when the tree is over 70 % under pressure" rule would have killed a healthy run). Host pressure is read from `vm_stat`'s swap-out counter (its rate), never from `memory_pressure -Q`'s free % (purgeable and cached pages count as free: 51 % at 22 of 23.5 GB of swap). Exit 94 reserved for a swap-out breach kill, unimplemented until the markers show the rule. The budget is DERIVED, `min(max measured peak × 1.2, half of physical RAM)`, pinned as a literal beside its derivation — never chosen at launch, never derived at runtime from an untracked marker directory. Host configuration (`no_log`, Spotlight) is outside the guard's remit.
+
 ## Open Questions
 
 - None.
@@ -194,6 +205,7 @@ Process rule recorded in MEMORY: `make -n <target>` before any first-time invoca
 | `2026-10-18` | `OPS-MEMSAFE.5` (recurring) | `git ls-files rust/target` (0 tracked) · stale-file census before deleting (159 `*.log`/`*.bin` older than seven days outside the KEEP paths; `sota_exit_gate/` KEPT whole; the 19 cited by a live tracked document found by `git grep -h -o -F -f` and kept) · every path checked a plain file under `rust/target/` before the `rm`, 0 of 140 present after · `cargo sweep --time 1` under the guard · `du -sm rust/target` 197,944 → 194,520 · the release probe RUN (`systemverilog` `aa7972eda8377806`, `systemverilog_preprocessor` `e066baa67699919c`) · `sv_ceremony_binaries.sh verify rust/target/svpp8` notes=1 → `restore` → notes=0 · `check_no_background_jobs.sh` rc 0 | ✅ `PGEN-OPS-MEMSAFE-0019` — 3.4 GB, record overwritten |
 | `2026-10-19` | `OPS-MEMSAFE.5` (recurring) | `git ls-files rust/target` (0 tracked) · the LIVE push-mirror run `run.AzKXa6` excluded from every step by path · stale-file census before deleting (5,103 `*.log`/`*.bin` older than seven days outside the KEEP paths; `sota_exit_gate/` KEPT whole; the 21 cited by a live tracked document found by `git grep -h -o -F -f` and kept) · every path checked a plain file under `rust/target/` before the `rm`, 5,082 removed (58 MB), 0 present after · the two FINISHED mirror exports `run.okkavv/export` (28,940 MB) and `run.kRR6e8/export` (21,779 MB) removed, `logs/` kept; `run.HOoExd` kept whole (a tracked doc cites a log inside its export) · `cargo sweep --time 1` under the guard (`Cleaned 166.09 MiB`) · `du -sm rust/target` 327,601 → 260,705 · the release probe RUN (`systemverilog` `aa7972eda8377806`, `systemverilog_preprocessor` `0aca5ffe7813dd1c`) · `sv_ceremony_binaries.sh verify rust/target/svpp9` notes=0, no restore · disk 37 % used | ✅ `PGEN-OPS-MEMSAFE-0020` — 66.9 GB, record overwritten |
 | `2026-10-20` | `OPS-MEMSAFE.5` (recurring) | `git ls-files rust/target` (0 tracked) · no mirror run live (run 9 finished 06:29; run 10 started after this commit) · stale-file census before deleting (20 `*.log`/`*.bin` older than seven days outside the KEEP paths, all 20 cited by a live tracked document and kept, 0 removed) · the four FINISHED mirror runs' export build directories removed (`export/rust/target/{debug,release}` of `run.5tEW2W` / `run.AzKXa6` / `run.D9jLgP` / `run.HOoExd`, 119,480 MB; no tracked citation names them, every cited path kept, `summary.csv` and `logs/` intact) · the `-0126` CI-shaped worktree `rust/target/ci_shape` removed · `cargo sweep --time 1` under the guard (its own line `Cleaned 117.69 GiB` by file size; `du` attributes ≈30 GB — the one-day window now past the 2026-10-18 ceremony's builds, the next local debug build is cold) · `du -sm rust/target` 349,036 → 199,407 · `sv_ceremony_binaries.sh verify rust/target/svpp9` OK notes=0, no restore (release `cce7d537…`, debug `d2cdfaaf…` in place) · disk 36 % used, 2.45 TB free | ✅ `PGEN-OPS-MEMSAFE-0021` — 149.6 GB, record overwritten |
+| `2026-10-20` | `OPS-MEMSAFE.6` | battery T12–T21 + the T20c control + replays T1 / T2 / T5 / T9 (`rust/target/svpp9/guard6/battery.sh`; `battery_run2.log` 12 / 12 before T20 existed, `battery_run4.log` 15 / 15 on the scratch copy, `battery_inplace2.log` 15 / 15 in place after the rename install) · the first live launch of the installed guard: the reproducibility rebaseline under `--budget-mb 12288` (`rust/target/svpp9/guard6/rebaseline.log`, marker `guard.85535.marker`: `peak_rss_mb=7622 elapsed_s=201 host_pressure_axis=on last_swapout_ps=0 pressure_samples=0 fseventsd_rss_mb=10`) · `bash -n` · `--help` prints the whole header · the host re-measured read-only (`fseventsd` 6 MB after its 11:02 restart, swap 12,100 of 13,312 MB cold, swap-out 0 pages/s over 5 s, 71 % free, `no_log` present, Spotlight off) · the 22 mirror markers' peaks reproduced · `launchctl list` for the supervisors | **15 / 15 PASS**: T12 exit 96 `reason=host-hazard`, never launched; T14 exit 96 `reason=host-pressure` at 1,666 pages/s naming `rustc:3462` (a rustc of the live mirror run, outside the test's tree); T15 the job SURVIVED six pressure samples at 2,000 pages/s with ONE warning, `tree_mb_at_peak_swapout=1`; T16 12,289 warns once, 12,288 silent, exit 7 through both; T17 NOT EVALUATED said, the job ran; T2 / T5 / T9 replays byte-for-byte verdicts; T20 the guard's own file rewritten in place (same inode) 1 s into a 4 s job ⇒ exit 7 through, marker written, no syntax error; T20c the HEAD guard under the same rewrite ⇒ rc 2, syntax error, no marker (run 10 reproduced in 5 s); T21 a static counter ⇒ `peak_swapout_ps=0`, a measured zero, not a dash (the first live marker had printed `-` for a 0-pages/s run; fixed, re-installed by rename, the battery re-run) |
 
 ## Commit Log
 
@@ -203,9 +215,11 @@ Process rule recorded in MEMORY: `make -n <target>` before any first-time invoca
 | `OPS-MEMSAFE.2` | `PGEN-OPS-MEMSAFE-0003 (leaf OPS-MEMSAFE.2)` | disk-floor axis (pre-flight + in-flight exit 95) + T10/T11 + regression green + disk-hygiene decision record + docs lockstep |
 | `OPS-MEMSAFE.3` | `PGEN-OPS-MEMSAFE-0004 (leaf OPS-MEMSAFE.3)` | destructive-target guard (refuse-by-default `clean` family, exit 96) + doctrine check registered + `preserved_probes/` relocation + decision record + docs lockstep |
 | `OPS-MEMSAFE.5` | `PGEN-OPS-MEMSAFE-0009 (leaf OPS-MEMSAFE.5)` | the §8 recurring artifact cleanup of 2026-09-29 + the new `docs/ARTIFACT_CLEANUP.md` record (latest run only) |
+| `OPS-MEMSAFE.6` | `PGEN-OPS-MEMSAFE-0022 (leaf OPS-MEMSAFE.6)` | host-hazard + host-pressure pre-flight (exit 96, `reason=host-hazard` / `host-pressure`), in-flight pressure observation recorded in eight marker fields (never a kill; exit 94 reserved), the over-half-RAM budget warning, `ci_workflow_local_gate_guarded` pinned at the derived 12,288, parse-before-run (the whole body one function) after run 10's guard died under an outside in-place rewrite, battery T12–T21 + T20c + replays 15 / 15, the decision card amended, book + Makefile lockstep |
 
 ## Changelog
 
+- `2026-10-20`: Leaf `.6` opened and closed in one slice on the host incident of the same day (a root-owned `fseventsd` at 9–10 GB, swap 22 of 23.5 GB, the guard reading 51 % free through it): the guard refuses to launch into a host hazard by name, observes host pressure in flight and records it (never a kill — a guard kills only what it owns), warns on a budget over half of RAM; the push mirror's budget derived from its own markers (12,288) and pinned in `ci_workflow_local_gate_guarded`. The external report's figures re-measured, two corrected. `.4` keeps spike visibility and peak reduction. Found while the slice was open: run 10's guard died at its loop's end on its own script, rewritten in place under it from outside the session; the guard now parses its whole body before launching anything (FIX (7)).
 - `2026-09-29`: Leaf `.5` opened and closed in one slice — the session directive's §8 cleanup record did not exist, so a cleanup was due; 54.0 GB freed from `rust/target/` under the decision record's inventory, recorded in `docs/ARTIFACT_CLEANUP.md`.
 - `2026-07-14`: Created task tree; leaf `.1` opened as the session's directive-mandated first item.
 - `2026-07-14`: First build's own T2 test killed the host's user session (awk auto-vivification made the tree walk system-wide; the kill list followed). Root-caused with the surviving guard logs + crash reports + a live repro; fixed (`!(p in mark)`) + three kill-path fail-safes; battery extended with T8 (scoping regression) + T9 (guard-interrupted); 23/23 PASS. Leaf `.1` DONE — heavy jobs now run UNDER the guard.
@@ -301,6 +315,7 @@ Process rule recorded in MEMORY: `make -n <target>` before any first-time invoca
 - A `reason=none exit=2` marker on a heavy job means **an external kill**, not a guard
   breach — re-run it, and if it recurs, reduce the peak rather than raise the budget.
 - After any interrupted `focus_*` fan-out, **redo the whole regeneration**; never resume it.
+- 📌 **2026-10-20 (`.6`, `PGEN-OPS-MEMSAFE-0022`):** question 1's "sample *system* pressure rather than only tree RSS" is now in the guard as an OBSERVATION axis (the swap-out rate, recorded in every marker with the tree's RSS at the pressure peak and the largest unowned process; never a kill), and question 2 is answered for the push mirror by a DERIVED budget pinned in one target (`min(max peak × 1.2, half of RAM)` = 12,288). Spike visibility between samples (1) and peak reduction (3) remain this leaf's.
 
 ## Leaf `.5` — the recurring §8 artifact cleanup and its record (opened + closed 2026-09-29, `PGEN-OPS-MEMSAFE-0009`, status: `done`, recurring)
 
@@ -340,3 +355,181 @@ Process rule recorded in MEMORY: `make -n <target>` before any first-time invoca
 - [x] **NO REGRESSION** — the roster's other thirteen entries untouched (the replay's expected list equals the tracked `docs/*.md` set entry for entry); ZERO Rust / grammar / generated bytes — `GENERATED-REPRODUCIBILITY` tier 1 reads every generated artifact byte-identical with HEAD's source, and no clippy run is owed; `bash scripts/check_doctrines.sh` on the staged set → `doctrines: ALL 45 enforced doctrines PASS.`
 - [x] **LOCKSTEP** — this leaf, `docs/TASK_TREE.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`; `MEMORY.md`'s push-lane note. No book page enumerates the roster.
 - [x] **NEUTRALITY TIER** — N/A: a CI audit roster, no language named.
+
+## Leaf `.6` — the guard was blind to a host hazard it did not own (the 2026-10-20 `fseventsd` incident): host-hazard pre-flight, host-pressure observation, the mirror's derived budget (opened + closed 2026-10-20, `PGEN-OPS-MEMSAFE-0022`, status: `done`)
+
+- **Status: `done`** — opened on an incident report an external agent wrote for the director
+  (`~/Desktop/PGEN-feedback-host-memory-2026-10-20.md`, outside every repository, forwarded
+  2026-10-20 with *"read this whenever you have some spare time"*). It asked three questions —
+  widen the guard's mandate?, which axes, and do they kill?, pin the budget? — and shipped a
+  patch for the first. Nothing in it was taken on trust: every figure below was re-measured here
+  before anything was built, and two of its claims were corrected (*Verified*, below).
+- **Found.** The host was unusable for hours on 2026-10-20 while a root-owned `fseventsd`
+  (PID 377, PPID 1, started two minutes after boot, never inside any job tree) grew to 9–10 GB
+  RSS at 99 % CPU on an 11-day FSEvents journal of the build volume (116,998 files, 4.0 GB,
+  under Spotlight indexing with a 48 GB index that covered `rust/target`); swap reached 22.06 of
+  23.55 GB with 103 MB of physical RAM unused. Two guarded mirror runs were live in that window
+  and neither tripped an axis: the guard read `last_free_pct=51` throughout. The operator
+  remediated the host outside the repository (`no_log` on the volume, Spotlight off and the
+  index erased, the journal pruned, the daemon restarted at 4 MB); an alert-only menu-bar app
+  now watches the host. ⛔ PGEN did not cause the leak and must not mutate host configuration
+  from a gate; PGEN's push mirror is the largest churn source on that volume (103,639 files
+  exported per run, 22,877 files touched under `rust/target` in two hours).
+- **Verified here (2026-10-20 12:43–12:57 CEST, read-only).** `fseventsd` PID 96988 restarted
+  11:02:09, 6 MB, 0 % CPU · `vm.swapusage` 13,312 MB total / 12,100 used (cold) · swap-out
+  **0 pages/s** over 5 s · `memory_pressure -Q` 71 % free · `/Volumes/SSD/.fseventsd` holds two
+  entries (`fseventsd-uuid`, `no_log`), 4 KB · `mdutil -s` "Indexing disabled", the index
+  directory 17 GB · 5,254 guard markers on disk · the 22 markers naming `ci_workflow_local_gate`
+  reproduce the report's peak table (below) · the one `killed` marker (10,419 MB, 2026-10-19
+  13:43) was `guard-interrupted`, exit 130, not a budget breach. ⚠️ Two corrections: (1) *"14336
+  appears nowhere in the repo"* is false by one citation
+  (`docs/tasks/GENERATED-LINT-CORRECTNESS.md:641`) and true for every launch site — the figure
+  was chosen in-session; (2) the book's "other supervisor" (`~/.memwatch/memwatch.sh`, kills any
+  process over 14,336 MB) is **no longer loaded**: `launchctl list` carries only
+  `local.tools.memwatch` (the alert-only app), and the shell watchdog's log was last written
+  2026-10-09 09:51 — the book paragraph is re-dated in this slice. ⭐ One finding the report
+  could not have: `~/Library/Logs/MemWatch.log` records swap thrashing at **1,141 and 1,327
+  pages/s at 12:30–12:32 CEST today**, after the remediation, with mirror run 10 in its SV
+  stages and nothing else heavy — the mirror itself can press the host, which is exactly why a
+  kill rule must wait for data (FIX (3)).
+
+| budget_mb | full mirror runs' `peak_rss_mb` (markers under 2 GB excluded: audits-only and short runs) | status |
+| --- | --- | --- |
+| 12288 | 9,564 · 9,639 | completed |
+| 14336 | 5,967 · 8,135 · 8,878 · 9,620 · 9,873 · 10,014 · 10,419 | six completed; 10,419 `guard-interrupted` (exit 130, 2026-10-19 13:43), not a breach |
+| 16384 | 5,010 · 5,090 · 10,943 | completed |
+
+- ⭐ **Found while the slice was open (run 10's end, 14:13:03 CEST).** Mirror run 10 (`run.R9hchX`,
+  started 07:25:07 on `a0bec1ab6` under the tracked guard at 14,336) finished GREEN — 12 replayed
+  jobs `ok`, the run dir removed on success, the Makefile's final `✅` echo executed, so the script
+  and `make` exited 0 — and then the guard itself printed `scripts/run_with_memory_guard.sh: line
+  347: syntax error near unexpected token `('` and exited 2: no `completed` marker, run 10's peak
+  unrecorded. Line 347 of the tracked file is `wait "$CHILD"`; the line bash quoted is the
+  RSS-budget breach line of a different image of the file. Evidence, read-only: the path was
+  RECREATED at 12:33:03 (birth time = mtime, a new inode; `.git/index` rewritten 12:33:11; no other
+  tracked file reborn that minute; content equal to HEAD), so the inode the guard held open had
+  been rewritten IN PLACE before that and the rewrite discarded through git. The three Claude
+  Code transcripts on this host for the day (this session, `specforge`, `archogen`) carry no tool
+  call writing that path, and this session made no tool call at all between 12:20 and 12:40 —
+  the hand was outside the session, inside the operator's host-remediation window. bash reads a
+  script incrementally, by file offset, as it executes: the monitor loop was parsed at launch and
+  ran to its end; the first read after it, 6 h 48 min later, fetched the rewritten bytes. The
+  mirror's verdict is unaffected (the child had exited before the guard read anything);
+  `a0bec1ab6` was pushed at 14:19 on that verdict (`CI-PARITY-GATE-ROT.121`).
+- [x] **REPRODUCE / ISSUE** — the battery's T14 / T15 (`rust/target/svpp9/guard6/battery.sh`):
+  a swap-out counter advancing 2,000 pages/s with the free-% seam untouched. Before this slice
+  the guard had no reader for any of it (`grep -c vm_stat scripts/run_with_memory_guard.sh` = 0;
+  no `pgrep`, no `hw.memsize`), so the same conditions produced `started … free=…%` and a green
+  `completed` marker — run 9's own marker (`guard.70109.marker`: `peak_rss_mb=5967
+  last_free_pct=74 reason=none`, 27,557 s inside the incident window) is the evidence.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: the guard's three kill axes are scoped to the job's
+  process tree by design (a guard kills only what it owns), and its one host-wide reading is not
+  a pressure reading: `memory_pressure -Q`'s free % counts purgeable and cached pages as free, so
+  it reads 51 % while the machine swaps itself to a halt. A root-owned daemon outside every tree
+  was therefore invisible to all four readings. A second cause, independent of the first: the
+  budget was chosen at invocation — `8192`, `12288`, `14336`, `16384` all occur in the markers
+  for the same job — not derived from what the runs measure. WHERE:
+  `scripts/run_with_memory_guard.sh` pre-flight (pre-fix lines 237–259: `free_pct` and
+  `free_disk_gb` only) and monitor loop (pre-fix lines 295–345: RSS, free %, disk, timeout — no
+  swap, no unowned process); the mirror's launch line composed by hand in each session. HOW READ:
+  run 9's `guard.70109.marker` (`reason=none`, `peak_rss_mb=5967`, `last_free_pct=74`, written
+  inside the incident window) against `vm.swapusage` and `vm_stat`'s swap-out counter; the 22
+  `ci_workflow_local_gate` markers for the budget table; for the run-10 death, `bash -n
+  scripts/run_with_memory_guard.sh` clean on both images, `git ls-files -z | xargs stat -f '%SB'`
+  for the one path reborn at 12:33:03, and `git reflog` / `git stash list` empty of any
+  checkout of this session's.
+- [x] **FIX** — tier: ops script + Makefile + docs; no engine / parser / grammar byte.
+  (1) **Host-hazard pre-flight** (`--fseventsd-limit-mb`, default 512, 0 off): the daemon's RSS
+  over the limit ⇒ exit 96, `reason=host-hazard`, the cause named, the job never launched (the
+  report's P1, re-expressed in the guard's own option / seam / marker conventions).
+  (2) **Host-pressure pre-flight** (`--swapout-floor`, default 1,000 pages/s, 0 off): `vm_stat`'s
+  swap-out counter sampled across a 3 s window; at or over the floor ⇒ exit 96,
+  `reason=host-pressure`, the largest process on the host named.
+  (3) **In-flight observation, never a kill**: every interval samples the swap-out rate; two
+  consecutive samples at or over the floor print ONE warning per episode naming the largest
+  process outside the job's tree, and the marker records `host_pressure_axis`,
+  `swapout_floor_ps`, `last_swapout_ps`, `peak_swapout_ps`, `pressure_samples`,
+  `tree_mb_at_peak_swapout`, `unowned_top`, `fseventsd_rss_mb`. Exit **94** is reserved for a
+  swap-out breach kill and NOT implemented (the report's P2 kill branch): on 2026-10-20 the tree
+  stood at 35–76 % of its budget while the cause was a daemon, so the proposed "kill when the
+  tree is over 70 %" rule would have killed a healthy run; the marker now records what a right
+  rule needs.
+  (4) **The over-half-RAM warning**: `--budget-mb` above `hw.memsize / 2` prints one warning at
+  launch (non-fatal; the four documented 16,384 call sites keep working and now say what they
+  cost).
+  (5) **The mirror's one sanctioned launch**: `make -C rust SHELL=/bin/bash
+  ci_workflow_local_gate_guarded` at the DERIVED budget `min(10,943 × 1.2, 24,576 / 2)` =
+  **12,288** and a 12 h ceiling; callers stop composing their own guard line.
+  (6) Every new reading degrades to NOT EVALUATED where it cannot run (no daemon, no `vm_stat`,
+  no `sysctl`: a Linux runner) and says so — never a verdict
+  (`docs/decisions/feedback_a_check_that_cannot_run_must_say_so.md`); three deterministic seams
+  (`PGEN_MEMORY_GUARD_FAKE_{SWAPOUTS,FSEVENTSD_RSS_MB,MEMSIZE_MB}_FILE`) make every path testable.
+  (7) **Parse-before-run** (the finding above): the whole body is one `main()` called on the last
+  line, every path out of it an `exit` (no top-level `return`, verified by grep); bash therefore
+  parses the entire file before the job is launched and never reads it again. The rule *never
+  edit a running script in place* stands — and was not enough, because the hand was not this
+  session's; the script now protects itself.
+  (8) A run whose every swap-out sample is zero records `peak_swapout_ps=0` — the installed
+  guard's first live marker (the reproducibility rebaseline, 201 s) printed `-`, which reads as
+  "not sampled" when the counter had in fact been read 40 times (T21).
+- **Decisions (the report's §7, answered).** (1) The mandate stays job-scoped for KILLS and
+  widens to the host for REFUSAL at launch and for EVIDENCE in flight. (2) Exit 94 reserved;
+  marker fields as above. (3) P1 on by default; thresholds are options. (4) The budget is a
+  literal in the Makefile with its derivation beside it — a runtime derivation from an untracked
+  marker directory would make a launch depend on what a cleanup left behind. (5) The `no_log`
+  marker and Spotlight are host configuration, outside the guard's remit: the guard observes the
+  host and refuses to launch into a hazard; it does not require a host configuration.
+  (6) Building on the external volume is the standing rule (project data lives on `/Volumes/SSD`),
+  so the churn is a permanent property; the report's P6 (date-sharded marker directories, a
+  hardlinked export) is parked below on its merits, not on this incident.
+- [x] **ADDRESSED (verified)** — battery **15 / 15 PASS** on the scratch copy
+  (`rust/target/svpp9/guard6/battery_run4.log`; `battery_run2.log` was 12 / 12 before T20 existed)
+  and again in place after the rename install (`battery_inplace2.log`, 15 / 15): T12 fake
+  daemon 900 MB ⇒ exit 96 `reason=host-hazard`, never launched, `fseventsd_rss_mb=900`; T13
+  `--fseventsd-limit-mb 0` launches and still records the 900; T14 a counter at 2,000 pages/s ⇒
+  exit 96 `reason=host-pressure` at 1,666 pages/s, never launched, `unowned_top=rustc:3462` (a
+  rustc of the live mirror run — outside the test's tree, named correctly); T15 static during
+  pre-flight then 2,000 pages/s for 12 s: the job SURVIVED (exit 0), exactly one warning,
+  `pressure_samples=6 peak_swapout_ps=2000 tree_mb_at_peak_swapout=1 unowned_top=rustc:2594`;
+  T16 budget 12,289 on a 24,576 MB host warns once, 12,288 is silent, exit 7 passes through both;
+  T17 an unreadable counter ⇒ `host_pressure_axis=not-evaluated`, said, the job ran; T18
+  `--swapout-floor 0` ⇒ axis off, launch in 1 s; T19 a non-integer option ⇒ exit 2. Real host, no
+  seams (T1-replay): exit 7 through, `fseventsd_rss_mb=3`, `host_pressure_axis=on`, no warning. T20: a
+  copy of the guard rewritten in place (same inode, verified) 1 s into a 4 s job ⇒ exit 7 through,
+  `status=completed exit=7`, no syntax error; T20c, the control: the HEAD guard under the same
+  rewrite ⇒ rc 2, `syntax error near unexpected token`, no marker — run 10 reproduced in 5 s. T21: a
+  static counter for 3 s ⇒ `peak_swapout_ps=0 last_swapout_ps=0 pressure_samples=0`. First live
+  launch of the installed guard: the reproducibility rebaseline at the derived 12,288 —
+  `completed exit=0 peak_tree_rss=7622MB elapsed=201s`, `host_pressure_axis=on`, swap-out 0 pages/s
+  throughout, `fseventsd_rss_mb=10`; the eight new fields present in a real marker.
+  `bash -n` clean; `--help` prints the whole header (the usage range now ends at the
+  `set -uo pipefail` line, not at a line number).
+- [x] **NO REGRESSION** — T2-replay (300 MB balloon under 100 MB ⇒ exit 97 `reason=rss-budget`,
+  balloon gone), T5-replay (fake free 5 % ⇒ exit 96 `reason=free-floor`, first in order, never
+  launched), T9-replay (TERM ⇒ exit 130 `reason=guard-interrupted` through the extended writer):
+  byte-for-byte verdicts. The thirteen existing marker fields keep their names and order (the
+  eight new ones follow `last_disk_free_gb`); every existing caller is unchanged (defaults on,
+  3 s added to a launch while the axis is on, nothing when `--swapout-floor 0`); the RSS /
+  free-floor / disk / timeout logic untouched. The bare `ci_workflow_local_gate` target is
+  untouched; `_guarded` wraps it. The function wrap changes no behaviour: `set -m`, `trap`, `$!`,
+  `wait` and the globals behave identically inside a function; T12–T19 and the four replays pass
+  byte-for-byte after it, and `--help` still prints the whole header. The generated surface:
+  the reproducibility re-derivation under the installed guard reports every generator stage
+  `re-derives byte-identically (0 sites)` (`rust/target/svpp9/guard6/rebaseline.log`;
+  `generated_reproducibility_v0.json` re-keyed to `a0bec1ab6` because `rust/Makefile` is inside
+  `emission_sha`); zero engine, grammar or generated bytes in the slice.
+- [x] **LOCKSTEP** — this tree (metadata, task tree, frontier, decisions, logs, changelog, the
+  `.4` pointer) + `docs/TASK_TREE.md` + the decision card
+  `docs/decisions/feedback_host_ram_budget_all_jobs.md` (consequences 5–7 + the peak table) +
+  `docs/decisions/INDEX.md` + the book `operations-and-governance.md` (the guard section, the
+  re-dated supervisor paragraph, the Workflow Parity launch) + `rust/Makefile` + `CHANGES.md` +
+  `DEVELOPMENT_NOTES.md` + `MEMORY.md`, same commit; the reproducibility baseline re-recorded
+  (`rust/Makefile` is inside `emission_sha`).
+- **Owed / parked.** (a) The kill rule (exit 94): read `tree_mb_at_peak_swapout` and
+  `unowned_top` across the next mirror runs' markers before writing one. (b) The daemon is read at
+  pre-flight only; an in-flight re-read is cheap once the first markers show whether it matters.
+  (c) P6 churn hygiene on its merits: 5,254 markers in one flat directory; a 103,639-file export
+  per mirror run. (d) `.4` keeps questions 1 (spike visibility between samples) and 3 (peak
+  reduction); its question 2 is answered for the mirror by FIX (5). (e) Run 10's peak is
+  unrecorded (its guard wrote no marker); the first `_guarded` mirror run supplies the first
+  marker with the eight new fields and the first swap-out reading of a full run.

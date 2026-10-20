@@ -51,7 +51,36 @@ RAM or disk, the marker's `reason=` field disambiguates — 97 rss-budget,
 98 free-floor, 95 disk-floor, 99 timeout, 130 guard-interrupted) so callers can
 branch mechanically. See `README.md` → Standard Commands for usage.
 
-⛔ **The guard is not the only supervisor on the host, and the other one has a lower line.**
+**What the guard cannot see, and what it does about it (measured 2026-10-20).** Every kill
+axis above is scoped to the job's own process tree, and the one host-wide reading, the
+free-memory floor, is not a pressure reading: `memory_pressure -Q` counts purgeable and cached
+pages as free, so it reported 51 % free while swap stood at 22 of 23.5 GB and a root-owned
+`fseventsd` outside every job tree held 9–10 GB for hours (an 11-day FSEvents journal of the
+build volume under Spotlight indexing; the operator fixed the host outside the repository).
+Two guarded mirror runs were live through it and tripped nothing. Since
+`PGEN-OPS-MEMSAFE-0022` the guard refuses to launch into a host hazard by name
+(`reason=host-hazard` when that daemon holds more than 512 MB, `reason=host-pressure` when the
+swap-out rate across a 3 s window is at or over 1 000 pages/s; both exit 96), and while the job
+runs it samples the swap-out rate, prints one warning per pressure episode naming the largest
+process outside the job's tree, and records the episode in the marker (`peak_swapout_ps`,
+`pressure_samples`, `tree_mb_at_peak_swapout`, `unowned_top`). It never kills on host pressure:
+a guard kills only what it owns, and the record is what a kill rule would need (exit 94 is
+reserved for one). It also warns when a budget exceeds half of physical RAM, because a budget is
+derived, `min(max measured peak × 1.2, half of RAM)`, not chosen at launch; the push mirror's
+derived budget is 12 288 MB, pinned in `make -C rust SHELL=/bin/bash ci_workflow_local_gate_guarded`.
+On a host without `vm_stat` or the daemon (a Linux runner) each new reading says NOT EVALUATED
+and the launch proceeds. The guard also survives its own file being changed under it: its whole
+body is one function called on the last line, so bash has parsed every byte before the job starts
+and never reads the file again (*parse-before-run*). Push-mirror run 10 of 2026-10-20 finished
+green and its guard then died at the loop's end with a syntax error, because the script had been
+rewritten in place under it and bash reads a running script by file offset; the marker of that
+run is lost, and no later run can lose one that way.
+
+⛔ **The guard was not the only supervisor on the host, and the other one had a lower line**
+(re-measured 2026-10-20, `OPS-MEMSAFE.6`: that launchd job, `com.user.memwatch`, is no longer
+loaded — its log was last written 2026-10-09 — and the supervisor loaded today,
+`local.tools.memwatch`, is an alert-only menu-bar app; the 14 336 MB line below is history until
+it is re-verified, and the guard reads neither).
 A launchd agent, `~/.memwatch/memwatch.sh` (installed 2026-06-11 after a run of
 memory-exhaustion kernel panics), kills **any single process above 14 336 MB RSS** and
 writes the kill to `~/.memwatch/memwatch.log`. It is independent of the guard's budget:
@@ -149,8 +178,13 @@ While hosted GitHub Actions are paused to conserve account minutes, the lane
 that stands in for them is:
 
 ```bash
-make -C rust SHELL=/bin/bash ci_workflow_local_gate
+make -C rust SHELL=/bin/bash ci_workflow_local_gate_guarded   # under the memory guard at the derived 12 288 MB budget
 ```
+
+The `_guarded` target is the one sanctioned launch (since `PGEN-OPS-MEMSAFE-0022`): it runs the
+gate under the memory guard at a budget derived from the guard's own markers and a 12 h ceiling,
+so no session composes its own guard line; the bare `ci_workflow_local_gate` target is what it
+wraps.
 
 It runs in two phases against an **export directory** built from `git ls-files`
 output — a deliberate simulation of what `actions/checkout` hands a fresh
