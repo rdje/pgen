@@ -16,7 +16,7 @@ tags: [ops, memory-guard, host-pressure, swap, fseventsd, bash, parse-before-run
 date: 2026-10-20
 status: current
 evidence: "PGEN-OPS-MEMSAFE-0022 (OPS-MEMSAFE.6): on 2026-10-20 a root-owned fseventsd held 9–10 GB for hours and swap stood at 22.06 of 23.55 GB while the guard read last_free_pct=51 (memory_pressure -Q counts purgeable and cached pages as free); vm_stat's swap-out counter was the metric that moved (MemWatch logged 1,141–1,327 pages/s). The job's tree stood at 35–76 % of its budget, so a kill rule would have killed a healthy run for a daemon's leak. The same day mirror run 10 finished green and its guard died at the loop's end on its own script, rewritten in place under it by a hand outside the session: bash reads a running script by file offset. Battery T12–T21 + T20c 15 / 15 (rust/target/svpp9/guard6/battery.sh)."
-reverify: "bash -n scripts/run_with_memory_guard.sh && tail -n 1 scripts/run_with_memory_guard.sh | grep -qxF 'main \"$@\"' && scripts/run_with_memory_guard.sh --help | grep -qF 'host-hazard | host-pressure' && scripts/run_with_memory_guard.sh --help | grep -qF '94 (reserved)' && grep -qF 'ci_workflow_local_gate_guarded:' rust/Makefile && echo 'memory-guard: parse-before-run, host axes, exit 94 reserved, the mirror budget pinned — OK'"
+reverify: "bash -n scripts/run_with_memory_guard.sh && tail -n 1 scripts/run_with_memory_guard.sh | grep -qxF 'main \"$@\"' && scripts/run_with_memory_guard.sh --help | grep -qF 'host-hazard | host-pressure' && scripts/run_with_memory_guard.sh --help | grep -qF '94  (reserved)' && grep -qF 'ci_workflow_local_gate_guarded:' rust/Makefile && echo 'memory-guard: parse-before-run, host axes, exit 94 reserved, the mirror budget pinned — OK'"
 ---
 
 **Four rules, each measured on 2026-10-20.**
