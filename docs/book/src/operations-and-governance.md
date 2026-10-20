@@ -223,6 +223,23 @@ four minutes: `branch-protection-contract-gate` (shell and `jq`),
 `--features generated_parsers`) and `mdbook-docs-gate` (mdBook only). A fourth,
 `memory-architecture-gate`, runs no `make -C rust` command at all.
 
+**What a hosted doctrine run can evaluate (measured 2026-10-20).**
+`memory-architecture-gate` runs every enforced doctrine on a stock
+`ubuntu-latest` checkout: no submodules (an uninitialised submodule is an
+*empty directory*, not an absent one), no `generated/`, no built binaries, no
+lane outputs, no ripgrep, and a kernel that refuses any single argument or
+environment string over 128 KB. The first such run in 56 days was red on five
+doctrines, and every one was an *instrument* that had assumed this host's
+extras; none was a defect of the tree. The fixes follow the standing rule — a
+check that cannot inspect its subject says NOT EVALUATED, named and counted in
+the run's scope block, never green and never red
+(`docs/decisions/feedback_a_check_that_cannot_run_must_say_so.md`) — and the
+one tool the runner lacks is now installed by the workflow itself. The push
+mirror does not replay this job, and its export carries everything the runner
+lacks, so a doctrine's hosted behaviour is verified by the hosted run alone
+until the mirror replays it in a CI-shaped export
+(`CI-PARITY-GATE-ROT.121`).
+
 `audit_workflow_regeneration_surface` holds that arrangement in place, and its
 polarity is the point: the roster is derived from `git ls-files`, and *needing*
 the step is the default. A workflow added tomorrow that runs a `make -C rust`

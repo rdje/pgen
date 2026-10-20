@@ -293,10 +293,17 @@ fi
 # advertised the capability. The RED controls for this block are driven by the meta-check in
 # `check_doctrines.sh` BEFORE its verdict is believed, which is what makes this paragraph a claim.
 if [ -n "$CHECK" ]; then
-  RD_FRESH="$RENDERED" python3 - "$CHECK" <<'PYCHECK'
+  # CI-PARITY-GATE-ROT.121 — the fresh derivation reaches python through a FILE on the repo volume, never as an
+  # argv/envp string: the page is 160 KB today and Linux refuses any single argv/envp string over MAX_ARG_STRLEN
+  # (131 072 B) — `python3: Argument list too long` — which the first hosted run in 56 days turned into a false
+  # "OUT OF SYNC with the registry". macOS has no per-string limit, so every local run had passed.
+  rd_fresh_file="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/rust/target/report_doctrines/fresh_derivation.md"
+  mkdir -p "$(dirname "$rd_fresh_file")"
+  printf '%s\n' "$RENDERED" > "$rd_fresh_file"
+  python3 - "$CHECK" "$rd_fresh_file" <<'PYCHECK'
 import difflib, os, pathlib, re, sys
 page = sys.argv[1]
-fresh = os.environ["RD_FRESH"].strip()
+fresh = pathlib.Path(sys.argv[2]).read_text(encoding="utf-8").strip()
 if not fresh:
     print("report_doctrines: REFUSED (2) - the fresh derivation is EMPTY, so there is nothing to "
           "compare against; comparing would pass by construction.", file=sys.stderr)

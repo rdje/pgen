@@ -29,13 +29,26 @@ jobs:
   memory-architecture-gate:
     name: memory-architecture-gate
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # CI-PARITY-GATE-ROT.121 — was 5; the doctrine run itself took 27 s on the first hosted run in 56 days, and the
+    # apt step below adds the runner's package-index refresh on top. 10 keeps a slow apt mirror from masking a doctrine.
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+
+      # CI-PARITY-GATE-ROT.121 — every workflow declares what it needs (`.120`(b)): `ubuntu-latest` ships no ripgrep,
+      # and the CI-MIRROR-DOCS-SURFACES doctrine runs the push mirror's working-tree audits, which `require_tool rg`
+      # (they refused correctly — "rg not found on PATH" — on run 39370056063). The mirror's export carries this host's
+      # tools, so the gap was invisible to the parity gate.
+      - name: Install the tools the doctrines require that the runner lacks (ripgrep)
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq >/dev/null
+          sudo apt-get install -y -qq ripgrep >/dev/null
+          rg --version | head -n 1
 
       - name: Run every enforced doctrine (registry driver — E4)
         # Single source of truth for the roster. ~2 s: file reads and greps, no cargo, no

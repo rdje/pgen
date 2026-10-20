@@ -6081,7 +6081,11 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
   comment at line 803 already names the latter two as *"outside every instrument"*), and the three
   `*_combined_telemetry_contract_gate` the `sota-exit-gate` workflow runs after the aggregate (the mirror asserts the
   scripts are tracked and does not run them) — so a red in any of them is seen only by GitHub, after a push. Decide per
-  target: mirror it, or record why it is excluded.
+  target: mirror it, or record why it is excluded. **First measured cost 2026-10-20 (`.121`):** a seventh, not in that
+  list because it is a script and not a make target — `memory-architecture-gate`, the doctrine run — is replayed by no
+  mirror job either, and its first hosted run in 56 days was red on five instrument defects the pre-commit hook cannot
+  see, because the hook runs on this host with the corpus, the tools and the kernel the runner lacks. A replay must be
+  CI-SHAPED or it proves nothing; `.121`'s hand-built checkout (`rust/target/ci_shape`) is the specification.
 - ⚠️ **(d) FOUND 2026-10-19 (`PGEN-CI-PARITY-GATE-ROT-0121`) — the fifth mirror-only red of the push, 65 s into run 5:**
   `contract docs allowlist drift detected` — the mirror's four allowlist audits (root markdown, top-level docs, contract
   docs, reference docs; `rust/scripts/ci_workflow_local_gate.sh` `audit_*_allowlist`) are inline lists the pre-commit
@@ -6257,3 +6261,111 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
   the difference is invisible to the parity gate. (c) Wall-clock: the aggregate took ≈4.5 h on this host (01:14 → the SV
   stages at 03:30, the promotion trials past 06:00) and `ubuntu-latest` is slower, with `timeout-minutes: 360` and a cold
   release build of the probe (≈20 min, lowmem) added by `.5i` — a predicted overrun; price the split `.119`(b) proposes.
+  ✅ **(a) READ 2026-10-20 06:35 CEST** — the push of `6aae268b0` triggered five workflows (the other ten are
+  `workflow_dispatch`-only, `sota-exit-gate` among them, so (c)'s overrun is not measured by a push):
+  `branch-protection-contract-gate`, `fixed-point-gate`, `mdbook-docs-gate` `success`, `lib-unit-test-gate` in progress,
+  `memory-architecture-gate` **`failure`** (run `39370056063`, 04:32:45 → 04:33:12 UTC, 27 s) — the doctrine run, the
+  one job the mirror does not replay (`.119`(c)). Five doctrines red; every one an instrument defect a Linux runner
+  without the corpus exposes and none a tree drift: `.121`.
+
+### `.121` — the first hosted doctrine run in 56 days was RED on five INSTRUMENT defects — a `.gitignored` manifest reported as a breach, a corpus fixture that overflows Python 3.12's JSON decoder, a lane context derived from EMPTY submodule directories, `rg` absent on `ubuntu-latest`, and a 160 KB registry page handed to `python3` as ONE environment string past Linux's 128 KB per-string limit (`done` 2026-10-20, `PGEN-CI-PARITY-GATE-ROT-0126`; opened 2026-10-20 by `.120`(a)'s read)
+
+- **Found** (`rust/target/svpp9/ci_memarch_39370056063.log`, the run's `--log-failed`; the local hook had passed
+  46 / 46 on the same tree twice). (1) `PARSE-COST-RATCHET` tier-1 arm 3 ran `corpus_parse_cost.py --verify-family-share`
+  and scored its `die("corpus manifest missing: stimuli/sv/characterization/durations.tsv")` (exit 2, a cannot-run) as
+  **the published LR-family share no longer describes this tree** — the manifest is `.gitignore:453`, a lane output,
+  absent on every fresh clone; the arm's four sibling inputs already say NOT EVALUATED for the same reason. (2)
+  `BASELINE-IDENTITY` died in `grammar_byte_keying_offences` with a Python traceback: it `json.load`s every tracked
+  `*.json` and `except (ValueError, OSError)`, and on `/usr/lib/python3.12` the JSONTestSuite fixture
+  `n_structure_100000_opening_arrays.json` raises `RecursionError` (a `RuntimeError`, not a `ValueError`) from the C
+  scanner's recursion guard; this host's 3.14 raises `JSONDecodeError` on the same bytes, so the walker never saw it.
+  Reproduced here with `python3.11`. (3) `PIPELINE-LANE-CURRENCY` arm (1): `pipeline_context.py --check` derives a suite
+  from every directory under `stimuli/sv/subs/`, and a submodule nobody initialised IS a directory — empty — so the
+  derivation read `suite=verilator files=0 …` for 13 suites and compared it to the tracked context: `DRIFT`, exit 1,
+  `✗`. The tool's own NOT EVALUATED branch fires only for a path that does not `exist()`. Arms (2)–(6) said NOT
+  EVALUATED correctly. (4) `CI-MIRROR-DOCS-SURFACES`: the mirror's audits-only mode `require_tool rg` — refused
+  correctly (`rg not found on PATH`); `ubuntu-latest` ships no ripgrep and the workflow installs nothing. (5)
+  `<meta:book-content>`: `report_doctrines.sh --check` hands the freshly rendered registry page to `python3` as the
+  environment string `RD_FRESH` — 160 916 B today — and Linux refuses any single argv/envp string over `MAX_ARG_STRLEN`
+  (131 072 B): `line 296: /usr/bin/python3: Argument list too long`, then "OUT OF SYNC with the registry". macOS has no
+  per-string limit, so every local run passed. The class: `.120`(b) measured — the mirror's export carries the
+  submodules, this host's tools and this host's kernel limits, and the one CI job that runs the doctrines is the one job
+  the mirror does not replay (`.119`(c)), so a doctrine that cannot run on a stock runner was invisible for 56 days.
+- [x] **REPRODUCE** — a CI-shaped checkout on this host, `rust/target/ci_shape`: a detached worktree of `dd6a6396b`
+  (13 EMPTY `stimuli/sv/subs/*` directories, no `generated/`, no binaries, no `durations.tsv`) under `env -i` with a
+  `PATH` of bash 5, Python 3.14, `jq`, `cargo` and NO `rg`; `scripts/check_doctrines.sh` before any edit
+  (`rust/target/ci_shape_before.log`): the same reds as run `39370056063`, line for line — `corpus manifest missing:
+  stimuli/sv/characterization/durations.tsv` under `✗ the published LR-family share no longer describes this tree`;
+  `suite=verilator files=0 …` then `✗ (1) CONTEXT`; `ci-mirror-docs-surfaces: REFUSED (2) - rg not found on PATH`. The
+  traceback reproduced under a Python 3.11 `PATH` (`rust/target/ci_shape_bi_before311.log`: `RecursionError`, rc 1) —
+  3.11 shares 3.12's C-level recursion guard, and 3.14 does not (it raises `JSONDecodeError` on the same bytes). The
+  fifth reproduces as the size, not the refusal: the DERIVED block the check hands to `python3` is 152 706 B against
+  Linux `MAX_ARG_STRLEN` = 131 072 B, a limit macOS does not have. Honest shape limits: the runner's interpreter is
+  3.12 and this host has 3.11 and 3.14 only (3.11 cannot parse the PEP 701 f-strings the census tools use, so it drove
+  one instrument, not the run), and the kernel limit is verified only by the next hosted run.
+- [x] **ROOT CAUSE** — WHY: five instruments assumed this host — a lane output on disk, a decoder without a nesting
+  limit, a corpus directory that is never empty, ripgrep, a kernel without a per-string argv limit — and the parity
+  gate could not see it, because the mirror's export carries all five and the one job that runs the doctrines is not
+  replayed. WHERE: `stimuli/sv/corpus_parse_cost.py:family_share_identity` calling `corpus_files()`, which `die()`s
+  (exit 2) on the absent manifest BEFORE the function can return the absence as a reason, and
+  `scripts/check_parse_cost_ratchet.sh` tier-1 arm 3 scoring any nonzero exit as a breach;
+  `scripts/check_baseline_identity.sh:grammar_byte_keying_offences`, `except (ValueError, OSError)` around `json.load`
+  — `RecursionError` is a `RuntimeError`; `stimuli/sv/pipeline_context.py:derive_all`, `if not base.exists()` — an
+  uninitialised submodule `exists()`; `rust/scripts/ci_workflow_local_gate.sh:3643` `require_tool rg` with no workflow
+  step providing it; `scripts/report_doctrines.sh:296` `RD_FRESH="$RENDERED" python3 …`. Ops signatures:
+  `python3.11 -c 'import json; json.load(open("json_corpus_bundle/third_party/upstream/JSONTestSuite/test_parsing/n_structure_100000_opening_arrays.json"))'`
+  → `RecursionError`; `wc -c rust/target/report_doctrines/fresh_derivation.md` → 154 464 B; `ls -A
+  rust/target/ci_shape/stimuli/sv/subs/verilator` → empty. A sixth, found while fixing: the ratchet's stale-identity
+  breach sends the operator to `make sv_parse_cost_ratchet` (a re-measure), which compares against the same baseline
+  and reports the same breach — measured 341 s, peak 3 520 MB, rc 2 (`rust/target/svpp9/parse_cost_0126.log`); only
+  `sv_parse_cost_rebaseline` re-keys a moved identity.
+- [x] **FIX** — (1) `family_share_identity` tests the manifest's presence itself and returns the absence as a NOT
+  EVALUATED reason — the design its own docstring states; `corpus_files()`'s `die()` is kept for its two
+  re-derivation callers; the ratchet's arm 3 carries the instrument's NOT EVALUATED reasons into its scope block (a
+  rc-0 stderr was dropped before). (2) the walker catches `RecursionError`, counts the file and SAYS the skip on
+  stderr (`baseline-identity: note — N tracked JSON file(s) nest deeper than this Python's decoder allows …`). (3)
+  `derive_all` treats an EMPTY suite directory as NOT EVALUATED and records the suites in `NOT_EVALUATED`; `--check`
+  reports NOT EVALUATED (exit 0, the arms (2)–(6) convention) and `--write` REFUSES (exit 2) rather than publishing a
+  shrunken table; the currency arm's line carries the new verdict word. (4) `memory-architecture-gate.yml` installs
+  ripgrep before the doctrine run (`timeout-minutes` 5 → 10 for the apt step). (5) `--check` hands the fresh
+  derivation to `python3` through `rust/target/report_doctrines/fresh_derivation.md`, never as an argv/envp string.
+  (6) the stale-identity breach names `sv_parse_cost_rebaseline` and says why a re-measure alone cannot clear it.
+  And the card eleven references pointed at, `docs/decisions/feedback_a_check_that_cannot_run_must_say_so.md`, now
+  exists (six rules, this slice as its measured instance; `docs/decisions/INDEX.md` row).
+- [x] **ADDRESSED (verified)** — the CI-shaped checkout with the fixed files copied in (`rust/target/ci_shape_after.log`,
+  Python 3.14, bash 5, no `rg`): (1) `parse-cost-ratchet: NOT EVALUATED — family share: the corpus manifest … is
+  absent — a lane output, never on a fresh clone`; (2) under the Python 3.11 `PATH` rc 0 with the note
+  (`rust/target/ci_shape_bi_after311.log`: 2 fixtures named, `baseline-identity: NOT EVALUATED (6)`); (3)
+  `PIPELINE-LANE-CURRENCY` green, arm (1) `NOT EVALUATED — 13 registered suite(s) absent or empty here`; (5)
+  `<meta:book-content>` green through the file; (4) still `REFUSED (2) — rg not found` on a `PATH` without `rg`, by
+  design — the workflow step is its fix and the next hosted run its verification. See the two measurement lines below
+  for the re-keyed baseline and the final shaped run with `rg` on the `PATH`.
+  - **The parse-cost baseline re-keyed** (`make sv_parse_cost_rebaseline` under the guard, alone:
+    `rust/target/svpp9/parse_cost_rebase_0126.log`, 340 s, peak 3 733 MB, rc 0 — `identity fresh for: generated
+    parser, grammar raw ast, instrument, sample inputs; 192 pinned sample files`). The binding record is unchanged:
+    `entries.tsv`'s 192 rows are byte-identical in all eleven binding columns (`diff` over `cut -f1-10,12` empty);
+    `cost.md` moved only the instrument digest (`eda7cbc3…` → `e8d13fb7…`); the diagnostic `new_rule_commits` column
+    reads 0 on every row, correctly — it counts commits of rules the tracked baseline table does not know, and after a
+    re-key the baseline knows this grammar (the HEAD artifact's 76 nonzero rows were relative to the baseline the
+    2026-10-18 ceremony measured against). The ADVISORY wall clock (non-binding, machine-dependent by its own text)
+    moved `total_raw_ms` 51 443 → 90 655 on a host fresh out of a 7.6 h mirror run; recorded, not interpreted.
+    `check_parse_cost_ratchet.sh` rc 0 and `--self-test` rc 0 on the re-keyed tree.
+  - **The final CI-shaped run** (`rust/target/ci_shape_final.log`: the same checkout and `env -i` `PATH` with `rg`
+    added, every modified file and the re-keyed baseline copied in): **`doctrines: ALL 46 enforced doctrines PASS`**,
+    rc 0 — no `✗`, no traceback, no refusal; the scope block names the 11 staged-scoped doctrines and the 2 probe-bound
+    ones as evaluated-nothing, as a hosted run should. What this run cannot show is said above: the kernel's
+    per-string limit and the apt step are the next hosted run's to verify.
+- [x] **NO REGRESSION** — on the full tree: `check_baseline_identity.sh` rc 0; `check_pipeline_lane_currency.sh` OK
+  and `--self-test` 8 / 8 (204 s); `pipeline_context.py --self-test` 44 / 44; `corpus_parse_cost.py
+  --verify-family-share` rc 0 (`identity fresh for: classifier, corpus inputs, generated parser, grammar`);
+  `report_doctrines.sh --check` OK (152 706 bytes, byte-identical page); `bash -n` and `py_compile` clean; the
+  workflow's other steps untouched; zero grammar / Rust / generated bytes; the five doctrines' registry texts
+  unchanged, so the book's doctrine chapter re-derives byte-identically.
+- [x] **LOCKSTEP** — `.120`(a) (the read), `.119`(c) (the first measured cost of an unmirrored job), the decision
+  card and its index row, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, the main book's operations chapter (what a
+  hosted doctrine run can evaluate).
+- [x] **NEUTRALITY TIER** — instruments, a workflow and records; no engine, grammar or family component.
+- **Owed** — `.119`(c): the mirror should replay `memory-architecture-gate` in a CI-SHAPED export (empty submodule
+  directories, no `generated/`, no binaries, the runner's tool set, Python 3.12) — the checkout built here by hand;
+  `.120`(b) is the same item from the other side. `.120`(a)'s next read: run `39370056063`'s successor on the next
+  push, which verifies (4) and (5).

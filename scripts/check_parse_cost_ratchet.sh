@@ -507,8 +507,12 @@ if stale:
          + "".join(f"        {lbl}: baseline `{ident[lbl][1][:16]}…` vs live `{live[lbl][:16]}…`\n"
                    for lbl in stale)
          + "      The binding metric is an exact function of these inputs, so a change here is a\n"
-           "      change in what the parser costs. Re-measure — do not edit the number:\n"
-           "        make -C rust SHELL=/bin/bash sv_parse_cost_ratchet")
+           "      change in what the parser costs. Re-measure AND re-key — do not edit the number:\n"
+           "        make -C rust SHELL=/bin/bash sv_parse_cost_rebaseline\n"
+           "      (a re-measure alone, `sv_parse_cost_ratchet`, cannot clear a moved identity: it compares\n"
+           "      against this baseline and reports this same breach after its 2.5 min — measured\n"
+           "      2026-10-20, CI-PARITY-GATE-ROT.121; the rebaseline re-measures, adopts the live identity\n"
+           "      and records the fresh numbers, the deliberate act a moved input calls for)")
 
 # ── TIER 1, arm 2: the LR-family CLASSIFIER, over every generated parser ────────────────────────
 #
@@ -540,6 +544,11 @@ else:
 # census into a tracked artifact; re-hashed here against its four recorded inputs in ~1 s.
 share_proc = subprocess.run([sys.executable, INSTRUMENT, "--verify-family-share"],
                             capture_output=True, text=True)
+# CI-PARITY-GATE-ROT.121 — the instrument's own NOT EVALUATED reasons (an absent manifest, an uninitialised corpus)
+# are carried into this gate's scope block; before, a rc-0 run's stderr was dropped and a rc-2 cannot-run was a breach.
+for _l in (share_proc.stderr or "").splitlines():
+    if "NOT EVALUATED — " in _l:
+        unevaluated.append("family share: " + _l.split("NOT EVALUATED — ", 1)[1])
 if share_proc.returncode != 0:
     fail("the published LR-family share no longer describes this tree:\n"
          + "".join(f"        {l}\n"

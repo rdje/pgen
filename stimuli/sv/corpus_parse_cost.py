@@ -1810,8 +1810,16 @@ def family_share_identity() -> tuple[dict, list[str]]:
                            f"rust/target/debug/ast_pipeline for its raw_ast digest)")
     ident["classifier"] = {"path": f"{INSTRUMENT_FILE}:LR_FAMILY_RE",
                            "sha256": classifier_digest()}
-    present, listed = corpus_files()
-    if present and len(present) == listed:
+    # CI-PARITY-GATE-ROT.121 — the manifest is a lane OUTPUT (.gitignore'd), absent on every fresh clone, and
+    # `corpus_files()` die()s on it (exit 2) BEFORE this function can return the absence as a reason; the ratchet's
+    # arm 3 scored that exit as "the published LR-family share no longer describes this tree" on the first hosted
+    # run in 56 days. Here the absence is a reason like the others: NOT EVALUATED, said, never a breach.
+    manifest_present = os.path.isfile(os.path.join(ROOT, CORPUS_MANIFEST))
+    present, listed = corpus_files() if manifest_present else ([], 0)
+    if not manifest_present:
+        missing.append(f"the corpus manifest {CORPUS_MANIFEST} is absent — a lane output, never on a fresh clone; "
+                       f"re-derive it with `make -C rust SHELL=/bin/bash sv_parse_cost_family_share`")
+    elif present and len(present) == listed:
         ident["corpus inputs"] = {"path": CORPUS_MANIFEST, "sha256": sample_input_digest(present)}
     else:
         missing.append(f"the vendored SV corpora are git submodules and only {len(present)} of "

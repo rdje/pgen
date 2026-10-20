@@ -1089,7 +1089,11 @@ def refuse_if_shadowed(suite: str, stats) -> None:
         raise SystemExit(4)
 
 
+NOT_EVALUATED: list[str] = []  # CI-PARITY-GATE-ROT.121 — registered suites absent or EMPTY on this checkout
+
+
 def derive_all(suites=None):
+    NOT_EVALUATED.clear()
     all_rows = []
     all_file_rows = []
     all_define_rows = []
@@ -1099,8 +1103,12 @@ def derive_all(suites=None):
         if suites and suite not in suites:
             continue
         base = ROOT / rel
-        if not base.exists():
-            print(f"PIPELINE-CONTEXT: suite={suite} NOT EVALUATED (missing {rel})", file=sys.stderr)
+        if not base.exists() or not any(base.iterdir()):
+            # CI-PARITY-GATE-ROT.121 — an uninitialised submodule (every hosted checkout: actions/checkout fetches none)
+            # leaves an EMPTY directory, which `exists()`; deriving from it read `files=0` for 13 suites and scored DRIFT.
+            why = "missing" if not base.exists() else "EMPTY, an uninitialised submodule"
+            print(f"PIPELINE-CONTEXT: suite={suite} NOT EVALUATED ({why}: {rel})", file=sys.stderr)
+            NOT_EVALUATED.append(suite)
             continue
         rows, ambiguous, absent, stats, file_rows, define_rows, unit_rows, fragment_rows = rows_for(suite, base)
         report(suite, rows, ambiguous, absent, stats)
@@ -1366,6 +1374,13 @@ def main() -> int:
     if args.self_test:
         return self_test()
     all_rows, all_file_rows, all_define_rows, all_unit_rows, all_fragment_rows = derive_all(args.suite)
+    if NOT_EVALUATED:
+        # A partial corpus can neither re-derive the tracked context nor rewrite it: --check is NOT EVALUATED (said,
+        # exit 0, the sibling arms' convention) and --write REFUSES (exit 2) rather than publishing a shrunken table.
+        print(f"PIPELINE-CONTEXT: NOT EVALUATED — {len(NOT_EVALUATED)} registered suite(s) absent or empty here "
+              f"({', '.join(NOT_EVALUATED)}); the tracked context cannot be re-derived from a partial corpus "
+              f"(git submodule update --init --depth 1 -- stimuli/sv/subs/<suite>)")
+        return 2 if args.write else 0
     if args.write:
         TSV.write_text(render(all_rows))
         FILES_TSV.write_text(render_files(all_file_rows))

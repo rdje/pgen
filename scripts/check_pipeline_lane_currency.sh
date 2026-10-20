@@ -75,7 +75,7 @@ PROFILE_CENSUS_TOOL=docs/tasks/artifacts/sv_corpus_grad/pipeline_sv2023_lane/cen
 run_arms() {
   local rc=0 out
   out="$(python3 "$CTX_TOOL" --check 2>&1)" || { echo "$TAG: ✗ (1) CONTEXT — $(printf '%s' "$out" | tail -1)" >&2; rc=1; }
-  [ $rc -eq 0 ] && echo "$TAG: (1) CONTEXT — $(printf '%s' "$out" | grep -E '^PIPELINE-CONTEXT: (OK|DRIFT)' | tail -1 | cut -c1-140)"
+  [ $rc -eq 0 ] && echo "$TAG: (1) CONTEXT — $(printf '%s' "$out" | grep -E '^PIPELINE-CONTEXT: (OK|DRIFT|NOT EVALUATED)' | tail -1 | cut -c1-160)"
   out="$(python3 "$REPORT_TOOL" --check 2>&1)"; local r2=$?
   if [ $r2 -ne 0 ]; then echo "$TAG: ✗ (2) REPORT — $(printf '%s' "$out" | grep -E 'DRIFT|REFUSED' | tail -1 | cut -c1-200)" >&2; rc=1
   else echo "$TAG: (2) REPORT — $(printf '%s' "$out" | grep -E '^PIPELINE-VS-RAW: (OK|NOT EVALUATED)' | tail -1 | cut -c1-160)"; fi

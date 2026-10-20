@@ -788,6 +788,7 @@ MD_IDENT_ROW = re.compile(
 def grammar_byte_keying_offences():
     """Every tracked provenance row that keys a `.ebnf` input by BYTES. Derived, not listed."""
     out = []
+    too_deep = []  # CI-PARITY-GATE-ROT.121 — tracked JSON this Python's decoder cannot nest into
     # ⛔ MARKDOWN IS SCOPED TO `cost.md`, AND THAT IS A CORRECTNESS BOUND RATHER THAN A SHORTCUT.
     # The first cut scanned every artifact `.md` and flagged dated CHARACTERIZATION RECORDS — e.g.
     # `…/ch22_directive_fix/after/characterization.md`. Those are EVIDENCE: they record the byte sha
@@ -813,6 +814,14 @@ def grammar_byte_keying_offences():
             with open(full, encoding="utf-8") as fh:
                 doc = json.load(fh)
         except (ValueError, OSError):
+            continue
+        except RecursionError:
+            # CI-PARITY-GATE-ROT.121 — `RecursionError` is a RuntimeError, NOT a ValueError: the JSONTestSuite fixture
+            # `n_structure_100000_opening_arrays.json` raises it from the C scanner's recursion guard on Python 3.11/3.12
+            # (3.14 raises JSONDecodeError on the same bytes), and the uncaught traceback took the whole doctrine down on
+            # the first hosted run in 56 days. A file this deep is a corpus fixture, not a provenance artifact; it is
+            # NOT walked, and the skip is SAID below rather than silent.
+            too_deep.append(rel)
             continue
 
         def walk(node, where):
@@ -840,6 +849,10 @@ def grammar_byte_keying_offences():
                     walk(v, where)
 
         walk(doc, "")
+    if too_deep:
+        print("baseline-identity: note — %d tracked JSON file(s) nest deeper than this Python's decoder allows and were "
+              "NOT walked for byte-keying rows (corpus fixtures, not provenance; CI-PARITY-GATE-ROT.121): %s"
+              % (len(too_deep), ", ".join(too_deep)), file=sys.stderr)
     return sorted(set(out))
 
 
