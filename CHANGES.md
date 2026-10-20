@@ -1,5 +1,11 @@
 # CHANGES.md
 
+## 2026-10-20 - PGEN-CI-PARITY-GATE-ROT-0125 (leaf CI-PARITY-GATE-ROT.119(h) DONE — push-mirror run 9 green on `-0472`, all 12 jobs replayed; pushed `ad68015c4..6aae268b0` to `origin/main`, 414 commits, the first push since 2026-08-25; records only)
+
+- **Run 9** (`run.c95imy`, 22:50 → 06:29 CEST, 27 557 s, peak 5 967 MB under the guard): the 33 pre-flight audits, `generated/` and all 12 workflow jobs green on `6aae268b0`; run 8's one red (`sv_parser_family_status_gate`) gone with `-0472`. The gate removed its own run dir on success; run 8's `run.D9jLgP` stays for the §8 cleanup.
+- **Pushed** 2026-10-20 06:31 CEST after `bash scripts/check_no_background_jobs.sh` read clean. The CI runs the push triggered are `CI-PARITY-GATE-ROT.120`(a)'s read: five in progress at 06:32, `branch-protection-contract-gate` already `success`; `sota-exit-gate` is the one `.120`(c) predicts to overrun.
+- **Records**: `CI-PARITY-GATE-ROT.119`(h), `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`. Zero code bytes.
+
 ## 2026-10-19 - PGEN-SV-CORPUS-GRAD-0472 (leaf SV-CORPUS-GRAD.13c.2v.21 DONE — release `1.0.9`'s nine guard rules and nine edition-gated alternatives broke the preprocessor's zero-plausible-gap proof contract (v3: an EMPTY unreachable surface), the proof umbrella printed `passed` over a false surface for a day, and push-mirror run 8 was the first reader to say so as the family-status tier mismatch; contract v4 explains the surface class by class against the gap report and the grammar's own `@profiles`, the umbrella's banner carries the surface)
 
 - **Run 8** (`run.D9jLgP`, 25 187 s, peak 8 135 MB): 33 / 34 aggregate checks pass — the VHDL stages (`CI-PARITY-GATE-ROT.119`(e)'s transient not reproduced), the SV leg-3 conformance gate end to end on the export's own probe (`DONE-BAR.5i`'s BUILD branch, `.119`(f)'s adjudicate stage) — one red: `sv_parser_family_status_gate`, `tracker='Provisional (corpus pending)' computed='Mostly Done'`; the main tree's own umbrella artifact of 2026-10-18 17:53 UTC already read the surface false.

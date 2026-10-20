@@ -6218,7 +6218,7 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
     and `grammars/` are byte-identical to `ead9388c2` (`git diff --cached --stat -- generated rust/src grammars` empty);
     the other 45 doctrines passed unchanged in the same driver run.
 
-- ⏳ **(h) RUN 8 READ 2026-10-19 (`run.D9jLgP`, 13:52 → 20:51 CEST, 25 187 s, peak 8 135 MB; `rust/target/svpp9/ci_gate8.log`)
+- ✅ **(h) DONE 2026-10-20 (`-0125`) — RUN 8 READ 2026-10-19 (`run.D9jLgP`, 13:52 → 20:51 CEST, 25 187 s, peak 8 135 MB; `rust/target/svpp9/ci_gate8.log`)
   — 33 of 34 aggregate checks pass, one red, and the red is NOT of this leaf's class:** the 33 pre-flight audits and
   `generated/` on `ead9388c2`; the VHDL stages green ((e)'s transient not reproduced: 3 / 3 locally, now 1 / 1 in the
   mirror); the SV leg-3 conformance gate end to end on the export's own probe (`a40d391af5cbddcf…`: `corpus_sv` /
@@ -6230,7 +6230,12 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
   read `surface_green: false`, and the umbrella printed `passed` over it. Fixed as `SV-CORPUS-GRAD.13c.2v.21` (`-0472`:
   contract v4 explained by the grammar class by class; the umbrella's banner carries the surface). The mirror was the
   first reader only because the tier-binding gate joined the ceremony with `-0120`, after the release. Run 9
-  (`rust/target/svpp9/ci_gate9.log`) re-measures on `-0472`; the push waits on it.
+  (`run.c95imy`, `rust/target/svpp9/ci_gate9.log`, 22:50 → 06:29 CEST, 27 557 s, peak 5 967 MB under the guard) on
+  `-0472` = `6aae268b0`: the 33 pre-flight audits, `generated/` and all 12 workflow jobs green, `✅ Local GitHub
+  workflow parity gate passed` (the gate removed its own run dir, as it does on success; run 8's `run.D9jLgP` stays
+  for the §8 cleanup). **PUSHED 2026-10-20 06:31 CEST** — `ad68015c4..6aae268b0` → `origin/main`, 414 commits, the
+  first push since 2026-08-25, after `scripts/check_no_background_jobs.sh` read clean. The CI runs the push triggered
+  are `.120`(a)'s read (five in progress at 06:32, `branch-protection-contract-gate` already `success`).
 - ⚠️ **(i) OWED** — the three sibling umbrellas (`rust/scripts/sv_formal_exhaustive_closure_gate.sh`, `vhdl_…`, `regex_…`)
   print the same unconditional `✅ … passed` (and their Makefile echoes after them) whatever their proof surface says;
   each banner carries its surface's bit after its own re-run verifies it (the SV umbrella is ≈70 min). The tier-binding
