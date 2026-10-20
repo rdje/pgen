@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-61d61585.js";
+            window.path_to_searchindex_js = "searchindex-acb6e23f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-c629bd36.js"></script>
@@ -297,11 +297,11 @@ pub struct ParserEmbeddingApiContract {
 <h2 id="preprocessing-expansion-is-a-separate-service"><a class="header" href="#preprocessing-expansion-is-a-separate-service">Preprocessing (expansion) is a separate service</a></h2>
 <p>The entry points above return the <strong>directive AST</strong>. A consumer that wants the <strong>preprocessed text</strong> — directives
 executed, macros substituted, includes resolved, with a source map, an event stream and coded diagnostics — uses the
-expander, which today is reachable in-process through the engine’s neutral stage socket
-(<code>pgen::preprocessing_stage::stage_for("systemverilog")</code> → <code>execute(&amp;StageRequest)</code> → <code>Vec&lt;StageOutput&gt;</code>) and as a tool
-(<code>ast_pipeline INPUT --preprocess systemverilog --output OUT …</code>). Its typed Rust API, its file provider and the probe’s
-emit flag are <code>SVPP-EXPANSION.9.2</code>; the expander over this family’s AST is <code>.9.3</code>. The chapter
-<a href="preprocessing-service.html">Preprocessing as a Service</a> shows the three consumption modes; the draft contract is
+expander: in-process through its typed API (<code>pgen::families::systemverilog::preprocessing_service::{preprocess, preprocess_str}</code> over a <code>PreprocessContext</code> whose <code>FileProvider</code> is the disk or the host’s own memory; <code>Err</code> is a typed
+<code>PreprocessRefusal</code>) or through the engine’s neutral stage socket (<code>pgen::preprocessing_stage::stage_for("systemverilog")</code>
+→ <code>execute(&amp;StageRequest)</code> → <code>Vec&lt;StageOutput&gt;</code>), and as a tool (<code>ast_pipeline INPUT --preprocess systemverilog --output OUT …</code>, or <code>parseability_probe … --preprocess --emit-preprocessed OUT --emit-source-map MAP</code>). The expander over this
+family’s AST itself is <code>SVPP-EXPANSION.9.3</code>. The chapter <a href="preprocessing-service.html">Preprocessing as a Service</a> shows the
+three consumption modes; the contract (<code>1.0</code>, held to the code by <code>scripts/check_svpp_expansion_contract_currency.sh</code>) is
 <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md</code>.</p>
 <h2 id="source-pointer"><a class="header" href="#source-pointer">Source pointer</a></h2>
 <p>The authoritative source for the public API is <code>rust/src/embedding_api.rs</code>. The contract document <code>rust/docs/EMBEDDING_API_CONTRACT.md</code> describes the stability policy in full.</p>

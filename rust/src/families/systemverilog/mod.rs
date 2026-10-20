@@ -30,17 +30,21 @@
 use super::{FamilyHooks, ParseTarget};
 use crate::ast_pipeline::SemanticFactRecord;
 use crate::preprocessing_stage::{
-    LegacyFlag, LegacyTarget, PreprocessingStage, StageOptionSpec, StageOutput, StageRequest,
+    DiskFileProvider, FileProvider, LegacyFlag, LegacyTarget, PreprocessingStage, StageOptionSpec,
+    StageOutput, StageRequest,
 };
 use anyhow::Context;
+use std::sync::Arc;
 
 pub mod keyword_versions;
+pub mod preprocessing_service;
 pub mod preprocessor;
 
 use preprocessor::{
     ConditionalExprPolicy, ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy,
-    PlainStringSubstitutionPolicy, PredefinedMacro, SvPreprocessorConfig, UndefinedMacroPolicy, parse_strict_warning_codes,
-    preprocess_systemverilog_file, preprocess_systemverilog_unit,
+    PlainStringSubstitutionPolicy, PredefinedMacro, PreprocessedOutput, Refusal, RefusalKind,
+    SvPreprocessorConfig, UndefinedMacroPolicy, parse_strict_warning_codes,
+    preprocess_systemverilog_file_with, preprocess_systemverilog_unit_with,
 };
 
 /// The stage's options (`--stage-opt KEY=VALUE`); the universal context — `--include-dir`,
@@ -77,11 +81,16 @@ const LEGACY_FLAGS: &[LegacyFlag] = &[
     LegacyFlag { flag: "--sv-disallow-macro-redefine", takes_value: false, to: LegacyTarget::StageOpt { key: "macro_redefine_policy", fixed_value: Some("error") } },
 ];
 
-/// The stage: the engine's request → this family's configuration → its outputs, one per file of
-/// the unit. A one-file unit takes the one-file entry (`preprocess_systemverilog_file`), a longer
-/// one the compilation-unit entry (`SVPP-EXPANSION.2` (b)) — exactly what `ast_pipeline
-/// --preprocess-systemverilog` did before `.113`.
-fn run_stage(request: &StageRequest) -> anyhow::Result<Vec<StageOutput>> {
+/// `SVPP-EXPANSION.9.2` — a refusal of the CONTEXT itself (an option value, an undeclared key, an
+/// empty unit): typed at its source, its text unchanged.
+fn invalid_context(message: String) -> anyhow::Error {
+    anyhow::Error::new(Refusal::new(RefusalKind::InvalidContext, None, None, message))
+}
+
+/// `SVPP-EXPANSION.9.2` — the engine's request → this family's configuration: ONE derivation for
+/// the socket and for the typed API (`preprocessing_service`) — the same option table, the same
+/// refusals by name, the same environment fallback for `strict_warning_codes`.
+pub(crate) fn config_from_request(request: &StageRequest) -> anyhow::Result<SvPreprocessorConfig> {
     let defines = request
         .symbols
         .iter()
@@ -99,51 +108,72 @@ fn run_stage(request: &StageRequest) -> anyhow::Result<Vec<StageOutput>> {
             "include_max_depth" => {
                 config.max_include_depth = value
                     .parse::<usize>()
-                    .map_err(|_| anyhow::anyhow!("invalid include_max_depth '{}'; expected an integer", value))?;
+                    .map_err(|_| invalid_context(format!("invalid include_max_depth '{}'; expected an integer", value)))?;
             }
             "include_path_policy" => {
                 config.include_path_policy = IncludePathPolicy::parse(value).ok_or_else(|| {
-                    anyhow::anyhow!("invalid include_path_policy '{}'; expected allow_absolute|relative_only", value)
+                    invalid_context(format!("invalid include_path_policy '{}'; expected allow_absolute|relative_only", value))
                 })?;
             }
             "macro_redefine_policy" => {
                 config.macro_redefinition_policy = MacroRedefinitionPolicy::parse(value).ok_or_else(|| {
-                    anyhow::anyhow!("invalid macro_redefine_policy '{}'; expected allow|warn|error", value)
+                    invalid_context(format!("invalid macro_redefine_policy '{}'; expected allow|warn|error", value))
                 })?;
             }
             "conditional_symbol_policy" => {
                 config.conditional_symbol_policy = ConditionalSymbolPolicy::parse(value).ok_or_else(|| {
-                    anyhow::anyhow!("invalid conditional_symbol_policy '{}'; expected assume_false_silent|assume_false_warn|error", value)
+                    invalid_context(format!("invalid conditional_symbol_policy '{}'; expected assume_false_silent|assume_false_warn|error", value))
                 })?;
             }
             "conditional_expr_policy" => {
                 config.conditional_expr_policy = ConditionalExprPolicy::parse(value).ok_or_else(|| {
-                    anyhow::anyhow!("invalid conditional_expr_policy '{}'; expected identifier_only|identifier_or_defined", value)
+                    invalid_context(format!("invalid conditional_expr_policy '{}'; expected identifier_only|identifier_or_defined", value))
                 })?;
             }
             "plain_string_substitution" => {
                 config.plain_string_substitution = PlainStringSubstitutionPolicy::parse(value).ok_or_else(|| {
-                    anyhow::anyhow!("invalid plain_string_substitution '{}'; expected standard|paste_delimited|all", value)
+                    invalid_context(format!("invalid plain_string_substitution '{}'; expected standard|paste_delimited|all", value))
                 })?;
             }
             "strict_warning_codes" => strict_warning_codes = Some(value.clone()),
             "undefined_macro_policy" => {
                 config.undefined_macro_policy = UndefinedMacroPolicy::parse(value).ok_or_else(|| {
-                    anyhow::anyhow!("invalid undefined_macro_policy '{}'; expected error|keep", value)
+                    invalid_context(format!("invalid undefined_macro_policy '{}'; expected error|keep", value))
                 })?;
             }
-            other => anyhow::bail!("unknown stage option '{}'", other),
+            other => return Err(invalid_context(format!("unknown stage option '{}'", other))),
         }
     }
     let strict_raw = strict_warning_codes
         .or_else(|| std::env::var("PGEN_SVPP_STRICT_WARNING_CODES").ok())
         .unwrap_or_else(|| "none".to_string());
     config.strict_warning_codes = parse_strict_warning_codes(&strict_raw);
-    let outputs = match request.unit.as_slice() {
-        [] => anyhow::bail!("the compilation unit is empty: nothing to preprocess"),
-        [single] => vec![preprocess_systemverilog_file(single, &config)?],
-        unit => preprocess_systemverilog_unit(unit, &config)?,
-    };
+    Ok(config)
+}
+
+/// `SVPP-EXPANSION.9.2` — the ONE code path under the socket and the typed API: the configuration
+/// derived, then the one-file entry for a one-file unit and the compilation-unit entry for a longer
+/// one (`SVPP-EXPANSION.2` (b)) — exactly what `ast_pipeline --preprocess-systemverilog` did before
+/// `.113` — over `provider`. A context that cannot be derived is a [`RefusalKind::InvalidContext`]
+/// refusal whose text is unchanged.
+pub(crate) fn run_unit(
+    request: &StageRequest,
+    provider: Arc<dyn FileProvider>,
+) -> anyhow::Result<Vec<PreprocessedOutput>> {
+    let config = config_from_request(request)?;
+    match request.unit.as_slice() {
+        [] => Err(invalid_context(
+            "the compilation unit is empty: nothing to preprocess".to_string(),
+        )),
+        [single] => Ok(vec![preprocess_systemverilog_file_with(single, &config, provider)?]),
+        unit => preprocess_systemverilog_unit_with(unit, &config, provider),
+    }
+}
+
+/// The stage: the engine's request → this family's configuration → its outputs, one per file of
+/// the unit, over the disk ([`run_unit`]).
+fn run_stage(request: &StageRequest) -> anyhow::Result<Vec<StageOutput>> {
+    let outputs = run_unit(request, Arc::new(DiskFileProvider))?;
     Ok(outputs.into_iter().map(StageOutput::from).collect())
 }
 
@@ -151,6 +181,7 @@ fn run_stage(request: &StageRequest) -> anyhow::Result<Vec<StageOutput>> {
 pub static PREPROCESSING: PreprocessingStage = PreprocessingStage {
     options: STAGE_OPTIONS,
     legacy: LEGACY_FLAGS,
+    service_version: preprocessing_service::PREPROCESSING_SERVICE_VERSION,
     run: run_stage,
 };
 

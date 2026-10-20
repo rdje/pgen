@@ -184,7 +184,7 @@ The single comprehensive typing slice (landed 2026-05-14, parser release `1.0.1`
 
 ## Expander (the preprocessing service)
 
-The second layer over this family's AST: it takes the directive AST plus a **context** (edition profile, predefined macros, include directories, the unit's earlier files, the declared policy options, and — from `SVPP-EXPANSION.9.2` — a file provider) and produces the **preprocessed output** (`text`, `source_map`, `events`, `diagnostics`, `included_files`). Today its logic is the hand-written expansion stage in `rust/src/families/systemverilog/preprocessor.rs`; `SVPP-EXPANSION.9.3` re-points it at this AST. Contract: `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md`; chapter: [Preprocessing as a Service](preprocessing-service.md).
+The second layer over this family's AST: it takes the directive AST plus a **context** (edition profile, predefined macros, include directories, the unit's earlier files, the declared policy options, and a **file provider** — `FileProvider`, *path → bytes* with `exists` and `canonicalize`, the disk by default or the consumer's own store, since `SVPP-EXPANSION.9.2`) and produces the **preprocessed output** (`text`, `source_map`, `events`, `diagnostics`, `included_files`). Today its logic is the hand-written expansion stage in `rust/src/families/systemverilog/preprocessor.rs`; `SVPP-EXPANSION.9.3` re-points it at this AST. Contract: `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md`; chapter: [Preprocessing as a Service](preprocessing-service.md).
 
 ## Consumption mode
 

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-be5bc34a.js";
+            window.path_to_searchindex_js = "searchindex-0c2442b4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-d19d7c2c.js"></script>
@@ -844,6 +844,16 @@ cannot place (an empty expansion) reads <code>origin=unknown</code> rather than 
 </code></pre>
 <p>It is opt-in for the same reason the stack-probe line is: PGEN’s corpus runner captures the probe’s
 stderr as a per-file measurement column, and an unconditional line would edit a tracked artifact.</p>
+<p>Since <code>SVPP-EXPANSION.9.2</code> the single command can also <strong>emit</strong> what it expanded, before it parses it:</p>
+<pre><code class="language-bash">./rust/target/release/parseability_probe --parse systemverilog f.sv --profile sv_2017 --preprocess \
+    --emit-preprocessed f.expanded.sv --emit-source-map f.map.json
+</code></pre>
+<p><code>--emit-preprocessed</code> writes the expanded text of the input file (byte-identical to <code>ast_pipeline --output</code>’s);
+<code>--emit-source-map</code> writes the preprocessing service’s versioned JSON carrier — <code>preprocessed_output_schema</code>,
+<code>service</code>, <code>service_version</code>, then <code>source_map</code>, <code>events</code>, <code>diagnostics</code> and <code>included_files</code>. Both are written
+before the parser runs, so exit <code>1</code> still leaves them; exit <code>3</code> writes nothing; either flag without
+<code>--preprocess</code> is refused. The in-process form of the same outputs is the typed API of the preprocessing
+service (<code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md</code>).</p>
 <h2 id="what-the-pipeline-does-today-measured"><a class="header" href="#what-the-pipeline-does-today-measured">What the pipeline does today, measured</a></h2>
 <p>The pipeline lane (<code>stimuli/run_pipeline_lane.sh</code>, joined against the raw lane by
 <code>stimuli/sv/pipeline_vs_raw.py</code>; the tracked report is

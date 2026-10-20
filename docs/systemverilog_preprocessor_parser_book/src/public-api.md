@@ -131,11 +131,13 @@ Embedders should check this at startup and refuse to operate (or fall back grace
 
 The entry points above return the **directive AST**. A consumer that wants the **preprocessed text** — directives
 executed, macros substituted, includes resolved, with a source map, an event stream and coded diagnostics — uses the
-expander, which today is reachable in-process through the engine's neutral stage socket
-(`pgen::preprocessing_stage::stage_for("systemverilog")` → `execute(&StageRequest)` → `Vec<StageOutput>`) and as a tool
-(`ast_pipeline INPUT --preprocess systemverilog --output OUT …`). Its typed Rust API, its file provider and the probe's
-emit flag are `SVPP-EXPANSION.9.2`; the expander over this family's AST is `.9.3`. The chapter
-[Preprocessing as a Service](preprocessing-service.md) shows the three consumption modes; the draft contract is
+expander: in-process through its typed API (`pgen::families::systemverilog::preprocessing_service::{preprocess,
+preprocess_str}` over a `PreprocessContext` whose `FileProvider` is the disk or the host's own memory; `Err` is a typed
+`PreprocessRefusal`) or through the engine's neutral stage socket (`pgen::preprocessing_stage::stage_for("systemverilog")`
+→ `execute(&StageRequest)` → `Vec<StageOutput>`), and as a tool (`ast_pipeline INPUT --preprocess systemverilog --output
+OUT …`, or `parseability_probe … --preprocess --emit-preprocessed OUT --emit-source-map MAP`). The expander over this
+family's AST itself is `SVPP-EXPANSION.9.3`. The chapter [Preprocessing as a Service](preprocessing-service.md) shows the
+three consumption modes; the contract (`1.0`, held to the code by `scripts/check_svpp_expansion_contract_currency.sh`) is
 `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md`.
 
 ## Source pointer

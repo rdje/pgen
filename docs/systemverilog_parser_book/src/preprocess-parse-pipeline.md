@@ -128,6 +128,20 @@ PGEN_REPORT_PREPROCESS=1 ./rust/target/release/parseability_probe --parse system
 It is opt-in for the same reason the stack-probe line is: PGEN's corpus runner captures the probe's
 stderr as a per-file measurement column, and an unconditional line would edit a tracked artifact.
 
+Since `SVPP-EXPANSION.9.2` the single command can also **emit** what it expanded, before it parses it:
+
+```bash
+./rust/target/release/parseability_probe --parse systemverilog f.sv --profile sv_2017 --preprocess \
+    --emit-preprocessed f.expanded.sv --emit-source-map f.map.json
+```
+
+`--emit-preprocessed` writes the expanded text of the input file (byte-identical to `ast_pipeline --output`'s);
+`--emit-source-map` writes the preprocessing service's versioned JSON carrier — `preprocessed_output_schema`,
+`service`, `service_version`, then `source_map`, `events`, `diagnostics` and `included_files`. Both are written
+before the parser runs, so exit `1` still leaves them; exit `3` writes nothing; either flag without
+`--preprocess` is refused. The in-process form of the same outputs is the typed API of the preprocessing
+service (`docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md`).
+
 ## What the pipeline does today, measured
 
 The pipeline lane (`stimuli/run_pipeline_lane.sh`, joined against the raw lane by

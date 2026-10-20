@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-61d61585.js";
+            window.path_to_searchindex_js = "searchindex-acb6e23f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-c629bd36.js"></script>
@@ -182,10 +182,13 @@
                     <main>
                         <h1 id="preprocessing-as-a-service--the-expander-over-the-svpp-ast"><a class="header" href="#preprocessing-as-a-service--the-expander-over-the-svpp-ast">Preprocessing as a Service — the Expander over the svpp AST</a></h1>
 <blockquote>
-<p><strong>Status (2026-10-19): DRAFT contract, <code>SVPP-EXPANSION.9.1</code>.</strong> This chapter describes a service whose contract is
-drafted (<code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md</code>) and whose surfaces land in three
-measured steps (<code>.9.2</code> – <code>.9.4</code>). Every paragraph below says which of its statements is <strong>live today</strong> and which is
-<strong>contracted for</strong> a named step. Nothing here is a promise without a step.</p>
+<p><strong>Status (2026-10-20): contract <code>1.0</code>, <code>SVPP-EXPANSION.9.2</code>.</strong> This chapter describes a service whose contract
+(<code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md</code>) is at <code>1.0</code>: the typed Rust API, the file
+provider, the typed refusal and the probe’s emit flags are live, and a currency gate
+(<code>scripts/check_svpp_expansion_contract_currency.sh</code>) holds the contract’s every vocabulary and version equal to the
+code at every commit. The remaining surfaces land in two measured steps (<code>.9.3</code>, <code>.9.4</code>). Every paragraph below says
+which of its statements is <strong>live today</strong> and which is <strong>contracted for</strong> a named step. Nothing here is a promise
+without a step.</p>
 </blockquote>
 <h2 id="why-this-chapter-exists"><a class="header" href="#why-this-chapter-exists">Why this chapter exists</a></h2>
 <p>The <code>systemverilog_preprocessor</code> parser (svpp) reads IEEE 1800 clause-22 <strong>directives</strong> into an AST. It does not execute
@@ -203,9 +206,18 @@ AST-dump schema <code>7</code>. Layer 1.</li>
 <li><strong>The expander</strong> — the service that takes the svpp AST plus a <strong>context</strong> and produces the <strong>preprocessed output</strong>.
 Layer 2. Today its substantive logic lives in <code>rust/src/families/systemverilog/preprocessor.rs</code> as a hand-written
 directive scanner (the <em>expansion stage</em>); <code>.9.3</code> re-points that logic at the AST.</li>
-<li><strong>The context</strong> — a value, never an implicit filesystem: the edition profile, the predefined macros, the include
-search directories, the compilation unit’s earlier files, the declared policy options, and (from <code>.9.2</code>) a <strong>file
-provider</strong> that answers <em>path → bytes</em>, whose default reads disk and whose in-memory implementation is the consumer’s.</li>
+<li><strong>The context</strong> — a value, never an implicit filesystem (<code>PreprocessContext</code>): the edition profile, the predefined
+macros, the include search directories, the compilation unit’s earlier files, the declared policy options, and a
+<strong>file provider</strong> (<code>FileProvider</code>, the engine’s neutral trait) that answers <em>path → bytes</em> — plus <em>does this path
+exist</em> for the include search and <em>what is this path’s canonical spelling</em> for every output that names a file. The
+default (<code>DiskFileProvider</code>) reads the disk; <code>MemoryFileProvider</code> serves memory over an optional fallback; a
+consumer’s own implementation serves anything (a virtual filesystem, a build cache, an editor’s unsaved buffers).</li>
+<li><strong>A refusal</strong> — the expansion did not complete and the parser never sees the text. Typed (<code>PreprocessRefusal</code>): a
+<strong>kind</strong> (<code>RefusalKind</code>, eighteen of them: an include not found, nesting too deep, an undefined macro, a recursive
+macro, a redefinition under <code>error</code>, an unterminated conditional, an unreadable source, an invalid context, …), a
+<strong>code</strong> in the same <code>E_SVPP_…</code> vocabulary as the diagnostics, the <strong>file</strong> and <strong>line</strong> the refusing site knew, and
+the <strong>message</strong> — byte-for-byte the text the probe prints after <code>preprocess_failed</code>. The kind is attached at the
+refusing site, never parsed back out of the message.</li>
 <li><strong>The preprocessed output</strong> — five things: the expanded <code>text</code>; a <code>source_map</code> (every expanded byte range → the
 file, line and columns it came from); the <code>events</code> (one per directive outcome, each saying whether it fired in a
 live group); the <code>diagnostics</code> (coded, with severity); and the <code>included_files</code>.</li>
@@ -222,8 +234,8 @@ change to one never silently changes the other.</li>
 </thead>
 <tbody>
 <tr><td><strong>AST only</strong></td><td>svpp’s directive AST</td><td>expands itself, or never expands (a linter that must see both arms of a conditional; an editor)</td><td><strong>Yes</strong> — the embedding API’s generic parse / AST-dump entry points with grammar <code>systemverilog_preprocessor</code> and an edition profile (see <a href="public-api.html">Public API Surface</a>).</td></tr>
-<tr><td><strong>PGEN expands</strong></td><td>the preprocessed output</td><td>compiles against the text and the source map</td><td><strong>Yes, in-process and as a CLI tool</strong> (below); the typed Rust API with a published output type and an emit flag on the probe are <code>.9.2</code>.</td></tr>
-<tr><td><strong>Intercept</strong></td><td>the AST, then the output</td><td>walks or edits the AST (injects a define, serves an include from its own store), then hands it to the expander</td><td><strong>Contracted for <code>.9.3</code></strong> (the expander over the AST). Today’s nearest: predefined macros (<code>--symbol</code>) and include directories are context, not AST edits.</td></tr>
+<tr><td><strong>PGEN expands</strong></td><td>the preprocessed output</td><td>compiles against the text and the source map</td><td><strong>Yes</strong> — in-process through the typed API (<code>preprocess</code> over paths, <code>preprocess_str</code> over text in memory, both over a <code>FileProvider</code>) or the neutral stage socket, and as a tool (<code>ast_pipeline</code>, or <code>parseability_probe … --preprocess --emit-preprocessed</code>). Below.</td></tr>
+<tr><td><strong>Intercept</strong></td><td>the AST, then the output</td><td>walks or edits the AST (injects a define, serves an include from its own store), then hands it to the expander</td><td><strong>Contracted for <code>.9.3</code></strong> (the expander over the AST). Today’s nearest: the context — a consumer’s own <code>FileProvider</code> serves any include from its own store, and predefined macros (<code>defines</code> / <code>--symbol</code>) inject definitions — not AST edits.</td></tr>
 </tbody>
 </table>
 </div>
@@ -235,10 +247,44 @@ change to one never silently changes the other.</li>
   --output OUT.sv --source-map-json MAP.json --event-log-json EVENTS.json --diagnostics-json DIAG.json
 </code></pre>
 <p>Expand-then-parse in one process (the SystemVerilog parser’s front end; exit <code>3</code> = the expander refused, <code>1</code> = the parser
-rejected the expanded text, <code>0</code> = accepted). It does <strong>not</strong> emit the text — that flag is <code>.9.2</code>’s <code>--emit-preprocessed</code>:</p>
-<pre><code class="language-bash">parseability_probe --parse systemverilog INPUT.sv --profile sv_2017 --preprocess [the same context flags]
+rejected the expanded text, <code>0</code> = accepted), and — since <code>.9.2</code> — emit what was expanded: <code>--emit-preprocessed</code> writes the
+expanded text, <code>--emit-source-map</code> writes the versioned JSON carrier of the other four outputs (<code>preprocessed_output_schema</code>,
+<code>service</code>, <code>service_version</code>, then <code>source_map</code>, <code>events</code>, <code>diagnostics</code>, <code>included_files</code>). Both are written <strong>before</strong>
+the parser runs, so a parse rejection still leaves them; a refusal writes nothing; either flag without <code>--preprocess</code> is
+refused. The text is byte-identical to <code>ast_pipeline --output</code>’s.</p>
+<pre><code class="language-bash">parseability_probe --parse systemverilog INPUT.sv --profile sv_2017 --preprocess [the same context flags] \
+    --emit-preprocessed OUT.sv --emit-source-map MAP.json
 </code></pre>
-<p>In-process, through the engine’s neutral stage socket (one output per file of the unit, in order; <code>Err</code> is a refusal):</p>
+<p>In-process, through the <strong>typed API</strong> (<code>pgen::families::systemverilog::preprocessing_service</code>; the contract’s <code>1.0</code>
+surface — its names are the contract, its module path may gain a second spelling with the director’s placement answer):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::families::systemverilog::preprocessing_service::{preprocess, preprocess_str, MemoryFileProvider, PreprocessContext};
+use std::sync::Arc;
+
+// over paths: the unit's files and their `include`s come from the disk (the default provider)
+let ctx = PreprocessContext { profile: Some("sv_2017".into()), defines: vec!["SYNTHESIS".into(), "WIDTH=8".into()], ..Default::default() };
+let outputs = preprocess(&amp;[Path::new("pkg.sv"), Path::new("top.sv")], &amp;ctx)?;   // Vec&lt;PreprocessedOutput&gt;, index-aligned
+let top = &amp;outputs[1];
+
+// in memory: the text is the one file of the unit, its `include`s come from the consumer's own store
+let store = MemoryFileProvider::new().with_file("inc.svh", b"`define FROM_STORE 1\n".to_vec());
+let ctx = PreprocessContext::default().with_file_provider(Arc::new(store));
+let output = preprocess_str("top.sv", "`include \"inc.svh\"\nlogic [`FROM_STORE:0] a;\n", &amp;ctx)?;
+assert_eq!(output.text, "logic [1:0] a;\n");
+
+// a refusal is typed: match on it, or print it — the message is what the probe prints after `preprocess_failed`
+match preprocess_str("u.sv", "initial `NOT_DEFINED;\n", &amp;ctx) {
+    Err(refusal) =&gt; eprintln!("{} {} at {:?}:{:?}: {}", refusal.code, format!("{:?}", refusal.kind), refusal.file, refusal.line, refusal.message),
+    Ok(_) =&gt; unreachable!(),
+}
+<span class="boring">}</span></code></pre>
+<p><code>preprocess</code> runs exactly the code path the socket and PGEN’s own SystemVerilog front end run — the same option table,
+the same configuration derivation, the same per-file / per-unit entry — so its five outputs are byte-identical to the
+socket’s for the same unit and context (a test pins it). Two constants carry the service’s stability axes:
+<code>PREPROCESSING_SERVICE_VERSION</code> (<code>1.0.0</code>) and <code>PREPROCESSED_OUTPUT_SCHEMA_VERSION</code> (<code>1</code>).</p>
+<p>In-process, through the engine’s neutral stage socket (one output per file of the unit, in order; <code>Err</code> is a refusal —
+the same code path, for a host that names families by string):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use pgen::preprocessing_stage::{stage_for, StageRequest};
@@ -277,7 +323,12 @@ with <code>file</code>, <code>line</code>, <code>active</code> (did it fire in a
 first: <em>which groups were live for this compilation.</em></li>
 <li><strong><code>diagnostics</code></strong> — <code>{code, severity, file, line, message, detail}</code>; <code>severity</code> is <code>warning</code> or <code>error</code>. The codes are
 listed in the contract; <code>strict_warning_codes=all|none|CODE[,CODE…]</code> promotes warnings to errors.</li>
-<li><strong><code>included_files</code></strong> — every file the expansion read, in order of first inclusion.</li>
+<li><strong><code>included_files</code></strong> — every file the expansion read: the unit file first, then each include in order of first
+inclusion, each spelled as the file provider canonicalizes it.</li>
+<li><strong>A refusal</strong> is not one of the five: it is the <code>Err</code> — typed in the API (<code>PreprocessRefusal</code>: kind, code, file, line,
+message), a chain in the socket, exit <code>3</code> and <code>preprocess_failed …</code> on the probe — with one message in all three. The
+eighteen refusal codes are listed in the contract beside the diagnostic codes; a refusal that <em>is</em> a coded diagnostic
+(a redefinition under <code>error</code>, a missing macro argument, a recursive macro) reuses that diagnostic’s code.</li>
 </ul>
 <h2 id="one-engine-and-what-it-buys"><a class="header" href="#one-engine-and-what-it-buys">One engine, and what it buys</a></h2>
 <p>PGEN’s SystemVerilog parser does not use a different preprocessor behind the scenes: its <code>--preprocess</code> front end and
@@ -288,12 +339,12 @@ the verdict it receives are the ones PGEN’s own corpus lanes measure
 the expander — the class <code>SVPP-EXPANSION.5</code>(w) – (ac) names today — closes structurally rather than ticket by ticket.</p>
 <h2 id="what-is-not-yet-true-said-plainly"><a class="header" href="#what-is-not-yet-true-said-plainly">What is not yet true, said plainly</a></h2>
 <ul>
-<li>The probe parses the expanded text and does not emit it; <code>--emit-preprocessed</code> is <code>.9.2</code>.</li>
-<li>The in-process surface is the neutral stage socket above; a typed <code>preprocess(…)</code> / <code>expand(…)</code> pair with a published
-output type and a file provider is <code>.9.2</code>; the by-name/JSON form is a director question (whether it ships with <code>.9.2</code>).</li>
-<li>The expander does not yet read svpp’s AST; the divergences between the two readers are the ledgered rows
-<code>SVPP-EXPANSION.5</code>(w) – (ac), each adjudicated with its clause and expected to move under <code>.9.3</code>’s reading.</li>
-<li>The source map has no expansion chain yet (schema <code>1</code>); schema <code>2</code> adds it.</li>
+<li>The expander does not yet read svpp’s AST, so there is no <code>expand(ast, ctx)</code> and no AST-level intercept (<code>.9.3</code>); the
+divergences between the two readers are the ledgered rows <code>SVPP-EXPANSION.5</code>(w) – (ac), each adjudicated with its
+clause and expected to move under <code>.9.3</code>’s reading.</li>
+<li>The source map has no expansion chain yet (schema <code>1</code>); schema <code>2</code> adds it (<code>.9.3</code>).</li>
+<li>The by-name / JSON in-process form and the module path of the typed API (a service of this family, or a third family
+name) are director questions; the names are the contract and will not move.</li>
 </ul>
 <h2 id="where-the-authority-is"><a class="header" href="#where-the-authority-is">Where the authority is</a></h2>
 <p>The contract <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md</code> is authoritative for the service’s

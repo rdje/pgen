@@ -13,11 +13,177 @@ use super::keyword_versions::{
     KeywordVersion, profile_admits_specifier, region_within_profile, version_for_profile,
     words_to_escape,
 };
-use anyhow::{Context, Result, bail};
+use crate::preprocessing_stage::{DiskFileProvider, FileProvider};
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap, HashSet};
-use std::fs;
+use std::fmt;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+/// `SVPP-EXPANSION.9.2` — WHAT a refusal is, attached at the site that refuses. The typed API
+/// (`super::preprocessing_service::PreprocessRefusal`) classifies a refusal by finding a
+/// [`Refusal`] in the error's context chain — never by parsing the message, which stays
+/// byte-for-byte what the stage has always printed. The code of each kind is
+/// `preprocessing_service::refusal_code`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RefusalKind {
+    /// An `` `include `` named a file no search path holds (IEEE 1800-2017 §22.4).
+    IncludeNotFound,
+    /// Include nesting deeper than `include_max_depth` (§22.4: the limit "shall be at least 15").
+    IncludeNesting,
+    /// An `` `include `` line that is neither `"file"` nor `<file>` once its macro is expanded.
+    IncludeMalformed,
+    /// A unit file or an include the provider could not canonicalize, read or decode.
+    SourceUnreadable,
+    /// A usage no definition in the unit or its context supplies (`undefined_macro_policy=error`).
+    UndefinedMacro,
+    /// A backtick that survives expansion and begins no directive and no usage: a macro-string or
+    /// paste token outside macro text, a function-like macro without its argument list, a backtick
+    /// before white space or punctuation, a macro that survived expansion (`SVPP-EXPANSION.6f`, `.6h`).
+    UnresolvedBacktick,
+    /// `E_SVPP_MISSING_MACRO_ARGUMENT`: a formal without a default and without an actual.
+    MissingMacroArgument,
+    /// `E_SVPP_EXTRA_MACRO_ARGUMENT`: more actuals than formals.
+    ExtraMacroArgument,
+    /// `E_SVPP_RECURSIVE_MACRO`: a macro expanding to a usage of itself (§22.5.1).
+    RecursiveMacro,
+    /// `E_SVPP_MACRO_REDEFINED` under `macro_redefine_policy=error`.
+    MacroRedefined,
+    /// A `` `define `` the stage cannot read: a directive name as the macro name, a formal list that
+    /// does not parse, macro text split across a string literal or an unclosed block comment.
+    DefineMalformed,
+    /// `E_SVPP_UNDEFINED_CONDITIONAL_SYMBOL` under `conditional_symbol_policy=error`.
+    UndefinedConditionalSymbol,
+    /// A conditional group still open at the end of the file.
+    UnterminatedConditional,
+    /// `E_SVPP_UNTERMINATED_PROTECTED_ENVELOPE` (§34.3).
+    UnterminatedProtectedEnvelope,
+    /// An `` `end_keywords `` that closes no open region (§22.14).
+    KeywordsRegion,
+    /// A warning promoted to an error by `strict_warning_codes`; the refusal carries the warning's
+    /// own `W_SVPP_…` code.
+    PromotedWarning,
+    /// The context itself: an invalid predefine, an undeclared or invalid option, an empty unit.
+    InvalidContext,
+    /// A refusal no site has classified — a gap of the classification, to be named when met.
+    Other,
+}
+
+impl RefusalKind {
+    /// Every kind, for the contract's currency gate and the test that pins one code per kind.
+    pub const ALL: &'static [RefusalKind] = &[
+        RefusalKind::IncludeNotFound,
+        RefusalKind::IncludeNesting,
+        RefusalKind::IncludeMalformed,
+        RefusalKind::SourceUnreadable,
+        RefusalKind::UndefinedMacro,
+        RefusalKind::UnresolvedBacktick,
+        RefusalKind::MissingMacroArgument,
+        RefusalKind::ExtraMacroArgument,
+        RefusalKind::RecursiveMacro,
+        RefusalKind::MacroRedefined,
+        RefusalKind::DefineMalformed,
+        RefusalKind::UndefinedConditionalSymbol,
+        RefusalKind::UnterminatedConditional,
+        RefusalKind::UnterminatedProtectedEnvelope,
+        RefusalKind::KeywordsRegion,
+        RefusalKind::PromotedWarning,
+        RefusalKind::InvalidContext,
+        RefusalKind::Other,
+    ];
+}
+
+/// `SVPP-EXPANSION.9.2` — a refusal as the stage raises it: its kind, the code when the site had
+/// one (a promoted warning's `W_SVPP_…`), the file and line the site knew, and the message.
+/// `Display` is the message alone, so an `anyhow` chain holding this prints exactly what `bail!`
+/// printed before the type existed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Refusal {
+    pub kind: RefusalKind,
+    pub code: Option<String>,
+    pub file: Option<String>,
+    pub line: Option<usize>,
+    message: String,
+}
+
+impl Refusal {
+    pub fn new(kind: RefusalKind, file: Option<&Path>, line: Option<usize>, message: String) -> Self {
+        Self {
+            kind,
+            code: None,
+            file: file.map(|path| path.display().to_string()),
+            line,
+            message,
+        }
+    }
+
+    pub fn with_code(mut self, code: &str) -> Self {
+        self.code = Some(code.to_string());
+        self
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+}
+
+/// `SVPP-EXPANSION.9.2` — a CONTEXT layer that carries what the site knew: the kind of thing it
+/// was doing, the file and the line. It is added with `with_context`, exactly where a plain
+/// string context was added before, and its `Display` is that string — so every error chain
+/// prints byte-for-byte as it did (`{:#}` and `{:?}` alike), while the typed API reads the kind
+/// (when the root carries no [`Refusal`]) and the site (always) through `downcast_ref`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RefusalSite {
+    pub kind: RefusalKind,
+    pub file: String,
+    pub line: Option<usize>,
+    text: String,
+}
+
+impl RefusalSite {
+    pub fn new(kind: RefusalKind, file: &Path, line: Option<usize>, text: String) -> Self {
+        Self {
+            kind,
+            file: file.display().to_string(),
+            line,
+            text,
+        }
+    }
+}
+
+impl fmt::Display for RefusalSite {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.text)
+    }
+}
+
+impl fmt::Display for Refusal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for Refusal {}
+
+/// `refuse!(kind, file, line; fmt, args…)` — `bail!` with a [`Refusal`] attached. The text is the
+/// format's, byte for byte; `file` is an `Option<&Path>`, `line` an `Option<usize>`.
+macro_rules! refuse {
+    ($kind:expr, $file:expr, $line:expr; $($arg:tt)*) => {
+        return Err(anyhow::Error::new(Refusal::new($kind, $file, $line, format!($($arg)*))))
+    };
+}
+
+/// [`refuse!`] carrying a diagnostic's own code (`refuse_coded!(kind, code, file, line; fmt, …)`).
+macro_rules! refuse_coded {
+    ($kind:expr, $code:expr, $file:expr, $line:expr; $($arg:tt)*) => {
+        return Err(anyhow::Error::new(
+            Refusal::new($kind, $file, $line, format!($($arg)*)).with_code($code),
+        ))
+    };
+}
+
 
 #[derive(Debug, Clone)]
 pub struct SvPreprocessorConfig {
@@ -111,10 +277,10 @@ impl PredefinedMacro {
             None => (raw, ""),
         };
         if name.is_empty() {
-            bail!("a predefined macro needs a name: got '{}'", raw);
+            refuse!(RefusalKind::InvalidContext, None, None; "a predefined macro needs a name: got '{}'", raw);
         }
         if !is_valid_macro_symbol(name) {
-            bail!(
+            refuse!(RefusalKind::InvalidContext, None, None; 
                 "'{}' is not a legal text-macro name for a predefined macro (expected NAME or NAME=TEXT; \
                  a formal-argument list is not accepted on the command line)",
                 name
@@ -354,8 +520,9 @@ struct ConditionalFrame {
     branch_taken: bool,
 }
 
-#[derive(Debug)]
 struct PreprocessorState {
+    /// `SVPP-EXPANSION.9.2`: where the unit's files and every `` `include `` come from.
+    provider: Arc<dyn FileProvider>,
     config: SvPreprocessorConfig,
     macros: HashMap<String, MacroDefinition>,
     output: String,
@@ -394,7 +561,10 @@ const SV_COV_PREDEFINED_MACROS: &[(&str, &str)] = &[
 ];
 
 impl PreprocessorState {
-    fn new(config: SvPreprocessorConfig) -> Self {
+    /// `SVPP-EXPANSION.9.2`: the state over a file provider — the disk for every CLI and for the
+    /// socket (`DiskFileProvider`, supplied by the two public entries), a consumer's own store
+    /// through the typed API.
+    fn with_provider(config: SvPreprocessorConfig, provider: Arc<dyn FileProvider>) -> Self {
         // `SVPP-EXPANSION.2`(a): the context's predefines ARE the macro table's initial contents.
         // Seeded in declaration order, so a later `NAME=…` on the command line supersedes an
         // earlier one the way a later `` `define `` supersedes an earlier one under the default
@@ -424,6 +594,7 @@ impl PreprocessorState {
             );
         }
         Self {
+            provider,
             config,
             macros,
             output: String::new(),
@@ -536,7 +707,8 @@ impl PreprocessorState {
         };
         self.diagnostics.push(diagnostic.clone());
         if promoted {
-            bail!(
+            refuse_coded!(
+                RefusalKind::PromotedWarning, code, Some(file), Some(line);
                 "{} at {}:{}: {} ({})",
                 diagnostic.code,
                 diagnostic.file,
@@ -680,7 +852,8 @@ impl PreprocessorState {
                             }
                             // `SVPP-EXPANSION.6f`: refused, not left for the parser (which reads the line as
                             // a directive and ACCEPTED verilator t_preproc_kwd_bad.v)
-                            None => bail!(
+                            None => refuse!(
+                                RefusalKind::KeywordsRegion, Some(file.as_path()), Some(line);
                                 "`end_keywords closes no open `begin_keywords region at {}:{} — IEEE 1364-2005 \
                                  §19.11: \"Each `begin_keywords directive must be paired with an `end_keywords \
                                  directive\"; IEEE 1800-2017 §22.14 speaks of \"the matching `end_keywords directive\"",
@@ -925,7 +1098,8 @@ impl PreprocessorState {
                 let macro_string_token = matches!(next, Some(b'"') | Some(b'`'))
                     || (next == Some(b'\\') && text[i + 1..].starts_with("\\`\""));
                 if macro_string_token {
-                    bail!(
+                    refuse!(
+                        RefusalKind::UnresolvedBacktick, Some(file.as_path()), Some(line);
                         "a macro-string or paste token (`\", `\\`\", ``) outside macro text at {}:{} — IEEE \
                          1800-2017 §22.5.1 gives these tokens meaning only within the text of a `define; \
                          here they are no token of the language",
@@ -943,7 +1117,8 @@ impl PreprocessorState {
                         continue;
                     }
                     match self.macros.get(name) {
-                        Some(def) if def.params.is_some() => bail!(
+                        Some(def) if def.params.is_some() => refuse!(
+                            RefusalKind::UnresolvedBacktick, Some(file.as_path()), Some(line);
                             "the function-like macro `{} is used without a complete argument list at {}:{} — IEEE \
                              1800-2017 §22.5.1: \"For a macro with arguments, the parentheses are always required in \
                              the macro call, even if all the arguments have defaults\" (Syntax 22-3: the closing \
@@ -952,13 +1127,15 @@ impl PreprocessorState {
                             file.display(),
                             line
                         ),
-                        Some(_) => bail!(
+                        Some(_) => refuse!(
+                            RefusalKind::UnresolvedBacktick, Some(file.as_path()), Some(line);
                             "the macro `{} survived expansion at {}:{} — an internal expansion gap, please report it",
                             name,
                             file.display(),
                             line
                         ),
-                        None => bail!(
+                        None => refuse!(
+                            RefusalKind::UndefinedMacro, Some(file.as_path()), Some(line);
                             "`{} is neither a defined macro nor a compiler directive at {}:{} — IEEE 1800-2017 \
                              §22.5.1 gives a text-macro usage its meaning by substitution (\"Once a text macro name \
                              has been defined, it can be used anywhere in the compilation unit where it is defined\"); \
@@ -983,7 +1160,8 @@ impl PreprocessorState {
                     Some(b'\\') => "a backslash that begins no escaped identifier".to_string(),
                     Some(c) => format!("`{}`", c as char),
                 };
-                bail!(
+                refuse!(
+                    RefusalKind::UnresolvedBacktick, Some(file.as_path()), Some(line);
                     "a backtick that begins no compiler directive and no text-macro usage at {}:{} — IEEE 1800-2017 \
                      §22.2 (\"All compiler directives are preceded by the (`) character\") and §22.5.1 Syntax 22-3 \
                      (`text_macro_usage ::= `text_macro_identifier …`) give the character meaning only before a \
@@ -1012,6 +1190,7 @@ impl PreprocessorState {
 
     fn push_error(
         &mut self,
+        kind: RefusalKind,
         code: &str,
         file: &Path,
         line: usize,
@@ -1027,7 +1206,8 @@ impl PreprocessorState {
             detail: detail.into(),
         };
         self.diagnostics.push(diagnostic.clone());
-        bail!(
+        refuse_coded!(
+            kind, code, Some(file), Some(line);
             "{} at {}:{}: {} ({})",
             diagnostic.code,
             diagnostic.file,
@@ -1109,7 +1289,17 @@ pub fn preprocess_systemverilog_file(
     input_path: &Path,
     config: &SvPreprocessorConfig,
 ) -> Result<PreprocessedOutput> {
-    let mut state = PreprocessorState::new(config.clone());
+    preprocess_systemverilog_file_with(input_path, config, Arc::new(DiskFileProvider))
+}
+
+/// `SVPP-EXPANSION.9.2`: [`preprocess_systemverilog_file`] over a file provider (the disk by
+/// default; a consumer's own store through `super::preprocessing_service`).
+pub fn preprocess_systemverilog_file_with(
+    input_path: &Path,
+    config: &SvPreprocessorConfig,
+    provider: Arc<dyn FileProvider>,
+) -> Result<PreprocessedOutput> {
+    let mut state = PreprocessorState::with_provider(config.clone(), provider);
     preprocess_file_internal(input_path, &mut state, 0)?;
     state.render_keyword_regions()?;
     state.refuse_unresolved_backticks()?;
@@ -1138,13 +1328,22 @@ pub fn preprocess_systemverilog_unit(
     files: &[PathBuf],
     config: &SvPreprocessorConfig,
 ) -> Result<Vec<PreprocessedOutput>> {
+    preprocess_systemverilog_unit_with(files, config, Arc::new(DiskFileProvider))
+}
+
+/// `SVPP-EXPANSION.9.2`: [`preprocess_systemverilog_unit`] over a file provider.
+pub fn preprocess_systemverilog_unit_with(
+    files: &[PathBuf],
+    config: &SvPreprocessorConfig,
+    provider: Arc<dyn FileProvider>,
+) -> Result<Vec<PreprocessedOutput>> {
     let mut outputs = Vec::with_capacity(files.len());
     let mut carried: Option<HashMap<String, MacroDefinition>> = None;
     // `SVPP-EXPANSION.8`: §22.14's region stack is UNIT state — "even across source code file
     // boundaries" — so it is carried between the unit's files exactly as the macro table is.
     let mut keyword_regions: Vec<KeywordVersion> = Vec::new();
     for (index, file) in files.iter().enumerate() {
-        let mut state = PreprocessorState::new(config.clone());
+        let mut state = PreprocessorState::with_provider(config.clone(), provider.clone());
         if let Some(macros) = carried.take() {
             state.macros = macros;
         }
@@ -1215,7 +1414,8 @@ fn preprocess_file_internal(
             .map(|p| p.display().to_string())
             .collect::<Vec<_>>();
         let chain = chain.into_iter().rev().collect::<Vec<_>>().join(" -> ");
-        bail!(
+        refuse!(
+            RefusalKind::IncludeNesting, Some(path), None;
             "include nesting deeper than {} levels while entering '{}' (IEEE 1800-2017 §22.4: \"The number \
              of nesting levels for include files shall be finite. Implementations may limit the maximum \
              number of levels to which include files can be nested, but the limit shall be at least 15\"); \
@@ -1227,12 +1427,26 @@ fn preprocess_file_internal(
         );
     }
 
-    let canonical_path = path
-        .canonicalize()
-        .with_context(|| format!("failed to canonicalize '{}'", path.display()))?;
+    // `SVPP-EXPANSION.9.2`: the provider answers both questions — the spelling every output names
+    // the file by, and its bytes — so an in-memory consumer never touches the disk here.
+    let provider = state.provider.clone();
+    let canonical_path = provider.canonicalize(path).with_context(|| {
+        RefusalSite::new(
+            RefusalKind::SourceUnreadable,
+            path,
+            None,
+            format!("failed to canonicalize '{}'", path.display()),
+        )
+    })?;
 
-    let content_bytes = fs::read(&canonical_path)
-        .with_context(|| format!("failed to read '{}'", canonical_path.display()))?;
+    let content_bytes = provider.read(&canonical_path).with_context(|| {
+        RefusalSite::new(
+            RefusalKind::SourceUnreadable,
+            &canonical_path,
+            None,
+            format!("failed to read '{}'", canonical_path.display()),
+        )
+    })?;
     // ⭐ SV-CORPUS-GRAD.12c.1 — the shared source-text decoder, not a local lossy fallback.
     //
     // Until this leaf the preprocessor substituted U+FFFD for every non-UTF-8 byte while
@@ -1241,8 +1455,14 @@ fn preprocess_file_internal(
     // Latin-1 `©` in a header comment now survives as `©` on BOTH paths. The warning stays
     // (the encoding is still worth telling the operator about) but it now names the encoding
     // instead of announcing a loss that no longer happens.
-    let decoded = crate::source_text::decode_source_bytes(content_bytes)
-        .with_context(|| format!("failed to decode '{}'", canonical_path.display()))?;
+    let decoded = crate::source_text::decode_source_bytes(content_bytes).with_context(|| {
+        RefusalSite::new(
+            RefusalKind::SourceUnreadable,
+            &canonical_path,
+            None,
+            format!("failed to decode '{}'", canonical_path.display()),
+        )
+    })?;
     if decoded.encoding != crate::source_text::SourceEncoding::Utf8 {
         state.push_warning(
             "W_SVPP_NON_UTF8_SOURCE",
@@ -1470,7 +1690,8 @@ fn preprocess_text_internal(
                 // text INSIDE a comment, which §22.5.1 forbids ("shall not be split across … Comments").
                 // Before this the comment's tail was emitted as source text with its opener consumed.
                 if active && !lrm_2023 && define_leaves_block_comment_open(&raw_line) {
-                    bail!(
+                    refuse!(
+                        RefusalKind::DefineMalformed, Some(file_path), Some(line_no);
                         "invalid `define directive at {}:{}: a block comment opened in the macro text is \
                          not closed before the text ends (IEEE 1800-2017 §22.5.1: the first newline not \
                          preceded by a backslash ends the macro text, and the text \"shall not be split \
@@ -1583,10 +1804,15 @@ fn preprocess_text_internal(
                                 version_for_profile(state.config.parse_profile.as_deref()),
                             )
                             .with_context(|| {
-                                format!(
-                                    "invalid `define directive at {}:{}",
-                                    file_path.display(),
-                                    line_no
+                                RefusalSite::new(
+                                    RefusalKind::DefineMalformed,
+                                    file_path,
+                                    Some(line_no),
+                                    format!(
+                                        "invalid `define directive at {}:{}",
+                                        file_path.display(),
+                                        line_no
+                                    ),
                                 )
                             })?;
                         if state.macros.contains_key(&name) {
@@ -1600,6 +1826,7 @@ fn preprocess_text_internal(
                                     format!("macro '{}'", name),
                                 )?,
                                 MacroRedefinitionPolicy::Error => state.push_error(
+                                    RefusalKind::MacroRedefined,
                                     "E_SVPP_MACRO_REDEFINED",
                                     file_path,
                                     line_no,
@@ -1668,10 +1895,15 @@ fn preprocess_text_internal(
                         let rest: &str = expanded_rest.as_deref().unwrap_or(rest);
                         let (include_token, is_angle) = parse_include_directive(rest)
                             .with_context(|| {
-                                format!(
-                                    "invalid `include directive at {}:{}",
-                                    file_path.display(),
-                                    line_no
+                                RefusalSite::new(
+                                    RefusalKind::IncludeMalformed,
+                                    file_path,
+                                    Some(line_no),
+                                    format!(
+                                        "invalid `include directive at {}:{}",
+                                        file_path.display(),
+                                        line_no
+                                    ),
                                 )
                             })?;
                         if Path::new(include_token).is_absolute()
@@ -1688,11 +1920,16 @@ fn preprocess_text_internal(
                         let include_path =
                             resolve_include_path(include_token, is_angle, file_path, state)
                                 .with_context(|| {
-                                    format!(
-                                        "failed to resolve include '{}' at {}:{}",
-                                        include_token,
-                                        file_path.display(),
-                                        line_no
+                                    RefusalSite::new(
+                                        RefusalKind::IncludeNotFound,
+                                        file_path,
+                                        Some(line_no),
+                                        format!(
+                                            "failed to resolve include '{}' at {}:{}",
+                                            include_token,
+                                            file_path.display(),
+                                            line_no
+                                        ),
                                     )
                                 })?;
                         preprocess_file_internal(&include_path, state, depth + 1)?;
@@ -2060,7 +2297,8 @@ fn preprocess_text_internal(
         }
     }
     if protected_depth > 0 {
-        bail!(
+        refuse!(
+            RefusalKind::UnterminatedProtectedEnvelope, Some(file_path), None;
             "E_SVPP_UNTERMINATED_PROTECTED_ENVELOPE in {}: a `pragma protect begin_protected has no \
              matching end_protected — IEEE 1800-2017 §34.3: \"The end_protected pragma expression … \
              shall be associated with the most recent begin_protected that has not already been closed\"",
@@ -2069,7 +2307,8 @@ fn preprocess_text_internal(
     }
 
     if !conditionals.is_empty() {
-        bail!(
+        refuse!(
+            RefusalKind::UnterminatedConditional, Some(file_path), None;
             "unterminated conditional block in '{}'",
             file_path.display()
         );
@@ -2407,6 +2646,7 @@ fn eval_symbol_condition(
                 format!("`{} {}", directive, symbol),
             )?,
             ConditionalSymbolPolicy::Error => state.push_error(
+                RefusalKind::UndefinedConditionalSymbol,
                 "E_SVPP_UNDEFINED_CONDITIONAL_SYMBOL",
                 file,
                 line,
@@ -2794,7 +3034,7 @@ fn parse_define_directive(
     let (name, rest_after_name) = parse_macro_name_token(trimmed.trim_start())
         .with_context(|| "missing macro name in `define")?;
     if is_compiler_directive_name(name, version) {
-        bail!(
+        refuse!(RefusalKind::DefineMalformed, None, None; 
             "the macro name '{}' is a compiler directive — IEEE 1800-2017 §22.5.1: \"All compiler directives shall \
              be considered predefined macro names; it shall be illegal to redefine a compiler directive as a macro \
              name\" (IEEE 1364-2005 §19.3.1: \"Text macro names may not be the same as compiler directive keywords\")",
@@ -2805,7 +3045,7 @@ fn parse_define_directive(
         let (params, after) = parse_macro_parameter_list(rest_after_name)
             .with_context(|| "invalid macro parameter list")?;
         if macro_text_leaves_string_open(after) {
-            bail!(
+            refuse!(RefusalKind::DefineMalformed, None, None; 
                 "the macro text is split across a string literal — IEEE 1800-2017 §22.5.1: \"The text specified for \
                  macro text shall not be split across the following lexical tokens: … String literals\" (the \
                  standard's own illegal example is `define first_half \"start of string)"
@@ -2822,7 +3062,7 @@ fn parse_define_directive(
         ))
     } else {
         if macro_text_leaves_string_open(rest_after_name) {
-            bail!(
+            refuse!(RefusalKind::DefineMalformed, None, None; 
                 "the macro text is split across a string literal — IEEE 1800-2017 §22.5.1: \"The text specified for \
                  macro text shall not be split across the following lexical tokens: … String literals\" (the \
                  standard's own illegal example is `define first_half \"start of string)"
@@ -2992,7 +3232,7 @@ fn append_inline_conditional_payload(indent: &str, payload: &str, out: &mut Vec<
 
 fn parse_macro_parameter_list(input: &str) -> Result<(Vec<MacroParameter>, &str)> {
     if !input.starts_with('(') {
-        bail!("macro parameter list must start with '('");
+        refuse!(RefusalKind::DefineMalformed, None, None; "macro parameter list must start with '('");
     }
     // `SVPP-EXPANSION.5`(v): the list closes at the `)` matching its `(` OUTSIDE any string literal — a default
     // argument may be a string holding `)` or `(` (verilator t_preproc_def09.v:56 `(a="==)",b="((((",c=() )`);
@@ -3017,7 +3257,7 @@ fn parse_macro_parameter_list(input: &str) -> Result<(Vec<MacroParameter>, &str)
             '(' => depth += 1,
             ')' => {
                 if depth == 0 {
-                    bail!("unexpected ')' while parsing macro parameter list");
+                    refuse!(RefusalKind::DefineMalformed, None, None; "unexpected ')' while parsing macro parameter list");
                 }
                 depth -= 1;
                 if depth == 0 {
@@ -3043,7 +3283,7 @@ fn parse_macro_parameter_list(input: &str) -> Result<(Vec<MacroParameter>, &str)
         // standard writes "white space or a comment" where it admits one (§22.4). The verdict is unchanged
         // (these two shapes were refused before, as an "invalid token" / "invalid trailing text").
         if t.starts_with("//") || t.starts_with("/*") {
-            bail!(formal_list_comment_refusal(t));
+            refuse!(RefusalKind::DefineMalformed, None, None; "{}", formal_list_comment_refusal(t));
         }
         let (name, trailing) = parse_identifier_token(t)
             .with_context(|| format!("invalid macro parameter token '{}'", t))?;
@@ -3053,9 +3293,9 @@ fn parse_macro_parameter_list(input: &str) -> Result<(Vec<MacroParameter>, &str)
         } else if let Some(rest) = trailing.strip_prefix('=') {
             Some(rest.trim().to_string())
         } else if trailing.starts_with("//") || trailing.starts_with("/*") {
-            bail!(formal_list_comment_refusal(trailing));
+            refuse!(RefusalKind::DefineMalformed, None, None; "{}", formal_list_comment_refusal(trailing));
         } else {
-            bail!("invalid trailing text in macro parameter '{}'", t);
+            refuse!(RefusalKind::DefineMalformed, None, None; "invalid trailing text in macro parameter '{}'", t);
         };
         params.push(MacroParameter {
             name: name.to_string(),
@@ -3149,7 +3389,7 @@ fn parse_include_directive(input: &str) -> Result<(&str, bool)> {
             .with_context(|| "unterminated quoted include path")?;
         let path = &rest[..quote_end];
         if path.is_empty() {
-            bail!("empty quoted include path");
+            refuse!(RefusalKind::IncludeMalformed, None, None; "empty quoted include path");
         }
         Ok((path, false))
     } else if let Some(rest) = trimmed.strip_prefix('<') {
@@ -3158,7 +3398,7 @@ fn parse_include_directive(input: &str) -> Result<(&str, bool)> {
             .with_context(|| "unterminated angle include path")?;
         let path = &rest[..angle_end];
         if path.is_empty() {
-            bail!("empty angle include path");
+            refuse!(RefusalKind::IncludeMalformed, None, None; "empty angle include path");
         }
         Ok((path, true))
     } else {
@@ -3166,7 +3406,7 @@ fn parse_include_directive(input: &str) -> Result<(&str, bool)> {
         // §22.5.1 adds that the directive "can be followed by a macro, instead of a string literal" — the
         // caller expands such a macro first (`SVPP-EXPANSION.5`(m)), so text reaching this arm is neither
         // form: an unquoted name, an undefined macro, or a macro whose text is not a filename.
-        bail!(
+        refuse!(RefusalKind::IncludeMalformed, None, None; 
             "include path must be quoted or angle-bracketed (IEEE 1800-2017 §22.4 Syntax 22-1: \
              `include \"filename\" | `include <filename>; §22.5.1: a macro after `include must expand \
              to one of the two); got '{}'",
@@ -3204,11 +3444,14 @@ fn resolve_include_path(
     }
 
     for candidate in candidates {
-        if candidate.exists() {
+        if state.provider.exists(&candidate) {
             return Ok(candidate);
         }
     }
-    bail!("include '{}' was not found in search paths", include_token)
+    refuse!(
+        RefusalKind::IncludeNotFound, Some(current_file), None;
+        "include '{}' was not found in search paths", include_token
+    )
 }
 
 fn split_lines_preserve_terminator(content: &str) -> Vec<String> {
@@ -3510,7 +3753,8 @@ fn expand_macros_in_text(
                 .map(|open| format!("`{}", open))
                 .collect::<Vec<_>>()
                 .join(" -> ");
-            bail!(
+            refuse!(
+                RefusalKind::RecursiveMacro, Some(file), Some(line);
                 "E_SVPP_RECURSIVE_MACRO at {}:{}: macro '{}' expands to a usage of itself ({} -> `{}) \
                  — IEEE 1800-2017 §22.5.1: \"It shall be an error for a macro to expand directly or \
                  indirectly to text containing another usage of itself\"",
@@ -4290,7 +4534,8 @@ fn expand_function_macro(
         (args, arg_masks)
     };
     if args.len() > params.len() {
-        bail!(
+        refuse!(
+            RefusalKind::ExtraMacroArgument, Some(file), Some(line);
             "E_SVPP_EXTRA_MACRO_ARGUMENT at {}:{}: `{} invoked with {} arguments for {} formals — IEEE \
              1800-2017 §22.5.1: it shall be an error to specify more actual arguments than the number of \
              formal arguments",
@@ -4304,7 +4549,8 @@ fn expand_function_macro(
     if args.len() < params.len() {
         for param in &params[args.len()..] {
             if param.default.is_none() {
-                bail!(
+                refuse!(
+                    RefusalKind::MissingMacroArgument, Some(file), Some(line);
                     "E_SVPP_MISSING_MACRO_ARGUMENT at {}:{}: `{} invoked with {} of {} arguments and formal \
                      '{}' has no default — IEEE 1800-2017 §22.5.1: \"ILLEGAL: … omitted, no default\"",
                     file.display(),

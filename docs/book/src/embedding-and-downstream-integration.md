@@ -920,8 +920,8 @@ The detailed platform plan for that lane lives in:
 - `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
 
 The first front-end service a downstream compiler integrates is **preprocessing**: PGEN's expander over the
-`systemverilog_preprocessor` AST, usable in-process (an in-memory file provider, from `SVPP-EXPANSION.9.2`) and as a
-tool, and the same engine PGEN's own SystemVerilog parser front end runs on. Its draft contract is
+`systemverilog_preprocessor` AST, usable in-process (the typed `preprocess` / `preprocess_str` API over a `FileProvider` — the disk, or the host's own memory — since `SVPP-EXPANSION.9.2`) and as a
+tool, and the same engine PGEN's own SystemVerilog parser front end runs on. Its contract (`1.0`, held to the code by its own currency gate) is
 `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_EXPANSION_CONTRACT.md`; the director's direction that PGEN is a
 **service provider** — parsers sharing well-contracted services that downstream projects leverage too — is recorded in
 `docs/decisions/project_pgen_is_a_service_provider_shared_contracted_services.md`, and the register of such services

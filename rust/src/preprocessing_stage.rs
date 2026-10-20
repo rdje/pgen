@@ -16,7 +16,10 @@
 //! pre-.113 serde shapes, with the event KIND opened from a per-language enum to its serde name.
 
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::collections::BTreeMap;
+use std::fmt;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 /// One option a family's stage declares — `--stage-opt KEY=VALUE` on the CLIs. The engine
 /// validates nothing about it beyond the key's existence; the family reads and refuses values.
@@ -158,6 +161,11 @@ pub struct PreprocessingStage {
     pub options: &'static [StageOptionSpec],
     /// The deprecated spellings this stage still accepts (rewritten by [`rewrite_legacy_args`]).
     pub legacy: &'static [LegacyFlag],
+    /// `SVPP-EXPANSION.9.2` — the family's PREPROCESSING SERVICE release line (its own axis,
+    /// independent of the family's parser release): what the probe's `--emit-source-map` carrier
+    /// names as `service_version`. Any change a consumer could observe in the five outputs for an
+    /// unchanged input and context moves it.
+    pub service_version: &'static str,
     /// The stage itself: one output per file of `request.unit`, in order; `Err` is a refusal that
     /// names its cause (the parser never runs on it).
     pub run: fn(&StageRequest) -> anyhow::Result<Vec<StageOutput>>,
@@ -324,6 +332,174 @@ pub fn resolve_preprocess_family(args: &[String]) -> (Vec<String>, Option<String
         idx += 1;
     }
     (out, family, notes)
+}
+
+/// `SVPP-EXPANSION.9.2` — the preprocessed-output SCHEMA version: the shape of the five outputs
+/// ([`StageOutput`], and every family's serde-equivalent of it). `1` is the shape as it has been
+/// since `.113`. A family's service declares its own release line beside it
+/// ([`PreprocessingStage::service_version`]); the probe's `--emit-source-map` carrier
+/// ([`StageOutput::carrier`]) names both.
+pub const OUTPUT_SCHEMA_VERSION: u32 = 1;
+
+/// `SVPP-EXPANSION.9.2` — the versioned JSON carrier of the four non-text outputs (the text goes
+/// to its own file): what `parseability_probe … --preprocess --emit-source-map PATH` writes. The
+/// two axes come first, so a reader knows the shape before it reads it.
+#[derive(Debug, Clone, Serialize)]
+pub struct StageOutputCarrier<'a> {
+    pub preprocessed_output_schema: u32,
+    /// The family whose stage produced the outputs (`systemverilog`).
+    pub service: &'a str,
+    pub service_version: &'a str,
+    pub source_map: &'a [SourceMapEntry],
+    pub events: &'a [StageEvent],
+    pub diagnostics: &'a [StageDiagnostic],
+    pub included_files: &'a [String],
+}
+
+impl StageOutput {
+    /// This output's carrier under the family's name and service version.
+    pub fn carrier<'a>(&'a self, service: &'a str, service_version: &'a str) -> StageOutputCarrier<'a> {
+        StageOutputCarrier {
+            preprocessed_output_schema: OUTPUT_SCHEMA_VERSION,
+            service,
+            service_version,
+            source_map: &self.source_map,
+            events: &self.events,
+            diagnostics: &self.diagnostics,
+            included_files: &self.included_files,
+        }
+    }
+}
+
+/// `SVPP-EXPANSION.9.2` — where a stage's bytes come from: the unit's files and every include a
+/// family's directives name. Engine-neutral: a path in, bytes out, plus the two questions an
+/// include search asks (`exists`) and a source map needs (`canonicalize`: the spelling every
+/// output names the file by). The default answers suit an in-memory store; [`DiskFileProvider`]
+/// gives the filesystem's.
+pub trait FileProvider: Send + Sync {
+    /// The bytes of `path`; `Err(ProviderError::NotFound)` when the provider has no such file.
+    fn read(&self, path: &Path) -> Result<Vec<u8>, ProviderError>;
+
+    /// Whether `path` names a file this provider can serve.
+    fn exists(&self, path: &Path) -> bool {
+        self.read(path).is_ok()
+    }
+
+    /// The spelling every output (the source map, the events, the diagnostics, the included-file
+    /// list) names `path` by. An in-memory store returns the path as given.
+    fn canonicalize(&self, path: &Path) -> Result<PathBuf, ProviderError> {
+        Ok(path.to_path_buf())
+    }
+}
+
+/// A provider's failure. `Io` prints the operating system's own text and nothing else, so a
+/// message that always ended `No such file or directory (os error 2)` still does.
+#[derive(Debug)]
+pub enum ProviderError {
+    NotFound(PathBuf),
+    Io { path: PathBuf, source: std::io::Error },
+}
+
+impl fmt::Display for ProviderError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ProviderError::NotFound(path) => {
+                write!(f, "no such file '{}' in the file provider", path.display())
+            }
+            ProviderError::Io { source, .. } => fmt::Display::fmt(source, f),
+        }
+    }
+}
+
+impl std::error::Error for ProviderError {}
+
+/// The disk — the default provider, and what every CLI uses.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DiskFileProvider;
+
+impl FileProvider for DiskFileProvider {
+    fn read(&self, path: &Path) -> Result<Vec<u8>, ProviderError> {
+        std::fs::read(path).map_err(|source| ProviderError::Io { path: path.to_path_buf(), source })
+    }
+
+    fn exists(&self, path: &Path) -> bool {
+        path.exists()
+    }
+
+    fn canonicalize(&self, path: &Path) -> Result<PathBuf, ProviderError> {
+        std::fs::canonicalize(path)
+            .map_err(|source| ProviderError::Io { path: path.to_path_buf(), source })
+    }
+}
+
+/// An in-memory store, optionally over a fallback (the disk, another store): a file it holds is
+/// served and named exactly as given; one it does not hold goes to the fallback, or is not found.
+#[derive(Default)]
+pub struct MemoryFileProvider {
+    files: BTreeMap<PathBuf, Vec<u8>>,
+    fallback: Option<Arc<dyn FileProvider>>,
+}
+
+impl fmt::Debug for MemoryFileProvider {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MemoryFileProvider")
+            .field("files", &self.files.keys().collect::<Vec<_>>())
+            .field("fallback", &self.fallback.as_ref().map(|_| "<dyn FileProvider>"))
+            .finish()
+    }
+}
+
+impl MemoryFileProvider {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Hold `bytes` under `path` (replacing an earlier file of the same spelling).
+    pub fn with_file(mut self, path: impl Into<PathBuf>, bytes: impl Into<Vec<u8>>) -> Self {
+        self.insert(path, bytes);
+        self
+    }
+
+    /// Serve what this store does not hold from `fallback`.
+    pub fn with_fallback(mut self, fallback: Arc<dyn FileProvider>) -> Self {
+        self.fallback = Some(fallback);
+        self
+    }
+
+    pub fn insert(&mut self, path: impl Into<PathBuf>, bytes: impl Into<Vec<u8>>) {
+        self.files.insert(path.into(), bytes.into());
+    }
+
+    /// The spellings this store holds, sorted.
+    pub fn paths(&self) -> impl Iterator<Item = &Path> {
+        self.files.keys().map(PathBuf::as_path)
+    }
+}
+
+impl FileProvider for MemoryFileProvider {
+    fn read(&self, path: &Path) -> Result<Vec<u8>, ProviderError> {
+        if let Some(bytes) = self.files.get(path) {
+            return Ok(bytes.clone());
+        }
+        match &self.fallback {
+            Some(inner) => inner.read(path),
+            None => Err(ProviderError::NotFound(path.to_path_buf())),
+        }
+    }
+
+    fn exists(&self, path: &Path) -> bool {
+        self.files.contains_key(path) || self.fallback.as_ref().is_some_and(|inner| inner.exists(path))
+    }
+
+    fn canonicalize(&self, path: &Path) -> Result<PathBuf, ProviderError> {
+        if self.files.contains_key(path) {
+            return Ok(path.to_path_buf());
+        }
+        match &self.fallback {
+            Some(inner) => inner.canonicalize(path),
+            None => Ok(path.to_path_buf()),
+        }
+    }
 }
 
 #[cfg(test)]
