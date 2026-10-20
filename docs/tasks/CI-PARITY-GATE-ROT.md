@@ -6427,3 +6427,15 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
 - **Owed** — `.119`(c) / `.120`(b) unchanged (a CI-shaped replay would have caught this one in the mirror: the mirror
   runs these audits under this host's locale). `.120`(a)'s next read: the hosted run of the push that carries `-0127`,
   which verifies this fix on the runner; the hosted doctrine gate stays red until that push.
+- **Read (2026-10-20, 21:16–21:19).** Push-mirror run 11 (`run.CAr8Ca`, started 14:52:02 on `2abfaf026`, 6 h 24 min,
+  the first launch through `ci_workflow_local_gate_guarded`, `rust/target/svpp9/ci_gate11.log`): 12 replayed jobs
+  `ok`, the run dir removed on success, `CI-GATE rc=0`, the guard's marker written and read (`OPS-MEMSAFE.6`(e)) —
+  GREEN; pushed `a0bec1ab6..2abfaf026` (`-0022`, `-0023`, `-0127`) to `origin/main` at 21:16:48. `.120`(a)'s read,
+  the hosted run of `2abfaf026`: `memory-architecture-gate` (run `39482107062`, 19:16:59–19:18:57 UTC,
+  `rust/target/svpp9/hosted/run_39482107062.log`) **`doctrines: ALL 46 enforced doctrines PASS`** —
+  `CI-MIRROR-DOCS-SURFACES` `✓ PASS` under the runner's C collation, so this fix is VERIFIED on the runner; the
+  run's scope block names the 11 staged-diff doctrines and the 2 release-probe doctrines that evaluated nothing
+  there (vacuous, said, never scored). `mdbook-docs-gate`, `fixed-point-gate`, `branch-protection-contract-gate`
+  green at 21:19, `lib-unit-test-gate` green at 21:44 (27 min) — five of five hosted jobs. The hosted doctrine gate is GREEN — the first fully green hosted doctrine run of the three read
+  since `.121`. `.120`(a) is satisfied; every later push's hosted run is read at cadence, and `.120`(b) /
+  `.119`(c) stand.

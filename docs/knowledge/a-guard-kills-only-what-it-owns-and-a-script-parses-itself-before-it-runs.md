@@ -33,7 +33,11 @@ reverify: "bash -n scripts/run_with_memory_guard.sh && tail -n 1 scripts/run_wit
    to kill the job. Exit 94 is reserved for a swap-out breach kill and is not implemented: on the
    day the rule would have been written, the tree stood at 35–76 % of its budget while a daemon was
    the cause, so a "kill when the tree is over 70 % under pressure" rule would have killed a healthy
-   seven-hour run. The kill rule waits on the data the marker now records.
+   seven-hour run. The kill rule waits on the data the marker now records. The first full-run marker
+   (mirror run 11, 2026-10-20) read `peak_swapout_ps=14264 pressure_samples=6
+   tree_mb_at_peak_swapout=2870` (23 % of the budget) and `unowned_top=-`: burst-shaped pressure,
+   never two consecutive samples, so the episode rule attributed nothing — `unowned_top` at the peak
+   sample is owed (`OPS-MEMSAFE.6`(f)).
 2. **"Free %" is not pressure.** `memory_pressure -Q` counts purgeable and cached pages as free; it
    read 51 % while swap was exhausted and the host was unusable. The figure that moves is `vm_stat`'s
    cumulative `Swapouts:` counter; its rate (pages per second, page size 16 384) is the axis.

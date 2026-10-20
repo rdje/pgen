@@ -74,7 +74,13 @@ body is one function called on the last line, so bash has parsed every byte befo
 and never reads the file again (*parse-before-run*). Push-mirror run 10 of 2026-10-20 finished
 green and its guard then died at the loop's end with a syntax error, because the script had been
 rewritten in place under it and bash reads a running script by file offset; the marker of that
-run is lost, and no later run can lose one that way.
+run is lost, and no later run can lose one that way. The first run through the guarded target
+(run 11, the same day, 6 h 24 min, green) kept its marker: the job's tree peaked at 9 999 MB, and
+the host swapped out at up to 14 264 pages/s in six isolated 5 s samples while the tree held
+2 870 MB, 23 % of its budget. That is burst-shaped pressure, and the two-consecutive-samples
+episode rule attributes nothing to it, so the marker names no unowned process; recording the
+largest unowned process at the peak sample itself is the next change to the guard
+(`OPS-MEMSAFE.6`(f)). The reading says again what the incident said: the job was not the cause.
 
 ⛔ **The guard was not the only supervisor on the host, and the other one had a lower line**
 (re-measured 2026-10-20, `OPS-MEMSAFE.6`: that launchd job, `com.user.memwatch`, is no longer
@@ -278,7 +284,8 @@ allowlist audits compared a hand-ordered roster against the host's `sort`, and t
 collation orders `MEMORY.md` before `MEMORY_ARCHITECTURE.md`, so a tree holding exactly the
 expected files was refused. Both sides of every such comparison are now sorted under
 `LC_ALL=C` before the exact-set comparison (`CI-PARITY-GATE-ROT.122`): a roster is a set, and
-its order on the page means nothing.
+its order on the page means nothing. The third hosted run (`2abfaf026`, 21:18 the same day)
+passed every enforced doctrine, that audit among them: the hosted doctrine gate is green.
 
 `audit_workflow_regeneration_surface` holds that arrangement in place, and its
 polarity is the point: the roster is derived from `git ls-files`, and *needing*
